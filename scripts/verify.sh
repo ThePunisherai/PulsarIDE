@@ -14,8 +14,8 @@ check(){ if eval "$2" >/dev/null 2>&1; then ok "$1"; else bad "$1"; fi; }
 echo "== PlanIDE verify =="
 
 # 1. python compiles
-if python3 -m py_compile server.py planide/*.py 2>/tmp/planide-pyc.log; then
-  ok "python: py_compile server.py + planide/*.py"
+if python3 -m py_compile server.py planide/*.py mcp/planide_mcp.py 2>/tmp/planide-pyc.log; then
+  ok "python: py_compile server.py + planide/*.py + mcp/planide_mcp.py"
 else
   bad "python: py_compile ($(cat /tmp/planide-pyc.log))"
 fi
@@ -93,7 +93,34 @@ if [ "$up" = 1 ]; then
     && ok "cli: list shows project" || bad "cli: list"
   PYTHONPATH="$DIR" python3 -m planide report "$PIDV" 2>/dev/null | grep -q 'project briefing' \
     && ok "cli: report" || bad "cli: report"
+
+  # CLI write commands = the agent tracking loop
+  IT=$(PYTHONPATH="$DIR" python3 -m planide item add "$PROJ" "cli item" --status broken 2>/dev/null | grep -o 'i_[a-f0-9]*')
+  [ -n "$IT" ] && ok "cli: item add" || bad "cli: item add"
+  PYTHONPATH="$DIR" python3 -m planide item set "$PROJ" "$IT" --status works 2>/dev/null | grep -q 'works' \
+    && ok "cli: item set (mark works)" || bad "cli: item set"
+  FX=$(PYTHONPATH="$DIR" python3 -m planide fix add "$PROJ" "cli fix" --agent tester 2>/dev/null | grep -o 'f_[a-f0-9]*')
+  PYTHONPATH="$DIR" python3 -m planide fix done "$PROJ" "$FX" 2>/dev/null | grep -q 'fixed' \
+    && ok "cli: fix done" || bad "cli: fix done"
 fi
+
+# MCP server: graceful degradation + no shadow from this repo's own mcp/ dir
+# (capture first -- the server exits 1 when 'mcp' is absent, which pipefail
+#  would otherwise propagate through the grep pipe as a false failure)
+MCPMSG=$(python3 mcp/planide_mcp.py 2>&1 || true)
+echo "$MCPMSG" | grep -q "pip install mcp" \
+  && ok "mcp: graceful message when 'mcp' absent" || bad "mcp: graceful message"
+FAKE=$(mktemp -d); mkdir -p "$FAKE/mcp/server"
+: > "$FAKE/mcp/__init__.py"; : > "$FAKE/mcp/server/__init__.py"
+printf 'class FastMCP:\n    def __init__(self,n): pass\n    def tool(self):\n        def d(f): return f\n        return d\n    def run(self): pass\n' > "$FAKE/mcp/server/fastmcp.py"
+if PYTHONPATH="$FAKE" python3 -c "
+import importlib.util
+s=importlib.util.spec_from_file_location('m','mcp/planide_mcp.py')
+m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
+assert m.FastMCP.__module__=='mcp.server.fastmcp', m.FastMCP.__module__
+assert callable(m.list_projects) and callable(m.mark_fixed) and callable(m.set_item)
+" 2>/tmp/planide-mcp.log; then ok "mcp: real SDK resolves (not shadowed); tools load"; else bad "mcp: import ($(cat /tmp/planide-mcp.log))"; fi
+rm -rf "$FAKE"
 
 kill "$SRV" 2>/dev/null
 rm -rf "$TESTCFG" "$PROJ"

@@ -70,7 +70,7 @@ Python standard library; there is nothing to install.
 ```bash
 ./plan add ~/code/my-emulator          # register + auto-detect
 ./plan list                            # all projects + progress
-./plan detect ~/code/my-emulator       # just the stack detection
+./plan board ~/code/my-emulator        # the board with item ids + statuses
 ./plan report ~/code/my-emulator       # print the AI briefing (pipe to an agent)
 ./plan backup ~/code/my-emulator       # zip snapshot
 ./plan sync   ~/code/my-emulator -m "wip"   # git add/commit/push
@@ -78,6 +78,26 @@ Python standard library; there is nothing to install.
 
 `./plan report … | claude -p "fix the broken items"` is the whole
 agent loop in one line.
+
+## Tracking *via* AI agents
+
+The point isn't just to export status to an agent — the agent should keep the
+tracker up to date **as it works**. Two ways, pick per agent:
+
+- **CLI (zero dependency)** — any shell-capable agent (Claude Code, Codex) runs:
+  ```bash
+  ./plan item add <proj> "save button 500" --status broken --notes "throws on click"
+  ./plan item set <proj> <item_id> --status works      # I fixed it
+  ./plan fix  add <proj> "await db call" --agent Claude
+  ./plan fix  done <proj> <fix_id> --solution "awaited the query"
+  ```
+- **MCP server** — MCP-native agents (Cursor, …) call `set_item` / `mark_fixed`
+  / `add_fix` tools directly. `pip install mcp`, then see
+  [`mcp/README.md`](mcp/README.md). (The MCP bridge is the *only* component that
+  needs a dependency; the core tool needs nothing.)
+
+Both write the same state the dashboard reads, so the board updates live while
+the agent works.
 
 ## Where your data lives
 
@@ -97,7 +117,8 @@ you already use:
   should do. Log the result back as a fix (with the agent's name).
 - **Orca / any IDE with a built-in browser** — run PlanIDE and open
   `http://127.0.0.1:8390` as a panel beside your agents; the agents do the
-  work, PlanIDE tracks it.
+  work, PlanIDE tracks it. A native Orca panel is the next phase — see the
+  [phased Orca integration plan](docs/ORCA-INTEGRATION.md).
 - **Same family as ThePunisher / Agentic OS** — matching navy/red palette and
   the same "run one Python file" philosophy, so it drops into that workflow.
 
