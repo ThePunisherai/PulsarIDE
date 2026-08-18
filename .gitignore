@@ -1,0 +1,10 @@
+# PlanIDE runtime artifacts
+.planide-server.pid
+.planide-server.log
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Per-project state lives inside each tracked project's own .planide/ folder,
+# not in this repo -- nothing here to ignore for that.
