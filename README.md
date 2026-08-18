@@ -1,141 +1,125 @@
 <div align="center">
 
-<img src="static/icon.svg" width="96" alt="PlanIDE" />
+<img src="tracker/static/icon.svg" width="96" alt="PlanIDE" />
 
 # PlanIDE
 
-**Your projects, tracked — from "what works / what's broken" to shipped.**
+**An agentic IDE that tracks its own work.**
 
-A local **project command deck**: pick any project folder (web app, `.exe`,
-emulator, library — anything), track what works and what's broken, log
-AI-assisted fixes, keep a roadmap and version history, snapshot backups,
-auto-detect the language/stack, and sync to GitHub (large files included).
-
-_Zero dependencies — one Python file, no build step._
+Claude Code, Codex, Antigravity, Gemini, Cursor, Copilot and friends running in
+parallel — with a project tracker built into the sidebar that knows what works,
+what's broken, and what the agents just fixed.
 
 </div>
 
 ---
 
-## Why
+## What it is
 
-Two open-source tools inspired this, and PlanIDE is the **mix** of the halves
-that matter for solo/AI-assisted building:
+PlanIDE is [Orca](https://github.com/stablyai/orca) (MIT — a next-gen IDE for
+parallel agentic development, with 40+ CLI agents, git worktree isolation, a
+built-in browser and terminals) **rebranded as PlanIDE and extended with a
+native project tracker**.
 
-| Tool | What it does | What PlanIDE borrows |
-|------|--------------|----------------------|
-| [oblien/openship](https://github.com/oblien/openship) | Self-hosted build/ship/deploy platform with GitHub push-to-deploy, backups, multi-language support | Auto-detect stack, **GitHub sync + large files**, **backups**, version tracking |
-| [stablyai/orca](https://github.com/stablyai/orca) | AI-agent orchestration IDE — run agents in parallel, feed diffs back, track work | **AI-agent coupling**: export a structured briefing of what's broken → hand to Claude/Codex → log the fix back |
+The missing half of agent-driven development isn't running the agents — Orca
+already nails that. It's keeping track of **what actually works**, what broke,
+what got fixed and by which agent, and how far along the project is. That's what
+PlanIDE adds, in the sidebar, wired to the agents.
 
-Where those are heavyweight (a deploy platform; an Electron IDE), PlanIDE is a
-**single Python file you run next to your code**. It doesn't replace your
-editor or your agents — it's the tracker/PM brain that sits beside them.
+| | |
+|---|---|
+| **The IDE** | Orca upstream: parallel agents in isolated worktrees, terminals, browser, diffs, GitHub/Linear |
+| **The tracker** | Board (works/broken/blocked/wip/todo), fix log with agent attribution, roadmap, versions, GitHub sync + LFS, backups, stack auto-detect, AI briefing export |
+| **The wiring** | Agents update the tracker themselves — via CLI or MCP — while they work |
 
-## What it does
-
-- **📁 Any project, any type.** Point it at a folder. It auto-detects the
-  language & stack (Node/Python/Rust/Go/C++/C#/.NET/PHP/Ruby/Flutter/…) and
-  guesses the *type*: web, desktop-exe, **emulator**, game, mobile, library,
-  cli, data — or `custom`, which you can override.
-- **✅ Works / broken tracker board.** A kanban of items with statuses:
-  `works · in progress · broken · blocked · to do`. This is your live
-  "what works, what doesn't."
-- **🔧 Fix log (AI or manual).** Every fix is *problem → solution*, optionally
-  tagged with the agent that did it (Claude, Codex, you). This is the
-  "tracking via AI agents" layer.
-- **✦ AI export.** One click turns the whole board into a structured Markdown
-  briefing — *what works, what's broken, open fixes, recently fixed, roadmap,
-  version history* — ending with a concrete **Ask**. Paste it into any agent.
-- **🗺️ Roadmap.** Milestones with a live progress bar — how far along you are.
-- **🏷️ Versions.** A changelog per version (added / fixed / changed).
-- **⾕ GitHub sync.** Init a repo, set the remote, **scan for large files** and
-  track them with Git LFS, then commit & push (with retry). Uses your existing
-  git credentials — PlanIDE never stores a token.
-- **💾 Backups.** One-click zip snapshots (skips `node_modules`/`.git`/etc.),
-  list & restore.
-
-## Quickstart
+## Build it
 
 ```bash
 git clone https://github.com/ThePunisherai/PlanIDE.git
 cd PlanIDE
-./start.sh                 # -> http://127.0.0.1:8390  (or: python3 server.py)
+./ide/build.sh --run
 ```
 
-Open the URL, click **Add project**, browse to a folder — done. Everything is
-Python standard library; there is nothing to install.
+That clones Orca at a pinned revision, applies the PlanIDE overlay (branding +
+tracker panel + engine wiring), installs, and starts the IDE. Needs `git`,
+`python3` and [`pnpm`](https://pnpm.io).
 
-### From the terminal (scriptable, agent-friendly)
+The tracker lives in the right sidebar behind the **radar icon**.
+
+## Repo layout
+
+```
+PlanIDE/
+├── tracker/          the tracker engine — Python stdlib only, no build step
+│   ├── planide/      detect · store · gitsync · backup · aireport  (+ CLI)
+│   ├── server.py     loopback HTTP API the IDE panel talks to
+│   ├── static/       standalone web UI (works without the IDE)
+│   └── mcp/          MCP server so agents update the tracker themselves
+├── ide/              the Orca fork layer
+│   ├── overlay/      our source: the sidebar panel, IPC bridge, engine service
+│   ├── apply.py      anchored, verified, idempotent integration + branding
+│   ├── build.sh      clone Orca → apply → install → run
+│   └── verify.sh     does the overlay still apply to upstream?
+├── docs/
+└── verify.sh         runs both self-tests
+```
+
+### Why an overlay instead of a 210 MB vendored fork
+
+Upstream Orca moves fast. Keeping only *our* code in `ide/overlay/**` and
+re-applying it onto a pinned upstream revision means an upstream bump is one
+line (`PINNED_COMMIT` in `ide/apply.py`) instead of a merge conflict across
+16 000 files. Every edit is anchored to an exact upstream string and verified —
+if upstream drifts, `apply.py` fails loudly naming the file, instead of
+silently producing a half-patched IDE.
+
+## Tracking *via* the agents
+
+The point isn't exporting status to an agent — the agent should keep the tracker
+current **as it works**. Two ways, pick per agent:
+
+- **CLI** (zero dependency) — any shell-capable agent (Claude Code, Codex) runs:
+  ```bash
+  ./tracker/plan item set <proj> <item_id> --status works
+  ./tracker/plan fix done <proj> <fix_id> --solution "awaited the query"
+  ```
+- **MCP** — MCP-native agents call `set_item` / `mark_fixed` / `add_fix`
+  directly. `pip install mcp`, then see [`tracker/mcp/README.md`](tracker/mcp/README.md).
+
+Both write the same state the sidebar panel reads, so a fix an agent logs
+mid-session shows up in the IDE.
+
+## The tracker on its own
+
+The engine is a real standalone tool — useful without the IDE, and the reason
+the IDE never re-implements any of it:
 
 ```bash
-./plan add ~/code/my-emulator          # register + auto-detect
-./plan list                            # all projects + progress
-./plan board ~/code/my-emulator        # the board with item ids + statuses
-./plan report ~/code/my-emulator       # print the AI briefing (pipe to an agent)
-./plan backup ~/code/my-emulator       # zip snapshot
-./plan sync   ~/code/my-emulator -m "wip"   # git add/commit/push
+cd tracker
+./start.sh                    # → http://127.0.0.1:8390
+./plan add ~/code/my-emulator # register + auto-detect the stack
+./plan report ~/code/my-app   # AI briefing → pipe it to any agent
 ```
 
-`./plan report … | claude -p "fix the broken items"` is the whole
-agent loop in one line.
+It auto-detects the project type (web · desktop-exe · **emulator** · game ·
+mobile · library · cli · custom) and language, tracks items and fixes, keeps a
+roadmap and versions, snapshots zip backups, and syncs to GitHub including
+large files via Git LFS.
 
-## Tracking *via* AI agents
-
-The point isn't just to export status to an agent — the agent should keep the
-tracker up to date **as it works**. Two ways, pick per agent:
-
-- **CLI (zero dependency)** — any shell-capable agent (Claude Code, Codex) runs:
-  ```bash
-  ./plan item add <proj> "save button 500" --status broken --notes "throws on click"
-  ./plan item set <proj> <item_id> --status works      # I fixed it
-  ./plan fix  add <proj> "await db call" --agent Claude
-  ./plan fix  done <proj> <fix_id> --solution "awaited the query"
-  ```
-- **MCP server** — MCP-native agents (Cursor, …) call `set_item` / `mark_fixed`
-  / `add_fix` tools directly. `pip install mcp`, then see
-  [`mcp/README.md`](mcp/README.md). (The MCP bridge is the *only* component that
-  needs a dependency; the core tool needs nothing.)
-
-Both write the same state the dashboard reads, so the board updates live while
-the agent works.
-
-## Where your data lives
-
-- **Central registry** — `~/.config/planide/projects.json` (which folders you
-  added).
-- **Per-project state** — `<project>/.planide/state.json` (items, fixes,
-  roadmap, versions, github + backup metadata). It lives *inside the project*
-  so it travels with your code and can be committed.
-
-## Coupling to AI agents & IDEs
-
-PlanIDE is a localhost web app + a JSON API + a CLI, so it plugs into whatever
-you already use:
-
-- **Any agent (Claude, Codex, …)** — use **AI export** (or `plan report`) to
-  hand the agent an accurate, structured picture of what's broken and what it
-  should do. Log the result back as a fix (with the agent's name).
-- **Orca / any IDE with a built-in browser** — run PlanIDE and open
-  `http://127.0.0.1:8390` as a panel beside your agents; the agents do the
-  work, PlanIDE tracks it. A native Orca panel is the next phase — see the
-  [phased Orca integration plan](docs/ORCA-INTEGRATION.md).
-- **Same family as ThePunisher / Agentic OS** — matching navy/red palette and
-  the same "run one Python file" philosophy, so it drops into that workflow.
+State lives in `<project>/.planide/state.json` — inside the project, so it
+travels with the code — plus a registry at `~/.config/planide/projects.json`.
 
 ## Verify
 
 ```bash
-./scripts/verify.sh        # compiles, boots the server, exercises the API + CLI
-                           # end-to-end, checks CSRF. Prints ALL GREEN.
+./verify.sh        # tracker: 25 checks · IDE overlay: 6 checks
 ```
 
-## Security
+## Credits & license
 
-A local tool: it binds to `127.0.0.1` only. State-changing `POST`s are refused
-when they carry a cross-origin browser `Origin` header (CSRF protection), so no
-other browser tab can drive it. It shells out to your real `git`; it never
-stores credentials.
+PlanIDE is built on [stablyai/orca](https://github.com/stablyai/orca)
+(MIT, © Lovecast Inc.) — all agent orchestration, terminals, worktrees and
+editor surface are upstream's work. The tracker, the sidebar panel, the engine
+wiring and the overlay tooling are PlanIDE's.
 
-## License
-
-[Apache-2.0](LICENSE) — same spirit as the tools that inspired it.
+PlanIDE's own code is [Apache-2.0](LICENSE).

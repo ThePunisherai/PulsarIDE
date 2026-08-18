@@ -8,3 +8,7 @@ __pycache__/
 
 # Per-project state lives inside each tracked project's own .planide/ folder,
 # not in this repo -- nothing here to ignore for that.
+
+# IDE build workspace: the Orca checkout the overlay is applied to.
+# It's upstream's code, re-created by ide/build.sh -- never committed here.
+ide/.work/
