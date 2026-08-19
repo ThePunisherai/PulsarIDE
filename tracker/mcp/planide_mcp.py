@@ -85,8 +85,10 @@ def get_board(project: str) -> dict:
     return {
         "name": st["name"], "type": st.get("type"), "version": st.get("version"),
         "progress": store.progress(st),
+        # `verified` is what the user confirmed; `claimed_by` is who reported it.
         "items": [{"id": i["id"], "title": i["title"], "status": i["status"],
-                   "notes": i.get("notes", "")} for i in st["items"]],
+                   "notes": i.get("notes", ""), "verified": i.get("verified", False),
+                   "claimed_by": i.get("claimed_by", "")} for i in st["items"]],
         "fixes": [{"id": f["id"], "title": f["title"], "status": f["status"],
                    "problem": f.get("problem", "")} for f in st["fixes"]],
         "roadmap": [{"id": m["id"], "title": m["title"], "done": m.get("done")}
@@ -95,20 +97,33 @@ def get_board(project: str) -> dict:
 
 
 @mcp.tool()
-def add_item(project: str, title: str, status: str = "todo", notes: str = "") -> dict:
-    """Add a tracker item. status: todo|wip|works|broken|blocked."""
+def add_item(project: str, title: str, status: str = "todo", notes: str = "",
+             agent: str = "") -> dict:
+    """Add a tracker item. status: todo|wip|works|broken|blocked.
+
+    Set `agent` to your own name so the board shows who reported it. Note that
+    marking something `works` records a CLAIM -- only the user can confirm it.
+    """
     st, path = _resolve(project)
-    it = store.add_item(st, title, status, notes)
+    it = store.add_item(st, title, status, notes, claimed_by=agent)
     store.save_state(path, st)
     return {"id": it["id"], "status": it["status"], "title": it["title"]}
 
 
 @mcp.tool()
 def set_item(project: str, item_id: str, status: str = "", notes: str = "",
-             title: str = "") -> dict:
-    """Update an item's status/notes/title. Use this to mark something works or broken."""
+             title: str = "", agent: str = "") -> dict:
+    """Update an item's status/notes/title. Use this to report something works or broken.
+
+    IMPORTANT: setting status to `works` records that YOU (the agent) believe it
+    works. It does not mark the item confirmed -- confirmation is the user's
+    alone, and there is deliberately no MCP tool for it. If you have just fixed
+    something, say so here and let the user confirm it in PlanIDE.
+    """
     st, path = _resolve(project)
     fields = {}
+    if agent:
+        fields["claimed_by"] = agent
     if status:
         fields["status"] = status
     if notes:

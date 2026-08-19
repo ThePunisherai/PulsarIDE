@@ -11,7 +11,9 @@ Read commands
 Write commands  (this is how an AI agent tracks its own work)
   add <path> [name]                    register a project (auto-detects the stack)
   item add    <path|id> "title" [--status S] [--notes T] [--tags a,b] [--priority P]
-  item set    <path|id> <item_id> [--status S] [--notes T] [--title T]
+  item set    <path|id> <item_id> [--status S] [--notes T] [--title T] [--agent A]
+  item confirm   <path|id> <item_id>    mark as CONFIRMED-BY-YOU (agents cannot)
+  item unconfirm <path|id> <item_id>    withdraw your confirmation
   fix  add    <path|id> "title" [--problem P] [--solution S] [--agent A] [--status open]
   fix  done   <path|id> <fix_id> [--solution S]
   milestone add <path|id> "title" [--target T]
@@ -106,10 +108,14 @@ def cmd_board(argv):
     st, _ = _resolve(argv[0])
     print("%s  v%s  [%s]" % (st["name"], st.get("version"), st.get("type")))
     pr = store.progress(st)
-    print("progress: %d%% working (%d/%d), %d broken, %d open fixes\n"
-          % (pr["percent"], pr["done"], pr["total_items"], pr["broken"], pr["open_fixes"]))
+    print("progress: %d%% working claimed (%d/%d) | %d%% CONFIRMED by you (%d) | "
+          "%d broken, %d open fixes\n"
+          % (pr["percent"], pr["done"], pr["total_items"], pr["confirmed_percent"],
+             pr["confirmed"], pr["broken"], pr["open_fixes"]))
     for it in st["items"]:
-        print("  %-14s [%-7s] %s" % (it["id"], it["status"], it["title"]))
+        mark = "OK " if it.get("verified") else ("?  " if it["status"] == "works" else "   ")
+        who = ("  <- %s" % it["claimed_by"]) if it.get("claimed_by") else ""
+        print("  %s%-14s [%-7s] %s%s" % (mark, it["id"], it["status"], it["title"], who))
     if st["fixes"]:
         print("\n  fixes:")
         for f in st["fixes"]:
@@ -153,27 +159,42 @@ def cmd_add(argv):
 
 def cmd_item(argv):
     if not argv:
-        print("usage: item add|set …"); return 1
+        print("usage: item add|set|confirm|unconfirm …"); return 1
     sub, rest = argv[0], argv[1:]
     if sub == "add":
-        pos, opt = parse(rest, {"status", "notes", "tags", "priority"})
+        pos, opt = parse(rest, {"status", "notes", "tags", "priority", "agent"})
         if len(pos) < 2:
-            print('usage: item add <path|id> "title" [--status S] [--notes T]'); return 1
+            print('usage: item add <path|id> "title" [--status S] [--notes T] [--agent A]'); return 1
         st, path = _resolve(pos[0])
         it = store.add_item(st, pos[1], opt.get("status", "todo"), opt.get("notes", ""),
                             [t.strip() for t in opt.get("tags", "").split(",") if t.strip()],
-                            opt.get("priority", "normal"))
+                            opt.get("priority", "normal"), opt.get("agent", ""))
         _save(st, path); print("added item %s [%s]" % (it["id"], it["status"])); return 0
     if sub == "set":
-        pos, opt = parse(rest, {"status", "notes", "title", "priority"})
+        pos, opt = parse(rest, {"status", "notes", "title", "priority", "agent"})
         if len(pos) < 2:
             print("usage: item set <path|id> <item_id> [--status S] …"); return 1
         st, path = _resolve(pos[0])
-        fields = {k: v for k, v in opt.items() if k in ("status", "notes", "title", "priority")}
+        if "agent" in opt:
+            opt["claimed_by"] = opt.pop("agent")
+        fields = {k: v for k, v in opt.items()
+                  if k in ("status", "notes", "title", "priority", "claimed_by")}
         it = store.update_item(st, pos[1], **fields)
         _save(st, path)
         print("updated %s -> %s" % (pos[1], it["status"]) if it else "no such item"); return 0 if it else 1
-    print("usage: item add|set …"); return 1
+    if sub in ("confirm", "unconfirm"):
+        # Your confirmation only -- no agent-facing surface reaches this.
+        if len(rest) < 2:
+            print("usage: item %s <path|id> <item_id>" % sub); return 1
+        st, path = _resolve(rest[0])
+        it = store.verify_item(st, rest[1], sub == "confirm")
+        _save(st, path)
+        if not it:
+            print("no such item"); return 1
+        print("%s -> %s" % (rest[1],
+              "CONFIRMED by you" if it["verified"] else "confirmation withdrawn"))
+        return 0
+    print("usage: item add|set|confirm|unconfirm …"); return 1
 
 
 def cmd_fix(argv):

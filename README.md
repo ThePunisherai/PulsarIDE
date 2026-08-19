@@ -31,6 +31,26 @@ PlanIDE adds, in the sidebar, wired to the agents.
 | **The IDE** | Orca upstream: parallel agents in isolated worktrees, terminals, browser, diffs, GitHub/Linear |
 | **The tracker** | Board (works/broken/blocked/wip/todo), fix log with agent attribution, roadmap, versions, GitHub sync + LFS, backups, stack auto-detect, AI briefing export |
 | **The wiring** | Agents update the tracker themselves — via CLI or MCP — while they work |
+| **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
+
+## Claimed vs. confirmed
+
+The failure mode of agent-driven development is a board full of green that
+nobody checked. So PlanIDE splits progress in two:
+
+- an agent moving an item to `works` records a **claim**, attributed to that
+  agent (`reported by Codex`);
+- **only you** can mark it **confirmed** — from the sidebar, or
+  `./tracker/plan item confirm <proj> <id>`.
+
+The sidebar shows both: a solid green bar for what you confirmed, a faint amber
+one behind it for what is merely claimed. Project health is scored on the
+confirmed number, not the claimed one. Changing an item's status drops its
+confirmation, so a confirmation always refers to what you actually saw.
+
+The boundary is enforced, not just documented: `/api/item/update` cannot set
+`verified`, and the MCP server agents use exposes no confirm tool at all —
+both covered by tests in `tracker/scripts/verify.sh`.
 
 ## Build it
 
@@ -112,7 +132,7 @@ travels with the code — plus a registry at `~/.config/planide/projects.json`.
 ## Verify
 
 ```bash
-./verify.sh        # tracker: 25 checks · IDE overlay: 6 checks
+./verify.sh        # tracker: 31 checks · IDE overlay: 6 checks
 ```
 
 ## Credits & license

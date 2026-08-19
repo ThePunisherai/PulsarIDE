@@ -131,6 +131,11 @@ def load_state(path: str) -> dict:
     # forward-compat: make sure all keys exist
     for k, v in _blank_state(path).items():
         st.setdefault(k, v)
+    # forward-compat: items predating the confirmation layer are "unconfirmed".
+    for it in st.get("items", []):
+        it.setdefault("claimed_by", "")
+        it.setdefault("verified", False)
+        it.setdefault("verified_at", "")
     return st
 
 
@@ -151,26 +156,60 @@ def state_for(project_id: str) -> tuple[dict, str]:
 # items (the works/broken tracker board)
 # --------------------------------------------------------------------------- #
 def add_item(st: dict, title: str, status: str = "todo", notes: str = "",
-             tags=None, priority: str = "normal") -> dict:
+             tags=None, priority: str = "normal", claimed_by: str = "") -> dict:
+    """Add a tracker item.
+
+    `claimed_by` records WHO said this — an agent name when an agent reports it,
+    empty when you entered it yourself. It never implies the claim is true: see
+    verify_item() for the confirmation this project deliberately keeps separate.
+    """
     if status not in ITEM_STATUSES:
         status = "todo"
     item = {
         "id": new_id("i_"), "title": title.strip() or "Untitled",
         "status": status, "notes": notes, "tags": tags or [],
         "priority": priority, "created_at": now_iso(), "updated_at": now_iso(),
+        # Trust boundary: an agent can move `status`, never `verified`.
+        "claimed_by": claimed_by, "verified": False, "verified_at": "",
     }
     st["items"].append(item)
     return item
 
 
 def update_item(st: dict, item_id: str, **fields) -> dict | None:
+    """Update an item's own fields.
+
+    Deliberately cannot set `verified`: confirmation is yours alone, and an
+    agent calling this must not be able to mark its own work as confirmed.
+    Changing the status of a confirmed item drops the confirmation, because what
+    you confirmed is no longer what the item says.
+    """
     for it in st["items"]:
         if it["id"] == item_id:
             for k, v in fields.items():
-                if k in ("title", "status", "notes", "tags", "priority"):
+                if k in ("title", "status", "notes", "tags", "priority", "claimed_by"):
                     if k == "status" and v not in ITEM_STATUSES:
                         continue
+                    if k == "status" and v != it.get("status") and it.get("verified"):
+                        it["verified"] = False
+                        it["verified_at"] = ""
                     it[k] = v
+            it["updated_at"] = now_iso()
+            return it
+    return None
+
+
+def verify_item(st: dict, item_id: str, verified: bool = True) -> dict | None:
+    """Confirm (or un-confirm) an item yourself.
+
+    This is the only way `verified` is ever set, and it is intentionally NOT
+    reachable from the MCP tools an agent uses -- "an agent says it works" and
+    "you saw it work" must never collapse into the same signal.
+    """
+    for it in st["items"]:
+        if it["id"] == item_id:
+            it["verified"] = bool(verified)
+            it["verified_at"] = now_iso() if verified else ""
             it["updated_at"] = now_iso()
             return it
     return None
@@ -281,6 +320,14 @@ def progress(st: dict) -> dict:
     broken = sum(counts.get(s, 0) for s in OPEN_BAD)
     pct = round(100 * done / total) if total else 0
 
+    # Two different truths, deliberately never merged into one number:
+    #   done      -- items whose status says "works" (often an agent's claim)
+    #   confirmed -- items YOU confirmed actually work
+    working_items = [i for i in items if i.get("status") in DONE_ITEM]
+    confirmed = sum(1 for i in working_items if i.get("verified"))
+    unconfirmed = len(working_items) - confirmed
+    confirmed_pct = round(100 * confirmed / total) if total else 0
+
     fixes = st.get("fixes", [])
     open_fixes = sum(1 for f in fixes if f.get("status") == "open")
     fixed = sum(1 for f in fixes if f.get("status") == "fixed")
@@ -289,15 +336,20 @@ def progress(st: dict) -> dict:
     ms_done = sum(1 for m in milestones if m.get("done"))
     ms_pct = round(100 * ms_done / len(milestones)) if milestones else 0
 
-    # health score: reward working items, penalise broken + open fixes
-    health = pct
+    # Health is scored on CONFIRMED work, not on claims: a project where every
+    # item is "works" but nothing is confirmed is not a healthy project, it is
+    # an unverified one.
+    health = confirmed_pct
     if total:
-        health = max(0, min(100, round(pct - 8 * broken / max(1, total) * 10 / 10
+        health = max(0, min(100, round(confirmed_pct - 8 * broken / max(1, total) * 10 / 10
                                        - 4 * open_fixes)))
     return {
         "total_items": total,
         "counts": counts,
         "done": done,
+        "confirmed": confirmed,
+        "unconfirmed": unconfirmed,
+        "confirmed_percent": confirmed_pct,
         "broken": broken,
         "percent": pct,
         "open_fixes": open_fixes,

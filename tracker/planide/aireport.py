@@ -41,6 +41,8 @@ def build(st: dict, mode: str = "full") -> str:
     custom = (st.get("stack") or {}).get("custom", "")
 
     works = [i for i in items if i.get("status") == "works"]
+    confirmed = [i for i in works if i.get("verified")]
+    unconfirmed = [i for i in works if not i.get("verified")]
     broken = [i for i in items if i.get("status") in ("broken", "blocked")]
     wip = [i for i in items if i.get("status") == "wip"]
     todo = [i for i in items if i.get("status") == "todo"]
@@ -59,15 +61,26 @@ def build(st: dict, mode: str = "full") -> str:
     L.append("- **Languages**: %s" % langs)
     L.append("- **Stack**: %s" % stack)
     L.append("- **Version**: %s" % p["version"])
-    L.append("- **Progress**: %d%% of tracked items working (%d/%d) -- health %d/100"
-             % (p["percent"], p["done"], p["total_items"], p["health"]))
+    L.append("- **Progress**: %d%% reported working (%d/%d); **%d%% confirmed by the "
+             "user** (%d) -- health %d/100"
+             % (p["percent"], p["done"], p["total_items"], p["confirmed_percent"],
+                p["confirmed"], p["health"]))
     L.append("- **Open problems**: %d broken/blocked, %d open fixes"
              % (p["broken"], p["open_fixes"]))
     L.append("")
 
-    L.append("## What works")
-    L.extend(_bullets(works) or ["- (nothing marked working yet)"])
+    L.append("## What works -- confirmed by the user")
+    L.extend(_bullets(confirmed) or ["- (nothing confirmed yet)"])
     L.append("")
+
+    if unconfirmed:
+        L.append("## Reported working, NOT yet confirmed")
+        L.append("_Treat these as claims, not facts: do not build on them without "
+                 "re-checking._")
+        L.extend(_bullets(
+            unconfirmed,
+            extra=lambda it: ("reported by %s" % it["claimed_by"]) if it.get("claimed_by") else ""))
+        L.append("")
 
     L.append("## What is broken / blocked")
     if broken:

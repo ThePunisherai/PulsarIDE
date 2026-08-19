@@ -102,7 +102,69 @@ if [ "$up" = 1 ]; then
   FX=$(PYTHONPATH="$DIR" python3 -m planide fix add "$PROJ" "cli fix" --agent tester 2>/dev/null | grep -o 'f_[a-f0-9]*')
   PYTHONPATH="$DIR" python3 -m planide fix done "$PROJ" "$FX" 2>/dev/null | grep -q 'fixed' \
     && ok "cli: fix done" || bad "cli: fix done"
+
+  # --- the confirmation trust boundary -------------------------------------
+  # An agent reporting "works" is a CLAIM; only the user confirms.
+  CI=$(PYTHONPATH="$DIR" python3 -m planide item add "$PROJ" "agent claim" \
+       --status works --agent TestBot 2>/dev/null | grep -o 'i_[a-f0-9]*')
+  curl -fs "http://127.0.0.1:$PORT/api/project?id=$PIDV" \
+    | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+it=[i for i in d['items'] if i['id']=='$CI'][0]
+sys.exit(0 if (it['status']=='works' and it['verified'] is False
+               and it['claimed_by']=='TestBot') else 1)" \
+    && ok "trust: an agent's 'works' is a claim, not confirmed" \
+    || bad "trust: agent claim was treated as confirmed"
+
+  # The engine must expose no way for that same call to self-confirm.
+  curl -fs -X POST "http://127.0.0.1:$PORT/api/item/update" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$PIDV\",\"item_id\":\"$CI\",\"verified\":true}" >/dev/null 2>&1
+  curl -fs "http://127.0.0.1:$PORT/api/project?id=$PIDV" \
+    | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+it=[i for i in d['items'] if i['id']=='$CI'][0]
+sys.exit(0 if it['verified'] is False else 1)" \
+    && ok "trust: item/update cannot set verified (agents cannot self-confirm)" \
+    || bad "trust: item/update let a caller confirm its own work"
+
+  # The user's own confirmation does work.
+  curl -fs -X POST "http://127.0.0.1:$PORT/api/item/verify" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$PIDV\",\"item_id\":\"$CI\",\"verified\":true}" | grep -q '"verified": true' \
+    && ok "trust: /api/item/verify confirms (the user's own path)" \
+    || bad "trust: /api/item/verify did not confirm"
+
+  # Re-reporting a different status must drop a confirmation, never keep it.
+  curl -fs -X POST "http://127.0.0.1:$PORT/api/item/update" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$PIDV\",\"item_id\":\"$CI\",\"status\":\"broken\"}" >/dev/null 2>&1
+  curl -fs "http://127.0.0.1:$PORT/api/project?id=$PIDV" \
+    | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+it=[i for i in d['items'] if i['id']=='$CI'][0]
+sys.exit(0 if it['verified'] is False else 1)" \
+    && ok "trust: a status change invalidates your confirmation" \
+    || bad "trust: confirmation survived a status change"
+
+  # progress() must report claimed and confirmed as separate numbers.
+  curl -fs "http://127.0.0.1:$PORT/api/project?id=$PIDV" \
+    | python3 -c "
+import sys,json; p=json.load(sys.stdin)['progress']
+sys.exit(0 if all(k in p for k in ('confirmed','unconfirmed','confirmed_percent')) else 1)" \
+    && ok "trust: progress separates claimed from confirmed" \
+    || bad "trust: progress is missing the confirmed split"
 fi
+
+# The MCP surface agents use must expose no confirmation tool at all.
+FAKE2=$(mktemp -d); mkdir -p "$FAKE2/mcp/server"
+: > "$FAKE2/mcp/__init__.py"; : > "$FAKE2/mcp/server/__init__.py"
+printf 'class FastMCP:\n    def __init__(self,n): self.tools=[]\n    def tool(self):\n        def d(f): self.tools.append(f.__name__); return f\n        return d\n    def run(self): pass\n' > "$FAKE2/mcp/server/fastmcp.py"
+if PYTHONPATH="$FAKE2" python3 -c "
+import importlib.util
+s=importlib.util.spec_from_file_location('m','mcp/planide_mcp.py')
+m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
+bad=[t for t in m.mcp.tools if 'verif' in t or 'confirm' in t]
+assert not bad, bad
+" 2>/dev/null; then ok "trust: MCP exposes no verify/confirm tool to agents"; else bad "trust: MCP exposes a confirm tool"; fi
+rm -rf "$FAKE2"
 
 # MCP server: graceful degradation + no shadow from this repo's own mcp/ dir
 # (capture first -- the server exits 1 when 'mcp' is absent, which pipefail

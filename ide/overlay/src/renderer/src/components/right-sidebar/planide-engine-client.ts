@@ -14,6 +14,11 @@ export type PlanIdeProgress = {
   total_items: number
   counts: Record<string, number>
   done: number
+  /** Items you confirmed actually work (never set by an agent). */
+  confirmed: number
+  /** Reported working but not confirmed by you yet. */
+  unconfirmed: number
+  confirmed_percent: number
   broken: number
   percent: number
   open_fixes: number
@@ -32,6 +37,11 @@ export type PlanIdeItem = {
   notes: string
   tags: string[]
   priority: string
+  /** True only when YOU confirmed it -- agents cannot set this. */
+  verified: boolean
+  verified_at: string
+  /** Who reported this (agent name), empty when you entered it yourself. */
+  claimed_by: string
 }
 
 export type PlanIdeFix = {
@@ -117,6 +127,19 @@ export async function addItem(
   notes = ''
 ): Promise<void> {
   await call('POST', '/api/item/add', { id, title, status, notes })
+}
+
+/**
+ * Confirm (or withdraw confirmation) that an item really works.
+ * This is yours alone: the MCP surface agents use exposes no equivalent, so
+ * "an agent says it works" can never masquerade as "you saw it work".
+ */
+export async function verifyItem(
+  id: string,
+  itemId: string,
+  verified: boolean
+): Promise<void> {
+  await call('POST', '/api/item/verify', { id, item_id: itemId, verified })
 }
 
 export async function markFixDone(id: string, fixId: string): Promise<void> {

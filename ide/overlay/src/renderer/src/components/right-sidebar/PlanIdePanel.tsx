@@ -15,6 +15,7 @@ import {
   CircleDot,
   ClipboardCopy,
   Loader2,
+  ShieldCheck,
   Plus,
   RefreshCw,
   Radar,
@@ -32,6 +33,7 @@ import {
   getProject,
   markFixDone,
   setItemStatus,
+  verifyItem,
   type PlanIdeItem,
   type PlanIdeProject
 } from './planide-engine-client'
@@ -68,13 +70,15 @@ function StatRow({ project }: { project: PlanIdeProject }): React.JSX.Element {
   return (
     <div className="grid grid-cols-3 gap-2 px-3 pb-3">
       {[
-        { k: 'Working', v: p.done, cls: 'text-emerald-500' },
-        { k: 'Broken', v: p.broken, cls: p.broken ? 'text-rose-500' : 'text-muted-foreground' },
+        // Confirmed first: what you have actually seen work is the number that
+        // matters. "Claimed" is what agents reported but nobody checked yet.
+        { k: 'Confirmed', v: p.confirmed, cls: 'text-emerald-500' },
         {
-          k: 'Open fixes',
-          v: p.open_fixes,
-          cls: p.open_fixes ? 'text-amber-500' : 'text-muted-foreground'
-        }
+          k: 'Claimed',
+          v: p.unconfirmed,
+          cls: p.unconfirmed ? 'text-amber-500' : 'text-muted-foreground'
+        },
+        { k: 'Broken', v: p.broken, cls: p.broken ? 'text-rose-500' : 'text-muted-foreground' }
       ].map((s) => (
         <div key={s.k} className="rounded-md border border-border bg-background/40 px-2 py-1.5">
           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{s.k}</div>
@@ -160,6 +164,19 @@ export default function PlanIdePanel(): React.JSX.Element {
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err))
         await refresh()
+      }
+    },
+    [project, refresh]
+  )
+
+  const toggleVerified = useCallback(
+    async (item: PlanIdeItem) => {
+      if (!project) return
+      try {
+        await verifyItem(project.id, item.id, !item.verified)
+        await refresh()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err))
       }
     },
     [project, refresh]
@@ -262,19 +279,34 @@ export default function PlanIdePanel(): React.JSX.Element {
           </button>
         </div>
 
+        {/* Two bars on purpose: the solid one is what YOU confirmed, the faint
+            one is everything agents merely reported. Collapsing them into a
+            single number is how a project looks finished while nobody has
+            actually checked anything. */}
         <div className="mt-3">
-          <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>
-              {p.done}/{p.total_items} {translate('planide.panel.working', 'working')}
+          <div className="mb-1 flex items-center justify-between text-[10px]">
+            <span className="text-emerald-500">
+              {p.confirmed}/{p.total_items}{' '}
+              {translate('planide.panel.confirmed', 'confirmed by you')}
             </span>
-            <span className="font-mono">{p.percent}%</span>
+            <span className="font-mono text-emerald-500">{p.confirmed_percent}%</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-rose-500 to-violet-400 transition-all"
+              className="absolute inset-y-0 left-0 rounded-full bg-amber-500/35"
               style={{ width: `${p.percent}%` }}
             />
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition-all"
+              style={{ width: `${p.confirmed_percent}%` }}
+            />
           </div>
+          {p.unconfirmed > 0 && (
+            <div className="mt-1 text-[10px] text-amber-500/90">
+              {p.unconfirmed}{' '}
+              {translate('planide.panel.awaiting', 'reported working, awaiting your check')}
+            </div>
+          )}
         </div>
       </div>
 
@@ -363,7 +395,7 @@ export default function PlanIdePanel(): React.JSX.Element {
                 <span className="ml-auto tabular-nums">{items.length}</span>
               </div>
               {items.map((item) => (
-                <div key={item.id} className="flex items-start gap-2 py-0.5">
+                <div key={item.id} className="group flex items-start gap-2 py-0.5">
                   <button
                     type="button"
                     onClick={() => void cycleStatus(item)}
@@ -374,11 +406,54 @@ export default function PlanIdePanel(): React.JSX.Element {
                     <span className={cn('block size-2 rounded-full', STATUS_DOT[item.status])} />
                   </button>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs">{item.title}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          'truncate text-xs',
+                          item.status === 'works' && !item.verified && 'text-muted-foreground'
+                        )}
+                      >
+                        {item.title}
+                      </span>
+                      {item.verified && (
+                        <ShieldCheck
+                          size={11}
+                          className="shrink-0 text-emerald-500"
+                          aria-label={translate('planide.panel.confirmedBadge', 'Confirmed by you')}
+                        />
+                      )}
+                    </div>
                     {item.notes && (
                       <div className="truncate text-[10px] text-muted-foreground">{item.notes}</div>
                     )}
+                    {item.claimed_by && !item.verified && (
+                      <div className="text-[10px] text-amber-500/80">
+                        {translate('planide.panel.reportedBy', 'reported by')} {item.claimed_by}
+                      </div>
+                    )}
                   </div>
+                  {/* Only you can confirm -- agents have no path to this. */}
+                  {status === 'works' && (
+                    <button
+                      type="button"
+                      onClick={() => void toggleVerified(item)}
+                      className={cn(
+                        'mt-0.5 shrink-0 rounded border px-1 py-0.5 text-[9px] font-semibold transition-colors',
+                        item.verified
+                          ? 'border-emerald-500/40 text-emerald-500'
+                          : 'border-border text-muted-foreground/70 hover:border-emerald-500 hover:text-emerald-500'
+                      )}
+                      title={
+                        item.verified
+                          ? translate('planide.panel.unconfirm', 'Withdraw your confirmation')
+                          : translate('planide.panel.confirm', 'I checked this — it works')
+                      }
+                    >
+                      {item.verified
+                        ? translate('planide.panel.confirmedShort', 'CONFIRMED')
+                        : translate('planide.panel.confirmShort', 'CONFIRM')}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

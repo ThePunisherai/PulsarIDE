@@ -247,14 +247,21 @@ class Handler(BaseHTTPRequestHandler):
             st, p = self._with_state(b)
             it = store.add_item(st, b.get("title", ""), b.get("status", "todo"),
                                 b.get("notes", ""), b.get("tags"),
-                                b.get("priority", "normal"))
+                                b.get("priority", "normal"), b.get("claimed_by", ""))
             store.save_state(p, st)
             return self._json({"ok": True, "item": it})
         if path == "/api/item/update":
             st, p = self._with_state(b)
             it = store.update_item(st, b.get("item_id", ""),
                                    **{k: b[k] for k in ("title", "status", "notes",
-                                      "tags", "priority") if k in b})
+                                      "tags", "priority", "claimed_by") if k in b})
+            store.save_state(p, st)
+            return self._json({"ok": it is not None, "item": it})
+        if path == "/api/item/verify":
+            # Your confirmation, and only yours: no agent-facing surface writes
+            # this (the MCP server deliberately exposes no verify tool).
+            st, p = self._with_state(b)
+            it = store.verify_item(st, b.get("item_id", ""), bool(b.get("verified", True)))
             store.save_state(p, st)
             return self._json({"ok": it is not None, "item": it})
         if path == "/api/item/delete":
