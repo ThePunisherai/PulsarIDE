@@ -29,7 +29,7 @@ change.
 `ide/verify.sh` re-applies the overlay to a scratch copy of the checkout on every
 run, so drift is caught by the test suite rather than by a broken build.
 
-## What the overlay changes (26 edits, 5 files added)
+## What the overlay changes (25 edits, 11 files added)
 
 ### Branding
 | File | Change |
@@ -60,12 +60,14 @@ run, so drift is caught by the test suite rather than by a broken build.
 | File | Change |
 |---|---|
 | `src/main/index.ts` | registers the tracker's IPC on `whenReady` — that is all "starting" it means |
+| `src/main/index.ts` | inside Orca's own agent-hook listener, hands each finished turn to the tracker |
 | **added** `src/main/planide/store.ts` | the state model: items, fixes, roadmap, versions, activity, progress |
 | **added** `src/main/planide/detect.ts` | language/stack/type detection |
 | **added** `src/main/planide/report.ts` | the AI briefing |
 | **added** `src/main/planide/git.ts` | status, init, remote, large-file scan, LFS, commit+push |
 | **added** `src/main/planide/backup.ts` | zip snapshots (own ZIP writer, no dependency) |
 | **added** `src/main/planide/ipc.ts` | the typed channel surface |
+| **added** `src/main/planide/agent-events.ts` | turns Orca's agent-hook events into Activity entries |
 | **added** `src/preload/planide.ts` | exposes `window.api.planide` |
 | `src/preload/index.ts` | wires that bridge into the `api` object |
 
@@ -100,6 +102,21 @@ header + central directory + EOCD) over Node's `zlib`. The suite proves the
 output is real by opening it with independent readers rather than trusting our
 own writer.
 
+**Agents are tracked by watching, not by asking.** Orca already knows when an
+agent finishes a turn — that signal drives its status dots — so the tracker
+listens to the same hook instead of relying on agents to report themselves. An
+agent that never touches the CLI or MCP still shows up in Activity, by name.
+
+What it deliberately does **not** do is touch the board. A finished turn is not
+evidence that anything works, and a board that fills itself with green is the
+exact failure this project exists to prevent, so a turn is only ever an Activity
+line — promoting it to an item stays your call. It also ignores anything that
+is not a real completion: replays, duplicate hook deliveries, and the `done`
+that upstream marks as a session boundary (an agent connecting or being cleared,
+which its own docs tell completion consumers to skip). And a workspace with no
+`.planide/state.json` is left alone, so using an agent never creates tracker
+files you did not ask for.
+
 **Failure is contained.** Every IPC handler returns `{ok, error}` rather than
 throwing, and the surfaces render an error state with a retry — a tracker
 problem must never take a renderer down with it.
@@ -109,15 +126,19 @@ problem must never take a renderer down with it.
 **Verified here** (`./verify.sh`, 25 checks):
 
 - the overlay applies cleanly to a real Orca checkout at the pinned revision,
-  all 23 edits resolving, and re-running changes nothing;
-- the tracker's own behaviour, run for real (30 checks): detection, state
+  all 25 edits resolving, and re-running changes nothing;
+- the tracker's own behaviour, run for real (46 checks): detection, state
   round-trips, the trust boundary, progress arithmetic, activity attribution,
-  briefing ordering, and snapshots;
-- the five added TypeScript/TSX sources typecheck clean — including a separate
+  briefing ordering, snapshots, and the agent-turn recorder (completions,
+  replays, session boundaries, duplicates, untracked projects);
+- every added TypeScript/TSX source typechecks clean — including a separate
   run against real `@types/react`, which is what proves the workbench page is
   type-correct (the dependency-free `--noResolve` check in `ide/verify.sh`
   cannot see React's own types, so it reports `key` and callback-parameter
   false positives that the real-types run confirmed are not errors);
+- the call the overlay inserts into Orca's hook listener typechecks against
+  Orca's *real* `AgentHookEventPayload` — with a deliberate negative control in
+  the same file, so a pass cannot come from types silently failing to resolve;
 - the patched `electron-builder.config.cjs` and `package.json` still parse;
 - the hand-written ZIP opens cleanly in Python's `zipfile` and in the system
   `unzip`, with contents round-tripping;

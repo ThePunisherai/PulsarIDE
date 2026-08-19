@@ -11,7 +11,6 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$HERE/.." && pwd)"
 WORK="$HERE/.work/orca"
 UPSTREAM="https://github.com/stablyai/orca.git"
 PINNED="$(grep -oE '^PINNED_COMMIT = "[a-f0-9]+"' "$HERE/apply.py" | grep -oE '[a-f0-9]{40}')"
@@ -29,10 +28,18 @@ done
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "!! missing: $1 ($2)"; exit 1; }; }
 need git "install git"
-need python3 "the tracker engine runs on python3"
+need python3 "apply.py applies the overlay"
 [ "$APPLY_ONLY" = 1 ] || need pnpm "Orca builds with pnpm -- https://pnpm.io"
 
 # ── 1. get the upstream checkout ──────────────────────────────────────────
+# A directory here without a .git is a trap: every `git -C "$WORK"` below would
+# silently walk up and operate on THIS repo instead. Refuse rather than guess.
+if [ -d "$WORK" ] && [ ! -d "$WORK/.git" ]; then
+  echo "!! $WORK exists but is not a git checkout."
+  echo "   Delete it and re-run:  rm -rf \"$WORK\""
+  exit 1
+fi
+
 if [ ! -d "$WORK/.git" ]; then
   echo "==> cloning Orca into ide/.work/orca"
   mkdir -p "$(dirname "$WORK")"
@@ -53,21 +60,12 @@ fi
 echo "==> applying the PlanIDE overlay"
 python3 "$HERE/apply.py" "$WORK"
 
-# ── 3. make the tracker engine reachable from the checkout ────────────────
-# The main process looks for `tracker/` next to the app; symlink it so a dev run
-# uses this repo's engine directly (packaged builds get a real copy via
-# electron-builder extraResources).
-if [ ! -e "$WORK/tracker" ]; then
-  ln -s "$ROOT/tracker" "$WORK/tracker"
-  echo "==> linked tracker/ -> $ROOT/tracker"
-fi
-
 if [ "$APPLY_ONLY" = 1 ]; then
   echo "==> overlay applied (--apply-only, skipping install)"
   exit 0
 fi
 
-# ── 4. install + run ──────────────────────────────────────────────────────
+# ── 3. install + run ──────────────────────────────────────────────────────
 echo "==> pnpm install (this takes a while the first time)"
 ( cd "$WORK" && pnpm install )
 
@@ -82,6 +80,7 @@ PlanIDE is ready.
   run in dev :  cd ide/.work/orca && pnpm dev
   package    :  cd ide/.work/orca && pnpm build && pnpm exec electron-builder --config config/electron-builder.config.cjs
 
-The tracker sits in the right sidebar behind the radar icon.
+Open it from the left nav (Tracker), or glance at it in the right
+sidebar behind the radar icon.
 EOF
 fi

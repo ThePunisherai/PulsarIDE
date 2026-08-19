@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="tracker/static/icon.svg" width="96" alt="PlanIDE" />
+<img src="assets/icon.svg" width="96" alt="PlanIDE" />
 
 # PlanIDE
 
@@ -34,6 +34,7 @@ PlanIDE adds, in the sidebar, wired to the agents.
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
+| **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
 
 ## Claimed vs. confirmed
 
@@ -149,7 +150,17 @@ silently producing a half-patched IDE.
 ## Tracking *via* the agents
 
 The point isn't exporting status to an agent — the agent should keep the tracker
-current **as it works**. Two ways, pick per agent:
+current **as it works**.
+
+**Nothing to wire up: turns are recorded automatically.** Orca already knows when
+an agent finishes a turn, and PlanIDE listens to that same signal — so every turn
+lands in **Activity** under the agent's own name, even for agents that never call
+anything below. It stays out of the board on purpose: a finished turn is not
+evidence that something works, so it never moves an item. (Replays, duplicate
+deliveries and an agent merely connecting are all ignored, and a project you
+don't track is left alone.)
+
+To have an agent update the board itself, two ways — pick per agent:
 
 - **CLI** (zero dependency) — any shell-capable agent (Claude Code, Codex) runs:
   ```bash

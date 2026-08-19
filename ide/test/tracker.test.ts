@@ -9,6 +9,11 @@ import * as store from '../overlay/src/main/planide/store'
 import { detect } from '../overlay/src/main/planide/detect'
 import { buildReport } from '../overlay/src/main/planide/report'
 import * as backup from '../overlay/src/main/planide/backup'
+import {
+  projectPathFromWorktreeId,
+  recordAgentTurn,
+  resetAgentTurnCache
+} from '../overlay/src/main/planide/agent-events'
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -77,6 +82,47 @@ ok('leads with REGRESSION', md.indexOf('REGRESSION') < md.indexOf('## What works
 ok('has DO NOT BREAK', md.includes('DO NOT BREAK (protected by the user)'))
 ok('separates confirmed from claimed', md.includes('Reported working, NOT yet confirmed'))
 ok('tells agent not to self-confirm', md.includes('only records a claim'))
+
+console.log('== agent turns (recorded from Orca hooks, not by the agent) ==')
+store.saveState(proj, st)
+resetAgentTurnCache()
+const wt = (p: string): string => `repo_1::${p}`
+ok('worktree id yields the project path', projectPathFromWorktreeId(wt(proj)) === proj)
+ok('a path containing :: survives', projectPathFromWorktreeId('r::/a::b') === '/a::b')
+ok('a malformed id is refused', projectPathFromWorktreeId('nope') === null)
+ok('a degenerate id is refused', projectPathFromWorktreeId('::/a') === null &&
+   projectPathFromWorktreeId('r::') === null)
+
+const turn = (extra: Record<string, unknown> = {}, payload: Record<string, unknown> = {}) => ({
+  worktreeId: wt(proj), paneKey: 'pane-1',
+  payload: { state: 'done', prompt: 'wire the PPU', agentType: 'claude', ...payload },
+  ...extra
+})
+const before = store.loadState(proj).activity.length
+ok('a finished turn is recorded', recordAgentTurn(turn()) === true)
+ok('the same delivery is not recorded twice', recordAgentTurn(turn()) === false)
+ok('a replay is ignored', recordAgentTurn(turn({ isReplay: true }, { turnCompletedAt: 2 })) === false)
+ok('working/waiting churn is ignored', recordAgentTurn(turn({}, { state: 'working' })) === false)
+// Upstream marks connect/resume/clear as a `done` that is not a completed turn.
+ok('a session boundary is ignored', recordAgentTurn(turn({}, { sessionBoundary: true, turnCompletedAt: 3 })) === false)
+ok('an untracked project is left alone',
+   recordAgentTurn({ worktreeId: wt(mkdtempSync(join(tmpdir(), 'untracked-'))), payload: { state: 'done' } }) === false)
+// Orca's own per-turn key is authoritative, so the same key is always a duplicate...
+ok('a repeat of the same turn key is one entry',
+   recordAgentTurn(turn({ promptInteractionKey: 'k1' })) === true &&
+   recordAgentTurn(turn({ promptInteractionKey: 'k1' })) === false)
+// ...but a genuine second run of the same prompt still gets its own line.
+ok('a new turn key is a new entry', recordAgentTurn(turn({ promptInteractionKey: 'k2' })) === true)
+
+const agentState = store.loadState(proj)
+ok('activity grew, board did not', agentState.activity.length > before && agentState.items.length === st.items.length)
+ok('attributed to the agent that ran it', agentState.activity.some((x) => x.who === 'claude' && x.kind === 'agent-turn'))
+ok('the closing summary is its own line',
+   recordAgentTurn(turn({ promptInteractionKey: 'k3' }, { lastAssistantMessage: 'PPU scanline fixed' })) === true &&
+   store.loadState(proj).activity.some((x) => x.kind === 'agent-said' && x.text.includes('scanline')))
+ok('an interrupted turn says so',
+   recordAgentTurn(turn({ promptInteractionKey: 'k4' }, { interrupted: true })) === true &&
+   store.loadState(proj).activity.some((x) => x.kind === 'agent-interrupted'))
 
 console.log('== backup (own zip writer) ==')
 store.saveState(proj, st)

@@ -51,6 +51,7 @@ if command -v npx >/dev/null 2>&1; then
         src/main/planide/store.ts src/main/planide/detect.ts \
         src/main/planide/report.ts src/main/planide/git.ts \
         src/main/planide/backup.ts src/main/planide/ipc.ts \
+        src/main/planide/agent-events.ts \
         src/renderer/src/components/right-sidebar/planide-engine-client.ts \
         src/renderer/src/components/right-sidebar/PlanIdePanel.tsx \
         src/renderer/src/components/planide/PlanIdeView.tsx 2>&1 \
@@ -109,6 +110,11 @@ for rel in files:
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil.copy2(src, dst)
 PY
+  # A checkout that build.sh already patched still passes -- but then some
+  # anchors are ones our own earlier edits created, so say so rather than let a
+  # green line imply "still applies to pristine upstream".
+  note=""
+  grep -q "planide" "$tmp/src/main/index.ts" 2>/dev/null && note=" [checkout was already patched]"
   result=$(python3 "$HERE/apply.py" "$tmp" 2>&1)
   if echo "$result" | grep -q "PROBLEMS"; then
     bad "overlay applies to the Orca checkout (upstream drifted)"
@@ -116,7 +122,7 @@ PY
   else
     applied=$(echo "$result" | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
     done_already=$(echo "$result" | grep -oE 'already done  : [0-9]+' | grep -oE '[0-9]+')
-    ok "overlay applies to the Orca checkout ($((applied + done_already)) edits resolve)"
+    ok "overlay applies to the Orca checkout ($((applied + done_already)) edits resolve)$note"
     # re-run must be a no-op
     again=$(python3 "$HERE/apply.py" "$tmp" 2>&1 | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
     [ "$again" = "0" ] && ok "apply is idempotent (re-run changes nothing)" \

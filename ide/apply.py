@@ -218,6 +218,34 @@ EDITS: list[tuple[str, str, str, str]] = [
         "  gl: glApi,\n\n  // PlanIDE tracker bridge; see src/preload/planide.ts for why this is IPC\n  // rather than a direct renderer fetch.\n  planide: planIdeApi,",
         "expose window.api.planide",
     ),
+    # ---- integration: agents write their own trail --------------------------- #
+    # Orca already knows when an agent finishes a turn; the tracker listens to the
+    # same signal so the Activity trail is complete even for agents that never
+    # call the CLI or MCP. Anchored on the import the previous edit inserts --
+    # edits run in list order, so it is present by the time this one runs, and it
+    # keeps the two imports from fighting over one upstream line (which broke
+    # idempotency once already).
+    (
+        "src/main/index.ts",
+        "import { registerPlanIdeIpc } from './planide/ipc'",
+        "import { recordAgentTurn } from './planide/agent-events'\n"
+        "import { registerPlanIdeIpc } from './planide/ipc'",
+        "agent-turn recorder import",
+    ),
+    (
+        "src/main/index.ts",
+        "      if (!restoredUnconfirmed) {\n"
+        "        maybeAutoRenameBranchOnFirstWorkFromHook({ paneKey, tabId, worktreeId, payload, isReplay })\n"
+        "      }",
+        "      if (!restoredUnconfirmed) {\n"
+        "        maybeAutoRenameBranchOnFirstWorkFromHook({ paneKey, tabId, worktreeId, payload, isReplay })\n"
+        "        // PlanIDE: log the finished turn in that project's tracker. Everything\n"
+        "        // it needs to ignore (replays, session boundaries, duplicates, untracked\n"
+        "        // projects) is decided inside, and it can never throw into this pipeline.\n"
+        "        recordAgentTurn({ worktreeId, paneKey, isReplay, promptInteractionKey, payload })\n"
+        "      }",
+        "record finished agent turns in the tracker",
+    ),
 ]
 
 # Files copied verbatim from ide/overlay/ into the checkout.
@@ -228,6 +256,7 @@ OVERLAY_FILES = [
     "src/main/planide/git.ts",
     "src/main/planide/backup.ts",
     "src/main/planide/ipc.ts",
+    "src/main/planide/agent-events.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
     "src/renderer/src/components/right-sidebar/planide-engine-client.ts",
