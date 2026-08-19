@@ -80,15 +80,27 @@ def add_project(path: str, name: str = "") -> dict:
 
 @mcp.tool()
 def get_board(project: str) -> dict:
-    """Get the full board for a project: items, fixes, roadmap, progress."""
+    """Get the full board: items, fixes, roadmap, progress, and what is off-limits.
+
+    Read `protected` before changing anything: those items are marked DO NOT
+    BREAK by the user. Do not refactor, rename or 'improve' them as a side
+    effect of other work -- if a change requires touching one, stop and ask.
+    `regressions` lists protected items that are already broken; those take
+    priority over any new work.
+    """
     st, _ = _resolve(project)
     return {
         "name": st["name"], "type": st.get("type"), "version": st.get("version"),
         "progress": store.progress(st),
-        # `verified` is what the user confirmed; `claimed_by` is who reported it.
+        # `verified` = the user confirmed it; `locked` = the user protected it
+        # (DO NOT BREAK); `claimed_by` = who reported it. Agents read all three
+        # and can write none of them.
         "items": [{"id": i["id"], "title": i["title"], "status": i["status"],
                    "notes": i.get("notes", ""), "verified": i.get("verified", False),
+                   "locked": i.get("locked", False),
                    "claimed_by": i.get("claimed_by", "")} for i in st["items"]],
+        "protected": [i["title"] for i in st["items"] if i.get("locked")],
+        "regressions": [i["title"] for i in store.regressions(st)],
         "fixes": [{"id": f["id"], "title": f["title"], "status": f["status"],
                    "problem": f.get("problem", "")} for f in st["fixes"]],
         "roadmap": [{"id": m["id"], "title": m["title"], "done": m.get("done")}
@@ -99,7 +111,7 @@ def get_board(project: str) -> dict:
 @mcp.tool()
 def add_item(project: str, title: str, status: str = "todo", notes: str = "",
              agent: str = "") -> dict:
-    """Add a tracker item. status: todo|wip|works|broken|blocked.
+    """Add a tracker item. status: todo|wip|works|broken|blocked|done.
 
     Set `agent` to your own name so the board shows who reported it. Note that
     marking something `works` records a CLAIM -- only the user can confirm it.

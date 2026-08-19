@@ -16,6 +16,8 @@ import {
   ClipboardCopy,
   Loader2,
   ShieldCheck,
+  Lock,
+  ShieldAlert,
   Plus,
   RefreshCw,
   Radar,
@@ -34,13 +36,22 @@ import {
   markFixDone,
   setItemStatus,
   verifyItem,
+  lockItem,
   type PlanIdeItem,
   type PlanIdeProject
 } from './planide-engine-client'
 
-const STATUS_ORDER: PlanIdeItem['status'][] = ['broken', 'blocked', 'wip', 'todo', 'works']
+const STATUS_ORDER: PlanIdeItem['status'][] = [
+  'broken',
+  'blocked',
+  'wip',
+  'todo',
+  'works',
+  'done'
+]
 
 const STATUS_LABEL: Record<PlanIdeItem['status'], string> = {
+  done: 'Complete',
   works: 'Works',
   wip: 'In progress',
   broken: 'Broken',
@@ -49,6 +60,7 @@ const STATUS_LABEL: Record<PlanIdeItem['status'], string> = {
 }
 
 const STATUS_DOT: Record<PlanIdeItem['status'], string> = {
+  done: 'bg-violet-500',
   works: 'bg-emerald-500',
   wip: 'bg-violet-400',
   broken: 'bg-rose-500',
@@ -60,7 +72,8 @@ const STATUS_DOT: Record<PlanIdeItem['status'], string> = {
 const NEXT_STATUS: Record<PlanIdeItem['status'], PlanIdeItem['status']> = {
   todo: 'wip',
   wip: 'works',
-  works: 'broken',
+  works: 'done',
+  done: 'broken',
   broken: 'blocked',
   blocked: 'todo'
 }
@@ -78,7 +91,11 @@ function StatRow({ project }: { project: PlanIdeProject }): React.JSX.Element {
           v: p.unconfirmed,
           cls: p.unconfirmed ? 'text-amber-500' : 'text-muted-foreground'
         },
-        { k: 'Broken', v: p.broken, cls: p.broken ? 'text-rose-500' : 'text-muted-foreground' }
+        {
+          k: 'Protected',
+          v: p.protected,
+          cls: p.regressed ? 'text-rose-500' : 'text-violet-400'
+        }
       ].map((s) => (
         <div key={s.k} className="rounded-md border border-border bg-background/40 px-2 py-1.5">
           <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{s.k}</div>
@@ -174,6 +191,19 @@ export default function PlanIdePanel(): React.JSX.Element {
       if (!project) return
       try {
         await verifyItem(project.id, item.id, !item.verified)
+        await refresh()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err))
+      }
+    },
+    [project, refresh]
+  )
+
+  const toggleLocked = useCallback(
+    async (item: PlanIdeItem) => {
+      if (!project) return
+      try {
+        await lockItem(project.id, item.id, !item.locked)
         await refresh()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err))
@@ -310,6 +340,22 @@ export default function PlanIdePanel(): React.JSX.Element {
         </div>
       </div>
 
+      {/* The loudest thing this panel can say: work you protected is broken. */}
+      {p.regressed > 0 && (
+        <div className="mx-3 mb-2 flex items-start gap-2 rounded-md border border-rose-500/50 bg-rose-500/10 px-2.5 py-2">
+          <ShieldAlert size={13} className="mt-0.5 shrink-0 text-rose-500" />
+          <div className="min-w-0 text-[11px]">
+            <div className="font-semibold text-rose-500">
+              {p.regressed}{' '}
+              {translate('planide.panel.regression', 'protected item(s) broke')}
+            </div>
+            <div className="text-muted-foreground">
+              {translate('planide.panel.regressionHint', 'Fix this before anything else.')}
+            </div>
+          </div>
+        </div>
+      )}
+
       <StatRow project={project} />
 
       {/* Actions */}
@@ -422,6 +468,18 @@ export default function PlanIdePanel(): React.JSX.Element {
                           aria-label={translate('planide.panel.confirmedBadge', 'Confirmed by you')}
                         />
                       )}
+                      {item.locked && (
+                        <Lock
+                          size={10}
+                          className={cn(
+                            'shrink-0',
+                            status === 'broken' || status === 'blocked'
+                              ? 'text-rose-500'
+                              : 'text-violet-400'
+                          )}
+                          aria-label={translate('planide.panel.protectedBadge', 'Protected: do not break')}
+                        />
+                      )}
                     </div>
                     {item.notes && (
                       <div className="truncate text-[10px] text-muted-foreground">{item.notes}</div>
@@ -432,8 +490,25 @@ export default function PlanIdePanel(): React.JSX.Element {
                       </div>
                     )}
                   </div>
-                  {/* Only you can confirm -- agents have no path to this. */}
-                  {status === 'works' && (
+                  {/* Only you can protect -- agents have no path to this either. */}
+                  <button
+                    type="button"
+                    onClick={() => void toggleLocked(item)}
+                    className={cn(
+                      'mt-0.5 shrink-0 rounded border p-0.5 transition-colors',
+                      item.locked
+                        ? 'border-violet-400/40 text-violet-400'
+                        : 'border-transparent text-muted-foreground/40 hover:border-violet-400 hover:text-violet-400'
+                    )}
+                    title={
+                      item.locked
+                        ? translate('planide.panel.unprotect', 'Remove protection')
+                        : translate('planide.panel.protect', 'Protect: do not break this')
+                    }
+                  >
+                    <Lock size={10} />
+                  </button>
+                  {(status === 'works' || status === 'done') && (
                     <button
                       type="button"
                       onClick={() => void toggleVerified(item)}

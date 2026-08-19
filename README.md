@@ -32,6 +32,7 @@ PlanIDE adds, in the sidebar, wired to the agents.
 | **The tracker** | Board (works/broken/blocked/wip/todo), fix log with agent attribution, roadmap, versions, GitHub sync + LFS, backups, stack auto-detect, AI briefing export |
 | **The wiring** | Agents update the tracker themselves — via CLI or MCP — while they work |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
+| **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
 
 ## Claimed vs. confirmed
 
@@ -51,6 +52,38 @@ confirmation, so a confirmation always refers to what you actually saw.
 The boundary is enforced, not just documented: `/api/item/update` cannot set
 `verified`, and the MCP server agents use exposes no confirm tool at all —
 both covered by tests in `tracker/scripts/verify.sh`.
+
+## Your board: two axes, not one
+
+You enter what you know; agents fill in the rest. Every item has a **status**
+(the state it is in) and, separately, **your flags** — which only you can set.
+
+| Status | |
+|---|---|
+| `open` · `wip` | still to be done |
+| `works` | it functions |
+| `done` | **complete** — finished and closed out |
+| `broken` · `blocked` | needs attention |
+
+| Your flags | |
+|---|---|
+| ✓ **confirmed** | you checked it yourself — not a claim |
+| 🔒 **protected** | **do not break this**: load-bearing work agents must leave alone |
+
+Protection is the one that saves you: agents love to "improve" something that
+already worked. Every AI briefing leads with a **DO NOT BREAK** list, and if a
+protected item ever goes to broken, PlanIDE raises a **regression** — a red
+banner in the GUI and in the IDE panel, the first line of the briefing, and a
+hard hit to the project's health score.
+
+`/api/item/update` can set neither `verified` nor `locked`, and the MCP surface
+agents use exposes no tool for either — so an agent can never confirm its own
+work or unprotect the thing it is about to rewrite. All of it is covered by
+tests in `tracker/scripts/verify.sh`.
+
+**Activity** records every change with attribution, so you can see exactly what
+you did versus what Claude or Codex did — including the line that says which
+agent broke something you had protected.
 
 ## Build it
 
@@ -132,7 +165,7 @@ travels with the code — plus a registry at `~/.config/planide/projects.json`.
 ## Verify
 
 ```bash
-./verify.sh        # tracker: 31 checks · IDE overlay: 6 checks
+./verify.sh        # tracker: 36 checks · IDE overlay: 6 checks
 ```
 
 ## Credits & license

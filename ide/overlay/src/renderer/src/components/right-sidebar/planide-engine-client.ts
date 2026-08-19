@@ -19,6 +19,14 @@ export type PlanIdeProgress = {
   /** Reported working but not confirmed by you yet. */
   unconfirmed: number
   confirmed_percent: number
+  /** Finished and closed out. */
+  complete: number
+  /** Still to be done (todo + wip). */
+  open: number
+  /** Marked "do not break". */
+  protected: number
+  /** Protected items that are currently broken -- the loudest signal there is. */
+  regressed: number
   broken: number
   percent: number
   open_fixes: number
@@ -33,7 +41,8 @@ export type PlanIdeProgress = {
 export type PlanIdeItem = {
   id: string
   title: string
-  status: 'todo' | 'wip' | 'works' | 'broken' | 'blocked'
+  /** `works` = it functions; `done` = finished and closed out. */
+  status: 'todo' | 'wip' | 'works' | 'broken' | 'blocked' | 'done'
   notes: string
   tags: string[]
   priority: string
@@ -42,6 +51,9 @@ export type PlanIdeItem = {
   verified_at: string
   /** Who reported this (agent name), empty when you entered it yourself. */
   claimed_by: string
+  /** "Do not break this" -- protected by you. Agents can read it, never set it. */
+  locked: boolean
+  locked_at: string
 }
 
 export type PlanIdeFix = {
@@ -63,6 +75,8 @@ export type PlanIdeProject = {
   items: PlanIdeItem[]
   fixes: PlanIdeFix[]
   roadmap: { id: string; title: string; target: string; done: boolean }[]
+  /** Protected items that are currently broken. */
+  regressions?: PlanIdeItem[]
   stack?: { detected?: { languages?: string[]; stack?: string[]; confidence?: string } }
 }
 
@@ -140,6 +154,15 @@ export async function verifyItem(
   verified: boolean
 ): Promise<void> {
   await call('POST', '/api/item/verify', { id, item_id: itemId, verified })
+}
+
+/**
+ * Protect an item: "this works and must NOT be broken".
+ * Yours alone, like confirmation -- an agent must never be able to unprotect
+ * the thing it is about to refactor.
+ */
+export async function lockItem(id: string, itemId: string, locked: boolean): Promise<void> {
+  await call('POST', '/api/item/lock', { id, item_id: itemId, locked })
 }
 
 export async function markFixDone(id: string, fixId: string): Promise<void> {

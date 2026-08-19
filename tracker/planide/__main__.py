@@ -14,6 +14,9 @@ Write commands  (this is how an AI agent tracks its own work)
   item set    <path|id> <item_id> [--status S] [--notes T] [--title T] [--agent A]
   item confirm   <path|id> <item_id>    mark as CONFIRMED-BY-YOU (agents cannot)
   item unconfirm <path|id> <item_id>    withdraw your confirmation
+  item lock      <path|id> <item_id>    protect: DO NOT BREAK (agents cannot unlock)
+  item unlock    <path|id> <item_id>    drop that protection
+  activity <path|id> [n]                recent changes and who made them
   fix  add    <path|id> "title" [--problem P] [--solution S] [--agent A] [--status open]
   fix  done   <path|id> <fix_id> [--solution S]
   milestone add <path|id> "title" [--target T]
@@ -112,14 +115,32 @@ def cmd_board(argv):
           "%d broken, %d open fixes\n"
           % (pr["percent"], pr["done"], pr["total_items"], pr["confirmed_percent"],
              pr["confirmed"], pr["broken"], pr["open_fixes"]))
+    reg = store.regressions(st)
+    if reg:
+        print("  !! REGRESSION: %d protected item(s) are broken:" % len(reg))
+        for i in reg:
+            print("     - %s" % i["title"])
+        print()
     for it in st["items"]:
-        mark = "OK " if it.get("verified") else ("?  " if it["status"] == "works" else "   ")
+        mark = "OK " if it.get("verified") else ("?  " if it["status"] in ("works", "done") else "   ")
+        lock = "[LOCKED]" if it.get("locked") else ""
         who = ("  <- %s" % it["claimed_by"]) if it.get("claimed_by") else ""
-        print("  %s%-14s [%-7s] %s%s" % (mark, it["id"], it["status"], it["title"], who))
+        print("  %s%-14s [%-7s] %s %s%s" % (mark, it["id"], it["status"], it["title"], lock, who))
     if st["fixes"]:
         print("\n  fixes:")
         for f in st["fixes"]:
             print("  %-14s [%-7s] %s" % (f["id"], f["status"], f["title"]))
+    return 0
+
+
+def cmd_activity(argv):
+    if not argv:
+        print("usage: activity <path|id> [n]"); return 1
+    st, _ = _resolve(argv[0])
+    n = int(argv[1]) if len(argv) > 1 and argv[1].isdigit() else 20
+    for a in st.get("activity", [])[:n]:
+        print("  %s  %-8s %-12s %s" % (a["at"][5:16].replace("T", " "),
+              a["who"][:8], a["kind"], a["text"]))
     return 0
 
 
@@ -182,6 +203,17 @@ def cmd_item(argv):
         it = store.update_item(st, pos[1], **fields)
         _save(st, path)
         print("updated %s -> %s" % (pos[1], it["status"]) if it else "no such item"); return 0 if it else 1
+    if sub in ("lock", "unlock"):
+        if len(rest) < 2:
+            print("usage: item %s <path|id> <item_id>" % sub); return 1
+        st, path = _resolve(rest[0])
+        it = store.lock_item(st, rest[1], sub == "lock")
+        _save(st, path)
+        if not it:
+            print("no such item"); return 1
+        print("%s -> %s" % (rest[1],
+              "PROTECTED (do not break)" if it["locked"] else "protection removed"))
+        return 0
     if sub in ("confirm", "unconfirm"):
         # Your confirmation only -- no agent-facing surface reaches this.
         if len(rest) < 2:
@@ -270,7 +302,7 @@ COMMANDS = {
     "serve": cmd_serve, "list": cmd_list, "detect": cmd_detect, "board": cmd_board,
     "report": cmd_report, "status": cmd_status, "add": cmd_add, "item": cmd_item,
     "fix": cmd_fix, "milestone": cmd_milestone, "version": cmd_version,
-    "backup": cmd_backup, "sync": cmd_sync,
+    "backup": cmd_backup, "sync": cmd_sync, "activity": cmd_activity,
 }
 
 

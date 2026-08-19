@@ -55,14 +55,19 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal
 
 // state ----------------------------------------------------------------------
 const STATUS_COLS = [
-  ["works", "Works"], ["wip", "In progress"], ["broken", "Broken"],
-  ["blocked", "Blocked"], ["todo", "To do"],
+  ["broken", "Broken"], ["blocked", "Blocked"], ["wip", "In progress"],
+  ["todo", "To do"], ["works", "Works"], ["done", "Complete"],
 ];
+// Status = the state it's in. Flags (confirmed / protected) are yours alone and
+// live on the item, not in a column -- an item can be complete AND protected.
+const STATUS_LABEL = Object.fromEntries(STATUS_COLS);
 const SECTIONS = [
-  ["overview", "Overview"], ["board", "Board"], ["fixes", "Fixes / AI log"],
-  ["roadmap", "Roadmap"], ["versions", "Versions"], ["github", "GitHub"],
-  ["backups", "Backups"], ["ai", "AI export"],
+  ["overview", "Overview"], ["board", "Board"], ["protected", "Protected"],
+  ["fixes", "Fixes / AI log"], ["roadmap", "Roadmap"], ["versions", "Versions"],
+  ["activity", "Activity"], ["github", "GitHub"], ["backups", "Backups"],
+  ["ai", "AI export"],
 ];
+let BOARD_FILTER = "";
 let OV = null;      // overview payload
 let CUR = null;     // current project detail
 
@@ -203,12 +208,14 @@ async function renderProject(id, section) {
         <div class="chips mt8">${langs}${stack}${d.stack && d.stack.custom ? `<span class="chip type">${esc(d.stack.custom)}</span>` : ""}</div>
       </div>
       <div class="ring-wrap">
-        <div class="ring ${pr.percent >= 100 ? "g" : ""}" style="--p:${pr.percent || 0}"><span>${pr.percent || 0}%</span></div>
+        <div class="ring ${pr.confirmed_percent >= 100 ? "g" : ""}" style="--p:${pr.confirmed_percent || 0}"
+             title="Confirmed by you — the only number that isn't a claim"><span>${pr.confirmed_percent || 0}%</span></div>
         <div style="font-size:12px" class="muted">
-          <div><b style="color:var(--ok)">${pr.done || 0}</b> working</div>
-          <div><b style="color:var(--err)">${pr.broken || 0}</b> broken</div>
-          <div><b style="color:var(--warn)">${pr.open_fixes || 0}</b> open fixes</div>
-          <div><b>${pr.total_items || 0}</b> total</div>
+          <div><b style="color:var(--ok)">${pr.confirmed || 0}</b> confirmed by you</div>
+          <div><b style="color:var(--warn)">${pr.unconfirmed || 0}</b> claimed, unchecked</div>
+          <div><b style="color:var(--accent-2)">${pr.protected || 0}</b> protected</div>
+          <div><b style="color:var(--err)">${pr.broken || 0}</b> broken · <b>${pr.total_items || 0}</b> total</div>
+          ${pr.regressed ? `<div style="color:var(--err);font-weight:700">⚠ ${pr.regressed} regression${pr.regressed > 1 ? "s" : ""}</div>` : ""}
         </div>
       </div>
     </div>
@@ -218,8 +225,9 @@ async function renderProject(id, section) {
   $("#view").innerHTML = header + `<div id="sec"></div>`;
   $$("[data-sec]").forEach((b) => b.onclick = () => go("#/p/" + id + "/" + b.dataset.sec));
   const secBox = $("#sec");
-  const R = { overview: secOverview, board: secBoard, fixes: secFixes, roadmap: secRoadmap,
-    versions: secVersions, github: secGithub, backups: secBackups, ai: secAI };
+  const R = { overview: secOverview, board: secBoard, protected: secProtected,
+    fixes: secFixes, roadmap: secRoadmap, versions: secVersions,
+    activity: secActivity, github: secGithub, backups: secBackups, ai: secAI };
   (R[section] || secOverview)(secBox, d);
   if (window.innerWidth <= 860) closeSidebar();
 }
@@ -233,12 +241,21 @@ function secOverview(box, d) {
   const broken = d.items.filter((i) => i.status === "broken" || i.status === "blocked");
   const openFixes = d.fixes.filter((f) => f.status === "open");
   const c = pr.counts || {};
+  const regressed = (d.items || []).filter((i) => i.locked && (i.status === "broken" || i.status === "blocked"));
   box.innerHTML = `
+    ${regressed.length ? `<div class="panel regression">
+      <div class="panel-h"><h2>⚠ ${regressed.length} protected item${regressed.length > 1 ? "s" : ""} broke</h2>
+        <div class="spacer"></div><button class="btn sm" data-sec-jump="protected">Open →</button></div>
+      <div class="panel-note">You marked ${regressed.length > 1 ? "these" : "this"} “do not break”: ${regressed.map((i) => `<b>${esc(i.title)}</b>`).join(", ")}. Fix before anything else.</div>
+    </div>` : ""}
     <div class="grid stats" style="margin-bottom:18px">
-      <div class="stat"><div class="k">Working</div><div class="v ok mono">${c.works || 0}</div></div>
-      <div class="stat"><div class="k">In progress</div><div class="v mono">${c.wip || 0}</div></div>
+      <div class="stat"><div class="k">Confirmed by you</div><div class="v ok mono">${pr.confirmed}</div>
+        <div class="dimmer" style="font-size:11px">${pr.confirmed_percent}% of all items</div></div>
+      <div class="stat"><div class="k">Claimed, unchecked</div><div class="v mono ${pr.unconfirmed ? "warn" : ""}">${pr.unconfirmed}</div></div>
+      <div class="stat"><div class="k">Complete</div><div class="v mono">${pr.complete}</div></div>
+      <div class="stat"><div class="k">Still open</div><div class="v mono">${pr.open}</div></div>
+      <div class="stat"><div class="k">Protected</div><div class="v mono" style="color:var(--accent-2)">${pr.protected}</div></div>
       <div class="stat"><div class="k">Broken/blocked</div><div class="v mono ${pr.broken ? "red" : ""}">${pr.broken}</div></div>
-      <div class="stat"><div class="k">Milestones</div><div class="v mono">${pr.milestones_done}/${pr.milestones_total}</div></div>
     </div>
     <div class="panel"><div class="panel-h"><h2>Needs attention</h2><div class="spacer"></div>
       <button class="btn sm" data-sec-jump="board">Open board →</button></div>
@@ -253,29 +270,147 @@ function secOverview(box, d) {
 }
 
 // section: board -------------------------------------------------------------
+function itemBadges(i) {
+  const b = [];
+  if (i.locked) b.push('<span class="badge-lock" title="Protected: do not break">🔒 PROTECTED</span>');
+  if (i.verified) b.push('<span class="badge-ok" title="Confirmed by you">✓ CONFIRMED</span>');
+  else if ((i.status === "works" || i.status === "done") && i.claimed_by)
+    b.push(`<span class="badge-claim" title="Reported by an agent — not confirmed">claimed · ${esc(i.claimed_by)}</span>`);
+  return b.join("");
+}
+
+function itemCard(i) {
+  return `<div class="card ${i.locked ? "locked" : ""}" data-edit="${i.id}">
+    <div class="t">${esc(i.title)}</div>
+    ${i.notes ? `<div class="nts">${esc(i.notes)}</div>` : ""}
+    <div class="meta">${itemBadges(i)}
+      ${(i.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}
+      ${i.priority && i.priority !== "normal" ? `<span class="tag" style="color:var(--warn)">${esc(i.priority)}</span>` : ""}
+    </div>
+    <div class="card-acts">
+      ${i.status === "works" || i.status === "done"
+        ? `<button class="mini ${i.verified ? "on" : ""}" data-verify="${i.id}" data-to="${i.verified ? "0" : "1"}"
+             title="${i.verified ? "Withdraw your confirmation" : "I checked this — it works"}">${i.verified ? "undo confirm" : "confirm"}</button>` : ""}
+      <button class="mini ${i.locked ? "on lock" : ""}" data-lock="${i.id}" data-to="${i.locked ? "0" : "1"}"
+        title="${i.locked ? "Remove protection" : "Protect: do not break this"}">${i.locked ? "unprotect" : "protect"}</button>
+    </div>
+  </div>`;
+}
+
 function secBoard(box, d) {
+  const q = (BOARD_FILTER || "").toLowerCase();
+  const match = (i) => !q || (i.title + " " + (i.notes || "") + " " + (i.tags || []).join(" ")).toLowerCase().includes(q);
   const cols = STATUS_COLS.map(([st, label]) => {
-    const items = d.items.filter((i) => i.status === st);
-    const cards = items.map((i) => `<div class="card" data-edit="${i.id}">
-      <div class="t">${esc(i.title)}</div>
-      ${i.notes ? `<div class="nts">${esc(i.notes)}</div>` : ""}
-      <div class="meta">${(i.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}
-        ${i.priority && i.priority !== "normal" ? `<span class="tag" style="color:var(--warn)">${esc(i.priority)}</span>` : ""}</div>
-    </div>`).join("") || `<div class="dimmer" style="font-size:12px;padding:6px 2px">—</div>`;
+    const items = d.items.filter((i) => i.status === st && match(i));
+    const cards = items.map(itemCard).join("") || `<div class="dimmer" style="font-size:12px;padding:6px 2px">—</div>`;
     return `<div class="col"><div class="col-h"><span class="pill ${st}">${label}</span><span class="n">${items.length}</span></div>${cards}</div>`;
   }).join("");
-  box.innerHTML = `<div class="panel"><div class="panel-h"><h2>Tracker board</h2>
-    <span class="panel-note">click a card to edit · what works vs. what's broken</span>
-    <div class="spacer"></div><button class="btn sm primary" id="addItem">＋ Item</button></div>
-    <div class="board">${cols}</div></div>`;
-  $("#addItem").onclick = () => editItem(null);
-  $$("[data-edit]", box).forEach((c) => c.onclick = () => editItem(d.items.find((i) => i.id === c.dataset.edit)));
+
+  box.innerHTML = `
+    <div class="panel quickadd">
+      <div class="panel-h"><h2>Add what you know</h2>
+        <span class="panel-note">type it, pick the state, Enter — this is your board</span></div>
+      <div class="flex gap8 wrap">
+        <input id="qaTitle" placeholder="e.g. save button throws a 500" style="flex:2;min-width:220px">
+        <select id="qaStatus" style="flex:0 0 150px">
+          ${STATUS_COLS.map(([v, l]) => `<option value="${v}" ${v === "todo" ? "selected" : ""}>${l}</option>`).join("")}
+        </select>
+        <button class="btn primary" id="qaAdd">Add</button>
+      </div>
+      <div class="flex gap8 wrap mt8">
+        <input id="qaNotes" placeholder="details (optional) — what exactly happens?" style="flex:2;min-width:220px">
+        <label class="flex gap6 dimmer" style="font-size:12px;flex:0 0 auto">
+          <input type="checkbox" id="qaLock" style="width:auto"> protect (do not break)</label>
+        <label class="flex gap6 dimmer" style="font-size:12px;flex:0 0 auto">
+          <input type="checkbox" id="qaConfirm" style="width:auto"> I confirmed this works</label>
+      </div>
+    </div>
+    <div class="panel"><div class="panel-h"><h2>Tracker board</h2>
+      <span class="panel-note">click a card to edit · 🔒 = never break this</span>
+      <div class="spacer"></div>
+      <input id="boardFilter" placeholder="filter…" style="max-width:190px" value="${esc(BOARD_FILTER)}"></div>
+      <div class="board">${cols}</div></div>`;
+
+  const addNow = async () => {
+    const title = $("#qaTitle").value.trim();
+    if (!title) return;
+    const wantLock = $("#qaLock").checked, wantConfirm = $("#qaConfirm").checked;
+    try {
+      const r = await post("/api/item/add", { id: pid(), title, status: $("#qaStatus").value, notes: $("#qaNotes").value });
+      const iid = r.item.id;
+      if (wantLock) await post("/api/item/lock", { id: pid(), item_id: iid, locked: true });
+      if (wantConfirm) await post("/api/item/verify", { id: pid(), item_id: iid, verified: true });
+      toast("Added", "ok"); reload();
+    } catch (e) { toast(e.message, "err"); }
+  };
+  $("#qaAdd").onclick = addNow;
+  $("#qaTitle").onkeydown = (e) => { if (e.key === "Enter") addNow(); };
+  $("#qaNotes").onkeydown = (e) => { if (e.key === "Enter") addNow(); };
+  $("#boardFilter").oninput = (e) => { BOARD_FILTER = e.target.value; const p = e.target.selectionStart; secBoard(box, d); const f = $("#boardFilter"); f.focus(); f.setSelectionRange(p, p); };
+  wireItemActions(box, d);
+}
+
+// Confirm / protect buttons live on cards in several views; wire them all the
+// same way so a card behaves identically wherever it is rendered.
+function wireItemActions(box, d) {
+  $$("[data-edit]", box).forEach((c) => c.onclick = (e) => {
+    if (e.target.closest("[data-verify],[data-lock]")) return;
+    editItem(d.items.find((i) => i.id === c.dataset.edit));
+  });
+  $$("[data-verify]", box).forEach((b) => b.onclick = async (e) => {
+    e.stopPropagation();
+    try { await post("/api/item/verify", { id: pid(), item_id: b.dataset.verify, verified: b.dataset.to === "1" }); reload(); }
+    catch (err) { toast(err.message, "err"); }
+  });
+  $$("[data-lock]", box).forEach((b) => b.onclick = async (e) => {
+    e.stopPropagation();
+    try { await post("/api/item/lock", { id: pid(), item_id: b.dataset.lock, locked: b.dataset.to === "1" }); reload(); }
+    catch (err) { toast(err.message, "err"); }
+  });
+}
+
+// Protected view: everything you said must not break, and anything that did.
+function secProtected(box, d) {
+  const locked = d.items.filter((i) => i.locked);
+  const regressed = locked.filter((i) => i.status === "broken" || i.status === "blocked");
+  const holding = locked.filter((i) => !regressed.includes(i));
+  box.innerHTML = `
+    ${regressed.length ? `<div class="panel regression">
+      <div class="panel-h"><h2>⚠ Regression — protected work is broken</h2></div>
+      <div class="panel-note">You marked these “do not break”. They are failing now. This is the first thing to fix.</div>
+      <div class="board mt14">${regressed.map(itemCard).join("")}</div></div>` : ""}
+    <div class="panel">
+      <div class="panel-h"><h2>Protected — do not break</h2>
+        <span class="panel-note">${holding.length} holding${regressed.length ? ` · ${regressed.length} broken` : ""}</span></div>
+      ${locked.length
+        ? `<div class="panel-note mb0">Agents see this list in every briefing, and are told not to refactor or “improve” these while doing something else.</div>
+           <div class="board mt14">${holding.map(itemCard).join("") || `<div class="dimmer">— all protected items are currently broken —</div>`}</div>`
+        : `<div class="empty">Nothing protected yet.<br><br>Mark the things that already work and must stay working —
+             they show up in every AI briefing as off-limits.</div>`}
+    </div>`;
+  wireItemActions(box, d);
+}
+
+// What changed, and who changed it — you or an agent.
+function secActivity(box, d) {
+  const acts = d.activity || [];
+  const icon = { "item-add": "＋", "item-status": "→", verify: "✓", lock: "🔒",
+                 "fix-add": "🔧", "fix-done": "✔" };
+  box.innerHTML = `<div class="panel"><div class="panel-h"><h2>Activity</h2>
+    <span class="panel-note">every change, and who made it</span></div>
+    ${acts.length ? acts.map((a) => `<div class="act">
+      <span class="act-ic">${icon[a.kind] || "·"}</span>
+      <span class="act-who ${a.who === "you" ? "me" : "bot"}">${esc(a.who)}</span>
+      <span class="act-txt">${esc(a.text)}</span>
+      <span class="act-at">${esc(String(a.at).slice(5, 16).replace("T", " "))}</span>
+    </div>`).join("") : `<div class="empty">Nothing recorded yet.</div>`}
+  </div>`;
 }
 
 function editItem(it) {
   const isNew = !it;
   it = it || { title: "", status: "todo", notes: "", tags: [], priority: "normal" };
-  const opts = STATUS_COLS.map(([s]) => `<option value="${s}" ${it.status === s ? "selected" : ""}>${s}</option>`).join("");
+  const opts = STATUS_COLS.map(([v, l]) => `<option value="${v}" ${it.status === v ? "selected" : ""}>${l}</option>`).join("");
   openModal(isNew ? "New item" : "Edit item", `
     <div><label class="fld">Title</label><input id="iTitle" value="${esc(it.title)}" placeholder="e.g. Login screen"></div>
     <div class="row">
@@ -284,7 +419,14 @@ function editItem(it) {
         ${["low", "normal", "high", "critical"].map((p) => `<option ${it.priority === p ? "selected" : ""}>${p}</option>`).join("")}</select></div>
     </div>
     <div><label class="fld">Notes (what's wrong / how it works)</label><textarea id="iNotes" placeholder="Details…">${esc(it.notes)}</textarea></div>
-    <div><label class="fld">Tags (comma separated)</label><input id="iTags" value="${esc((it.tags || []).join(", "))}"></div>`,
+    <div><label class="fld">Tags (comma separated)</label><input id="iTags" value="${esc((it.tags || []).join(", "))}"></div>
+    ${isNew ? "" : `<div class="flagbox">
+      <label class="flex gap8"><input type="checkbox" id="iLock" ${it.locked ? "checked" : ""} style="width:auto">
+        <span><b>🔒 Do not break</b><br><span class="dimmer" style="font-size:11px">Agents are told this is off-limits in every briefing.</span></span></label>
+      <label class="flex gap8 mt8"><input type="checkbox" id="iVerify" ${it.verified ? "checked" : ""} style="width:auto">
+        <span><b>✓ Confirmed by me</b><br><span class="dimmer" style="font-size:11px">Only you can set this — an agent saying "works" is just a claim.</span></span></label>
+      ${it.claimed_by ? `<div class="dimmer mt8" style="font-size:11px">reported by <b>${esc(it.claimed_by)}</b></div>` : ""}
+    </div>`}`,
     `${isNew ? "" : `<button class="btn danger" id="iDel">Delete</button>`}
      <div class="spacer" style="flex:1"></div>
      <button class="btn" id="iCancel">Cancel</button>
@@ -296,7 +438,16 @@ function editItem(it) {
       tags: $("#iTags").value.split(",").map((s) => s.trim()).filter(Boolean) };
     try {
       if (isNew) await post("/api/item/add", body);
-      else await post("/api/item/update", Object.assign({ item_id: it.id }, body));
+      else {
+        await post("/api/item/update", Object.assign({ item_id: it.id }, body));
+        // Flags are separate endpoints on purpose: they are yours, and the
+        // generic update path deliberately cannot set them.
+        const wantLock = $("#iLock").checked, wantVerify = $("#iVerify").checked;
+        if (wantLock !== !!it.locked)
+          await post("/api/item/lock", { id: pid(), item_id: it.id, locked: wantLock });
+        if (wantVerify !== !!it.verified)
+          await post("/api/item/verify", { id: pid(), item_id: it.id, verified: wantVerify });
+      }
       toast("Item saved", "ok"); closeModal(); reload();
     } catch (e) { toast(e.message, "err"); }
   };

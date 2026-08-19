@@ -67,6 +67,7 @@ def project_detail(pid: str) -> dict:
     st, path = store.state_for(pid)
     st = dict(st)
     st["progress"] = store.progress(st)
+    st["regressions"] = store.regressions(st)
     st["git"] = gitsync.status(path)
     st["backups"] = backup.listing(path)
     return st
@@ -262,6 +263,13 @@ class Handler(BaseHTTPRequestHandler):
             # this (the MCP server deliberately exposes no verify tool).
             st, p = self._with_state(b)
             it = store.verify_item(st, b.get("item_id", ""), bool(b.get("verified", True)))
+            store.save_state(p, st)
+            return self._json({"ok": it is not None, "item": it})
+        if path == "/api/item/lock":
+            # "Do not break this." Yours alone, like confirmation: an agent must
+            # not be able to unprotect the thing it is about to change.
+            st, p = self._with_state(b)
+            it = store.lock_item(st, b.get("item_id", ""), bool(b.get("locked", True)))
             store.save_state(p, st)
             return self._json({"ok": it is not None, "item": it})
         if path == "/api/item/delete":

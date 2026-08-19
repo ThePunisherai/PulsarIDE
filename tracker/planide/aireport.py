@@ -40,9 +40,13 @@ def build(st: dict, mode: str = "full") -> str:
     det = (st.get("stack") or {}).get("detected") or {}
     custom = (st.get("stack") or {}).get("custom", "")
 
-    works = [i for i in items if i.get("status") == "works"]
+    works = [i for i in items if i.get("status") in ("works", "done")]
     confirmed = [i for i in works if i.get("verified")]
     unconfirmed = [i for i in works if not i.get("verified")]
+    complete = [i for i in items if i.get("status") == "done"]
+    protected = [i for i in items if i.get("locked")]
+    regressed = [i for i in items if i.get("locked")
+                 and i.get("status") in ("broken", "blocked")]
     broken = [i for i in items if i.get("status") in ("broken", "blocked")]
     wip = [i for i in items if i.get("status") == "wip"]
     todo = [i for i in items if i.get("status") == "todo"]
@@ -67,7 +71,27 @@ def build(st: dict, mode: str = "full") -> str:
                 p["confirmed"], p["health"]))
     L.append("- **Open problems**: %d broken/blocked, %d open fixes"
              % (p["broken"], p["open_fixes"]))
+    L.append("- **Complete**: %d | **Still open**: %d | **Protected (do not "
+             "break)**: %d" % (p["complete"], p["open"], p["protected"]))
+    if p["regressed"]:
+        L.append("- **REGRESSION**: %d protected item(s) are broken -- fix "
+                 "these first" % p["regressed"])
     L.append("")
+
+    if regressed:
+        L.append("## !! REGRESSION -- protected work is broken")
+        L.append("_These were marked DO NOT BREAK and are now failing. Fixing "
+                 "them comes before any new work._")
+        L.extend(_bullets(regressed, extra=lambda it: it.get("notes", "")))
+        L.append("")
+
+    if protected:
+        L.append("## DO NOT BREAK (protected by the user)")
+        L.append("_Load-bearing and already working. Do not refactor, rename, "
+                 "reformat or 'improve' these while doing something else. If a "
+                 "change genuinely requires touching one, stop and ask first._")
+        L.extend(_bullets(protected))
+        L.append("")
 
     L.append("## What works -- confirmed by the user")
     L.extend(_bullets(confirmed) or ["- (nothing confirmed yet)"])
@@ -92,8 +116,13 @@ def build(st: dict, mode: str = "full") -> str:
         L.append("- (nothing currently marked broken)")
     L.append("")
 
+    if complete:
+        L.append("## Complete")
+        L.extend(_bullets(complete))
+        L.append("")
+
     if wip or todo:
-        L.append("## In progress / planned")
+        L.append("## Still open -- to be done")
         L.extend(_bullets(wip, extra=lambda it: "WIP"))
         L.extend(_bullets(todo, extra=lambda it: "todo"))
         L.append("")
@@ -144,6 +173,10 @@ def build(st: dict, mode: str = "full") -> str:
 
     if mode in ("full", "prompt"):
         L.append("## Ask")
+        if regressed:
+            L.append("Start with the REGRESSION above: protected work is broken, "
+                     "which takes priority over everything else here.")
+            L.append("")
         if broken or open_fixes:
             L.append("Please help resolve the broken items and open fixes above. "
                      "For each one:")

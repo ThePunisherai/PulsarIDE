@@ -35,11 +35,19 @@ from . import (
     write_json,
 )
 
-ITEM_STATUSES = ["todo", "wip", "works", "broken", "blocked"]
+# Two orthogonal axes, deliberately not merged:
+#   status  -- what state the thing is in (anyone, including agents, may move it)
+#   flags   -- `verified` and `locked`, which ONLY you may set (see verify_item /
+#              lock_item). An agent can read them, never write them.
+ITEM_STATUSES = ["todo", "wip", "works", "broken", "blocked", "done"]
 FIX_STATUSES = ["open", "fixed", "wontfix"]
 
 # statuses that count as "done" for progress purposes
-DONE_ITEM = {"works"}
+# "works" = it functions. "done" = finished and closed out. Both count as
+# working software; only `done` counts as complete.
+DONE_ITEM = {"works", "done"}
+COMPLETE_ITEM = {"done"}
+OPEN_ITEM = {"todo", "wip"}
 OPEN_BAD = {"broken", "blocked"}
 
 
@@ -117,7 +125,22 @@ def _blank_state(path: str) -> dict:
         "github": {"remote": "", "branch": "main", "lfs": False,
                    "auto_push": False, "last_sync": ""},
         "backups": [],
+        # Append-only trail of what changed and who changed it. Capped in
+        # log_activity() so a long-lived project never grows an unbounded file.
+        "activity": [],
     }
+
+
+ACTIVITY_CAP = 400
+
+
+def log_activity(st: dict, kind: str, text: str, who: str = "you") -> dict:
+    """Record a change. `who` is "you" for your own actions, otherwise the agent."""
+    entry = {"id": new_id("a_"), "at": now_iso(), "kind": kind,
+             "text": text, "who": who or "you"}
+    st.setdefault("activity", []).insert(0, entry)
+    del st["activity"][ACTIVITY_CAP:]
+    return entry
 
 
 def load_state(path: str) -> dict:
@@ -136,6 +159,8 @@ def load_state(path: str) -> dict:
         it.setdefault("claimed_by", "")
         it.setdefault("verified", False)
         it.setdefault("verified_at", "")
+        it.setdefault("locked", False)
+        it.setdefault("locked_at", "")
     return st
 
 
@@ -169,10 +194,14 @@ def add_item(st: dict, title: str, status: str = "todo", notes: str = "",
         "id": new_id("i_"), "title": title.strip() or "Untitled",
         "status": status, "notes": notes, "tags": tags or [],
         "priority": priority, "created_at": now_iso(), "updated_at": now_iso(),
-        # Trust boundary: an agent can move `status`, never `verified`.
+        # Trust boundary: an agent can move `status`, never these.
         "claimed_by": claimed_by, "verified": False, "verified_at": "",
+        # `locked` = "this must not break": load-bearing work you have protected.
+        "locked": False, "locked_at": "",
     }
     st["items"].append(item)
+    log_activity(st, "item-add", "added %s (%s)" % (item["title"], status),
+                 claimed_by or "you")
     return item
 
 
@@ -195,8 +224,39 @@ def update_item(st: dict, item_id: str, **fields) -> dict | None:
                         it["verified_at"] = ""
                     it[k] = v
             it["updated_at"] = now_iso()
+            if "status" in fields:
+                who = fields.get("claimed_by") or it.get("claimed_by") or "you"
+                note = " (was protected -- REGRESSION)" if (
+                    it.get("locked") and it["status"] in OPEN_BAD) else ""
+                log_activity(st, "item-status",
+                             "%s -> %s%s" % (it["title"], it["status"], note), who)
             return it
     return None
+
+
+def lock_item(st: dict, item_id: str, locked: bool = True) -> dict | None:
+    """Protect an item: "this works and must NOT be broken".
+
+    Like verification this is yours alone -- an agent must never be able to
+    unprotect the thing it is about to refactor. Agents can READ the flag (they
+    need to know what is off-limits), and the AI briefing calls it out loudly.
+    """
+    for it in st["items"]:
+        if it["id"] == item_id:
+            it["locked"] = bool(locked)
+            it["locked_at"] = now_iso() if locked else ""
+            it["updated_at"] = now_iso()
+            log_activity(st, "lock",
+                         "%s %s" % ("protected" if locked else "unprotected",
+                                    it["title"]))
+            return it
+    return None
+
+
+def regressions(st: dict) -> list:
+    """Protected items that are no longer working -- the alarm that matters."""
+    return [i for i in st.get("items", [])
+            if i.get("locked") and i.get("status") in OPEN_BAD]
 
 
 def verify_item(st: dict, item_id: str, verified: bool = True) -> dict | None:
@@ -211,6 +271,9 @@ def verify_item(st: dict, item_id: str, verified: bool = True) -> dict | None:
             it["verified"] = bool(verified)
             it["verified_at"] = now_iso() if verified else ""
             it["updated_at"] = now_iso()
+            log_activity(st, "verify",
+                         "%s %s" % ("confirmed" if verified else "unconfirmed",
+                                    it["title"]))
             return it
     return None
 
@@ -239,6 +302,7 @@ def add_fix(st: dict, title: str, problem: str = "", solution: str = "",
         "fixed_at": now_iso() if status == "fixed" else "",
     }
     st["fixes"].append(fix)
+    log_activity(st, "fix-add", "logged fix: %s" % fix["title"], agent or "you")
     return fix
 
 
@@ -252,6 +316,8 @@ def update_fix(st: dict, fix_id: str, **fields) -> dict | None:
                     fx[k] = v
             if fields.get("status") == "fixed" and not fx.get("fixed_at"):
                 fx["fixed_at"] = now_iso()
+                log_activity(st, "fix-done", "fixed: %s" % fx["title"],
+                             fx.get("agent") or "you")
             return fx
     return None
 
@@ -328,6 +394,11 @@ def progress(st: dict) -> dict:
     unconfirmed = len(working_items) - confirmed
     confirmed_pct = round(100 * confirmed / total) if total else 0
 
+    complete = sum(1 for i in items if i.get("status") in COMPLETE_ITEM)
+    open_work = sum(1 for i in items if i.get("status") in OPEN_ITEM)
+    protected = sum(1 for i in items if i.get("locked"))
+    regressed = len(regressions(st))
+
     fixes = st.get("fixes", [])
     open_fixes = sum(1 for f in fixes if f.get("status") == "open")
     fixed = sum(1 for f in fixes if f.get("status") == "fixed")
@@ -342,7 +413,10 @@ def progress(st: dict) -> dict:
     health = confirmed_pct
     if total:
         health = max(0, min(100, round(confirmed_pct - 8 * broken / max(1, total) * 10 / 10
-                                       - 4 * open_fixes)))
+                                       - 4 * open_fixes
+                                       # A protected item breaking is a regression:
+                                       # the loudest possible signal.
+                                       - 15 * regressed)))
     return {
         "total_items": total,
         "counts": counts,
@@ -350,6 +424,10 @@ def progress(st: dict) -> dict:
         "confirmed": confirmed,
         "unconfirmed": unconfirmed,
         "confirmed_percent": confirmed_pct,
+        "complete": complete,
+        "open": open_work,
+        "protected": protected,
+        "regressed": regressed,
         "broken": broken,
         "percent": pct,
         "open_fixes": open_fixes,

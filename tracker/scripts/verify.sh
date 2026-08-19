@@ -144,6 +144,54 @@ sys.exit(0 if it['verified'] is False else 1)" \
     && ok "trust: a status change invalidates your confirmation" \
     || bad "trust: confirmation survived a status change"
 
+  # --- protection ("do not break") ----------------------------------------
+  LI=$(PYTHONPATH="$DIR" python3 -m planide item add "$PROJ" "load-bearing thing" \
+       --status done 2>/dev/null | grep -o 'i_[a-f0-9]*')
+  curl -fs -X POST "http://127.0.0.1:$PORT/api/item/lock" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$PIDV\",\"item_id\":\"$LI\",\"locked\":true}" | grep -q '"locked": true' \
+    && ok "protect: /api/item/lock marks an item do-not-break" \
+    || bad "protect: item/lock did not protect"
+
+  # An agent must not be able to unprotect what it is about to change.
+  curl -fs -X POST "http://127.0.0.1:$PORT/api/item/update" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$PIDV\",\"item_id\":\"$LI\",\"locked\":false}" >/dev/null 2>&1
+  curl -fs "http://127.0.0.1:$PORT/api/project?id=$PIDV" \
+    | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+it=[i for i in d['items'] if i['id']=='$LI'][0]
+sys.exit(0 if it['locked'] is True else 1)" \
+    && ok "protect: item/update cannot unprotect (agents cannot unlock)" \
+    || bad "protect: item/update unlocked a protected item"
+
+  # Breaking a protected item must surface as a regression.
+  curl -fs -X POST "http://127.0.0.1:$PORT/api/item/update" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$PIDV\",\"item_id\":\"$LI\",\"status\":\"broken\",\"claimed_by\":\"TestBot\"}" >/dev/null 2>&1
+  curl -fs "http://127.0.0.1:$PORT/api/project?id=$PIDV" \
+    | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+sys.exit(0 if (d['progress']['regressed'] >= 1
+               and any(i['id']=='$LI' for i in d['regressions'])) else 1)" \
+    && ok "protect: breaking protected work raises a regression" \
+    || bad "protect: no regression raised"
+
+  # The AI briefing must tell an agent what is off-limits.
+  curl -fs "http://127.0.0.1:$PORT/api/ai-report?id=$PIDV" \
+    | python3 -c "
+import sys,json; m=json.load(sys.stdin)['markdown']
+sys.exit(0 if ('DO NOT BREAK' in m and 'REGRESSION' in m) else 1)" \
+    && ok "protect: AI briefing carries DO-NOT-BREAK + regression sections" \
+    || bad "protect: briefing missing protection sections"
+
+  # Every change is attributed in the activity log.
+  curl -fs "http://127.0.0.1:$PORT/api/project?id=$PIDV" \
+    | python3 -c "
+import sys,json; a=json.load(sys.stdin).get('activity',[])
+kinds={x['kind'] for x in a}
+sys.exit(0 if ({'item-add','lock','item-status'} <= kinds
+               and any(x['who']=='TestBot' for x in a)) else 1)" \
+    && ok "activity: changes are logged and attributed (you vs agent)" \
+    || bad "activity: log missing entries or attribution"
+
   # progress() must report claimed and confirmed as separate numbers.
   curl -fs "http://127.0.0.1:$PORT/api/project?id=$PIDV" \
     | python3 -c "

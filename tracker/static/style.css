@@ -314,3 +314,54 @@ pre.report { background: var(--surface-3); border: 1px solid var(--border); bord
   .topbar { padding: 12px 15px; }
   .grid.cards { grid-template-columns: 1fr; }
 }
+
+/* ── confirmation + protection ─────────────────────────────────────────────
+   Two user-only signals that must read differently at a glance:
+   green = you confirmed it works; purple/lock = you protected it.          */
+.badge-ok, .badge-lock, .badge-claim {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
+  padding: 1px 6px; border-radius: 999px; white-space: nowrap;
+}
+.badge-ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+.badge-lock { color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 16%, transparent); }
+.badge-claim { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); font-weight: 700; }
+
+/* A protected card is visually pinned: you should never mistake it for
+   ordinary work an agent may rewrite. */
+.card.locked { border-color: color-mix(in srgb, var(--accent-2) 45%, var(--border)); }
+.card.locked::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px;
+  background: var(--accent-2); border-radius: 2px;
+}
+.card { position: relative; }
+.card-acts { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+.mini {
+  font-size: 10px; font-weight: 650; letter-spacing: .01em; padding: 2px 8px;
+  border-radius: 6px; cursor: pointer; font-family: var(--font);
+  border: 1px solid var(--border); background: transparent; color: var(--text-dimmer);
+}
+.mini:hover { color: var(--ok); border-color: var(--ok); }
+.mini.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.mini.on.lock, .mini[data-lock]:hover { color: var(--accent-2); border-color: var(--accent-2); }
+
+/* The loudest state in the product: protected work that broke. */
+.panel.regression {
+  border-color: color-mix(in srgb, var(--err) 55%, var(--border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--err) 10%, var(--surface-2)), var(--surface-3));
+}
+.panel.regression h2 { color: var(--err); }
+
+.quickadd { border-color: color-mix(in srgb, var(--accent-2) 30%, var(--border)); }
+.flagbox { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; background: var(--surface-3); }
+
+.pill.done { color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 15%, transparent); }
+
+/* activity feed */
+.act { display: flex; align-items: baseline; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-2); font-size: 12.5px; }
+.act:last-child { border-bottom: none; }
+.act-ic { width: 16px; text-align: center; color: var(--text-dimmer); flex-shrink: 0; }
+.act-who { font-weight: 700; font-size: 11px; padding: 1px 7px; border-radius: 999px; flex-shrink: 0; }
+.act-who.me { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.act-who.bot { color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 14%, transparent); }
+.act-txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.act-at { color: var(--text-dimmer); font-family: var(--mono); font-size: 10.5px; flex-shrink: 0; }
