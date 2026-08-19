@@ -65,6 +65,31 @@ export type PlanIdeFix = {
   status: 'open' | 'fixed' | 'wontfix'
 }
 
+export type PlanIdeActivity = {
+  id: string
+  at: string
+  kind: string
+  text: string
+  /** "you" for your own actions, otherwise the agent that did it. */
+  who: string
+}
+
+export type PlanIdeMilestone = {
+  id: string
+  title: string
+  target: string
+  done: boolean
+}
+
+export type PlanIdeVersion = {
+  version: string
+  date: string
+  notes: string
+  added: string[]
+  fixed: string[]
+  changed: string[]
+}
+
 export type PlanIdeProject = {
   id: string
   name: string
@@ -74,7 +99,9 @@ export type PlanIdeProject = {
   progress: PlanIdeProgress
   items: PlanIdeItem[]
   fixes: PlanIdeFix[]
-  roadmap: { id: string; title: string; target: string; done: boolean }[]
+  roadmap: PlanIdeMilestone[]
+  versions: PlanIdeVersion[]
+  activity: PlanIdeActivity[]
   /** Protected items that are currently broken. */
   regressions?: PlanIdeItem[]
   stack?: { detected?: { languages?: string[]; stack?: string[]; confidence?: string } }
@@ -139,8 +166,38 @@ export async function addItem(
   title: string,
   status: PlanIdeItem['status'],
   notes = ''
+): Promise<string> {
+  const r = await call<{ item: PlanIdeItem }>('POST', '/api/item/add', {
+    id,
+    title,
+    status,
+    notes
+  })
+  return r.item.id
+}
+
+export async function updateItem(
+  id: string,
+  itemId: string,
+  fields: Partial<Pick<PlanIdeItem, 'title' | 'notes' | 'status' | 'priority'>>
 ): Promise<void> {
-  await call('POST', '/api/item/add', { id, title, status, notes })
+  await call('POST', '/api/item/update', { id, item_id: itemId, ...fields })
+}
+
+export async function deleteItem(id: string, itemId: string): Promise<void> {
+  await call('POST', '/api/item/delete', { id, item_id: itemId })
+}
+
+export async function toggleMilestone(
+  id: string,
+  mid: string,
+  done: boolean
+): Promise<void> {
+  await call('POST', '/api/milestone/update', { id, mid, done })
+}
+
+export async function addMilestone(id: string, title: string, target: string): Promise<void> {
+  await call('POST', '/api/milestone/add', { id, title, target })
 }
 
 /**

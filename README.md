@@ -97,7 +97,17 @@ That clones Orca at a pinned revision, applies the PlanIDE overlay (branding +
 tracker panel + engine wiring), installs, and starts the IDE. Needs `git`,
 `python3` and [`pnpm`](https://pnpm.io).
 
-The tracker lives in the right sidebar behind the **radar icon**.
+Everything lives **inside the IDE**, in two places:
+
+- **Tracker** in the left nav (radar icon) — the full workbench: quick capture,
+  the whole board, Protected, Fixes, Roadmap, Versions, Activity, and the AI
+  briefing.
+- The **right-sidebar panel** (same radar icon) — the glanceable version you
+  keep open while an agent works: progress, regressions, open fixes, and
+  one-click confirm/protect without leaving your code.
+
+The standalone web UI (`tracker/start.sh` → `:8390`) is still there for using
+the tracker without the IDE — same engine, same state.
 
 ## Repo layout
 
@@ -109,7 +119,8 @@ PlanIDE/
 │   ├── static/       standalone web UI (works without the IDE)
 │   └── mcp/          MCP server so agents update the tracker themselves
 ├── ide/              the Orca fork layer
-│   ├── overlay/      our source: the sidebar panel, IPC bridge, engine service
+│   ├── overlay/      our source: the Tracker page, sidebar panel, IPC bridge,
+│   │                 engine service
 │   ├── apply.py      anchored, verified, idempotent integration + branding
 │   ├── build.sh      clone Orca → apply → install → run
 │   └── verify.sh     does the overlay still apply to upstream?

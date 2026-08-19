@@ -157,8 +157,11 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/main/index.ts",
         "void app.whenReady().then(async () => {\n  logStartupMilestone('app-ready')",
-        "void app.whenReady().then(async () => {\n  logStartupMilestone('app-ready')\n  // PlanIDE: bring up the tracker engine that backs the sidebar panel.\n  // Non-blocking and failure-tolerant — the IDE must boot even without it.\n  void startPlanIdeEngine()",
-        "start the tracker engine on launch",
+        "void app.whenReady().then(async () => {\n  logStartupMilestone('app-ready')\n"
+        "  // PlanIDE: expose the tracker to the renderer and bring the engine up.\n"
+        "  // Non-blocking and failure-tolerant — the IDE must boot even without it.\n"
+        "  registerPlanIdeBridge()\n  void startPlanIdeEngine()",
+        "start the tracker engine + register the renderer bridge on launch",
     ),
     (
         "src/main/index.ts",
@@ -172,16 +175,74 @@ EDITS: list[tuple[str, str, str, str]] = [
     # preflight and hit the engine's CSRF guard. Proxying main-side keeps that
     # guard strict instead of allowing `null` origins.
     (
-        "src/main/index.ts",
-        "  void startPlanIdeEngine()",
-        "  registerPlanIdeBridge()\n  void startPlanIdeEngine()",
-        "register the renderer bridge",
-    ),
-    (
         "src/preload/index.ts",
         "import { glApi } from './gitlab'",
         "import { glApi } from './gitlab'\nimport { planIdeApi } from './planide'",
         "tracker bridge import (preload)",
+    ),
+    # ---- integration: the full-page tracker view ------------------------- #
+    # The sidebar panel is the glanceable version; this is the workbench, so the
+    # tracker lives entirely inside the IDE instead of in a separate browser tab.
+    (
+        "src/shared/ui-chrome-types.ts",
+        "export type TopLevelView =\n  | 'terminal'",
+        "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'",
+        "register 'planide' as a top-level view",
+    ),
+    (
+        "src/shared/top-level-view.ts",
+        "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,",
+        "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,\n  planide: true,",
+        "allow 'planide' through the persistence guard",
+    ),
+    (
+        "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
+        "      {activeView === 'settings' ? <Settings /> : null}",
+        "      {activeView === 'planide' ? <PlanIdeView /> : null}\n      {activeView === 'settings' ? <Settings /> : null}",
+        "render the tracker workbench",
+    ),
+    (
+        "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
+        "function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
+        "const PlanIdeView = lazy(() => import('../components/planide/PlanIdeView'))\n\nfunction ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
+        "lazy-import the tracker workbench",
+    ),
+    (
+        "src/renderer/src/components/sidebar/SidebarNav.tsx",
+        "  const skillsActive = activeView === 'skills'",
+        "  const skillsActive = activeView === 'skills'\n  const planIdeActive = activeView === 'planide'\n  const setActiveView = useAppStore((s) => s.setActiveView)",
+        "tracker nav state",
+    ),
+    (
+        "src/renderer/src/components/sidebar/SidebarNav.tsx",
+        "      <SetupGuideSidebarEntry />\n      <SidebarTaskNavButton />",
+        """      <SetupGuideSidebarEntry />
+      <SidebarTaskNavButton />
+      {/* PlanIDE: the tracker workbench sits with the other top-level pages. */}
+      <button
+        type="button"
+        onClick={() => setActiveView('planide')}
+        aria-current={planIdeActive ? 'page' : undefined}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium tracking-tight transition-colors',
+          planIdeActive
+            ? 'bg-worktree-sidebar-accent text-worktree-sidebar-accent-foreground'
+            : 'text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8'
+        )}
+      >
+        <Radar
+          className={cn('size-4 shrink-0', !planIdeActive && 'text-worktree-sidebar-foreground/30')}
+          strokeWidth={planIdeActive ? 2.25 : 1.75}
+        />
+        <span className="flex-1">{translate('planide.nav.tracker', 'Tracker')}</span>
+      </button>""",
+        "tracker entry in the left nav",
+    ),
+    (
+        "src/renderer/src/components/sidebar/SidebarNav.tsx",
+        "import { Bell, BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'",
+        "import {\n  Bell,\n  BookOpen,\n  CalendarClock,\n  EyeOff,\n  Files,\n  Radar,\n  Search,\n  Smartphone\n} from 'lucide-react'",
+        "tracker nav icon",
     ),
     (
         "src/preload/index.ts",
@@ -197,6 +258,7 @@ OVERLAY_FILES = [
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
     "src/renderer/src/components/right-sidebar/planide-engine-client.ts",
+    "src/renderer/src/components/planide/PlanIdeView.tsx",
 ]
 
 # package.json scalar fields.

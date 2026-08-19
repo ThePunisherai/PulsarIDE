@@ -10,8 +10,8 @@ desktop run.
 `ide/apply.py` turns an Orca checkout into PlanIDE. It does two things:
 
 1. **Branding** — the app becomes PlanIDE end to end.
-2. **Integration** — the tracker becomes a native right-sidebar tab, backed by
-   the tracker engine started by the main process.
+2. **Integration** — the tracker becomes a top-level **Tracker** page *and* a
+   right-sidebar tab, both backed by the tracker engine the main process starts.
 
 Nothing of upstream is vendored into this repo. `ide/build.sh` clones Orca at
 `PINNED_COMMIT`, applies the overlay, and builds. Bumping upstream is a one-line
@@ -27,7 +27,7 @@ change.
 `ide/verify.sh` re-applies the overlay to a scratch copy of the checkout on every
 run, so drift is caught by the test suite rather than by a broken build.
 
-## What the overlay changes (20 edits, 4 files added)
+## What the overlay changes (26 edits, 5 files added)
 
 ### Branding
 | File | Change |
@@ -36,7 +36,16 @@ run, so drift is caught by the test suite rather than by a broken build.
 | `config/electron-builder.config.cjs` | `appId`, `productName`, deep-link scheme `planide://`, executable names |
 | `package.json` | `name`, `description` |
 
-### The tracker panel
+### The tracker workbench (full page)
+| File | Change |
+|---|---|
+| `src/shared/ui-chrome-types.ts` | adds `'planide'` to `TopLevelView` |
+| `src/shared/top-level-view.ts` | allows it through the persistence guard |
+| `AppWorkspaceShell.tsx` | lazy-imports and renders the page |
+| `SidebarNav.tsx` | a **Tracker** entry (radar icon) in the left nav |
+| **added** `components/planide/PlanIdeView.tsx` | the workbench: quick capture, board, Protected, Fixes, Roadmap, Versions, Activity, AI briefing |
+
+### The tracker panel (sidebar)
 | File | Change |
 |---|---|
 | `src/shared/ui-chrome-types.ts` | adds `'planide'` to the `RightSidebarTab` union |
@@ -85,24 +94,33 @@ must never be able to take the IDE down.
 
 ## Verified vs. not
 
-**Verified here** (`./verify.sh`, 31 checks):
+**Verified here** (`./verify.sh`, 42 checks):
 
 - the overlay applies cleanly to a real Orca checkout at the pinned revision,
-  all 20 edits resolving, and re-running changes nothing;
-- the four added TypeScript/TSX sources have zero syntax errors, and the patched
-  `electron-builder.config.cjs` and `package.json` still parse;
+  all 26 edits resolving, and re-running changes nothing;
+- the five added TypeScript/TSX sources typecheck clean — including a separate
+  run against real `@types/react`, which is what proves the workbench page is
+  type-correct (the dependency-free `--noResolve` check in `ide/verify.sh`
+  cannot see React's own types, so it reports `key` and callback-parameter
+  false positives that the real-types run confirmed are not errors);
+- the patched `electron-builder.config.cjs` and `package.json` still parse;
 - every endpoint the panel calls was exercised against a live engine —
   `project/add`, `project?id=`, `item/add`, `item/update`, `fix/add`,
   `fix/update`, `ai-report` — with the exact field shapes the client types
   expect, plus the port-discovery contract on `/api/overview`;
 - the engine's CSRF guard allows the bridge's requests and still rejects a
-  cross-origin POST with 403.
+  cross-origin POST with 403;
+- both UI surfaces were rendered for real (bundled with React + Tailwind against
+  a live engine) and screenshotted: the workbench page and the sidebar panel.
+  That render is also what proved the CORS finding above — pointing the harness
+  at a different port reproduced exactly the "Failed to fetch" the IPC bridge
+  exists to avoid.
 
 **Not verified here — needs a desktop run.** This environment has no display and
 cannot install an Electron toolchain of this size, so the following are sound by
 construction and review but not observed running: the packaged Electron build,
-the panel rendering inside a real Extension-host window, and the macOS/Windows
-installer artifacts. `./ide/build.sh --run` on a desktop is the next step.
+the two surfaces rendering inside a real Electron window (they were rendered in
+headless Chromium instead), and the macOS/Windows installer artifacts. `./ide/build.sh --run` on a desktop is the next step.
 
 ## Upstream
 
