@@ -47,7 +47,10 @@ if command -v npx >/dev/null 2>&1; then
   # Everything else here is a genuine error.
   out=$(cd "$HERE/overlay" && npx --yes tsc --ignoreConfig --noEmit --noResolve \
         --jsx react-jsx --target es2022 --module esnext --moduleResolution bundler --skipLibCheck \
-        src/main/planide/engine-service.ts src/preload/planide.ts \
+        src/preload/planide.ts \
+        src/main/planide/store.ts src/main/planide/detect.ts \
+        src/main/planide/report.ts src/main/planide/git.ts \
+        src/main/planide/backup.ts src/main/planide/ipc.ts \
         src/renderer/src/components/right-sidebar/planide-engine-client.ts \
         src/renderer/src/components/right-sidebar/PlanIdePanel.tsx \
         src/renderer/src/components/planide/PlanIdeView.tsx 2>&1 \
@@ -58,7 +61,36 @@ else
   skip "overlay TypeScript (npx unavailable)"
 fi
 
-# 4. the real test: does the overlay still apply to an Orca checkout?
+# 4. the tracker itself: run the real main-process modules
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/test/tracker.test.ts" --bundle --platform=node --format=cjs \
+       --outfile="$work/tracker.cjs" --external:electron --log-level=error >/dev/null 2>&1; then
+    out=$(PLANIDE_ZIP_OUT="$work/zip.txt" node "$work/tracker.cjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "tracker: $(echo "$out" | grep -oE 'PASS=[0-9]+') behaviour checks"
+    else
+      bad "tracker behaviour"; echo "$out" | grep "FAIL " | head -5
+    fi
+    # The ZIP writer is ours; prove an independent reader accepts what it wrote.
+    zip=$(cat "$work/zip.txt" 2>/dev/null)
+    if [ -n "$zip" ] && command -v python3 >/dev/null 2>&1; then
+      python3 -c "
+import sys, zipfile
+with zipfile.ZipFile('$zip') as f:
+    sys.exit(0 if f.testzip() is None and len(f.namelist()) > 0 else 1)" 2>/dev/null \
+        && ok "tracker: hand-written ZIP validates in an independent reader" \
+        || bad "tracker: ZIP is not a valid archive"
+    fi
+  else
+    bad "tracker: test bundle failed to build"
+  fi
+  rm -rf "$work"
+else
+  skip "tracker behaviour (npx unavailable)"
+fi
+
+# 5. the real test: does the overlay still apply to an Orca checkout?
 if [ -f "$CHECKOUT/package.json" ]; then
   tmp=$(mktemp -d)
   # Copy just the files the overlay touches into a scratch tree, so the test is

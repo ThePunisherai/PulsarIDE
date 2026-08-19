@@ -4,8 +4,10 @@
 Applies two things to a clone of stablyai/orca:
 
   1. Branding   — the app becomes PlanIDE (name, appId, protocol, artifacts).
-  2. Integration — the PlanIDE tracker panel becomes a native right-sidebar tab,
-                   and the main process starts the tracker engine on launch.
+  2. Integration — the tracker becomes a top-level Tracker page and a
+                   right-sidebar tab, both backed by main-process code. There is
+                   no server, no port and no extra runtime: the tracker reads and
+                   writes each project's own .planide/state.json directly.
 
 Why a script instead of vendoring a 210 MB fork: upstream Orca moves fast. This
 keeps our own code (ide/overlay/**) as the only thing we maintain, and re-applies
@@ -84,36 +86,6 @@ EDITS: list[tuple[str, str, str, str]] = [
         "    executableName: 'planide',",
         "linux executable name",
     ),
-    # ---- ship the tracker engine inside packaged builds ------------------ #
-    # Why extraResources and not app.asar: the engine is executed by a real
-    # python interpreter, which cannot read files out of an asar archive.
-    (
-        "config/electron-builder.config.cjs",
-        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources]",
-        "// PlanIDE: the tracker engine must stay a real directory on disk --\n"
-        "// python executes it, and nothing can be run from inside app.asar.\n"
-        "const planIdeTrackerResource = { from: 'tracker', to: 'tracker' }\n"
-        "const commonExtraResources = [\n"
-        "  relayExtraResource,\n"
-        "  bundledPluginResources,\n"
-        "  skillFreshnessResources,\n"
-        "  planIdeTrackerResource\n"
-        "]",
-        "bundle tracker/ as an extraResource (all platforms)",
-    ),
-    (
-        "config/electron-builder.config.cjs",
-        "    '!src{,/**/*}',",
-        "    '!src{,/**/*}',\n    // PlanIDE: shipped via extraResources above; keep it out of app.asar.\n    '!tracker{,/**/*}',",
-        "keep tracker/ out of app.asar (shipped as a resource instead)",
-    ),
-    # ---- stop the engine we started on quit ------------------------------ #
-    (
-        "src/main/index.ts",
-        "app.on('before-quit', () => {\n  if (isQuittingForUpdate()) {",
-        "app.on('before-quit', () => {\n  // PlanIDE: stop the tracker engine this app started (an engine that was\n  // already running standalone is deliberately left alone).\n  stopPlanIdeEngine()\n  if (isQuittingForUpdate()) {",
-        "stop the tracker engine on quit",
-    ),
     # ---- integration: the sidebar tab ------------------------------------ #
     (
         "src/shared/ui-chrome-types.ts",
@@ -158,22 +130,18 @@ EDITS: list[tuple[str, str, str, str]] = [
         "src/main/index.ts",
         "void app.whenReady().then(async () => {\n  logStartupMilestone('app-ready')",
         "void app.whenReady().then(async () => {\n  logStartupMilestone('app-ready')\n"
-        "  // PlanIDE: expose the tracker to the renderer and bring the engine up.\n"
-        "  // Non-blocking and failure-tolerant — the IDE must boot even without it.\n"
-        "  registerPlanIdeBridge()\n  void startPlanIdeEngine()",
-        "start the tracker engine + register the renderer bridge on launch",
+        "  // PlanIDE: the tracker is main-process code -- registering its IPC is\n"
+        "  // all there is to start. No server, no port, no child process.\n"
+        "  registerPlanIdeIpc()",
+        "register the tracker IPC on launch",
     ),
     (
         "src/main/index.ts",
         "import { app, BrowserWindow",
-        "import {\n  registerPlanIdeBridge,\n  startPlanIdeEngine,\n  stopPlanIdeEngine\n} from './planide/engine-service'\nimport { app, BrowserWindow",
-        "tracker engine import",
+        "import { registerPlanIdeIpc } from './planide/ipc'\nimport { app, BrowserWindow",
+        "tracker IPC import",
     ),
-    # ---- integration: the renderer<->engine IPC bridge -------------------- #
-    # Why IPC and not fetch from the renderer: an Electron renderer is a
-    # different origin from the engine's loopback port, so a JSON POST would
-    # preflight and hit the engine's CSRF guard. Proxying main-side keeps that
-    # guard strict instead of allowing `null` origins.
+    # ---- integration: the renderer bridge --------------------------------- #
     (
         "src/preload/index.ts",
         "import { glApi } from './gitlab'",
@@ -254,7 +222,12 @@ EDITS: list[tuple[str, str, str, str]] = [
 
 # Files copied verbatim from ide/overlay/ into the checkout.
 OVERLAY_FILES = [
-    "src/main/planide/engine-service.ts",
+    "src/main/planide/store.ts",
+    "src/main/planide/detect.ts",
+    "src/main/planide/report.ts",
+    "src/main/planide/git.ts",
+    "src/main/planide/backup.ts",
+    "src/main/planide/ipc.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
     "src/renderer/src/components/right-sidebar/planide-engine-client.ts",

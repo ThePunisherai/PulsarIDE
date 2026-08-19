@@ -40,14 +40,14 @@ import {
   addMilestone,
   aiReport,
   deleteItem,
-  ensureProjectForPath,
-  getProject,
   lockItem,
   markFixDone,
+  openProject,
   setItemStatus,
   toggleMilestone,
   updateItem,
   verifyItem,
+  type ItemStatus,
   type PlanIdeItem,
   type PlanIdeProject
 } from '../right-sidebar/planide-engine-client'
@@ -65,7 +65,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
 ]
 
 /** Columns in board order: problems first, finished work last. */
-const COLUMNS: { id: PlanIdeItem['status']; label: string; dot: string }[] = [
+const COLUMNS: { id: ItemStatus; label: string; dot: string }[] = [
   { id: 'broken', label: 'Broken', dot: 'bg-rose-500' },
   { id: 'blocked', label: 'Blocked', dot: 'bg-amber-500' },
   { id: 'wip', label: 'In progress', dot: 'bg-violet-400' },
@@ -74,7 +74,7 @@ const COLUMNS: { id: PlanIdeItem['status']; label: string; dot: string }[] = [
   { id: 'done', label: 'Complete', dot: 'bg-violet-500' }
 ]
 
-const NEXT_STATUS: Record<PlanIdeItem['status'], PlanIdeItem['status']> = {
+const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
   todo: 'wip',
   wip: 'works',
   works: 'done',
@@ -270,7 +270,7 @@ export default function PlanIdeView(): React.JSX.Element {
   // quick capture
   const [qTitle, setQTitle] = useState('')
   const [qNotes, setQNotes] = useState('')
-  const [qStatus, setQStatus] = useState<PlanIdeItem['status']>('todo')
+  const [qStatus, setQStatus] = useState<ItemStatus>('todo')
   const [qLock, setQLock] = useState(false)
   const [qConfirm, setQConfirm] = useState(false)
 
@@ -278,7 +278,7 @@ export default function PlanIdeView(): React.JSX.Element {
     setLoading(true)
     setError(null)
     try {
-      setProject(await ensureProjectForPath(path))
+      setProject(await openProject(path))
     } catch (err) {
       setProject(null)
       setError(err instanceof Error ? err.message : String(err))
@@ -296,43 +296,45 @@ export default function PlanIdeView(): React.JSX.Element {
   }, [worktreePath, load])
 
   const refresh = useCallback(async () => {
-    if (!project) return
+    if (!worktreePath) return
     try {
-      setProject(await getProject(project.id))
+      setProject(await openProject(worktreePath))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     }
-  }, [project])
+  }, [worktreePath])
 
-  const act = useCallback(
-    async (fn: () => Promise<unknown>) => {
-      try {
-        await fn()
-        await refresh()
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : String(err))
-      }
-    },
-    [refresh]
-  )
+  /** Every mutation returns the refreshed project, so one round-trip is enough. */
+  const act = useCallback(async (fn: () => Promise<PlanIdeProject>) => {
+    try {
+      setProject(await fn())
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    }
+  }, [])
 
   const quickAdd = useCallback(async () => {
-    if (!project || !qTitle.trim()) return
+    if (!worktreePath || !qTitle.trim()) return
     try {
-      const itemId = await addItem(project.id, qTitle.trim(), qStatus, qNotes.trim())
-      // Flags go through their own endpoints on purpose: the generic add/update
+      const added = await addItem(worktreePath, {
+        title: qTitle.trim(),
+        status: qStatus,
+        notes: qNotes.trim()
+      })
+      let next = added.payload
+      // Flags go through their own channels on purpose: the generic add/update
       // path deliberately cannot set them.
-      if (qLock) await lockItem(project.id, itemId, true)
-      if (qConfirm) await verifyItem(project.id, itemId, true)
+      if (qLock) next = await lockItem(worktreePath, added.result.id, true)
+      if (qConfirm) next = await verifyItem(worktreePath, added.result.id, true)
+      setProject(next)
       setQTitle('')
       setQNotes('')
       setQLock(false)
       setQConfirm(false)
-      await refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     }
-  }, [project, qTitle, qNotes, qStatus, qLock, qConfirm, refresh])
+  }, [worktreePath, qTitle, qNotes, qStatus, qLock, qConfirm])
 
   const editItem = useCallback(
     async (item: PlanIdeItem) => {
@@ -340,21 +342,21 @@ export default function PlanIdeView(): React.JSX.Element {
       if (title === null) return
       const notes = window.prompt(translate('planide.view.editNotes', 'Notes'), item.notes ?? '')
       if (notes === null) return
-      await act(() => updateItem(project!.id, item.id, { title, notes }))
+      await act(() => updateItem(worktreePath!, item.id, { title, notes }))
     },
-    [act, project]
+    [act, worktreePath]
   )
 
   useEffect(() => {
-    if (tab !== 'ai' || !project) return
+    if (tab !== 'ai' || !worktreePath) return
     let cancelled = false
-    void aiReport(project.id, 'full')
+    void aiReport(worktreePath, 'full')
       .then((md) => !cancelled && setBriefing(md))
       .catch((err) => !cancelled && setBriefing(String(err)))
     return () => {
       cancelled = true
     }
-  }, [tab, project])
+  }, [tab, worktreePath])
 
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase()
@@ -523,7 +525,7 @@ export default function PlanIdeView(): React.JSX.Element {
             />
             <select
               value={qStatus}
-              onChange={(e) => setQStatus(e.target.value as PlanIdeItem['status'])}
+              onChange={(e) => setQStatus(e.target.value as ItemStatus)}
               className="rounded-md border border-border bg-background px-2 py-1.5 text-[13px] outline-none focus:border-ring"
             >
               {COLUMNS.map((c) => (
@@ -614,13 +616,13 @@ export default function PlanIdeView(): React.JSX.Element {
                         <ItemCard
                           key={item.id}
                           item={item}
-                          onCycle={(i) => void act(() => setItemStatus(project.id, i.id, NEXT_STATUS[i.status]))}
-                          onVerify={(i) => void act(() => verifyItem(project.id, i.id, !i.verified))}
-                          onLock={(i) => void act(() => lockItem(project.id, i.id, !i.locked))}
+                          onCycle={(i) => void act(() => setItemStatus(worktreePath, i.id, NEXT_STATUS[i.status]))}
+                          onVerify={(i) => void act(() => verifyItem(worktreePath, i.id, !i.verified))}
+                          onLock={(i) => void act(() => lockItem(worktreePath, i.id, !i.locked))}
                           onEdit={(i) => void editItem(i)}
                           onDelete={(i) => {
                             if (window.confirm(translate('planide.view.confirmDelete', 'Delete this item?')))
-                              void act(() => deleteItem(project.id, i.id))
+                              void act(() => deleteItem(worktreePath, i.id))
                           }}
                         />
                       ))}
@@ -650,11 +652,11 @@ export default function PlanIdeView(): React.JSX.Element {
                       <ItemCard
                         key={item.id}
                         item={item}
-                        onCycle={(i) => void act(() => setItemStatus(project.id, i.id, NEXT_STATUS[i.status]))}
-                        onVerify={(i) => void act(() => verifyItem(project.id, i.id, !i.verified))}
-                        onLock={(i) => void act(() => lockItem(project.id, i.id, !i.locked))}
+                        onCycle={(i) => void act(() => setItemStatus(worktreePath, i.id, NEXT_STATUS[i.status]))}
+                        onVerify={(i) => void act(() => verifyItem(worktreePath, i.id, !i.verified))}
+                        onLock={(i) => void act(() => lockItem(worktreePath, i.id, !i.locked))}
                         onEdit={(i) => void editItem(i)}
-                        onDelete={(i) => void act(() => deleteItem(project.id, i.id))}
+                        onDelete={(i) => void act(() => deleteItem(worktreePath, i.id))}
                       />
                     ))}
                   </div>
@@ -679,11 +681,11 @@ export default function PlanIdeView(): React.JSX.Element {
                         <ItemCard
                           key={item.id}
                           item={item}
-                          onCycle={(i) => void act(() => setItemStatus(project.id, i.id, NEXT_STATUS[i.status]))}
-                          onVerify={(i) => void act(() => verifyItem(project.id, i.id, !i.verified))}
-                          onLock={(i) => void act(() => lockItem(project.id, i.id, !i.locked))}
+                          onCycle={(i) => void act(() => setItemStatus(worktreePath, i.id, NEXT_STATUS[i.status]))}
+                          onVerify={(i) => void act(() => verifyItem(worktreePath, i.id, !i.verified))}
+                          onLock={(i) => void act(() => lockItem(worktreePath, i.id, !i.locked))}
                           onEdit={(i) => void editItem(i)}
-                          onDelete={(i) => void act(() => deleteItem(project.id, i.id))}
+                          onDelete={(i) => void act(() => deleteItem(worktreePath, i.id))}
                         />
                       ))}
                   </div>
@@ -735,7 +737,7 @@ export default function PlanIdeView(): React.JSX.Element {
                   {f.status === 'open' && (
                     <button
                       type="button"
-                      onClick={() => void act(() => markFixDone(project.id, f.id))}
+                      onClick={() => void act(() => markFixDone(worktreePath, f.id))}
                       className="shrink-0 rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-emerald-500 hover:text-emerald-500"
                     >
                       <Check size={11} />
@@ -759,7 +761,7 @@ export default function PlanIdeView(): React.JSX.Element {
                 >
                   <button
                     type="button"
-                    onClick={() => void act(() => toggleMilestone(project.id, m.id, !m.done))}
+                    onClick={() => void act(() => toggleMilestone(worktreePath, m.id, !m.done))}
                     className={cn(
                       'grid size-5 shrink-0 place-items-center rounded border transition-colors',
                       m.done
@@ -784,7 +786,7 @@ export default function PlanIdeView(): React.JSX.Element {
                   if (!title) return
                   const target =
                     window.prompt(translate('planide.view.milestoneTarget', 'Target (optional)')) ?? ''
-                  void act(() => addMilestone(project.id, title, target))
+                  void act(() => addMilestone(worktreePath, title, target))
                 }}
                 className="mt-2 flex items-center gap-1.5 self-start rounded-md border border-border px-2.5 py-1 text-[12px] text-muted-foreground hover:border-ring hover:text-foreground"
               >

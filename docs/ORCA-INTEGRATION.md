@@ -11,7 +11,9 @@ desktop run.
 
 1. **Branding** — the app becomes PlanIDE end to end.
 2. **Integration** — the tracker becomes a top-level **Tracker** page *and* a
-   right-sidebar tab, both backed by the tracker engine the main process starts.
+   right-sidebar tab, both backed by main-process code. No server, no port, no
+   extra runtime: the tracker reads and writes each project's own
+   `.planide/state.json` directly and is called over IPC.
 
 Nothing of upstream is vendored into this repo. `ide/build.sh` clones Orca at
 `PINNED_COMMIT`, applies the overlay, and builds. Bumping upstream is a one-line
@@ -54,67 +56,76 @@ run, so drift is caught by the test suite rather than by a broken build.
 | **added** `PlanIdePanel.tsx` | the panel: board, open fixes, progress, status cycling, AI-briefing copy |
 | **added** `planide-engine-client.ts` | typed client over the IPC bridge |
 
-### The engine
+### The tracker (main process)
 | File | Change |
 |---|---|
-| `src/main/index.ts` | starts the engine + registers the bridge on `whenReady`, stops it on `before-quit` |
-| **added** `src/main/planide/engine-service.ts` | spawns/adopts the engine, port discovery, IPC handlers |
+| `src/main/index.ts` | registers the tracker's IPC on `whenReady` — that is all "starting" it means |
+| **added** `src/main/planide/store.ts` | the state model: items, fixes, roadmap, versions, activity, progress |
+| **added** `src/main/planide/detect.ts` | language/stack/type detection |
+| **added** `src/main/planide/report.ts` | the AI briefing |
+| **added** `src/main/planide/git.ts` | status, init, remote, large-file scan, LFS, commit+push |
+| **added** `src/main/planide/backup.ts` | zip snapshots (own ZIP writer, no dependency) |
+| **added** `src/main/planide/ipc.ts` | the typed channel surface |
 | **added** `src/preload/planide.ts` | exposes `window.api.planide` |
 | `src/preload/index.ts` | wires that bridge into the `api` object |
-| `config/electron-builder.config.cjs` | ships `tracker/` as an extraResource (kept out of `app.asar`) |
 
 ## Design decisions worth knowing
 
-**The engine is a child process, not a TypeScript port.** The tracker already
-exists as a self-tested product that also runs standalone and backs the CLI and
-MCP server agents use. One source of truth beats two implementations that drift.
-The IDE spawns it on a loopback port; if an engine is already running (someone
-ran `tracker/start.sh`, or a second window is open) it is *adopted* rather than
-duplicated — and a listener is only adopted after it answers as a PlanIDE engine
-on `/api/overview`, never on the assumption that whatever holds the port is ours.
+**The tracker is part of the IDE, not something it talks to.** An earlier
+revision ran it as a Python HTTP service on a loopback port, with its own web UI.
+That worked, but it was a separate thing bolted alongside the IDE: another
+process, another port, another runtime to install, and a CORS/CSRF problem to
+design around. It is now plain main-process TypeScript called over IPC. Nothing
+to start, nothing to install, and the whole class of origin problems disappears
+because no HTTP is involved at any point.
 
-**The panel talks over IPC, not `fetch`.** This one caught a real bug during
-development. An Electron renderer is a *different origin* from the engine's
-loopback port — `file://` (so `Origin: null`) in a packaged build, the Vite
-origin in dev. A JSON `POST` from there triggers a CORS preflight and would be
-rejected by the engine's CSRF guard; "fixing" that by allowing `null` origins
-would re-open exactly the cross-site hole the guard exists to close (a sandboxed
-iframe on any website also sends `Origin: null`). So requests are proxied
-main-side over a named IPC channel — the same pattern every other Orca feature
-uses — and the guard stays strict. The bridge only forwards `/api/*` paths.
+**Two implementations, one file.** The IDE's tracker is TypeScript; the agent
+CLI and MCP server (`agent-tools/`, for agents working in a terminal) are Python.
+They share `<project>/.planide/state.json`, so that format is the contract.
+`agent-tools/scripts/verify.sh` writes a state with the Python side and asserts
+the TypeScript side reads it back identically — items, flags, attribution,
+progress and regressions — so drift is caught by the suite rather than by a
+confused user.
 
-**`tracker/` ships as an extraResource.** Python executes the engine, and
-nothing can be executed from inside `app.asar`, so it must remain a real
-directory. A dev run symlinks it instead, so the IDE uses this repo's engine
-directly.
+**The trust boundary is enforced at runtime, not by types.** `updateItem` is
+reachable over IPC with arbitrary JSON, so a TypeScript signature is not a
+guard. It filters through an explicit allowlist that excludes `verified` and
+`locked`. This was not theoretical: the first version assigned every key it was
+given, and the tracker's own test caught it — an agent could have confirmed its
+own work.
 
-**Failure is tolerated.** If Python is missing or the engine cannot start, the
-IDE still boots and the panel shows what went wrong with a retry — the tracker
-must never be able to take the IDE down.
+**Backups use a hand-written ZIP.** Orca ships no archive library and this did
+not justify a new dependency, so `backup.ts` emits the classic format (local
+header + central directory + EOCD) over Node's `zlib`. The suite proves the
+output is real by opening it with independent readers rather than trusting our
+own writer.
+
+**Failure is contained.** Every IPC handler returns `{ok, error}` rather than
+throwing, and the surfaces render an error state with a retry — a tracker
+problem must never take a renderer down with it.
 
 ## Verified vs. not
 
-**Verified here** (`./verify.sh`, 42 checks):
+**Verified here** (`./verify.sh`, 25 checks):
 
 - the overlay applies cleanly to a real Orca checkout at the pinned revision,
-  all 26 edits resolving, and re-running changes nothing;
+  all 23 edits resolving, and re-running changes nothing;
+- the tracker's own behaviour, run for real (30 checks): detection, state
+  round-trips, the trust boundary, progress arithmetic, activity attribution,
+  briefing ordering, and snapshots;
 - the five added TypeScript/TSX sources typecheck clean — including a separate
   run against real `@types/react`, which is what proves the workbench page is
   type-correct (the dependency-free `--noResolve` check in `ide/verify.sh`
   cannot see React's own types, so it reports `key` and callback-parameter
   false positives that the real-types run confirmed are not errors);
 - the patched `electron-builder.config.cjs` and `package.json` still parse;
-- every endpoint the panel calls was exercised against a live engine —
-  `project/add`, `project?id=`, `item/add`, `item/update`, `fix/add`,
-  `fix/update`, `ai-report` — with the exact field shapes the client types
-  expect, plus the port-discovery contract on `/api/overview`;
-- the engine's CSRF guard allows the bridge's requests and still rejects a
-  cross-origin POST with 403;
-- both UI surfaces were rendered for real (bundled with React + Tailwind against
-  a live engine) and screenshotted: the workbench page and the sidebar panel.
-  That render is also what proved the CORS finding above — pointing the harness
-  at a different port reproduced exactly the "Failed to fetch" the IPC bridge
-  exists to avoid.
+- the hand-written ZIP opens cleanly in Python's `zipfile` and in the system
+  `unzip`, with contents round-tripping;
+- the state format is compatible in both directions between the IDE's tracker
+  and the Python agent tools;
+- the Tracker page was rendered for real against the actual main-process store
+  (React + Tailwind, filesystem shimmed in memory) and screenshotted, with zero
+  console errors.
 
 **Not verified here — needs a desktop run.** This environment has no display and
 cannot install an Electron toolchain of this size, so the following are sound by

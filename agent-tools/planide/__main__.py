@@ -1,7 +1,10 @@
-"""PlanIDE command-line interface:  python3 -m planide <command>
+"""PlanIDE agent CLI:  python3 -m planide <command>
+
+This is how a shell-capable agent (Claude Code, Codex, ...) reads and updates
+the tracker. It writes each project's own .planide/state.json directly -- there
+is no server and no UI here; the UI lives inside PlanIDE itself.
 
 Read commands
-  serve [--port N] [--no-browser]      start the web UI (http://127.0.0.1:8390)
   list                                 list registered projects + progress
   detect <path>                        print the detected language/type
   board  <path|id>                     print the tracker board (item ids + status)
@@ -70,18 +73,6 @@ def _save(st, path):
 
 
 # --- read -------------------------------------------------------------------
-def cmd_serve(argv):
-    _, opt = parse(argv, {"port"})
-    if opt.get("no-browser"):
-        os.environ["PLANIDE_OPEN"] = "0"
-    if opt.get("port"):
-        os.environ["PLANIDE_PORT"] = opt["port"]
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, here)
-    import server
-    server.main()
-
-
 def cmd_list(argv):
     projects = store.load_registry()
     if not projects:
@@ -299,7 +290,7 @@ def cmd_sync(argv):
 
 
 COMMANDS = {
-    "serve": cmd_serve, "list": cmd_list, "detect": cmd_detect, "board": cmd_board,
+    "list": cmd_list, "detect": cmd_detect, "board": cmd_board,
     "report": cmd_report, "status": cmd_status, "add": cmd_add, "item": cmd_item,
     "fix": cmd_fix, "milestone": cmd_milestone, "version": cmd_version,
     "backup": cmd_backup, "sync": cmd_sync, "activity": cmd_activity,

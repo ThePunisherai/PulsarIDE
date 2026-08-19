@@ -31,6 +31,7 @@ PlanIDE adds, in the sidebar, wired to the agents.
 | **The IDE** | Orca upstream: parallel agents in isolated worktrees, terminals, browser, diffs, GitHub/Linear |
 | **The tracker** | Board (works/broken/blocked/wip/todo), fix log with agent attribution, roadmap, versions, GitHub sync + LFS, backups, stack auto-detect, AI briefing export |
 | **The wiring** | Agents update the tracker themselves — via CLI or MCP — while they work |
+| **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
 
@@ -41,17 +42,17 @@ nobody checked. So PlanIDE splits progress in two:
 
 - an agent moving an item to `works` records a **claim**, attributed to that
   agent (`reported by Codex`);
-- **only you** can mark it **confirmed** — from the sidebar, or
-  `./tracker/plan item confirm <proj> <id>`.
+- **only you** can mark it **confirmed** — in the IDE, or
+  `./agent-tools/plan item confirm <project-path> <id>`.
 
 The sidebar shows both: a solid green bar for what you confirmed, a faint amber
 one behind it for what is merely claimed. Project health is scored on the
 confirmed number, not the claimed one. Changing an item's status drops its
 confirmation, so a confirmation always refers to what you actually saw.
 
-The boundary is enforced, not just documented: `/api/item/update` cannot set
-`verified`, and the MCP server agents use exposes no confirm tool at all —
-both covered by tests in `tracker/scripts/verify.sh`.
+The boundary is enforced, not just documented: the update path cannot set
+`verified` (a runtime allowlist, not just a type), and the MCP server agents use
+exposes no confirm tool at all — both covered by tests.
 
 ## Your board: two axes, not one
 
@@ -76,10 +77,11 @@ protected item ever goes to broken, PlanIDE raises a **regression** — a red
 banner in the GUI and in the IDE panel, the first line of the briefing, and a
 hard hit to the project's health score.
 
-`/api/item/update` can set neither `verified` nor `locked`, and the MCP surface
-agents use exposes no tool for either — so an agent can never confirm its own
-work or unprotect the thing it is about to rewrite. All of it is covered by
-tests in `tracker/scripts/verify.sh`.
+The update path can set neither `verified` nor `locked` — enforced by a runtime
+allowlist, because it is reachable over IPC with arbitrary JSON — and the MCP
+surface agents use exposes no tool for either. So an agent can never confirm its
+own work or unprotect the thing it is about to rewrite. All of it is covered by
+tests on both sides.
 
 **Activity** records every change with attribution, so you can see exactly what
 you did versus what Claude or Codex did — including the line that says which
@@ -106,27 +108,34 @@ Everything lives **inside the IDE**, in two places:
   keep open while an agent works: progress, regressions, open fixes, and
   one-click confirm/protect without leaving your code.
 
-The standalone web UI (`tracker/start.sh` → `:8390`) is still there for using
-the tracker without the IDE — same engine, same state.
+There is no web UI, no server and no port: the tracker is main-process
+TypeScript, reached over IPC like every other part of Orca. It reads and writes
+each project's own `.planide/state.json` directly.
 
 ## Repo layout
 
 ```
 PlanIDE/
-├── tracker/          the tracker engine — Python stdlib only, no build step
-│   ├── planide/      detect · store · gitsync · backup · aireport  (+ CLI)
-│   ├── server.py     loopback HTTP API the IDE panel talks to
-│   ├── static/       standalone web UI (works without the IDE)
-│   └── mcp/          MCP server so agents update the tracker themselves
-├── ide/              the Orca fork layer
-│   ├── overlay/      our source: the Tracker page, sidebar panel, IPC bridge,
-│   │                 engine service
-│   ├── apply.py      anchored, verified, idempotent integration + branding
-│   ├── build.sh      clone Orca → apply → install → run
-│   └── verify.sh     does the overlay still apply to upstream?
+├── ide/                    everything that becomes the IDE
+│   ├── overlay/src/main/planide/    the tracker itself (main process):
+│   │                                store · detect · report · git · backup · ipc
+│   ├── overlay/src/preload/         the typed IPC bridge
+│   ├── overlay/src/renderer/…       the Tracker page + sidebar panel
+│   ├── apply.py            anchored, verified, idempotent integration + branding
+│   ├── build.sh            clone Orca → apply → install → run
+│   ├── test/               the tracker's own behaviour tests
+│   └── verify.sh           tracker tests + does the overlay still apply upstream?
+├── agent-tools/            how agents update the tracker from a terminal
+│   ├── planide/            the `plan` CLI (zero dependency)
+│   └── mcp/                MCP server for MCP-native agents
 ├── docs/
-└── verify.sh         runs both self-tests
+└── verify.sh               runs both suites
 ```
+
+Both sides write the same file, `<project>/.planide/state.json`. That format is
+the contract between them, and `agent-tools/scripts/verify.sh` checks the IDE's
+tracker can read a state the agent tools just wrote — so two implementations of
+one format cannot quietly drift apart.
 
 ### Why an overlay instead of a 210 MB vendored fork
 
@@ -144,39 +153,20 @@ current **as it works**. Two ways, pick per agent:
 
 - **CLI** (zero dependency) — any shell-capable agent (Claude Code, Codex) runs:
   ```bash
-  ./tracker/plan item set <proj> <item_id> --status works
-  ./tracker/plan fix done <proj> <fix_id> --solution "awaited the query"
+  ./agent-tools/plan item set <project-path> <item_id> --status works
+  ./agent-tools/plan fix done <project-path> <fix_id> --solution "awaited the query"
   ```
 - **MCP** — MCP-native agents call `set_item` / `mark_fixed` / `add_fix`
-  directly. `pip install mcp`, then see [`tracker/mcp/README.md`](tracker/mcp/README.md).
+  directly. `pip install mcp`, then see
+  [`agent-tools/mcp/README.md`](agent-tools/mcp/README.md).
 
-Both write the same state the sidebar panel reads, so a fix an agent logs
-mid-session shows up in the IDE.
-
-## The tracker on its own
-
-The engine is a real standalone tool — useful without the IDE, and the reason
-the IDE never re-implements any of it:
-
-```bash
-cd tracker
-./start.sh                    # → http://127.0.0.1:8390
-./plan add ~/code/my-emulator # register + auto-detect the stack
-./plan report ~/code/my-app   # AI briefing → pipe it to any agent
-```
-
-It auto-detects the project type (web · desktop-exe · **emulator** · game ·
-mobile · library · cli · custom) and language, tracks items and fixes, keeps a
-roadmap and versions, snapshots zip backups, and syncs to GitHub including
-large files via Git LFS.
-
-State lives in `<project>/.planide/state.json` — inside the project, so it
-travels with the code — plus a registry at `~/.config/planide/projects.json`.
+Both write the same state the IDE reads, so a fix an agent logs mid-session
+shows up in the Tracker.
 
 ## Verify
 
 ```bash
-./verify.sh        # tracker: 36 checks · IDE overlay: 6 checks
+./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 8 checks
 ```
 
 ## Credits & license

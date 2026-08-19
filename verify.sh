@@ -3,17 +3,18 @@
 #
 #   ./verify.sh
 #
-# Runs tracker/scripts/verify.sh (engine, API, CLI, MCP -- 25 checks) and
-# ide/verify.sh (overlay integrity + does it still apply to Orca).
+# Runs agent-tools/scripts/verify.sh (the CLI + MCP agents use) and
+# ide/verify.sh (the tracker itself, the overlay, and whether it still applies
+# to upstream Orca).
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "######## tracker engine ########"
-( cd "$ROOT/tracker" && ./scripts/verify.sh )
+echo "######## agent tools (CLI + MCP) ########"
+( cd "$ROOT/agent-tools" && ./scripts/verify.sh )
 tracker_rc=$?
 
 echo
-echo "######## IDE overlay ########"
+echo "######## the IDE (tracker + overlay) ########"
 "$ROOT/ide/verify.sh"
 ide_rc=$?
 

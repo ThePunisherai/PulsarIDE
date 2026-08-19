@@ -1,14 +1,15 @@
 /**
- * Renderer-side client for the PlanIDE tracker engine.
+ * Renderer-side client for the PlanIDE tracker.
  *
- * Requests go through the preload bridge (`window.api.planide`), which proxies
- * them main-side. Deliberately NOT `fetch` from the renderer: an Electron
- * renderer is a different origin from the engine's loopback port (packaged →
- * `file://`, so `Origin: null`; dev → the Vite origin), so a JSON POST would
- * trigger a CORS preflight and be refused by the engine's CSRF guard. That
- * guard stops arbitrary websites driving the engine and must stay strict, so
- * the IDE goes around it the legitimate way instead of loosening it.
+ * Thin wrapper over the preload bridge (`window.api.planide`), which calls
+ * straight into the main-process tracker. No HTTP, no port, no server: the
+ * tracker is part of the IDE, and a project is addressed by its own path.
+ *
+ * Every mutating call returns the refreshed project, so a caller updates its
+ * state from one round-trip instead of a write followed by a re-read.
  */
+
+export type ItemStatus = 'todo' | 'wip' | 'works' | 'broken' | 'blocked' | 'done'
 
 export type PlanIdeProgress = {
   total_items: number
@@ -42,7 +43,7 @@ export type PlanIdeItem = {
   id: string
   title: string
   /** `works` = it functions; `done` = finished and closed out. */
-  status: 'todo' | 'wip' | 'works' | 'broken' | 'blocked' | 'done'
+  status: ItemStatus
   notes: string
   tags: string[]
   priority: string
@@ -51,7 +52,7 @@ export type PlanIdeItem = {
   verified_at: string
   /** Who reported this (agent name), empty when you entered it yourself. */
   claimed_by: string
-  /** "Do not break this" -- protected by you. Agents can read it, never set it. */
+  /** "Do not break this" -- protected by you. Agents read it, never set it. */
   locked: boolean
   locked_at: string
 }
@@ -74,12 +75,7 @@ export type PlanIdeActivity = {
   who: string
 }
 
-export type PlanIdeMilestone = {
-  id: string
-  title: string
-  target: string
-  done: boolean
-}
+export type PlanIdeMilestone = { id: string; title: string; target: string; done: boolean }
 
 export type PlanIdeVersion = {
   version: string
@@ -88,6 +84,14 @@ export type PlanIdeVersion = {
   added: string[]
   fixed: string[]
   changed: string[]
+}
+
+export type PlanIdeDetected = {
+  languages?: string[]
+  stack?: string[]
+  type?: string
+  confidence?: string
+  signals?: string[]
 }
 
 export type PlanIdeProject = {
@@ -103,16 +107,45 @@ export type PlanIdeProject = {
   versions: PlanIdeVersion[]
   activity: PlanIdeActivity[]
   /** Protected items that are currently broken. */
-  regressions?: PlanIdeItem[]
-  stack?: { detected?: { languages?: string[]; stack?: string[]; confidence?: string } }
+  regressions: PlanIdeItem[]
+  stack?: { detected?: PlanIdeDetected; custom?: string }
 }
 
-type PlanIdeResponse = { ok: boolean; status: number; data: unknown; error?: string }
-
-type PlanIdeBridge = {
-  request: (method: 'GET' | 'POST', path: string, body?: unknown) => Promise<PlanIdeResponse>
-  port: () => Promise<number | null>
+export type GitStatus = {
+  ok: boolean
+  has_git: boolean
+  path: string
+  branch?: string
+  dirty?: boolean
+  changed_count?: number
+  remote?: string
+  ahead?: number
+  behind?: number
+  last_commit?: string
 }
+
+export type LargeFileScan = {
+  ok: boolean
+  threshold_mb: number
+  count: number
+  files: { path: string; size_mb: number; ext: string }[]
+  extensions: string[]
+}
+
+export type SyncResult = {
+  ok: boolean
+  committed: boolean
+  pushed: boolean
+  branch: string
+  log: string[]
+  push_error: string
+}
+
+export type BackupInfo = { file: string; size: number; size_mb: number; created_at: string }
+
+type Reply<T> = { ok: boolean; data?: T; error?: string }
+
+type PlanIdeBridge = Record<string, (...args: never[]) => Promise<Reply<unknown>>>
 
 /** The preload bridge, or null when running outside the desktop shell. */
 function bridge(): PlanIdeBridge | null {
@@ -120,125 +153,156 @@ function bridge(): PlanIdeBridge | null {
   return api?.planide ?? null
 }
 
-async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+async function call<T>(method: string, ...args: unknown[]): Promise<T> {
   const api = bridge()
-  if (!api) throw new Error('PlanIDE bridge unavailable (not running in the desktop app)')
-  const res = await api.request(method, path, body)
-  if (!res.ok) throw new Error(res.error || `${path} -> ${res.status}`)
-  return res.data as T
+  if (!api) throw new Error('PlanIDE is unavailable (not running in the desktop app)')
+  const fn = api[method]
+  if (typeof fn !== 'function') throw new Error(`PlanIDE bridge is missing "${method}"`)
+  const reply = (await (fn as (...a: unknown[]) => Promise<Reply<T>>)(...args)) as Reply<T>
+  if (!reply?.ok) throw new Error(reply?.error || `${method} failed`)
+  return reply.data as T
 }
 
-/** Port the engine listens on, or null when it never started. */
-export async function enginePort(): Promise<number | null> {
-  const api = bridge()
-  if (!api) return null
-  try {
-    return await api.port()
-  } catch {
-    return null
-  }
+// --------------------------------------------------------------------------- project
+/** Load (creating on first use) the tracker for a project path. */
+export function openProject(path: string): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('open', path)
 }
 
-/**
- * Make sure `path` is tracked and return its project detail.
- * Registering an already-known folder is a no-op server-side, so this is safe
- * to call every time the active workspace changes.
- */
-export async function ensureProjectForPath(path: string): Promise<PlanIdeProject> {
-  const added = await call<{ project: { id: string } }>('POST', '/api/project/add', { path })
-  return getProject(added.project.id)
+export function redetect(path: string): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('redetect', path)
 }
 
-export async function getProject(id: string): Promise<PlanIdeProject> {
-  return call<PlanIdeProject>('GET', `/api/project?id=${encodeURIComponent(id)}`)
+// --------------------------------------------------------------------------- items
+export function addItem(
+  path: string,
+  opts: { title: string; status?: ItemStatus; notes?: string; priority?: string; tags?: string[] }
+): Promise<{ result: PlanIdeItem; payload: PlanIdeProject }> {
+  return call<{ result: PlanIdeItem; payload: PlanIdeProject }>('addItem', path, opts)
 }
 
-export async function setItemStatus(
-  id: string,
-  itemId: string,
-  status: PlanIdeItem['status']
-): Promise<void> {
-  await call('POST', '/api/item/update', { id, item_id: itemId, status })
-}
-
-export async function addItem(
-  id: string,
-  title: string,
-  status: PlanIdeItem['status'],
-  notes = ''
-): Promise<string> {
-  const r = await call<{ item: PlanIdeItem }>('POST', '/api/item/add', {
-    id,
-    title,
-    status,
-    notes
-  })
-  return r.item.id
-}
-
-export async function updateItem(
-  id: string,
+export function updateItem(
+  path: string,
   itemId: string,
   fields: Partial<Pick<PlanIdeItem, 'title' | 'notes' | 'status' | 'priority'>>
-): Promise<void> {
-  await call('POST', '/api/item/update', { id, item_id: itemId, ...fields })
+): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('updateItem', path, itemId, fields)
 }
 
-export async function deleteItem(id: string, itemId: string): Promise<void> {
-  await call('POST', '/api/item/delete', { id, item_id: itemId })
+export function setItemStatus(
+  path: string,
+  itemId: string,
+  status: ItemStatus
+): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('updateItem', path, itemId, { status })
 }
 
-export async function toggleMilestone(
-  id: string,
-  mid: string,
-  done: boolean
-): Promise<void> {
-  await call('POST', '/api/milestone/update', { id, mid, done })
-}
-
-export async function addMilestone(id: string, title: string, target: string): Promise<void> {
-  await call('POST', '/api/milestone/add', { id, title, target })
+export function deleteItem(path: string, itemId: string): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('deleteItem', path, itemId)
 }
 
 /**
  * Confirm (or withdraw confirmation) that an item really works.
- * This is yours alone: the MCP surface agents use exposes no equivalent, so
- * "an agent says it works" can never masquerade as "you saw it work".
+ * Yours alone: nothing agent-facing can reach this, so "an agent says it works"
+ * can never masquerade as "you saw it work".
  */
-export async function verifyItem(
-  id: string,
+export function verifyItem(
+  path: string,
   itemId: string,
   verified: boolean
-): Promise<void> {
-  await call('POST', '/api/item/verify', { id, item_id: itemId, verified })
+): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('verifyItem', path, itemId, verified)
 }
 
 /**
  * Protect an item: "this works and must NOT be broken".
- * Yours alone, like confirmation -- an agent must never be able to unprotect
- * the thing it is about to refactor.
+ * Yours alone too — an agent must never unprotect what it is about to refactor.
  */
-export async function lockItem(id: string, itemId: string, locked: boolean): Promise<void> {
-  await call('POST', '/api/item/lock', { id, item_id: itemId, locked })
+export function lockItem(path: string, itemId: string, locked: boolean): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('lockItem', path, itemId, locked)
 }
 
-export async function markFixDone(id: string, fixId: string): Promise<void> {
-  await call('POST', '/api/fix/update', { id, fix_id: fixId, status: 'fixed' })
+// --------------------------------------------------------------------------- fixes
+export function addFix(
+  path: string,
+  opts: { title: string; problem?: string; solution?: string; agent?: string }
+): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('addFix', path, opts)
 }
 
-export async function addFix(
-  id: string,
-  title: string,
-  problem: string,
-  agent: string
-): Promise<void> {
-  await call('POST', '/api/fix/add', { id, title, problem, agent, status: 'open' })
+export function markFixDone(path: string, fixId: string): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('updateFix', path, fixId, { status: 'fixed' })
 }
 
-export async function aiReport(id: string, mode = 'full'): Promise<string> {
-  const body = await call<{ markdown: string }>(
-    'GET',
-    `/api/ai-report?id=${encodeURIComponent(id)}&mode=${encodeURIComponent(mode)}`
-  )
-  return body.markdown
+// --------------------------------------------------------------------------- roadmap + versions
+export function addMilestone(path: string, title: string, target = ''): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('addMilestone', path, title, target)
+}
+
+export function toggleMilestone(
+  path: string,
+  mid: string,
+  done: boolean
+): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('updateMilestone', path, mid, { done })
+}
+
+export function addVersion(
+  path: string,
+  version: string,
+  opts: { notes?: string; added?: string[]; fixed?: string[]; changed?: string[] } = {}
+): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('addVersion', path, version, opts)
+}
+
+// --------------------------------------------------------------------------- briefing
+export function aiReport(path: string, mode = 'full'): Promise<string> {
+  return call<string>('report', path, mode)
+}
+
+// --------------------------------------------------------------------------- git
+export function gitStatus(path: string): Promise<GitStatus> {
+  return call<GitStatus>('gitStatus', path)
+}
+
+export function gitInit(path: string, branch = 'main'): Promise<{ ok: boolean; message?: string }> {
+  return call<{ ok: boolean; message?: string }>('gitInit', path, branch)
+}
+
+export function gitSetRemote(path: string, url: string): Promise<{ ok: boolean; remote: string }> {
+  return call<{ ok: boolean; remote: string }>('gitSetRemote', path, url)
+}
+
+export function gitLargeFiles(path: string, mb = 25): Promise<LargeFileScan> {
+  return call<LargeFileScan>('gitLargeFiles', path, mb)
+}
+
+export function gitLfs(
+  path: string,
+  patterns: string[]
+): Promise<{ ok: boolean; installed: boolean; tracked?: string[]; error?: string }> {
+  return call('gitLfs', path, patterns)
+}
+
+export function gitSync(
+  path: string,
+  opts: { message?: string; push?: boolean } = {}
+): Promise<SyncResult> {
+  return call<SyncResult>('gitSync', path, opts)
+}
+
+// --------------------------------------------------------------------------- backups
+export function backupCreate(
+  path: string,
+  label = ''
+): Promise<{ ok: boolean; file?: string; files?: number; size_mb?: number; error?: string }> {
+  return call('backupCreate', path, label)
+}
+
+export function backupList(path: string): Promise<BackupInfo[]> {
+  return call<BackupInfo[]>('backupList', path)
+}
+
+export function backupDelete(path: string, file: string): Promise<{ ok: boolean }> {
+  return call<{ ok: boolean }>('backupDelete', path, file)
 }

@@ -31,17 +31,17 @@ import { translate } from '@/i18n/i18n'
 import {
   addItem,
   aiReport,
-  ensureProjectForPath,
-  getProject,
+  lockItem,
   markFixDone,
+  openProject,
   setItemStatus,
   verifyItem,
-  lockItem,
+  type ItemStatus,
   type PlanIdeItem,
   type PlanIdeProject
 } from './planide-engine-client'
 
-const STATUS_ORDER: PlanIdeItem['status'][] = [
+const STATUS_ORDER: ItemStatus[] = [
   'broken',
   'blocked',
   'wip',
@@ -50,7 +50,7 @@ const STATUS_ORDER: PlanIdeItem['status'][] = [
   'done'
 ]
 
-const STATUS_LABEL: Record<PlanIdeItem['status'], string> = {
+const STATUS_LABEL: Record<ItemStatus, string> = {
   done: 'Complete',
   works: 'Works',
   wip: 'In progress',
@@ -59,7 +59,7 @@ const STATUS_LABEL: Record<PlanIdeItem['status'], string> = {
   todo: 'To do'
 }
 
-const STATUS_DOT: Record<PlanIdeItem['status'], string> = {
+const STATUS_DOT: Record<ItemStatus, string> = {
   done: 'bg-violet-500',
   works: 'bg-emerald-500',
   wip: 'bg-violet-400',
@@ -69,7 +69,7 @@ const STATUS_DOT: Record<PlanIdeItem['status'], string> = {
 }
 
 /** Cycle order when clicking an item's dot: the states you actually toggle. */
-const NEXT_STATUS: Record<PlanIdeItem['status'], PlanIdeItem['status']> = {
+const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
   todo: 'wip',
   wip: 'works',
   works: 'done',
@@ -121,10 +121,9 @@ export default function PlanIdePanel(): React.JSX.Element {
       setLoading(true)
       setError(null)
       try {
-        // Registering an already-tracked folder is a server-side no-op, so the
-        // active workspace is always attached without a separate "add" step.
-        const next = await ensureProjectForPath(path)
-        setProject(next)
+        // Opening is idempotent, so the active workspace is always attached
+        // without a separate "add" step.
+        setProject(await openProject(path))
       } catch (err) {
         setProject(null)
         setError(err instanceof Error ? err.message : String(err))
@@ -144,16 +143,16 @@ export default function PlanIdePanel(): React.JSX.Element {
   }, [worktreePath, load])
 
   const refresh = useCallback(async () => {
-    if (!project) return
+    if (!worktreePath) return
     try {
-      setProject(await getProject(project.id))
+      setProject(await openProject(worktreePath))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
-  }, [project])
+  }, [worktreePath])
 
   const grouped = useMemo(() => {
-    const byStatus = new Map<PlanIdeItem['status'], PlanIdeItem[]>()
+    const byStatus = new Map<ItemStatus, PlanIdeItem[]>()
     for (const status of STATUS_ORDER) byStatus.set(status, [])
     for (const item of project?.items ?? []) {
       byStatus.get(item.status)?.push(item)
@@ -168,7 +167,7 @@ export default function PlanIdePanel(): React.JSX.Element {
 
   const cycleStatus = useCallback(
     async (item: PlanIdeItem) => {
-      if (!project) return
+      if (!project || !worktreePath) return
       const next = NEXT_STATUS[item.status]
       // Optimistic: the sidebar should feel instant; a failure re-syncs below.
       setProject({
@@ -176,58 +175,55 @@ export default function PlanIdePanel(): React.JSX.Element {
         items: project.items.map((i) => (i.id === item.id ? { ...i, status: next } : i))
       })
       try {
-        await setItemStatus(project.id, item.id, next)
-        await refresh()
+        setProject(await setItemStatus(worktreePath, item.id, next))
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err))
         await refresh()
       }
     },
-    [project, refresh]
+    [project, worktreePath, refresh]
   )
 
   const toggleVerified = useCallback(
     async (item: PlanIdeItem) => {
-      if (!project) return
+      if (!worktreePath) return
       try {
-        await verifyItem(project.id, item.id, !item.verified)
-        await refresh()
+        setProject(await verifyItem(worktreePath, item.id, !item.verified))
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err))
       }
     },
-    [project, refresh]
+    [worktreePath]
   )
 
   const toggleLocked = useCallback(
     async (item: PlanIdeItem) => {
-      if (!project) return
+      if (!worktreePath) return
       try {
-        await lockItem(project.id, item.id, !item.locked)
-        await refresh()
+        setProject(await lockItem(worktreePath, item.id, !item.locked))
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err))
       }
     },
-    [project, refresh]
+    [worktreePath]
   )
 
   const submitDraft = useCallback(async () => {
-    if (!project || !draft.trim()) return
+    if (!worktreePath || !draft.trim()) return
     try {
-      await addItem(project.id, draft.trim(), 'todo')
+      const added = await addItem(worktreePath, { title: draft.trim(), status: 'todo' })
+      setProject(added.payload)
       setDraft('')
       setAdding(false)
-      await refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     }
-  }, [project, draft, refresh])
+  }, [worktreePath, draft])
 
   const copyBriefing = useCallback(async () => {
-    if (!project) return
+    if (!worktreePath) return
     try {
-      const md = await aiReport(project.id, 'full')
+      const md = await aiReport(worktreePath, 'full')
       await navigator.clipboard.writeText(md)
       toast.success(
         translate('planide.panel.briefingCopied', 'AI briefing copied — paste it to an agent')
@@ -235,7 +231,7 @@ export default function PlanIdePanel(): React.JSX.Element {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     }
-  }, [project])
+  }, [worktreePath])
 
   if (!worktreePath) {
     return (
@@ -259,7 +255,7 @@ export default function PlanIdePanel(): React.JSX.Element {
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
         <AlertTriangle className="text-amber-500" size={20} />
         <div className="text-xs text-muted-foreground">
-          {translate('planide.panel.engineDown', 'The PlanIDE tracker engine is not reachable.')}
+          {translate('planide.panel.engineDown', 'The tracker could not read this project.')}
         </div>
         <div className="font-mono text-[10px] break-all text-muted-foreground/70">{error}</div>
         <Button size="sm" variant="outline" onClick={() => void load(worktreePath)}>
@@ -406,8 +402,7 @@ export default function PlanIdePanel(): React.JSX.Element {
                 type="button"
                 onClick={async () => {
                   try {
-                    await markFixDone(project.id, fix.id)
-                    await refresh()
+                    setProject(await markFixDone(worktreePath, fix.id))
                   } catch (err) {
                     toast.error(err instanceof Error ? err.message : String(err))
                   }
