@@ -156,6 +156,9 @@ jobs:
         working-directory: work/orca
         env:
           GH_TOKEN: ${{ github.token }}
+          # Without this, gh reads the repo from the working directory -- which
+          # is the Orca clone, where this release does not exist.
+          GH_REPO: ${{ github.repository }}
         run: |
           gh release upload "${{ needs.create-release.outputs.tag }}" \
             dist/planide-windows-setup.exe \
@@ -227,5 +230,8 @@ jobs:
         working-directory: work/orca
         env:
           GH_TOKEN: ${{ github.token }}
+          # Without this, gh reads the repo from the working directory -- which
+          # is the Orca clone, where this release does not exist.
+          GH_REPO: ${{ github.repository }}
         run: |
           gh release upload "${{ needs.create-release.outputs.tag }}" dist/*.AppImage --clobber

@@ -177,6 +177,73 @@ EDITS: list[tuple[str, str, str, str]] = [
         "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'",
         "register 'planide' as a top-level view",
     ),
+    # Eight hand-written unions in the UI slice enumerate every top-level view
+    # except their own -- they are not derived from TopLevelView, so a new view
+    # has to be added to each by hand. Orca's own typecheck catches this; the
+    # bundler does not, which is why it only showed up in a full build.
+    (
+        "src/renderer/src/store/slices/ui.ts",
+        "  previousViewBeforeTasks:\n    | 'terminal'",
+        "  previousViewBeforeTasks:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "previousViewBeforeTasks accepts the tracker",
+    ),
+    (
+        "src/renderer/src/store/slices/ui.ts",
+        "  previousViewBeforeSettings:\n    | 'terminal'",
+        "  previousViewBeforeSettings:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "previousViewBeforeSettings accepts the tracker",
+    ),
+    (
+        "src/renderer/src/store/slices/ui.ts",
+        "  previousViewBeforeActivity:\n    | 'terminal'",
+        "  previousViewBeforeActivity:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "previousViewBeforeActivity accepts the tracker",
+    ),
+    (
+        "src/renderer/src/store/slices/ui.ts",
+        "  previousViewBeforeAutomations:\n    | 'terminal'",
+        "  previousViewBeforeAutomations:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "previousViewBeforeAutomations accepts the tracker",
+    ),
+    (
+        "src/renderer/src/store/slices/ui.ts",
+        "  previousViewBeforeSpace:\n    | 'terminal'",
+        "  previousViewBeforeSpace:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "previousViewBeforeSpace accepts the tracker",
+    ),
+    (
+        "src/renderer/src/store/slices/ui.ts",
+        "  previousViewBeforeSkills:\n    | 'terminal'",
+        "  previousViewBeforeSkills:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "previousViewBeforeSkills accepts the tracker",
+    ),
+    (
+        "src/renderer/src/store/slices/ui.ts",
+        "  previousViewBeforeMobile:\n    | 'terminal'",
+        "  previousViewBeforeMobile:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "previousViewBeforeMobile accepts the tracker",
+    ),
+    (
+        "src/renderer/src/store/slices/ui.ts",
+        "  previousViewBeforeArtifacts:\n    | 'terminal'",
+        "  previousViewBeforeArtifacts:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "previousViewBeforeArtifacts accepts the tracker",
+    ),
+    # And the zod enum the persisted UI state is validated against: a compile-time
+    # parity assertion in ui-state-schema-parity-checks.ts fails if the schema
+    # cannot accept a value the type allows.
+    (
+        "src/main/runtime/rpc/methods/client-ui-schemas.ts",
+        "const STATIC_RIGHT_SIDEBAR_TABS = [\n  'explorer',",
+        "const STATIC_RIGHT_SIDEBAR_TABS = [\n  // PlanIDE: the tracker tab is a real sidebar tab, so a client may persist it.\n  'planide',\n  'explorer',",
+        "the tracker is a valid persisted sidebar tab",
+    ),
+    (
+        "src/main/runtime/rpc/methods/client-ui-schemas.ts",
+        "const TopLevelViewSchema = z.enum([\n  'terminal',",
+        "const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker is a top-level view.\n  'planide',\n  'terminal',",
+        "the tracker is a valid persisted view",
+    ),
     (
         "src/shared/top-level-view.ts",
         "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,",

@@ -29,7 +29,7 @@ change.
 `ide/verify.sh` re-applies the overlay to a scratch copy of the checkout on every
 run, so drift is caught by the test suite rather than by a broken build.
 
-## What the overlay changes (25 edits, 20 files added)
+## What the overlay changes (38 edits, 20 files added)
 
 ### Branding
 | File | Change |
@@ -92,9 +92,20 @@ the branding constants:
 |---|---|
 | 12 files added | none of them exist upstream (verified against the pinned revision) |
 | 5 files replaced | `resources/icon*.png`, `resources/build/icon.{png,ico,icns}` — images, not code |
-| 18 edits add only | the upstream line is kept verbatim inside the replacement |
+| 31 edits add only | the upstream line is kept verbatim inside the replacement |
 | 7 edits rewrite a line | all of them branding constants: app name, AppUserModelID, appId, productName, protocol, executable names |
 | 0 edits remove anything else | enforced by `check-additive.py` in every run |
+
+**A new top-level view has to be declared in more places than the type.**
+Adding `'planide'` to `TopLevelView` compiles on its own, but Orca's own
+typecheck rejects the project: eight `previousViewBefore*` fields in the UI
+slice are hand-written unions that enumerate every view except their own, and
+two runtime lists in `client-ui-schemas.ts` (the `TopLevelViewSchema` enum and
+`STATIC_RIGHT_SIDEBAR_TABS`) feed a compile-time parity assertion that fails
+when the persisted type allows a value the schema cannot accept. All ten are
+additive edits. This never showed up locally because the bundler strips types
+without checking them — only a real `pnpm typecheck` sees it, which is why CI
+now runs one against the whole patched project.
 
 **Deep links keep working.** The one thing the branding rename could have broken:
 Orca handles `orca://skills/share/<id>` links, and `src/shared/skill-share-link.ts`

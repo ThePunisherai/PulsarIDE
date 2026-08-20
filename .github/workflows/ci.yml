@@ -30,3 +30,50 @@ jobs:
 
       - name: Verify
         run: ./verify.sh
+
+  # Does the overlay still fit Orca? ./verify.sh checks our own files; this runs
+  # Orca's own typecheck over the whole patched project, which is what caught
+  # eight hand-written view unions and two schema enums that a new top-level
+  # view has to be added to. --ignore-scripts because a typecheck needs no
+  # native builds, which keeps this a couple of minutes rather than a full build.
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the pinned Orca revision
+        id: pin
+        run: |
+          pin=$(grep -oE '^PINNED_COMMIT = "[a-f0-9]{40}"' ide/apply.py | grep -oE '[a-f0-9]{40}')
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch Orca at the pinned revision
+        run: |
+          mkdir -p work/orca && cd work/orca
+          git init -q
+          git remote add origin https://github.com/stablyai/orca.git
+          git fetch -q --depth 1 origin ${{ steps.pin.outputs.sha }}
+          git checkout -q FETCH_HEAD
+
+      - name: Apply the PlanIDE overlay
+        run: python3 ide/apply.py work/orca
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: work/orca/package.json
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: work/orca/package.json
+          cache: pnpm
+          cache-dependency-path: work/orca/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: work/orca
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Orca's own typecheck, with the overlay applied
+        working-directory: work/orca
+        run: pnpm typecheck

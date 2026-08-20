@@ -171,7 +171,7 @@ if upstream drifts, `apply.py` fails loudly naming the file, instead of
 silently producing a half-patched IDE.
 
 **Nothing Orca does is removed.** The overlay adds 12 files, replaces 5 images
-(the icons), and makes 25 anchored edits — 18 of which keep the upstream line
+(the icons), and makes 38 anchored edits — 31 of which keep the upstream line
 verbatim and add around it. The 7 that rewrite a line are all branding constants
 (app name, bundle id, protocol, executable names). `ide/check-additive.py` fails
 the suite if that ever stops being true, so a feature cannot go missing quietly.
