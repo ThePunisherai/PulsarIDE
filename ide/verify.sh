@@ -6,12 +6,18 @@
 # apply test (rather than failing) when no checkout is present, so it stays
 # useful on a machine that has not run ide/build.sh yet.
 #
-#   ./ide/verify.sh                 # use ide/.work/orca if it exists
+#   ./ide/verify.sh                 # uses ide/.work/pristine, else ide/.work/orca
 #   ./ide/verify.sh <orca-path>     # verify against a specific checkout
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
-CHECKOUT="${1:-$HERE/.work/orca}"
+CHECKOUT="${1:-}"
+# Prefer the pristine snapshot (ide/fetch-upstream.sh): applying to a checkout
+# build.sh already patched can pass on anchors our own earlier run created.
+if [ -z "$CHECKOUT" ]; then
+  if [ -f "$HERE/.work/pristine/package.json" ]; then CHECKOUT="$HERE/.work/pristine"
+  else CHECKOUT="$HERE/.work/orca"; fi
+fi
 
 PASS=0; FAIL=0; SKIP=0
 ok()   { echo "  PASS $1"; PASS=$((PASS+1)); }
@@ -103,6 +109,11 @@ else
   skip "tracker behaviour (npx unavailable)"
 fi
 
+# 4a. the overlay adds to Orca; it must not take anything away.
+python3 "$HERE/check-additive.py" > /tmp/planide-additive.log 2>&1 \
+  && ok "no edit removes upstream code (branding constants aside)" \
+  || { bad "an edit drops upstream code outside the branding files"; head -6 /tmp/planide-additive.log; }
+
 # 4b. the surfaces lean on two things Orca defines, not us: its theme tokens and
 # its `can-hover:` variant (which is what hides row actions until hover). If
 # upstream drops the variant, our controls would be invisible on a desktop --
@@ -156,7 +167,7 @@ PY
   fi
   rm -rf "$tmp"
 else
-  skip "apply-to-checkout (no Orca checkout at $CHECKOUT -- run ./ide/build.sh)"
+  skip "apply-to-checkout (nothing at $CHECKOUT -- run ./ide/fetch-upstream.sh)"
 fi
 
 echo

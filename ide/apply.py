@@ -71,8 +71,8 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "config/electron-builder.config.cjs",
         "  protocols: [{ name: 'Orca', schemes: ['orca'] }],",
-        f"  protocols: [{{ name: '{PRODUCT}', schemes: ['{PROTOCOL}'] }}],",
-        "deep-link scheme",
+        f"  protocols: [{{ name: '{PRODUCT}', schemes: ['{PROTOCOL}', 'orca'] }}],",
+        "deep-link scheme (keeps 'orca' so existing links still open)",
     ),
     (
         "config/electron-builder.config.cjs",
@@ -96,7 +96,8 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/renderer/src/components/right-sidebar/use-right-sidebar-activity-items.ts",
         "import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'",
-        "import { Plug, Files, GitBranch, ListChecks, Workflow, Radar } from 'lucide-react'",
+        "import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'\n"
+        "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker tab icon import",
     ),
     (
@@ -105,7 +106,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         id: 'explorer',""",
         """      {
         id: 'planide',
-        icon: Radar,
+        icon: PlanIdeMark,
         title: translate('planide.sidebar.tab', 'Tracker'),
         shortcut: ''
       },
@@ -198,7 +199,8 @@ EDITS: list[tuple[str, str, str, str]] = [
             : 'text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8'
         )}
       >
-        <Radar
+        <PlanIdeMark
+          size={16}
           className={cn('size-4 shrink-0', !planIdeActive && 'text-worktree-sidebar-foreground/30')}
           strokeWidth={planIdeActive ? 2.25 : 1.75}
         />
@@ -209,7 +211,8 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/renderer/src/components/sidebar/SidebarNav.tsx",
         "import { Bell, BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'",
-        "import {\n  Bell,\n  BookOpen,\n  CalendarClock,\n  EyeOff,\n  Files,\n  Radar,\n  Search,\n  Smartphone\n} from 'lucide-react'",
+        "import { Bell, BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'\n"
+        "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker nav icon",
     ),
     (

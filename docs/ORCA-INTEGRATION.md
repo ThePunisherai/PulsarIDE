@@ -74,6 +74,35 @@ run, so drift is caught by the test suite rather than by a broken build.
 | **added** `src/preload/planide.ts` | exposes `window.api.planide` |
 | `src/preload/index.ts` | wires that bridge into the `api` object |
 
+## What stays untouched
+
+Everything Orca does, it still does — parallel worktrees, terminal splits, Design
+Mode, the GitHub/Linear integration, SSH worktrees, AI diff annotation, dragging
+files to agents, the CLI, and the mobile companion. The tracker is one more page
+and one more sidebar tab, next to them.
+
+That is checked rather than asserted, and `ide/check-additive.py` keeps it that
+way — it fails the suite if any edit ever drops a line of upstream code outside
+the branding constants:
+
+| | |
+|---|---|
+| 12 files added | none of them exist upstream (verified against the pinned revision) |
+| 5 files replaced | `resources/icon*.png`, `resources/build/icon.{png,ico,icns}` — images, not code |
+| 18 edits add only | the upstream line is kept verbatim inside the replacement |
+| 7 edits rewrite a line | all of them branding constants: app name, AppUserModelID, appId, productName, protocol, executable names |
+| 0 edits remove anything else | enforced by `check-additive.py` in every run |
+
+**Deep links keep working.** The one thing the branding rename could have broken:
+Orca handles `orca://skills/share/<id>` links, and `src/shared/skill-share-link.ts`
+matches that scheme literally. Renaming the app's protocol to `planide://` would
+have left those links with nowhere to go, so the overlay registers **both**
+(`schemes: ['planide', 'orca']`) and never touches the parser. Mobile pairing was
+never at risk for the same reason in reverse — `orca://pair?code=…` is handled by
+the phone app, not the desktop, and nothing in the overlay goes near it. The
+trade-off, stated plainly: with real Orca installed alongside, the OS decides
+which app answers an `orca://` link.
+
 ## Design decisions worth knowing
 
 **The tracker is part of the IDE, not something it talks to.** An earlier
@@ -150,10 +179,14 @@ problem must never take a renderer down with it.
 
 ## Verified vs. not
 
-**Verified here** (`./verify.sh`, 27 checks):
+**Verified here** (`./verify.sh`, 28 checks):
 
-- the overlay applies cleanly to a real Orca checkout at the pinned revision,
-  all 25 edits resolving, and re-running changes nothing;
+- the overlay applies cleanly to **pristine** upstream at the pinned revision
+  (`ide/fetch-upstream.sh` pulls the dozen files it touches, so this can never
+  pass on an anchor an earlier run of our own created), all 25 edits resolving,
+  and re-running changes nothing;
+- no edit removes upstream code outside the branding constants
+  (`ide/check-additive.py`, run every time);
 - the tracker's own behaviour, run for real (46 checks): detection, state
   round-trips, the trust boundary, progress arithmetic, activity attribution,
   briefing ordering, snapshots, and the agent-turn recorder (completions,

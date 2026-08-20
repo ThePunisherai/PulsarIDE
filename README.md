@@ -28,7 +28,7 @@ PlanIDE adds, in the sidebar, wired to the agents.
 
 | | |
 |---|---|
-| **The IDE** | Orca upstream: parallel agents in isolated worktrees, terminals, browser, diffs, GitHub/Linear |
+| **The IDE** | Orca upstream, untouched: parallel worktrees, terminal splits, Design Mode, GitHub/Linear, SSH worktrees, AI diff annotation, the CLI, the mobile companion |
 | **The tracker** | Board (works/broken/blocked/wip/todo), fix log with agent attribution, roadmap, versions, GitHub sync + LFS, backups, stack auto-detect, AI briefing export |
 | **The wiring** | Agents update the tracker themselves — via CLI or MCP — while they work |
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
@@ -157,6 +157,12 @@ line (`PINNED_COMMIT` in `ide/apply.py`) instead of a merge conflict across
 if upstream drifts, `apply.py` fails loudly naming the file, instead of
 silently producing a half-patched IDE.
 
+**Nothing Orca does is removed.** The overlay adds 12 files, replaces 5 images
+(the icons), and makes 25 anchored edits — 18 of which keep the upstream line
+verbatim and add around it. The 7 that rewrite a line are all branding constants
+(app name, bundle id, protocol, executable names). `ide/check-additive.py` fails
+the suite if that ever stops being true, so a feature cannot go missing quietly.
+
 ## Tracking *via* the agents
 
 The point isn't exporting status to an agent — the agent should keep the tracker
@@ -187,7 +193,7 @@ shows up in the Tracker.
 ## Verify
 
 ```bash
-./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 10 checks
+./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 11 checks
 ```
 
 ## Credits & license
