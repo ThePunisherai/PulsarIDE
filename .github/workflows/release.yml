@@ -23,7 +23,57 @@ permissions:
   contents: write
 
 jobs:
+  # The release exists before anything is built, so each job can upload straight
+  # into it. Actions artifacts are deliberately not used: they live under a
+  # separate storage quota that a build this size fills quickly, and hitting it
+  # fails the upload after a successful build -- which is exactly what happened
+  # on the first run of this workflow.
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the tag
+        id: tag
+        run: |
+          tag="${{ github.event.inputs.tag }}"
+          [ -n "$tag" ] || tag="${GITHUB_REF_NAME}"
+          echo "name=$tag" >> "$GITHUB_OUTPUT"
+
+      # The page reads the changelog rather than a commit list: what you get,
+      # not what was typed.
+      - name: Take this version's section from CHANGELOG.md
+        run: |
+          version="${{ steps.tag.outputs.name }}"
+          version="${version#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { grab = 1; next }
+            grab && /^## \[/ { exit }
+            grab { print }
+          ' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "See CHANGELOG.md." > notes.md
+          cat notes.md
+
+      # Idempotent: a re-run refreshes the notes instead of failing on a release
+      # that already exists.
+      - name: Create or refresh the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.tag.outputs.name }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "PlanIDE $tag" --notes-file notes.md
+          else
+            gh release create "$tag" \
+              --target "$GITHUB_SHA" \
+              --title "PlanIDE $tag" \
+              --notes-file notes.md
+          fi
+
   windows:
+    needs: create-release
     runs-on: windows-2022
     timeout-minutes: 120
     steps:
@@ -101,16 +151,19 @@ jobs:
             throw 'the installer was not produced'
           }
 
-      - name: Upload the installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: planide-windows
-          path: |
-            work/orca/dist/planide-windows-setup.exe
-            work/orca/dist/planide-windows-setup.exe.blockmap
-          if-no-files-found: error
+      - name: Attach the installer to the release
+        shell: bash
+        working-directory: work/orca
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ needs.create-release.outputs.tag }}" \
+            dist/planide-windows-setup.exe \
+            dist/planide-windows-setup.exe.blockmap \
+            --clobber
 
   linux:
+    needs: create-release
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -154,9 +207,12 @@ jobs:
         working-directory: work/orca
         run: pnpm install --frozen-lockfile
 
+      # build:desktop, not build:release: the latter also runs
+      # verify:computer-native, which wants native pieces this job never builds
+      # and which failed here in seconds on the first run.
       - name: Build
         working-directory: work/orca
-        run: pnpm build:release
+        run: pnpm build:desktop
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
@@ -167,55 +223,9 @@ jobs:
           pnpm exec electron-builder --config config/electron-builder.config.cjs --linux AppImage --publish never
           ls -la dist/*.AppImage
 
-      - name: Upload the AppImage
-        uses: actions/upload-artifact@v4
-        with:
-          name: planide-linux
-          path: work/orca/dist/*.AppImage
-          if-no-files-found: error
-
-  publish:
-    # Windows is what the release is for; Linux is a bonus and must not hold it
-    # up if AppImage packaging has a bad day.
-    needs: [windows, linux]
-    if: ${{ always() && needs.windows.result == 'success' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout PlanIDE
-        uses: actions/checkout@v4
-
-      - name: Collect the builds
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Work out the tag
-        id: tag
+      - name: Attach the AppImage to the release
+        working-directory: work/orca
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${{ github.event.inputs.tag }}"
-          [ -n "$tag" ] || tag="${GITHUB_REF_NAME}"
-          echo "name=$tag" >> "$GITHUB_OUTPUT"
-
-      # The release page reads the changelog rather than a commit list: what you
-      # get, not what was typed.
-      - name: Take this version's section from CHANGELOG.md
-        id: notes
-        run: |
-          version="${{ steps.tag.outputs.name }}"
-          version="${version#v}"
-          awk -v v="$version" '
-            $0 ~ "^## \\[" v "\\]" { grab = 1; next }
-            grab && /^## \[/ { exit }
-            grab { print }
-          ' CHANGELOG.md > notes.md
-          [ -s notes.md ] || echo "See CHANGELOG.md." > notes.md
-          cat notes.md
-
-      - name: Publish
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          name: PlanIDE ${{ steps.tag.outputs.name }}
-          body_path: notes.md
-          files: artifacts/**/*
-          fail_on_unmatched_files: true
+          gh release upload "${{ needs.create-release.outputs.tag }}" dist/*.AppImage --clobber
