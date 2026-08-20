@@ -76,7 +76,16 @@ if command -v npx >/dev/null 2>&1; then
   #   * "implicitly has an 'any' type"   -- callback params typed via React
   # Both were confirmed clean in a separate run against real @types/react.
   # Everything else here is a genuine error.
-  out=$(cd "$HERE/overlay" && npx --yes tsc --ignoreConfig --noEmit --noResolve \
+  # `npx tsc` is a trap: with nothing installed it resolves to an abandoned
+  # squatter package that prints "This is not the tsc command you are looking
+  # for" and exits 0. Name the real compiler, and prefer the pinned copy the
+  # design harness already installed.
+  if [ -x "$HERE/design/.work/node_modules/.bin/tsc" ]; then
+    TSC=("$HERE/design/.work/node_modules/.bin/tsc")
+  else
+    TSC=(npx --yes --package typescript@5 tsc)
+  fi
+  out=$(cd "$HERE/overlay" && "${TSC[@]}" --noEmit --noResolve \
         --jsx react-jsx --target es2022 --module esnext --moduleResolution bundler --skipLibCheck \
         src/preload/planide.ts \
         src/main/planide/store.ts src/main/planide/detect.ts \
