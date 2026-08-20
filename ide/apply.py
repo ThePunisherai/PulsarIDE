@@ -260,11 +260,14 @@ OVERLAY_FILES = [
     "src/main/planide/backup.ts",
     "src/main/planide/ipc.ts",
     "src/main/planide/agent-events.ts",
+    "src/main/planide/auto-push.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
     "src/renderer/src/components/right-sidebar/planide-engine-client.ts",
     "src/renderer/src/components/planide/PlanIdeView.tsx",
     "src/renderer/src/components/planide/PlanIdeMark.tsx",
+    "src/renderer/src/components/planide/PlanIdeSync.tsx",
+    "src/renderer/src/components/planide/PlanIdeBackups.tsx",
     # Branding: these replace Orca's own icons, so the packaged app, its
     # installer, the dock and the taskbar all wear the PlanIDE mark. Generated
     # from assets/icon.svg by ide/design/make-icons.mjs -- edit the SVG, re-run

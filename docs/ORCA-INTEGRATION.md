@@ -29,7 +29,7 @@ change.
 `ide/verify.sh` re-applies the overlay to a scratch copy of the checkout on every
 run, so drift is caught by the test suite rather than by a broken build.
 
-## What the overlay changes (25 edits, 17 files added)
+## What the overlay changes (25 edits, 20 files added)
 
 ### Branding
 | File | Change |
@@ -49,6 +49,8 @@ run, so drift is caught by the test suite rather than by a broken build.
 | `SidebarNav.tsx` | a **Tracker** entry (radar icon) in the left nav |
 | **added** `components/planide/PlanIdeView.tsx` | the workbench: quick capture, board, Protected, Fixes, Roadmap, Versions, Activity, AI briefing |
 | **added** `components/planide/PlanIdeMark.tsx` | the PlanIDE glyph (currentColor, lucide's grid) and the full badge |
+| **added** `components/planide/PlanIdeSync.tsx` | GitHub: repo state, large-file scan, LFS, commit + push, auto-push |
+| **added** `components/planide/PlanIdeBackups.tsx` | snapshots: take one, see what you have, delete |
 
 ### The tracker panel (sidebar)
 | File | Change |
@@ -71,6 +73,7 @@ run, so drift is caught by the test suite rather than by a broken build.
 | **added** `src/main/planide/backup.ts` | zip snapshots (own ZIP writer, no dependency) |
 | **added** `src/main/planide/ipc.ts` | the typed channel surface |
 | **added** `src/main/planide/agent-events.ts` | turns Orca's agent-hook events into Activity entries |
+| **added** `src/main/planide/auto-push.ts` | the debounced commit + push behind the auto-push switch |
 | **added** `src/preload/planide.ts` | exposes `window.api.planide` |
 | `src/preload/index.ts` | wires that bridge into the `api` object |
 
@@ -134,6 +137,27 @@ header + central directory + EOCD) over Node's `zlib`. The suite proves the
 output is real by opening it with independent readers rather than trusting our
 own writer.
 
+**The engine had a whole half with no face.** Git status, init, remote, the
+large-file scan, LFS tracking, commit and push, and zip snapshots were all
+implemented and tested from the first version — reachable only from the CLI. The
+**GitHub** and **Backups** tabs are that half, made usable: see the branch and
+what is uncommitted, find the files GitHub will reject before it rejects them,
+hand those to LFS, push, and take a snapshot before letting an agent near
+something load-bearing.
+
+**Auto-push is debounced on purpose.** `github.auto_push` and `github.last_sync`
+had been in the state format since the beginning, read by nothing. They are the
+switch now: a change to the tracker arms a 90-second timer, each new change
+re-arms it, and the push happens once things go quiet — one commit per work
+session rather than one per keystroke. Every mutation already funnels through
+`mutate()` in `ipc.ts`, so that is the only place it needed wiring. It is off
+unless you turn it on, it re-checks the switch when the timer fires (you may
+have turned it off while it was armed), and it can never throw into the IPC call
+that triggered it — a failure is written to the Activity trail instead of
+disappearing. The decision logic lives in `auto-push.ts` with the git call
+injectable, which is how the suite tests "three changes push once" without a
+network.
+
 **Agents are tracked by watching, not by asking.** Orca already knows when an
 agent finishes a turn — that signal drives its status dots — so the tracker
 listens to the same hook instead of relying on agents to report themselves. An
@@ -179,7 +203,7 @@ problem must never take a renderer down with it.
 
 ## Verified vs. not
 
-**Verified here** (`./verify.sh`, 28 checks):
+**Verified here** (`./verify.sh`, 29 checks):
 
 - the overlay applies cleanly to **pristine** upstream at the pinned revision
   (`ide/fetch-upstream.sh` pulls the dozen files it touches, so this can never
@@ -187,10 +211,12 @@ problem must never take a renderer down with it.
   and re-running changes nothing;
 - no edit removes upstream code outside the branding constants
   (`ide/check-additive.py`, run every time);
-- the tracker's own behaviour, run for real (46 checks): detection, state
+- the tracker's own behaviour, run for real (56 checks): detection, state
   round-trips, the trust boundary, progress arithmetic, activity attribution,
   briefing ordering, snapshots, and the agent-turn recorder (completions,
-  replays, session boundaries, duplicates, untracked projects);
+  replays, session boundaries, duplicates, untracked projects), and auto-push
+  (off by default, three changes pushing once, cancelled when switched off,
+  re-checked at fire time, and a failed push reported rather than swallowed);
 - every added TypeScript/TSX source typechecks clean twice: dependency-free in
   the default suite, and — when the design harness is installed — against real
   `@types/react`, lucide, radix and Orca's own `Button`, which is the run that
@@ -200,6 +226,9 @@ problem must never take a renderer down with it.
 - the call the overlay inserts into Orca's hook listener typechecks against
   Orca's *real* `AgentHookEventPayload` — with a deliberate negative control in
   the same file, so a pass cannot come from types silently failing to resolve;
+- every overlay source file is listed in `OVERLAY_FILES` — the check that
+  catches a new module that would never be copied into the checkout, which is
+  a broken build rather than a missing feature;
 - the patched `electron-builder.config.cjs` and `package.json` still parse;
 - the hand-written ZIP opens cleanly in Python's `zipfile` and in the system
   `unzip`, with contents round-tripping;

@@ -10,6 +10,13 @@ import { detect } from '../overlay/src/main/planide/detect'
 import { buildReport } from '../overlay/src/main/planide/report'
 import * as backup from '../overlay/src/main/planide/backup'
 import {
+  autoPushEnabled,
+  resetAutoPush,
+  runAutoPush,
+  scheduleAutoPush,
+  setAutoPush
+} from '../overlay/src/main/planide/auto-push'
+import {
   projectPathFromWorktreeId,
   recordAgentTurn,
   resetAgentTurnCache
@@ -137,6 +144,62 @@ ok('a second snapshot does not nest the first', (second.files ?? 0) === (r.files
 // reader accepts it rather than trusting our own writer.
 if (process.env.PLANIDE_ZIP_OUT) writeFileSync(process.env.PLANIDE_ZIP_OUT, r.path ?? '')
 
-console.log('')
-console.log(`PASS=${pass} FAIL=${fail}`)
-if (fail) process.exit(1)
+// --- auto-push: off unless asked, debounced, and never silent ---------------
+// The push itself shells out to git; the runner is injected here so the
+// decision logic is tested for real without a network or a remote.
+void (async () => {
+  console.log('== auto-push ==')
+  resetAutoPush()
+  let st2 = store.loadState(proj)
+  ok('off by default', autoPushEnabled(st2) === false)
+  ok('a change arms nothing while off', scheduleAutoPush(proj, st2) === false)
+
+  setAutoPush(st2, true)
+  store.saveState(proj, st2)
+  ok('the switch is on', autoPushEnabled(store.loadState(proj)) === true)
+  ok('flipping it is recorded', store.loadState(proj).activity[0].kind === 'auto-push')
+
+  // Debounce: three changes in a row must produce one push, not three.
+  let runs = 0
+  const runner = async (): Promise<{
+    ok: boolean; committed: boolean; pushed: boolean; branch: string; log: string[]; push_error: string
+  }> => {
+    runs += 1
+    return { ok: true, committed: true, pushed: true, branch: 'main', log: [], push_error: '' }
+  }
+  for (let i = 0; i < 3; i++) scheduleAutoPush(proj, st2, { delayMs: 20, run: runner })
+  await new Promise((r) => setTimeout(r, 120))
+  ok('three changes push once', runs === 1)
+
+  const after = store.loadState(proj)
+  ok('the push is stamped', (after.github?.last_sync ?? '').length > 0)
+  ok('and lands in activity', after.activity.some((a) => a.kind === 'auto-push' && a.text.includes('pushed')))
+
+  // Turning it off must cancel what is already armed.
+  runs = 0
+  scheduleAutoPush(proj, store.loadState(proj), { delayMs: 20, run: runner })
+  const off = store.loadState(proj)
+  setAutoPush(off, false, proj)
+  store.saveState(proj, off)
+  await new Promise((r) => setTimeout(r, 120))
+  ok('turning it off cancels the armed push', runs === 0)
+
+  // A push that fires after the switch flipped off must still not push.
+  ok('a fired timer re-checks the switch', (await runAutoPush(proj, runner)) === false)
+
+  // A failing push is reported, not swallowed.
+  setAutoPush(st2, true)
+  store.saveState(proj, st2)
+  await runAutoPush(proj, async () => ({
+    ok: false, committed: true, pushed: false, branch: 'main', log: [], push_error: 'no upstream'
+  }))
+  ok(
+    'a failed push says so',
+    store.loadState(proj).activity.some((a) => a.text.includes('push failed: no upstream'))
+  )
+  resetAutoPush()
+
+  console.log('')
+  console.log(`PASS=${pass} FAIL=${fail}`)
+  if (fail) process.exit(1)
+})()

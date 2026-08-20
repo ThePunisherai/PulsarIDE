@@ -10,12 +10,14 @@
  * write), reached through the preload bridge. Nothing is duplicated here.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
+  Archive,
   Check,
   ClipboardCopy,
   Flag,
+  GitBranch,
   History,
   Loader2,
   Lock,
@@ -35,9 +37,15 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
 import { PlanIdeLogo, PlanIdeMark } from './PlanIdeMark'
+// Both talk to the engine on their own and are a tab away, so they load when
+// opened rather than on every project.
+const PlanIdeSync = lazy(() => import('./PlanIdeSync'))
+const PlanIdeBackups = lazy(() => import('./PlanIdeBackups'))
 import {
+  addFix,
   addItem,
   addMilestone,
+  addVersion,
   aiReport,
   deleteItem,
   lockItem,
@@ -52,7 +60,16 @@ import {
   type PlanIdeProject
 } from '../right-sidebar/planide-engine-client'
 
-type Tab = 'board' | 'protected' | 'fixes' | 'roadmap' | 'versions' | 'activity' | 'ai'
+type Tab =
+  | 'board'
+  | 'protected'
+  | 'fixes'
+  | 'roadmap'
+  | 'versions'
+  | 'sync'
+  | 'backups'
+  | 'activity'
+  | 'ai'
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
   { id: 'board', label: 'Board', icon: PlanIdeMark },
@@ -60,6 +77,8 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: 'fixes', label: 'Fixes', icon: Wrench },
   { id: 'roadmap', label: 'Roadmap', icon: MapIcon },
   { id: 'versions', label: 'Versions', icon: Tag },
+  { id: 'sync', label: 'GitHub', icon: GitBranch },
+  { id: 'backups', label: 'Backups', icon: Archive },
   { id: 'activity', label: 'Activity', icon: History },
   { id: 'ai', label: 'AI briefing', icon: Sparkles }
 ]
@@ -648,7 +667,9 @@ export default function PlanIdeView(): React.JSX.Element {
           </div>
         )}
 
-        {/* quick capture — your own board, fast */}
+        {/* Quick capture — your own board, fast. Only where it belongs: on the
+            GitHub or Backups tab it would be a form for the wrong thing. */}
+        {(tab === 'board' || tab === 'protected') && (
         <div className="mt-4 rounded-xl border border-border bg-card/40 p-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -698,6 +719,7 @@ export default function PlanIdeView(): React.JSX.Element {
             </label>
           </div>
         </div>
+        )}
 
         {/* tabs */}
         <div className="mt-5 flex flex-wrap items-center gap-1.5 border-b border-border pb-2">
@@ -841,6 +863,19 @@ export default function PlanIdeView(): React.JSX.Element {
 
           {tab === 'fixes' && (
             <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const title = window.prompt(translate('planide.view.newFix', 'What went wrong?'))
+                  if (!title) return
+                  const problem =
+                    window.prompt(translate('planide.view.fixProblem', 'Detail (optional)')) ?? ''
+                  void act(() => addFix(worktreePath, { title, problem }))
+                }}
+                className="mb-2 flex items-center gap-1.5 self-start rounded-md border border-border px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
+              >
+                <Wrench size={12} /> {translate('planide.view.addFix', 'Log a fix')}
+              </button>
               {(project.fixes ?? []).length === 0 && (
                 <div className="rounded-lg border border-dashed border-border py-10 text-center text-[12px] text-muted-foreground">
                   {translate('planide.view.noFixes', 'No fixes logged yet.')}
@@ -942,6 +977,21 @@ export default function PlanIdeView(): React.JSX.Element {
 
           {tab === 'versions' && (
             <div className="flex flex-col gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  const version = window.prompt(
+                    translate('planide.view.newVersion', 'Version'),
+                    project.version
+                  )
+                  if (!version) return
+                  const notes = window.prompt(translate('planide.view.versionNotes', 'Notes')) ?? ''
+                  void act(() => addVersion(worktreePath, version, { notes }))
+                }}
+                className="flex items-center gap-1.5 self-start rounded-md border border-border px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
+              >
+                <Tag size={12} /> {translate('planide.view.cutVersion', 'Cut a version')}
+              </button>
               {(project.versions ?? []).length === 0 && (
                 <div className="rounded-lg border border-dashed border-border py-10 text-center text-[12px] text-muted-foreground">
                   {translate('planide.view.noVersions', 'No versions cut yet.')}
@@ -966,6 +1016,28 @@ export default function PlanIdeView(): React.JSX.Element {
                 </div>
               ))}
             </div>
+          )}
+
+          {(tab === 'sync' || tab === 'backups') && (
+            <Suspense
+              fallback={
+                <div className="flex items-center gap-2 p-6 text-[12px] text-muted-foreground">
+                  <Loader2 className="animate-spin" size={14} />
+                  {translate('planide.view.loadingTab', 'Loading…')}
+                </div>
+              }
+            >
+              {tab === 'sync' ? (
+                <PlanIdeSync
+                  path={worktreePath}
+                  autoPush={project.github?.auto_push === true}
+                  lastSync={project.github?.last_sync ?? ''}
+                  onProject={(next) => setProject(next as PlanIdeProject)}
+                />
+              ) : (
+                <PlanIdeBackups path={worktreePath} version={project.version} />
+              )}
+            </Suspense>
           )}
 
           {tab === 'activity' && (

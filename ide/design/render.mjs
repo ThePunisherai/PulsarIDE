@@ -100,11 +100,19 @@ for (const theme of ['dark', 'light']) {
   await page.waitForTimeout(700)
   await page.screenshot({ path: join(SHOTS, `tracker-${theme}.png`) })
 
-  for (const tab of ['Protected', 'Fixes', 'Roadmap', 'Activity', 'AI briefing']) {
+  for (const tab of ['Protected', 'Fixes', 'Roadmap', 'GitHub', 'Backups', 'Activity', 'AI briefing']) {
     const button = page.locator('button', { hasText: tab }).first()
     if (await button.count()) {
       await button.click()
-      await page.waitForTimeout(250)
+      // Sync and Backups load lazily and then fetch; give them room to settle,
+      // or the shot is of a spinner.
+      await page.waitForTimeout(600)
+      // Show the populated state, not an invitation to press a button.
+      const scan = page.locator('button', { hasText: 'Scan' }).first()
+      if (tab === 'GitHub' && (await scan.count())) {
+        await scan.click()
+        await page.waitForTimeout(400)
+      }
       await page.screenshot({ path: join(SHOTS, `${tab.split(' ')[0].toLowerCase()}-${theme}.png`) })
     }
   }

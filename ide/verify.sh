@@ -43,6 +43,22 @@ print('\n'.join(m.OVERLAY_FILES))"); do
 done
 [ "$missing" = 0 ] && ok "every OVERLAY_FILES entry exists" || bad "OVERLAY_FILES has missing files"
 
+# ...and the other direction, which is the one that actually bites: a new source
+# file that nobody added to OVERLAY_FILES is never copied into the checkout, so
+# the build breaks on an import that resolves fine here.
+listed=$(python3 -c "
+import sys, importlib.util
+s = importlib.util.spec_from_file_location('a', '$HERE/apply.py')
+m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+print('\n'.join(m.OVERLAY_FILES))")
+unlisted=0
+while read -r f; do
+  rel="${f#$HERE/overlay/}"
+  echo "$listed" | grep -qx "$rel" || { echo "    not in OVERLAY_FILES: $rel"; unlisted=1; }
+done < <(find "$HERE/overlay/src" -name "*.ts" -o -name "*.tsx" | sort)
+[ "$unlisted" = 0 ] && ok "every overlay source file is in OVERLAY_FILES" \
+                    || bad "an overlay source file would never be copied"
+
 # 3. TypeScript in the overlay is syntactically valid
 if command -v npx >/dev/null 2>&1; then
   # --noResolve keeps this dependency-free, at the cost of two known false
@@ -61,7 +77,9 @@ if command -v npx >/dev/null 2>&1; then
         src/renderer/src/components/right-sidebar/planide-engine-client.ts \
         src/renderer/src/components/right-sidebar/PlanIdePanel.tsx \
         src/renderer/src/components/planide/PlanIdeView.tsx \
-        src/renderer/src/components/planide/PlanIdeMark.tsx 2>&1 \
+        src/renderer/src/components/planide/PlanIdeMark.tsx \
+        src/renderer/src/components/planide/PlanIdeSync.tsx \
+        src/renderer/src/components/planide/PlanIdeBackups.tsx 2>&1 \
         | grep -vE "Cannot find module|Cannot find name|has no exported member|implicitly has an 'any'|Cannot find namespace|JSX element implicitly|react/jsx-runtime|Property 'key' does not exist|Type '\{ key:")
   [ -z "$out" ] && ok "overlay TypeScript has no syntax errors" \
                 || { bad "overlay TypeScript"; echo "$out" | head -5; }

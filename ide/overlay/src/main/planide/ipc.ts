@@ -12,6 +12,7 @@
 
 import { ipcMain } from 'electron'
 import * as backup from './backup'
+import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
 import { detect } from './detect'
 import { buildReport, type ReportMode } from './report'
@@ -48,6 +49,9 @@ function mutate<T>(path: string, fn: (state: ProjectState) => T): { result: T; p
   const state = loadState(path)
   const result = fn(state)
   saveState(path, state)
+  // Every change funnels through here, so this is the one place auto-push has
+  // to be armed from. It is a no-op unless the project has it switched on.
+  scheduleAutoPush(path, state)
   return { result, payload: withRollups(state) }
 }
 
@@ -177,6 +181,9 @@ export function registerPlanIdeIpc(): void {
   on('planide:git-lfs', (path: string, patterns: string[]) => git.trackLfs(path, patterns))
   on('planide:git-sync', (path: string, opts: { message?: string; push?: boolean }) =>
     git.sync(path, opts)
+  )
+  on('planide:git-auto-push', (path: string, enabled: boolean) =>
+    mutate(path, (s) => setAutoPush(s, enabled, path)).payload
   )
 
   // ---- backups ----------------------------------------------------------- //

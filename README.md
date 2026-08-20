@@ -29,7 +29,9 @@ PlanIDE adds, in the sidebar, wired to the agents.
 | | |
 |---|---|
 | **The IDE** | Orca upstream, untouched: parallel worktrees, terminal splits, Design Mode, GitHub/Linear, SSH worktrees, AI diff annotation, the CLI, the mobile companion |
-| **The tracker** | Board (works/broken/blocked/wip/todo), fix log with agent attribution, roadmap, versions, GitHub sync + LFS, backups, stack auto-detect, AI briefing export |
+| **The tracker** | Board (works/broken/blocked/wip/todo), fix log with agent attribution, roadmap, versions, stack auto-detect, AI briefing export |
+| **Ship it** | GitHub tab: branch state, the large-file scan GitHub will otherwise reject you for, one-click LFS, commit + push — or push by itself once changes settle |
+| **Backups** | Zip snapshots of the project *and* the board, taken before you let an agent near something load-bearing |
 | **The wiring** | Agents update the tracker themselves — via CLI or MCP — while they work |
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
@@ -193,7 +195,7 @@ shows up in the Tracker.
 ## Verify
 
 ```bash
-./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 11 checks
+./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 12 checks
 ```
 
 ## Credits & license

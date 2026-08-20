@@ -59,6 +59,8 @@ export const planIdeApi = {
   gitLargeFiles: <T>(path: string, mb: number) => call<T>('planide:git-large-files', path, mb),
   gitLfs: <T>(path: string, patterns: string[]) => call<T>('planide:git-lfs', path, patterns),
   gitSync: <T>(path: string, opts: unknown) => call<T>('planide:git-sync', path, opts),
+  gitAutoPush: <T>(path: string, enabled: boolean) =>
+    call<T>('planide:git-auto-push', path, enabled),
 
   // backups
   backupCreate: <T>(path: string, label: string) => call<T>('planide:backup-create', path, label),

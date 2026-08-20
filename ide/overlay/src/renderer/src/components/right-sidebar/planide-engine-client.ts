@@ -109,6 +109,14 @@ export type PlanIdeProject = {
   /** Protected items that are currently broken. */
   regressions: PlanIdeItem[]
   stack?: { detected?: PlanIdeDetected; custom?: string }
+  github?: {
+    remote: string
+    branch: string
+    lfs: boolean
+    /** Commit + push by itself once changes settle. Off by default. */
+    auto_push: boolean
+    last_sync: string
+  }
 }
 
 export type GitStatus = {
@@ -289,6 +297,11 @@ export function gitSync(
   opts: { message?: string; push?: boolean } = {}
 ): Promise<SyncResult> {
   return call<SyncResult>('gitSync', path, opts)
+}
+
+/** Push by itself after a change, debounced. Off unless you turn it on. */
+export function gitAutoPush(path: string, enabled: boolean): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('gitAutoPush', path, enabled)
 }
 
 // --------------------------------------------------------------------------- backups

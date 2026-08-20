@@ -63,8 +63,10 @@
     ]
   },
   "include": [
-    "../overlay/src/renderer/src/components/planide/PlanIdeView.tsx",
+    "../overlay/src/renderer/src/components/planide/PlanIdeBackups.tsx",
     "../overlay/src/renderer/src/components/planide/PlanIdeMark.tsx",
+    "../overlay/src/renderer/src/components/planide/PlanIdeSync.tsx",
+    "../overlay/src/renderer/src/components/planide/PlanIdeView.tsx",
     "../overlay/src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
     "../overlay/src/renderer/src/components/right-sidebar/planide-engine-client.ts"
   ]

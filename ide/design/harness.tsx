@@ -58,7 +58,7 @@ store.updateFix(state, fix.id, { status: 'fixed', solution: 'Wave RAM was cleare
 
 store.addMilestone(state, 'Playable: 10 commercial ROMs', '2026-09-30')
 store.addMilestone(state, 'Netplay beta', '2026-11-15')
-store.addVersion(state, '0.4.2', 'sprite layer + save states')
+store.addVersion(state, '0.4.2', { notes: 'sprite layer + save states' })
 
 store.logActivity(state, 'agent-turn', 'finished a turn: fix the channel 3 crackle', 'claude')
 store.logActivity(state, 'agent-said', 'Wave RAM was being cleared on reset; restored it and added a test.', 'claude')
@@ -96,8 +96,46 @@ const after = <T,>(result: T): unknown => ok({ result, payload: rollups() })
       (store.updateMilestone(state, id, { done }), ok(rollups())),
     addVersion: async (_p: string, v: string, n: string) => after(store.addVersion(state, v, n)),
     report: async (_p: string, mode: string) => ok(buildReport(state, mode as never)),
-    gitStatus: async () => ok({ repo: true, branch: 'main', dirty: 3, remote: 'github.com/you/rakion-emu' }),
-    backupList: async () => ok([])
+    // Git and backups are real subprocess/filesystem work in the app; here they
+    // are plausible answers so the two tabs can be looked at.
+    gitStatus: async () =>
+      ok({
+        ok: true, has_git: true, path: PATH, branch: 'main', dirty: true, changed_count: 3,
+        remote: 'git@github.com:you/rakion-emu.git', ahead: 2, behind: 0,
+        last_commit: 'sprite layer: fix palette bank swap'
+      }),
+    gitInit: async () => ok({ ok: true, message: 'initialised git repo on main' }),
+    gitSetRemote: async (_p: string, url: string) => ok({ ok: true, remote: url }),
+    gitLargeFiles: async () =>
+      ok({
+        ok: true, threshold_mb: 25, count: 3,
+        files: [
+          { path: 'roms/reference/zelda.gba', size_mb: 128.4, ext: '.gba' },
+          { path: 'captures/trace-boot.pcap', size_mb: 61.2, ext: '.pcap' },
+          { path: 'assets/sprites-atlas.psd', size_mb: 34.8, ext: '.psd' }
+        ],
+        extensions: ['.gba', '.pcap', '.psd']
+      }),
+    gitLfs: async (_p: string, patterns: string[]) => ok({ ok: true, installed: true, tracked: patterns }),
+    gitSync: async () =>
+      ok({
+        ok: true, committed: true, pushed: true, branch: 'main', push_error: '',
+        log: ['staged 3 files', 'committed: PlanIDE: sync tracker + project state', 'pushed to origin/main']
+      }),
+    backupList: async () =>
+      ok([
+        { file: 'rakion-emu-v0.4.2-before_audio_rewrite-20260820-061500.zip', size: 24_100_000, size_mb: 24.1, created_at: '2026-08-20 06:15' },
+        { file: 'rakion-emu-v0.4.1-20260818-224000.zip', size: 23_600_000, size_mb: 23.6, created_at: '2026-08-18 22:40' }
+      ]),
+    backupCreate: async () => ok({ ok: true, file: 'rakion-emu-v0.4.2-20260820-093000.zip', files: 812, size_mb: 24.3 }),
+    backupDelete: async () => ok({ ok: true }),
+    gitAutoPush: async (_p: string, enabled: boolean) => {
+      state.github = { ...state.github, auto_push: enabled }
+      store.logActivity(state, 'auto-push', enabled ? 'auto-push on' : 'auto-push off')
+      return ok(rollups())
+    },
+    addFix: async (_p: string, o: { title: string; problem?: string }) => after(store.addFix(state, o)),
+    addVersion2: async () => ok(rollups())
   }
 }
 
