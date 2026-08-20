@@ -56,6 +56,16 @@ jobs:
           [ -s notes.md ] || echo "See CHANGELOG.md." > notes.md
           cat notes.md
 
+      # A re-run builds newer code, so the tag has to follow it. Without this the
+      # tag keeps pointing at whatever commit first created the release, and
+      # anyone checking it out gets different code than the installers were built
+      # from -- which is exactly what happened on the first green run.
+      - name: Point the tag at the commit being built
+        run: |
+          tag="${{ steps.tag.outputs.name }}"
+          git tag -f "$tag" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$tag"
+
       # Idempotent: a re-run refreshes the notes instead of failing on a release
       # that already exists.
       - name: Create or refresh the release
