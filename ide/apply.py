@@ -3,7 +3,7 @@
 
 Applies two things to a clone of stablyai/orca:
 
-  1. Branding   — the app becomes PlanIDE (name, appId, protocol, artifacts).
+  1. Branding   — the app becomes PlanIDE (name, appId, protocol, artifacts, icons).
   2. Integration — the tracker becomes a top-level Tracker page and a
                    right-sidebar tab, both backed by main-process code. There is
                    no server, no port and no extra runtime: the tracker reads and
@@ -261,6 +261,16 @@ OVERLAY_FILES = [
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
     "src/renderer/src/components/right-sidebar/planide-engine-client.ts",
     "src/renderer/src/components/planide/PlanIdeView.tsx",
+    "src/renderer/src/components/planide/PlanIdeMark.tsx",
+    # Branding: these replace Orca's own icons, so the packaged app, its
+    # installer, the dock and the taskbar all wear the PlanIDE mark. Generated
+    # from assets/icon.svg by ide/design/make-icons.mjs -- edit the SVG, re-run
+    # that, never hand-edit the binaries.
+    "resources/icon.png",
+    "resources/icon-dev.png",
+    "resources/build/icon.png",
+    "resources/build/icon.ico",
+    "resources/build/icon.icns",
 ]
 
 # package.json scalar fields.

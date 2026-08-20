@@ -1,0 +1,71 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/lib/utils": [
+        "./stubs/utils.ts"
+      ],
+      "@/i18n/i18n": [
+        "./stubs/i18n.ts"
+      ],
+      "@/store/selectors": [
+        "./stubs/selectors.ts"
+      ],
+      "@/components/ui/button": [
+        "./stubs/button.tsx"
+      ],
+      "sonner": [
+        "./stubs/sonner.ts"
+      ],
+      "react": [
+        "./.work/node_modules/@types/react"
+      ],
+      "react-dom": [
+        "./.work/node_modules/@types/react-dom"
+      ],
+      "clsx": [
+        "./.work/node_modules/clsx"
+      ],
+      "tailwind-merge": [
+        "./.work/node_modules/tailwind-merge"
+      ],
+      "class-variance-authority": [
+        "./.work/node_modules/class-variance-authority"
+      ],
+      "radix-ui": [
+        "./.work/node_modules/radix-ui"
+      ],
+      "lucide-react": [
+        "./.work/node_modules/lucide-react"
+      ],
+      "react/jsx-runtime": [
+        "./.work/node_modules/@types/react/jsx-runtime"
+      ],
+      "react-dom/client": [
+        "./.work/node_modules/@types/react-dom/client"
+      ]
+    },
+    "typeRoots": [
+      "./.work/node_modules/@types"
+    ]
+  },
+  "include": [
+    "../overlay/src/renderer/src/components/planide/PlanIdeView.tsx",
+    "../overlay/src/renderer/src/components/planide/PlanIdeMark.tsx",
+    "../overlay/src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
+    "../overlay/src/renderer/src/components/right-sidebar/planide-engine-client.ts"
+  ]
+}

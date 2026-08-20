@@ -29,7 +29,7 @@ change.
 `ide/verify.sh` re-applies the overlay to a scratch copy of the checkout on every
 run, so drift is caught by the test suite rather than by a broken build.
 
-## What the overlay changes (25 edits, 11 files added)
+## What the overlay changes (25 edits, 17 files added)
 
 ### Branding
 | File | Change |
@@ -37,6 +37,8 @@ run, so drift is caught by the test suite rather than by a broken build.
 | `src/main/startup/dev-instance-identity.ts` | `BASE_APP_NAME` → `PlanIDE`, AppUserModelID → `com.thepunisher.planide` |
 | `config/electron-builder.config.cjs` | `appId`, `productName`, deep-link scheme `planide://`, executable names |
 | `package.json` | `name`, `description` |
+| **added** `resources/icon.png`, `icon-dev.png` | the running app's window/dock icon (dev build gets the amber variant) |
+| **added** `resources/build/icon.{png,ico,icns}` | the packaged app and its installers |
 
 ### The tracker workbench (full page)
 | File | Change |
@@ -46,6 +48,7 @@ run, so drift is caught by the test suite rather than by a broken build.
 | `AppWorkspaceShell.tsx` | lazy-imports and renders the page |
 | `SidebarNav.tsx` | a **Tracker** entry (radar icon) in the left nav |
 | **added** `components/planide/PlanIdeView.tsx` | the workbench: quick capture, board, Protected, Fixes, Roadmap, Versions, Activity, AI briefing |
+| **added** `components/planide/PlanIdeMark.tsx` | the PlanIDE glyph (currentColor, lucide's grid) and the full badge |
 
 ### The tracker panel (sidebar)
 | File | Change |
@@ -117,13 +120,37 @@ which its own docs tell completion consumers to skip). And a workspace with no
 `.planide/state.json` is left alone, so using an agent never creates tracker
 files you did not ask for.
 
+**The design borrows Orca's, deliberately.** Every colour is one of Orca's own
+tokens (`bg-card`, `text-muted-foreground`, `border-border`, `bg-accent`), so the
+tracker follows the user's theme — light, dark, and any future one — without a
+single global style of its own. Row actions hide until hover through Orca's own
+`can-hover:` variant, the same mechanism its sidebar rows use, which also keeps
+them visible on touch. Nothing here overrides an upstream component or
+stylesheet; if the overlay were removed, Orca would be exactly as it was.
+
+**The mark, in two forms.** `PlanIdeMark` is the glyph on lucide's 24×24 stroke
+grid in `currentColor`, so in the nav and the activity bar it inherits the exact
+active/inactive colours those places apply — Orca has this pattern itself, for
+its one non-lucide tab icon. `PlanIdeLogo` is the full badge, for a logo slot.
+The app icons are generated from the same `assets/icon.svg` by
+`ide/design/make-icons.mjs`: Chromium rasterises the SVG, and the ICO/ICNS
+containers are written by hand (no image library is installed here, and both
+formats are thin wrappers around PNGs). Both are re-parsed afterwards rather than
+trusted — chunk types, offsets and pixel sizes all checked.
+
+**The design is looked at, not guessed at.** `ide/design/render.mjs` bundles the
+real components — plus the real engine client and the real main-process store,
+with only fs/path/crypto shimmed in memory — compiles Orca's own `main.css` for
+the tokens, and screenshots every tab in both themes in headless Chromium. A
+console error fails the run. The README screenshots come out of the same script.
+
 **Failure is contained.** Every IPC handler returns `{ok, error}` rather than
 throwing, and the surfaces render an error state with a retry — a tracker
 problem must never take a renderer down with it.
 
 ## Verified vs. not
 
-**Verified here** (`./verify.sh`, 25 checks):
+**Verified here** (`./verify.sh`, 27 checks):
 
 - the overlay applies cleanly to a real Orca checkout at the pinned revision,
   all 25 edits resolving, and re-running changes nothing;
@@ -131,11 +158,12 @@ problem must never take a renderer down with it.
   round-trips, the trust boundary, progress arithmetic, activity attribution,
   briefing ordering, snapshots, and the agent-turn recorder (completions,
   replays, session boundaries, duplicates, untracked projects);
-- every added TypeScript/TSX source typechecks clean — including a separate
-  run against real `@types/react`, which is what proves the workbench page is
-  type-correct (the dependency-free `--noResolve` check in `ide/verify.sh`
-  cannot see React's own types, so it reports `key` and callback-parameter
-  false positives that the real-types run confirmed are not errors);
+- every added TypeScript/TSX source typechecks clean twice: dependency-free in
+  the default suite, and — when the design harness is installed — against real
+  `@types/react`, lucide, radix and Orca's own `Button`, which is the run that
+  actually proves the surfaces are type-correct (the dependency-free pass cannot see
+  React's own types, so it reports `key` and callback-parameter false positives
+  that the real-types run confirms are not errors);
 - the call the overlay inserts into Orca's hook listener typechecks against
   Orca's *real* `AgentHookEventPayload` — with a deliberate negative control in
   the same file, so a pass cannot come from types silently failing to resolve;
@@ -144,9 +172,14 @@ problem must never take a renderer down with it.
   `unzip`, with contents round-tripping;
 - the state format is compatible in both directions between the IDE's tracker
   and the Python agent tools;
-- the Tracker page was rendered for real against the actual main-process store
-  (React + Tailwind, filesystem shimmed in memory) and screenshotted, with zero
-  console errors.
+- both surfaces were rendered for real against the actual main-process store
+  (React + Orca's own compiled stylesheet, filesystem shimmed in memory) and
+  screenshotted in light and dark across every tab, with zero console errors;
+- the generated `.ico` and `.icns` were re-parsed chunk by chunk: 7 ICO entries
+  and 11 ICNS chunks, every payload a real PNG at the size its header claims;
+- `@custom-variant can-hover` is still defined upstream — the surfaces hide row
+  actions with it, so its removal would make controls invisible rather than
+  merely ugly.
 
 **Not verified here — needs a desktop run.** This environment has no display and
 cannot install an Electron toolchain of this size, so the following are sound by

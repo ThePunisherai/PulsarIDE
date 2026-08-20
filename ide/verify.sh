@@ -54,12 +54,24 @@ if command -v npx >/dev/null 2>&1; then
         src/main/planide/agent-events.ts \
         src/renderer/src/components/right-sidebar/planide-engine-client.ts \
         src/renderer/src/components/right-sidebar/PlanIdePanel.tsx \
-        src/renderer/src/components/planide/PlanIdeView.tsx 2>&1 \
+        src/renderer/src/components/planide/PlanIdeView.tsx \
+        src/renderer/src/components/planide/PlanIdeMark.tsx 2>&1 \
         | grep -vE "Cannot find module|Cannot find name|has no exported member|implicitly has an 'any'|Cannot find namespace|JSX element implicitly|react/jsx-runtime|Property 'key' does not exist|Type '\{ key:")
   [ -z "$out" ] && ok "overlay TypeScript has no syntax errors" \
                 || { bad "overlay TypeScript"; echo "$out" | head -5; }
 else
   skip "overlay TypeScript (npx unavailable)"
+fi
+
+# 3b. the stronger typecheck: real React/lucide/radix types, and Orca's own
+# Button, instead of the dependency-free --noResolve pass above. Needs the
+# design harness (ide/design/setup.sh), so it skips rather than fails without it.
+if [ -d "$HERE/design/.work/node_modules/typescript" ]; then
+  out=$(cd "$HERE/design" && ./.work/node_modules/.bin/tsc -p tsconfig.check.json 2>&1)
+  [ -z "$out" ] && ok "overlay TypeScript typechecks against real React types" \
+                || { bad "overlay TypeScript (real types)"; echo "$out" | head -5; }
+else
+  skip "real-types typecheck (run ide/design/setup.sh)"
 fi
 
 # 4. the tracker itself: run the real main-process modules
@@ -89,6 +101,20 @@ with zipfile.ZipFile('$zip') as f:
   rm -rf "$work"
 else
   skip "tracker behaviour (npx unavailable)"
+fi
+
+# 4b. the surfaces lean on two things Orca defines, not us: its theme tokens and
+# its `can-hover:` variant (which is what hides row actions until hover). If
+# upstream drops the variant, our controls would be invisible on a desktop --
+# silently. Check it exists rather than find out from a screenshot.
+if [ -f "$CHECKOUT/src/renderer/src/assets/main.css" ]; then
+  if grep -q "@custom-variant can-hover" "$CHECKOUT/src/renderer/src/assets/main.css"; then
+    ok "Orca still defines the can-hover variant the surfaces use"
+  else
+    bad "Orca no longer defines @custom-variant can-hover (hover-reveal would break)"
+  fi
+else
+  skip "can-hover variant check (no Orca checkout)"
 fi
 
 # 5. the real test: does the overlay still apply to an Orca checkout?

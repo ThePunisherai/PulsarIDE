@@ -3,9 +3,9 @@
  *
  * Shows the active workspace's board (what works / what's broken), open fixes,
  * and roadmap progress, and lets you flip an item's status without leaving the
- * IDE. State is owned by the tracker engine (a loopback Python service started
- * by the main process), which is the same state the CLI and the MCP server
- * write — so a fix an agent logs mid-session shows up here on the next refresh.
+ * IDE. State lives in the project's own .planide/state.json, read and written
+ * by the main process over IPC — the same file the CLI and the MCP server
+ * write, so a fix an agent logs mid-session shows up here on the next refresh.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
@@ -20,7 +20,6 @@ import {
   ShieldAlert,
   Plus,
   RefreshCw,
-  Radar,
   Wrench
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -28,6 +27,7 @@ import { useActiveWorktree } from '@/store/selectors'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
+import { PlanIdeMark } from '../planide/PlanIdeMark'
 import {
   addItem,
   aiReport,
@@ -85,21 +85,30 @@ function StatRow({ project }: { project: PlanIdeProject }): React.JSX.Element {
       {[
         // Confirmed first: what you have actually seen work is the number that
         // matters. "Claimed" is what agents reported but nobody checked yet.
-        { k: 'Confirmed', v: p.confirmed, cls: 'text-emerald-500' },
+        { k: 'Confirmed', v: p.confirmed, cls: 'text-emerald-500', dot: 'bg-emerald-500' },
         {
           k: 'Claimed',
           v: p.unconfirmed,
-          cls: p.unconfirmed ? 'text-amber-500' : 'text-muted-foreground'
+          cls: p.unconfirmed ? 'text-amber-500' : 'text-muted-foreground',
+          dot: 'bg-amber-500'
         },
         {
           k: 'Protected',
           v: p.protected,
-          cls: p.regressed ? 'text-rose-500' : 'text-violet-400'
+          cls: p.regressed ? 'text-rose-500' : 'text-violet-400',
+          dot: 'bg-violet-400'
         }
       ].map((s) => (
-        <div key={s.k} className="rounded-md border border-border bg-background/40 px-2 py-1.5">
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{s.k}</div>
-          <div className={cn('text-sm font-semibold tabular-nums', s.cls)}>{s.v}</div>
+        <div key={s.k} className="rounded-lg border border-border/70 bg-card/40 px-2 py-1.5">
+          <div className="flex items-center gap-1">
+            <span className={cn('size-1 shrink-0 rounded-full', s.dot)} />
+            <span className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+              {s.k}
+            </span>
+          </div>
+          <div className={cn('mt-0.5 text-sm font-semibold leading-none tabular-nums', s.cls)}>
+            {s.v}
+          </div>
         </div>
       ))}
     </div>
@@ -275,20 +284,20 @@ export default function PlanIdePanel(): React.JSX.Element {
       {/* Header: identity + progress */}
       <div className="px-3 pt-3 pb-2">
         <div className="flex items-start gap-2">
-          <Radar className="mt-0.5 shrink-0 text-rose-500" size={15} />
+          <PlanIdeMark size={15} className="mt-0.5 shrink-0 text-rose-500" strokeWidth={2.25} />
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold">{project.name}</div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-1">
-              <span className="rounded border border-border px-1.5 py-px text-[10px] text-muted-foreground">
+            <div className="truncate text-sm font-semibold tracking-tight">{project.name}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              <span className="rounded-full border border-border/80 px-1.5 py-px text-[10px] text-muted-foreground">
                 {project.type}
               </span>
-              <span className="rounded border border-border px-1.5 py-px font-mono text-[10px] text-muted-foreground">
+              <span className="rounded-full border border-border/80 px-1.5 py-px font-mono text-[10px] text-muted-foreground">
                 v{project.version}
               </span>
               {languages.slice(0, 2).map((l) => (
                 <span
                   key={l}
-                  className="rounded border border-border px-1.5 py-px text-[10px] text-muted-foreground"
+                  className="rounded-full border border-border/80 px-1.5 py-px text-[10px] text-muted-foreground"
                 >
                   {l}
                 </span>
@@ -436,7 +445,7 @@ export default function PlanIdePanel(): React.JSX.Element {
                 <span className="ml-auto tabular-nums">{items.length}</span>
               </div>
               {items.map((item) => (
-                <div key={item.id} className="group flex items-start gap-2 py-0.5">
+                <div key={item.id} className="group flex items-start gap-2 rounded-md px-1 py-0.5 -mx-1 transition-colors hover:bg-accent/40">
                   <button
                     type="button"
                     onClick={() => void cycleStatus(item)}
@@ -485,12 +494,15 @@ export default function PlanIdePanel(): React.JSX.Element {
                       </div>
                     )}
                   </div>
-                  {/* Only you can protect -- agents have no path to this either. */}
+                  {/* State is always visible (the badges above); the controls
+                      appear on hover, matching Orca's own row actions.
+                      Only you can protect -- agents have no path to this either. */}
                   <button
                     type="button"
                     onClick={() => void toggleLocked(item)}
                     className={cn(
                       'mt-0.5 shrink-0 rounded border p-0.5 transition-colors',
+                      'can-hover:opacity-0 can-hover:group-focus-within:opacity-100 can-hover:group-hover:opacity-100',
                       item.locked
                         ? 'border-violet-400/40 text-violet-400'
                         : 'border-transparent text-muted-foreground/40 hover:border-violet-400 hover:text-violet-400'
@@ -509,6 +521,7 @@ export default function PlanIdePanel(): React.JSX.Element {
                       onClick={() => void toggleVerified(item)}
                       className={cn(
                         'mt-0.5 shrink-0 rounded border px-1 py-0.5 text-[9px] font-semibold transition-colors',
+                        'can-hover:opacity-0 can-hover:group-focus-within:opacity-100 can-hover:group-hover:opacity-100',
                         item.verified
                           ? 'border-emerald-500/40 text-emerald-500'
                           : 'border-border text-muted-foreground/70 hover:border-emerald-500 hover:text-emerald-500'

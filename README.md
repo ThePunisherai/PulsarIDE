@@ -36,6 +36,11 @@ PlanIDE adds, in the sidebar, wired to the agents.
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
 | **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
 
+<img src="assets/screenshot-board.png" alt="The PlanIDE tracker: board, protected work, and the sidebar panel" />
+
+<sub>The Tracker page and the sidebar panel, side by side. Green is what **you**
+confirmed; amber is what an agent merely claimed.</sub>
+
 ## Claimed vs. confirmed
 
 The failure mode of agent-driven development is a board full of green that
@@ -87,6 +92,11 @@ tests on both sides.
 **Activity** records every change with attribution, so you can see exactly what
 you did versus what Claude or Codex did — including the line that says which
 agent broke something you had protected.
+
+<img src="assets/screenshot-activity.png" alt="The activity trail: agent turns, fixes, and a regression" />
+
+<sub>The trail reads at a glance: a regression is loud, an agent's own words are
+in italics, and every line says who did it.</sub>
 
 ## Build it
 
@@ -177,7 +187,7 @@ shows up in the Tracker.
 ## Verify
 
 ```bash
-./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 8 checks
+./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 10 checks
 ```
 
 ## Credits & license

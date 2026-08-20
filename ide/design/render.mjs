@@ -1,0 +1,114 @@
+/**
+ * Render the tracker surfaces and screenshot them.
+ *
+ *   node ide/design/render.mjs            # both themes -> ide/design/.work/shots
+ *
+ * Bundles the REAL components (and the real store, with fs/path/crypto shimmed
+ * in memory), compiles Orca's own stylesheet so the colours are Orca's, and
+ * shoots it in headless Chromium. Console errors fail the run — a screenshot
+ * that looks fine while React is throwing is worse than no screenshot.
+ */
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const WORK = join(HERE, '.work')
+const SHOTS = join(WORK, 'shots')
+mkdirSync(SHOTS, { recursive: true })
+
+const esbuild = await import(join(WORK, 'node_modules/esbuild/lib/main.js'))
+const pw = await import('/opt/node22/lib/node_modules/playwright/index.js')
+const chromium = pw.chromium ?? pw.default?.chromium
+
+// 1. bundle
+await esbuild.build({
+  entryPoints: [join(HERE, 'harness.tsx')],
+  bundle: true,
+  outfile: join(WORK, 'harness.js'),
+  format: 'iife',
+  jsx: 'automatic',
+  target: 'es2022',
+  logLevel: 'error',
+  nodePaths: [join(WORK, 'node_modules')],
+  alias: {
+    'node:fs': join(HERE, 'shims/fs.ts'),
+    'node:path': join(HERE, 'shims/path.ts'),
+    'node:crypto': join(HERE, 'shims/crypto.ts'),
+    '@/lib/utils': join(HERE, 'stubs/utils.ts'),
+    '@/i18n/i18n': join(HERE, 'stubs/i18n.ts'),
+    '@/store/selectors': join(HERE, 'stubs/selectors.ts'),
+    '@/components/ui/button': join(HERE, 'stubs/button.tsx'),
+    sonner: join(HERE, 'stubs/sonner.ts')
+  }
+})
+
+// 2. stylesheet, straight from Orca's own main.css
+execFileSync(
+  'npx',
+  ['--yes', '@tailwindcss/cli@4', '-i', join(WORK, 'input.css'), '-o', join(WORK, 'out.css')],
+  { cwd: HERE, stdio: 'pipe' }
+)
+
+// 3. page
+writeFileSync(
+  join(WORK, 'harness.html'),
+  `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="out.css">
+<style>html,body,#root{height:100%;margin:0;font-family:Geist,ui-sans-serif,system-ui,sans-serif}</style>
+</head><body><div id="root"></div><script src="harness.js"></script></body></html>`
+)
+
+// 4. shoot
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
+const problems = []
+for (const theme of ['dark', 'light']) {
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 })
+  page.on('console', (m) => m.type() === 'error' && problems.push(`[${theme}] ${m.text()}`))
+  page.on('pageerror', (e) => problems.push(`[${theme}] ${e.message}`))
+  await page.goto('file://' + join(WORK, 'harness.html'))
+  await page.evaluate((t) => {
+    document.documentElement.classList.toggle('dark', t === 'dark')
+    document.documentElement.style.colorScheme = t
+  }, theme)
+  await page.waitForTimeout(700)
+  await page.screenshot({ path: join(SHOTS, `tracker-${theme}.png`) })
+
+  for (const tab of ['Protected', 'Fixes', 'Roadmap', 'Activity', 'AI briefing']) {
+    const button = page.locator('button', { hasText: tab }).first()
+    if (await button.count()) {
+      await button.click()
+      await page.waitForTimeout(250)
+      await page.screenshot({ path: join(SHOTS, `${tab.split(' ')[0].toLowerCase()}-${theme}.png`) })
+    }
+  }
+  await page.close()
+}
+// 5. two shots for the README, at 1x so they stay small enough to commit
+{
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 })
+  page.on('pageerror', (e) => problems.push(`[readme] ${e.message}`))
+  await page.goto('file://' + join(WORK, 'harness.html'))
+  await page.evaluate(() => {
+    document.documentElement.classList.add('dark')
+    document.documentElement.style.colorScheme = 'dark'
+  })
+  await page.waitForTimeout(600)
+  await page.screenshot({ path: join(HERE, '../../assets/screenshot-board.png') })
+  const activity = page.locator('button', { hasText: 'Activity' }).first()
+  if (await activity.count()) {
+    await activity.click()
+    await page.waitForTimeout(250)
+    await page.screenshot({ path: join(HERE, '../../assets/screenshot-activity.png') })
+  }
+  await page.close()
+}
+
+await browser.close()
+
+if (problems.length) {
+  console.error('console/page errors:')
+  for (const p of problems.slice(0, 10)) console.error('  ' + p)
+  process.exit(1)
+}
+console.log('shots ->', SHOTS)

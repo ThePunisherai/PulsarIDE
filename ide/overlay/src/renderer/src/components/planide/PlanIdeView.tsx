@@ -22,7 +22,6 @@ import {
   Map as MapIcon,
   Plus,
   RefreshCw,
-  Radar,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -35,6 +34,7 @@ import { useActiveWorktree } from '@/store/selectors'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
+import { PlanIdeLogo, PlanIdeMark } from './PlanIdeMark'
 import {
   addItem,
   addMilestone,
@@ -55,7 +55,7 @@ import {
 type Tab = 'board' | 'protected' | 'fixes' | 'roadmap' | 'versions' | 'activity' | 'ai'
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
-  { id: 'board', label: 'Board', icon: Radar },
+  { id: 'board', label: 'Board', icon: PlanIdeMark },
   { id: 'protected', label: 'Protected', icon: Lock },
   { id: 'fixes', label: 'Fixes', icon: Wrench },
   { id: 'roadmap', label: 'Roadmap', icon: MapIcon },
@@ -84,24 +84,162 @@ const NEXT_STATUS: Record<ItemStatus, ItemStatus> = {
 }
 
 // --------------------------------------------------------------------------- bits
+/**
+ * Confirmed vs claimed, as one shape.
+ * The outer arc is what an agent reported; the solid inner arc is what you
+ * checked yourself. The gap between them is the whole point of this tracker,
+ * so it is drawn rather than described.
+ */
+function ConfirmedRing({
+  progress
+}: {
+  progress: PlanIdeProject['progress']
+}): React.JSX.Element {
+  const r = 26
+  const circumference = 2 * Math.PI * r
+  const clamp = (n: number): number => Math.max(0, Math.min(100, n))
+  const arc = (pct: number): string => `${(clamp(pct) / 100) * circumference} ${circumference}`
+  return (
+    <div className="flex shrink-0 items-center gap-3">
+      <div className="relative size-[68px]">
+        <svg viewBox="0 0 68 68" className="size-full -rotate-90">
+          <circle cx="34" cy="34" r={r} fill="none" strokeWidth="6" className="stroke-muted" />
+          <circle
+            cx="34"
+            cy="34"
+            r={r}
+            fill="none"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={arc(progress.percent)}
+            className="stroke-amber-500/45"
+          />
+          <circle
+            cx="34"
+            cy="34"
+            r={r}
+            fill="none"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={arc(progress.confirmed_percent)}
+            className="stroke-emerald-500 transition-[stroke-dasharray] duration-500"
+          />
+        </svg>
+        <span className="absolute inset-0 grid place-items-center text-[15px] font-semibold tabular-nums">
+          {progress.confirmed_percent}%
+        </span>
+      </div>
+      <div className="text-[11px] leading-tight">
+        <div className="font-medium text-emerald-500">
+          {progress.confirmed}/{progress.total_items}{' '}
+          {translate('planide.view.confirmedByYou', 'confirmed by you')}
+        </div>
+        <div className="text-muted-foreground">
+          {translate('planide.view.notByAgent', 'checked by you, not claimed by an agent')}
+        </div>
+        {progress.unconfirmed > 0 && (
+          <div className="mt-0.5 text-amber-500">
+            +{progress.unconfirmed} {translate('planide.view.claimedUnchecked', 'claimed, unchecked')}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * One line of the trail.
+ *
+ * Everything used to look the same, which made the two lines that matter — a
+ * regression, and an agent talking — as quiet as "added an item". The tone and
+ * the icon come from the kind, so the list can be skimmed.
+ */
+function ActivityRow({ entry }: { entry: PlanIdeProject['activity'][number] }): React.JSX.Element {
+  const kind = String(entry.kind ?? '')
+  const regression = entry.text.includes('REGRESSION')
+  const agent = kind.startsWith('agent-')
+  const Icon = regression
+    ? ShieldAlert
+    : agent
+      ? PlanIdeMark
+      : kind === 'verify'
+        ? ShieldCheck
+        : kind === 'lock'
+          ? Lock
+          : kind.startsWith('fix')
+            ? Wrench
+            : kind === 'version'
+              ? Tag
+              : Plus
+  return (
+    <div
+      className={cn(
+        'flex items-baseline gap-2.5 border-b border-border/40 py-1.5 pl-2 text-[12px] last:border-none',
+        regression && 'border-l-2 border-l-rose-500 bg-rose-500/5'
+      )}
+    >
+      <Icon
+        size={11}
+        className={cn(
+          'shrink-0 translate-y-[1px]',
+          regression
+            ? 'text-rose-500'
+            : agent
+              ? 'text-violet-400'
+              : kind === 'verify'
+                ? 'text-emerald-500'
+                : 'text-muted-foreground/50'
+        )}
+      />
+      <span
+        className={cn(
+          'w-[70px] shrink-0 truncate text-[10px] font-semibold',
+          entry.who === 'you' ? 'text-emerald-500' : 'text-violet-400'
+        )}
+      >
+        {entry.who}
+      </span>
+      <span
+        className={cn(
+          'min-w-0 flex-1',
+          regression && 'font-medium text-rose-500',
+          kind === 'agent-said' && 'italic text-muted-foreground'
+        )}
+      >
+        {entry.text}
+      </span>
+      <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70">
+        {String(entry.at).slice(5, 16).replace('T', ' ')}
+      </span>
+    </div>
+  )
+}
+
 function Stat({
   label,
   value,
   tone,
+  dot,
   hint
 }: {
   label: string
   value: number | string
   tone?: string
+  dot?: string
   hint?: string
 }): React.JSX.Element {
   return (
-    <div className="rounded-lg border border-border bg-card/40 px-3 py-2">
-      <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
+    <div className="rounded-xl border border-border/70 bg-card/40 px-3 py-2">
+      <div className="flex items-center gap-1.5">
+        {dot && <span className={cn('size-1.5 shrink-0 rounded-full', dot)} />}
+        <span className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
       </div>
-      <div className={cn('mt-0.5 text-xl font-semibold tabular-nums', tone)}>{value}</div>
-      {hint && <div className="text-[10px] text-muted-foreground">{hint}</div>}
+      <div className={cn('mt-1 text-[17px] font-semibold leading-none tabular-nums', tone)}>
+        {value}
+      </div>
+      {hint && <div className="mt-1 text-[10px] leading-none text-muted-foreground/70">{hint}</div>}
     </div>
   )
 }
@@ -217,7 +355,9 @@ function ItemCard({
         </button>
       </div>
       <ItemBadges item={item} />
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      {/* Orca hides row actions until hover and keeps them visible on touch
+          (its own `can-hover:` variant); the board follows that. */}
+      <div className="mt-2 flex flex-wrap gap-1.5 can-hover:opacity-0 can-hover:transition-opacity can-hover:group-focus-within:opacity-100 can-hover:group-hover:opacity-100">
         {working && (
           <button
             type="button"
@@ -378,9 +518,19 @@ export default function PlanIdeView(): React.JSX.Element {
   )
 
   if (!worktreePath) {
+    // The one place the full badge belongs: an empty page with room for it.
     return (
-      <div className="flex flex-1 items-center justify-center p-10 text-sm text-muted-foreground">
-        {translate('planide.view.noWorkspace', 'Open a workspace to track it.')}
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-10 text-center">
+        <PlanIdeLogo size={72} className="opacity-90" />
+        <div className="text-sm text-muted-foreground">
+          {translate('planide.view.noWorkspace', 'Open a workspace to track it.')}
+        </div>
+        <div className="max-w-sm text-[12px] leading-relaxed text-muted-foreground/70">
+          {translate(
+            'planide.view.noWorkspaceHint',
+            'The tracker follows the workspace you are in: what works, what is broken, what must not be touched — and what the agents did.'
+          )}
+        </div>
       </div>
     )
   }
@@ -416,77 +566,65 @@ export default function PlanIdeView(): React.JSX.Element {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-6xl px-6 py-5">
-        {/* identity + numbers */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Radar className="text-rose-500" size={19} />
-              <h1 className="truncate text-xl font-semibold tracking-tight">{project.name}</h1>
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        {/* identity — the mark, the project, and the one number that matters */}
+        <header className="flex flex-wrap items-start gap-x-4 gap-y-3">
+          {/* The glyph, not the full badge: the app icon is a dark tile with fine
+              rings, which turns to mush at header size. Same shape, drawn to be
+              read small — the badge itself is the app/dock icon. */}
+          <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-card shadow-sm">
+            <PlanIdeMark size={21} strokeWidth={1.9} className="text-rose-500" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <h1 className="truncate text-[22px] font-semibold leading-tight tracking-tight">
+                {project.name}
+              </h1>
               {[project.type, `v${project.version}`, ...langs.slice(0, 3)].map((chip) => (
                 <span
                   key={chip}
-                  className="rounded border border-border px-1.5 py-px text-[10px] text-muted-foreground"
+                  className="rounded-full border border-border/80 px-2 py-px text-[10px] font-medium text-muted-foreground"
                 >
                   {chip}
                 </span>
               ))}
             </div>
-            <div className="mt-1 font-mono text-[10px] text-muted-foreground/60">
+            <div className="mt-1 truncate font-mono text-[10.5px] text-muted-foreground/60">
               {project.path}
             </div>
           </div>
-          <Button size="sm" variant="outline" onClick={() => void refresh()}>
+          <ConfirmedRing progress={p} />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="shrink-0 text-muted-foreground"
+            onClick={() => void refresh()}
+          >
             <RefreshCw size={13} /> {translate('planide.view.refresh', 'Refresh')}
           </Button>
-        </div>
+        </header>
 
-        {/* Two truths, never merged: what you confirmed vs what was claimed. */}
-        <div className="mt-4">
-          <div className="mb-1 flex items-center justify-between text-[11px]">
-            <span className="text-emerald-500">
-              {p.confirmed}/{p.total_items}{' '}
-              {translate('planide.view.confirmedByYou', 'confirmed by you')}
-            </span>
-            <span className="font-mono text-emerald-500">{p.confirmed_percent}%</span>
-          </div>
-          <div className="relative h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="absolute inset-y-0 left-0 rounded-full bg-amber-500/35"
-              style={{ width: `${p.percent}%` }}
-            />
-            <div
-              className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition-all"
-              style={{ width: `${p.confirmed_percent}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          <Stat label="Confirmed" value={p.confirmed} tone="text-emerald-500" />
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <Stat label="Confirmed" value={p.confirmed} tone="text-emerald-500" dot="bg-emerald-500" />
           <Stat
             label="Claimed"
             value={p.unconfirmed}
             tone={p.unconfirmed ? 'text-amber-500' : undefined}
-            hint={p.unconfirmed ? 'unchecked' : undefined}
+            dot="bg-amber-500"
+            hint={p.unconfirmed ? 'nobody checked' : undefined}
           />
-          <Stat label="Complete" value={p.complete} />
-          <Stat label="Still open" value={p.open} />
+          <Stat label="Complete" value={p.complete} dot="bg-violet-500" />
+          <Stat label="Still open" value={p.open} dot="bg-muted-foreground" />
           <Stat
             label="Protected"
             value={p.protected}
             tone={p.regressed ? 'text-rose-500' : 'text-violet-400'}
+            dot="bg-violet-400"
           />
-          <Stat
-            label="Broken"
-            value={p.broken}
-            tone={p.broken ? 'text-rose-500' : undefined}
-          />
+          <Stat label="Broken" value={p.broken} tone={p.broken ? 'text-rose-500' : undefined} dot="bg-rose-500" />
         </div>
 
         {regressed.length > 0 && (
-          <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-rose-500/50 bg-rose-500/10 px-3.5 py-3">
+          <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-rose-500/50 bg-rose-500/10 px-3.5 py-3">
             <ShieldAlert className="mt-0.5 shrink-0 text-rose-500" size={16} />
             <div className="min-w-0 text-[12px]">
               <div className="font-semibold text-rose-500">
@@ -511,22 +649,22 @@ export default function PlanIdeView(): React.JSX.Element {
         )}
 
         {/* quick capture — your own board, fast */}
-        <div className="mt-4 rounded-lg border border-violet-400/30 bg-card/40 p-3">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {translate('planide.view.addWhatYouKnow', 'Add what you know')}
-          </div>
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-4 rounded-xl border border-border bg-card/40 p-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               value={qTitle}
               onChange={(e) => setQTitle(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void quickAdd()}
-              placeholder={translate('planide.view.qTitle', 'e.g. save button throws a 500')}
-              className="min-w-[220px] flex-[2] rounded-md border border-border bg-background px-2.5 py-1.5 text-[13px] outline-none focus:border-ring"
+              placeholder={translate(
+                'planide.view.qTitle',
+                'What just broke, or what just started working?'
+              )}
+              className="min-w-[240px] flex-[3] rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60 focus:border-ring"
             />
             <select
               value={qStatus}
               onChange={(e) => setQStatus(e.target.value as ItemStatus)}
-              className="rounded-md border border-border bg-background px-2 py-1.5 text-[13px] outline-none focus:border-ring"
+              className="rounded-lg border border-border bg-background px-2 py-2 text-[12px] outline-none focus:border-ring"
             >
               {COLUMNS.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -534,29 +672,29 @@ export default function PlanIdeView(): React.JSX.Element {
                 </option>
               ))}
             </select>
-            <Button size="sm" onClick={() => void quickAdd()}>
+            <Button size="sm" className="h-[34px]" onClick={() => void quickAdd()}>
               <Plus size={13} /> {translate('planide.view.add', 'Add')}
             </Button>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
             <input
               value={qNotes}
               onChange={(e) => setQNotes(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void quickAdd()}
               placeholder={translate('planide.view.qNotes', 'details (optional) — what exactly happens?')}
-              className="min-w-[220px] flex-[2] rounded-md border border-border bg-background px-2.5 py-1.5 text-[12px] outline-none focus:border-ring"
+              className="min-w-[240px] flex-[3] rounded-lg border border-transparent bg-muted/40 px-3 py-1.5 text-[12px] outline-none placeholder:text-muted-foreground/60 focus:border-ring focus:bg-background"
             />
-            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
               <input type="checkbox" checked={qLock} onChange={(e) => setQLock(e.target.checked)} />
-              {translate('planide.view.qLock', 'protect (do not break)')}
+              <Lock size={10} /> {translate('planide.view.qLock', 'protect (do not break)')}
             </label>
-            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
               <input
                 type="checkbox"
                 checked={qConfirm}
                 onChange={(e) => setQConfirm(e.target.checked)}
               />
-              {translate('planide.view.qConfirm', 'I confirmed this works')}
+              <ShieldCheck size={10} /> {translate('planide.view.qConfirm', 'I confirmed this works')}
             </label>
           </div>
         </div>
@@ -601,13 +739,17 @@ export default function PlanIdeView(): React.JSX.Element {
 
         <div className="py-4">
           {tab === 'board' && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {COLUMNS.map((col) => {
                 const items = shown.filter((i) => i.status === col.id)
                 return (
-                  <div key={col.id} className="rounded-lg border border-border/60 bg-background/40 p-2.5">
+                  <div
+                    key={col.id}
+                    className="overflow-hidden rounded-xl border border-border/60 bg-card/20"
+                  >
+                    <div className={cn('h-[3px] w-full opacity-70', col.dot)} />
+                    <div className="p-2.5">
                     <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      <span className={cn('size-1.5 rounded-full', col.dot)} />
                       {col.label}
                       <span className="ml-auto tabular-nums">{items.length}</span>
                     </div>
@@ -627,8 +769,11 @@ export default function PlanIdeView(): React.JSX.Element {
                         />
                       ))}
                       {items.length === 0 && (
-                        <div className="py-2 text-center text-[11px] text-muted-foreground/50">—</div>
+                        <div className="py-3 text-center text-[11px] text-muted-foreground/40">
+                          {translate('planide.view.columnEmpty', 'nothing here')}
+                        </div>
                       )}
+                    </div>
                     </div>
                   </div>
                 )
@@ -831,25 +976,7 @@ export default function PlanIdeView(): React.JSX.Element {
                 </div>
               )}
               {(project.activity ?? []).map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-baseline gap-3 border-b border-border/50 py-1.5 text-[12px] last:border-none"
-                >
-                  <span
-                    className={cn(
-                      'shrink-0 rounded-full px-2 py-px text-[10px] font-bold',
-                      a.who === 'you'
-                        ? 'bg-emerald-500/15 text-emerald-500'
-                        : 'bg-violet-400/15 text-violet-400'
-                    )}
-                  >
-                    {a.who}
-                  </span>
-                  <span className="min-w-0 flex-1">{a.text}</span>
-                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
-                    {String(a.at).slice(5, 16).replace('T', ' ')}
-                  </span>
-                </div>
+                <ActivityRow key={a.id} entry={a} />
               ))}
             </div>
           )}
