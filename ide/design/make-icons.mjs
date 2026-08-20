@@ -48,7 +48,14 @@ for (const s of SIZES) shots.set(s, await png(s))
 
 // Orca ships a separate dev icon so a `pnpm dev` window is never mistaken for
 // the real app. Keep that: same mark, amber where the brand red is.
-const devArt = svg.replaceAll('#ff453a', '#f59e0b')
+// Dev build wears an amber pulsar so a `pnpm dev` window is never mistaken for
+// the real app: swap the cyan/violet beams for warm amber tones.
+const devArt = svg
+  .replaceAll('#8ab4ff', '#f59e0b')
+  .replaceAll('#38bdf8', '#f59e0b')
+  .replaceAll('#b39bff', '#fbbf24')
+  .replaceAll('#6d4fe0', '#b45309')
+  .replaceAll('#c9d8ff', '#fde68a')
 const devIcon = await png(256, devArt)
 await browser.close()
 

@@ -163,9 +163,9 @@ function bridge(): PlanIdeBridge | null {
 
 async function call<T>(method: string, ...args: unknown[]): Promise<T> {
   const api = bridge()
-  if (!api) throw new Error('PlanIDE is unavailable (not running in the desktop app)')
+  if (!api) throw new Error('PulsarIDE is unavailable (not running in the desktop app)')
   const fn = api[method]
-  if (typeof fn !== 'function') throw new Error(`PlanIDE bridge is missing "${method}"`)
+  if (typeof fn !== 'function') throw new Error(`PulsarIDE bridge is missing "${method}"`)
   const reply = (await (fn as (...a: unknown[]) => Promise<Reply<T>>)(...args)) as Reply<T>
   if (!reply?.ok) throw new Error(reply?.error || `${method} failed`)
   return reply.data as T

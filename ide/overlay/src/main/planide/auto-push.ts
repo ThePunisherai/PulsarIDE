@@ -81,7 +81,7 @@ export async function runAutoPush(path: string, run: Runner = gitSync): Promise<
     // timer was running.
     if (!autoPushEnabled(state)) return false
 
-    const result = await run(path, { message: 'PlanIDE: auto-sync', push: true })
+    const result = await run(path, { message: 'PulsarIDE: auto-sync', push: true })
     const fresh = loadState(path)
     if (result.pushed) {
       fresh.github = { ...fresh.github, last_sync: nowIso() }

@@ -6,6 +6,22 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.11.0] - 2026-08-20
+
+### Changed
+- **The IDE is now PulsarIDE**, with a new pulsar icon — a neutron-star core with
+  twin beams and pulse rings, on the window, dock, taskbar and installer.
+- The remaining places the app called itself "Orca" now say PulsarIDE: onboarding,
+  the crash and error dialogs, the menu bar, the tray, update notices, browser
+  warnings. 1,879 identity strings across five languages.
+
+### Note
+- Orca's own external services keep their real names on purpose — Orca Cloud,
+  Orca Relay, the mobile companion, account sign-in, the `orca` CLI, and the
+  GitHub star link. Renaming those would point you at things that do not exist
+  under the PulsarIDE name. 879 such strings were left exactly as upstream ships
+  them.
+
 ## [0.10.0] - 2026-08-20
 
 ### Added

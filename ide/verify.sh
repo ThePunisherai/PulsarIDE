@@ -145,6 +145,19 @@ else
   skip "tracker behaviour (npx unavailable)"
 fi
 
+# 3c. the locale rebrand: app identity -> PulsarIDE, but Orca's own external
+# services (Cloud/Relay/Mobile/account/CLI/star link) stay verbatim.
+if [ -f "$CHECKOUT/src/renderer/src/i18n/locales/en.json" ]; then
+  out=$(python3 "$HERE/check-locale.py" "$CHECKOUT" 2>&1)
+  if echo "$out" | grep -q "^ok "; then
+    ok "locale rebrand ($(echo "$out" | grep -oE '[0-9]+ rebranded / [0-9]+ left'))"
+  else
+    bad "locale rebrand"; echo "$out" | head -4
+  fi
+else
+  skip "locale rebrand (no en.json -- run ./ide/fetch-upstream.sh)"
+fi
+
 # 4a. the overlay adds to Orca; it must not take anything away.
 python3 "$HERE/check-additive.py" > /tmp/planide-additive.log 2>&1 \
   && ok "no edit removes upstream code (branding constants aside)" \

@@ -1,39 +1,44 @@
-<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PlanIDE">
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PulsarIDE">
   <defs>
-    <linearGradient id="pi-bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+    <linearGradient id="pu-bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
       <stop stop-color="#141826"/>
       <stop offset="1" stop-color="#0a0b12"/>
     </linearGradient>
-    <linearGradient id="pi-sweep" x1="64" y1="64" x2="112" y2="30" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#ff453a" stop-opacity="0.9"/>
-      <stop offset="1" stop-color="#ff453a" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="pi-glow" cx="0.5" cy="0.5" r="0.5">
-      <stop stop-color="#ff453a" stop-opacity="0.28"/>
-      <stop offset="1" stop-color="#ff453a" stop-opacity="0"/>
+    <radialGradient id="pu-core" cx="0.5" cy="0.5" r="0.5">
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#c9d8ff"/>
+      <stop offset="1" stop-color="#6d4fe0"/>
     </radialGradient>
+    <radialGradient id="pu-halo" cx="0.5" cy="0.5" r="0.5">
+      <stop stop-color="#8ab4ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#6d4fe0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pu-beamA" x1="64" y1="64" x2="118" y2="18" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ab4ff" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="pu-beamB" x1="64" y1="64" x2="10" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b39bff" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#b39bff" stop-opacity="0"/>
+    </linearGradient>
   </defs>
 
-  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#pi-bg)" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
-  <circle cx="64" cy="64" r="44" fill="url(#pi-glow)"/>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#pu-bg)" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
 
-  <!-- radar rings -->
-  <circle cx="64" cy="64" r="40" stroke="#b39bff" stroke-opacity="0.30" stroke-width="2"/>
-  <circle cx="64" cy="64" r="27" stroke="#b39bff" stroke-opacity="0.22" stroke-width="2"/>
-  <circle cx="64" cy="64" r="14" stroke="#b39bff" stroke-opacity="0.16" stroke-width="2"/>
+  <!-- pulse rings: the star's beat, seen edge-on as an ellipse -->
+  <g stroke-linecap="round" fill="none">
+    <ellipse cx="64" cy="64" rx="44" ry="15" transform="rotate(-38 64 64)" stroke="#b39bff" stroke-opacity="0.16" stroke-width="2"/>
+    <ellipse cx="64" cy="64" rx="30" ry="10" transform="rotate(-38 64 64)" stroke="#8ab4ff" stroke-opacity="0.22" stroke-width="2"/>
+  </g>
 
-  <!-- crosshair -->
-  <line x1="16" y1="64" x2="112" y2="64" stroke="#8a93a8" stroke-opacity="0.18" stroke-width="1.5"/>
-  <line x1="64" y1="16" x2="64" y2="112" stroke="#8a93a8" stroke-opacity="0.18" stroke-width="1.5"/>
+  <!-- the two relativistic beams sweeping from the poles -->
+  <path d="M64 64 L120 16 L108 40 Z" fill="url(#pu-beamA)"/>
+  <path d="M64 64 L8 112 L20 88 Z" fill="url(#pu-beamB)"/>
+  <line x1="64" y1="64" x2="115" y2="20" stroke="#8ab4ff" stroke-width="3" stroke-linecap="round" stroke-opacity="0.9"/>
+  <line x1="64" y1="64" x2="13" y2="108" stroke="#b39bff" stroke-width="3" stroke-linecap="round" stroke-opacity="0.85"/>
 
-  <!-- sweep wedge -->
-  <path d="M64 64 L112 40 A44 44 0 0 0 92 26 Z" fill="url(#pi-sweep)"/>
-
-  <!-- tracked blip = a check -->
-  <circle cx="90" cy="44" r="12" fill="#0a0b12" stroke="#32d583" stroke-width="2.5"/>
-  <path d="M85 44.5 L88.5 48 L95 40.5" stroke="#32d583" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- center core -->
-  <circle cx="64" cy="64" r="5.5" fill="#ff453a"/>
-  <circle cx="64" cy="64" r="10" stroke="#ff453a" stroke-opacity="0.5" stroke-width="1.5"/>
+  <!-- the neutron-star core -->
+  <circle cx="64" cy="64" r="26" fill="url(#pu-halo)"/>
+  <circle cx="64" cy="64" r="10.5" fill="url(#pu-core)"/>
+  <circle cx="64" cy="64" r="10.5" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1"/>
 </svg>

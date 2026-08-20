@@ -118,7 +118,7 @@ function seedGitignore(path: string): void {
   const add = DEFAULT_IGNORES.filter((line) => !existing.includes(line))
   if (!add.length) return
   const prefix = existing && !existing.endsWith('\n') ? '\n' : ''
-  appendFileSync(gi, `${prefix}\n# added by PlanIDE\n${add.join('\n')}\n`, 'utf8')
+  appendFileSync(gi, `${prefix}\n# added by PulsarIDE\n${add.join('\n')}\n`, 'utf8')
 }
 
 export async function init(path: string, branch = 'main'): Promise<{ ok: boolean; message?: string; error?: string }> {
@@ -250,7 +250,7 @@ export async function sync(
   const porcelain = (await git(path, ['status', '--porcelain'])).out
   let committed = false
   if (porcelain.trim()) {
-    const message = (opts.message ?? '').trim() || 'PlanIDE: sync tracker + project state'
+    const message = (opts.message ?? '').trim() || 'PulsarIDE: sync tracker + project state'
     const r = await git(path, ['commit', '-m', message])
     if (r.code === 0) {
       committed = true

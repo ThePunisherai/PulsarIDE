@@ -1,8 +1,10 @@
 <div align="center">
 
-<img src="assets/icon.svg" width="96" alt="PlanIDE" />
+<img src="assets/icon.svg" width="96" alt="PulsarIDE" />
 
-# PlanIDE
+# PulsarIDE
+
+<sub>The product is **PulsarIDE**; the repository is still named `PlanIDE`.</sub>
 
 **An agentic IDE that tracks its own work.**
 
@@ -16,15 +18,15 @@ what's broken, and what the agents just fixed.
 
 ## What it is
 
-PlanIDE is [Orca](https://github.com/stablyai/orca) (MIT — a next-gen IDE for
+PulsarIDE is [Orca](https://github.com/stablyai/orca) (MIT — a next-gen IDE for
 parallel agentic development, with 40+ CLI agents, git worktree isolation, a
-built-in browser and terminals) **rebranded as PlanIDE and extended with a
+built-in browser and terminals) **rebranded as PulsarIDE and extended with a
 native project tracker**.
 
 The missing half of agent-driven development isn't running the agents — Orca
 already nails that. It's keeping track of **what actually works**, what broke,
 what got fixed and by which agent, and how far along the project is. That's what
-PlanIDE adds, in the sidebar, wired to the agents.
+PulsarIDE adds, in the sidebar, wired to the agents.
 
 | | |
 |---|---|
@@ -38,7 +40,7 @@ PlanIDE adds, in the sidebar, wired to the agents.
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
 | **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
 
-<img src="assets/screenshot-board.png" alt="The PlanIDE tracker: board, protected work, and the sidebar panel" />
+<img src="assets/screenshot-board.png" alt="The PulsarIDE tracker: board, protected work, and the sidebar panel" />
 
 <sub>The Tracker page and the sidebar panel, side by side. Green is what **you**
 confirmed; amber is what an agent merely claimed.</sub>
@@ -46,7 +48,7 @@ confirmed; amber is what an agent merely claimed.</sub>
 ## Claimed vs. confirmed
 
 The failure mode of agent-driven development is a board full of green that
-nobody checked. So PlanIDE splits progress in two:
+nobody checked. So PulsarIDE splits progress in two:
 
 - an agent moving an item to `works` records a **claim**, attributed to that
   agent (`reported by Codex`);
@@ -81,7 +83,7 @@ You enter what you know; agents fill in the rest. Every item has a **status**
 
 Protection is the one that saves you: agents love to "improve" something that
 already worked. Every AI briefing leads with a **DO NOT BREAK** list, and if a
-protected item ever goes to broken, PlanIDE raises a **regression** — a red
+protected item ever goes to broken, PulsarIDE raises a **regression** — a red
 banner in the GUI and in the IDE panel, the first line of the briefing, and a
 hard hit to the project's health score.
 
@@ -102,7 +104,7 @@ in italics, and every line says who did it.</sub>
 
 ## Get it
 
-Windows: grab **`planide-windows-setup.exe`** from
+Windows: grab **`pulsar-windows-setup.exe`** from
 [Releases](https://github.com/ThePunisherai/PlanIDE/releases) and run it.
 Linux: the `.AppImage` from the same page (`chmod +x`, then run).
 
@@ -119,7 +121,7 @@ cd PlanIDE
 ./ide/build.sh --run
 ```
 
-That clones Orca at a pinned revision, applies the PlanIDE overlay (branding +
+That clones Orca at a pinned revision, applies the PulsarIDE overlay (branding +
 tracker panel + engine wiring), installs, and starts the IDE. Needs `git`,
 `python3` and [`pnpm`](https://pnpm.io).
 
@@ -182,7 +184,7 @@ The point isn't exporting status to an agent — the agent should keep the track
 current **as it works**.
 
 **Nothing to wire up: turns are recorded automatically.** Orca already knows when
-an agent finishes a turn, and PlanIDE listens to that same signal — so every turn
+an agent finishes a turn, and PulsarIDE listens to that same signal — so every turn
 lands in **Activity** under the agent's own name, even for agents that never call
 anything below. It stays out of the board on purpose: a finished turn is not
 evidence that something works, so it never moves an item. (Replays, duplicate
@@ -211,9 +213,9 @@ shows up in the Tracker.
 
 ## Credits & license
 
-PlanIDE is built on [stablyai/orca](https://github.com/stablyai/orca)
+PulsarIDE is built on [stablyai/orca](https://github.com/stablyai/orca)
 (MIT, © Lovecast Inc.) — all agent orchestration, terminals, worktrees and
 editor surface are upstream's work. The tracker, the sidebar panel, the engine
-wiring and the overlay tooling are PlanIDE's.
+wiring and the overlay tooling are PulsarIDE's.
 
-PlanIDE's own code is [Apache-2.0](LICENSE).
+PulsarIDE's own code is [Apache-2.0](LICENSE).

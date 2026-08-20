@@ -25,7 +25,8 @@ PY
 # Files the suite reads but never edits: the stylesheet whose tokens and
 # can-hover variant the tracker surfaces are built on.
 files="$files
-src/renderer/src/assets/main.css"
+src/renderer/src/assets/main.css
+src/renderer/src/i18n/locales/en.json"
 
 mkdir -p "$DEST"
 echo "==> fetching ${PIN:0:12} into ide/.work/pristine"

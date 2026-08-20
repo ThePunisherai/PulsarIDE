@@ -267,7 +267,7 @@ export default function PlanIdeSync({
             onChange={(e) => setMessage(e.target.value)}
             placeholder={translate(
               'planide.sync.messagePlaceholder',
-              'PlanIDE: sync tracker + project state'
+              'PulsarIDE: sync tracker + project state'
             )}
             className="min-w-[260px] flex-1 rounded-lg border border-border bg-background px-3 py-2 text-[12px] outline-none focus:border-ring"
           />

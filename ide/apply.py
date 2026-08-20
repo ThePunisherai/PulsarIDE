@@ -34,9 +34,9 @@ PINNED_COMMIT = "79be5b7fde1a78bf5aca52999167b55d2d72ffdf"  # 2026-08-18, v1.4.1
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
 
-PRODUCT = "PlanIDE"
-APP_ID = "com.thepunisher.planide"
-PROTOCOL = "planide"
+PRODUCT = "PulsarIDE"
+APP_ID = "com.thepunisher.pulsaride"
+PROTOCOL = "pulsar"
 
 # --------------------------------------------------------------------------- #
 # edits: (relative path, anchor, replacement, description)
@@ -71,8 +71,8 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "config/electron-builder.config.cjs",
         "  protocols: [{ name: 'Orca', schemes: ['orca'] }],",
-        f"  protocols: [{{ name: '{PRODUCT}', schemes: ['{PROTOCOL}', 'orca'] }}],",
-        "deep-link scheme (keeps 'orca' so existing links still open)",
+        f"  protocols: [{{ name: '{PRODUCT}', schemes: ['{PROTOCOL}', 'planide', 'orca'] }}],",
+        "deep-link scheme (keeps 'planide'/'orca' so existing links still open)",
     ),
     (
         "config/electron-builder.config.cjs",
@@ -83,26 +83,26 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "config/electron-builder.config.cjs",
         "    executableName: 'orca-ide',",
-        "    executableName: 'planide',",
+        "    executableName: 'pulsaride',",
         "linux executable name",
     ),
     # Installer filenames: what you actually download from the releases page.
     (
         "config/electron-builder.config.cjs",
         "    artifactName: 'orca-windows-setup.${ext}',",
-        "    artifactName: 'planide-windows-setup.${ext}',",
+        "    artifactName: 'pulsar-windows-setup.${ext}',",
         "Windows installer filename",
     ),
     (
         "config/electron-builder.config.cjs",
         "    artifactName: isLinuxArm64Release ? 'orca-linux-arm64.${ext}' : 'orca-linux.${ext}'",
-        "    artifactName: isLinuxArm64Release\n      ? 'planide-linux-arm64.${ext}'\n      : 'planide-linux.${ext}'",
+        "    artifactName: isLinuxArm64Release\n      ? 'pulsar-linux-arm64.${ext}'\n      : 'pulsar-linux.${ext}'",
         "Linux AppImage filename",
     ),
     (
         "config/electron-builder.config.cjs",
         "    artifactName: 'orca-macos-${arch}.${ext}'",
-        "    artifactName: 'planide-macos-${arch}.${ext}'",
+        "    artifactName: 'pulsar-macos-${arch}.${ext}'",
         "macOS artifact filename",
     ),
     # ---- integration: the sidebar tab ------------------------------------ #
@@ -367,8 +367,8 @@ OVERLAY_FILES = [
 
 # package.json scalar fields.
 PKG_FIELDS = {
-    "name": "planide",
-    "description": "PlanIDE — parallel agentic IDE with a built-in project tracker",
+    "name": "pulsaride",
+    "description": "PulsarIDE — parallel agentic IDE with a built-in project tracker and ThePunisher agents",
 }
 
 
@@ -450,6 +450,96 @@ def patch_package_json(root: str, check_only: bool) -> list[str]:
     return []
 
 
+# Locale files whose app-identity strings get rebranded to PulsarIDE.
+LOCALES = ["en", "es", "ja", "ko", "zh"]
+
+# Keys whose path (lowercased) contains any of these name a real, external
+# Stably service or artifact -- Orca Cloud, Relay, the account/sign-in, the
+# mobile companion app, the `orca` CLI binary, the GitHub star link, orca.yaml,
+# plugin provenance. Renaming those would point a user at something that does
+# not exist under the PulsarIDE name, so they are left exactly as upstream ships
+# them. Everything else -- what the app calls *itself* -- is rebranded.
+LOCALE_SKIP_KEY_HINTS = (
+    "cloud", "relay", "account", "mobile", "cli", "browseruse",
+    "repositoryhooks", # orca.yaml
+    "pluginconsent",   # "Bundled with Orca"
+    "runtimehostaccess",
+)
+# Values naming an external Stably service/artifact are skipped even when the key
+# looks generic -- a value like "Orca Cloud" under an unrelated key must not
+# become "PulsarIDE Cloud". These are the real external names, verbatim.
+LOCALE_SKIP_VALUE_HINTS = (
+    "orca.yaml", "App Store", "TestFlight", "onorca.dev",
+    "Orca Cloud", "Orca Relay", "Orca account", "Orca Account",
+    "Sign in to Orca", "Sign out of Orca",
+    "Star Orca", "Orca on GitHub", "Star us on",
+    "Orca CLI", "Enable Orca CLI", "Orca Mobile", "Open Orca Mobile",
+    "Name in Orca", "Bundled with Orca",
+)
+
+
+def _rebrand_value(value: str) -> str:
+    import re
+    # Case-sensitive and whole-word: the app calls itself "Orca"/"ORCA", while
+    # the CLI's own commands are lowercase ("orca status"), so this leaves real
+    # commands and filenames (orca.yaml, orca-ide) untouched by construction.
+    out = re.sub(r"\bOrca\b", PRODUCT, value)
+    out = re.sub(r"\bORCA\b", PRODUCT.upper(), out)
+    return out
+
+
+def patch_locale(root: str, check_only: bool) -> tuple[int, list[str]]:
+    """Rebrand app-identity strings Orca -> PulsarIDE across the locale catalogs.
+
+    Returns (changed_count, skipped_keys) so the caller/tests can see exactly
+    what was and was not touched.
+    """
+    import json
+
+    changed = 0
+    skipped: list[str] = []
+
+    def walk(node, path, on):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, f"{path}.{k}" if path else k, on)
+        elif isinstance(node, str):
+            on(path, node)
+
+    for loc in LOCALES:
+        path = os.path.join(root, "src/renderer/src/i18n/locales", f"{loc}.json")
+        if not os.path.isfile(path):
+            continue
+        data = json.loads(read(path))
+        pending: list[tuple[list[str], str]] = []
+
+        def visit(dotted, value):
+            low = dotted.lower()
+            if any(h in low for h in LOCALE_SKIP_KEY_HINTS):
+                if "Orca" in value or "ORCA" in value:
+                    skipped.append(f"{loc}:{dotted}")
+                return
+            if any(h in value for h in LOCALE_SKIP_VALUE_HINTS):
+                skipped.append(f"{loc}:{dotted}")
+                return
+            new = _rebrand_value(value)
+            if new != value:
+                pending.append((dotted.split("."), new))
+
+        walk(data, "", visit)
+        for keys, new in pending:
+            cur = data
+            for k in keys[:-1]:
+                cur = cur[k]
+            cur[keys[-1]] = new
+            changed += 1
+        if pending and not check_only:
+            write(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+
+    # de-dup skipped across locales for a tidy report
+    return changed, sorted(set(skipped))
+
+
 def main(argv: list[str]) -> int:
     args = [a for a in argv if not a.startswith("--")]
     check_only = "--check" in argv
@@ -465,11 +555,13 @@ def main(argv: list[str]) -> int:
     copied, copy_problems = copy_overlay(root, check_only)
     applied, skipped, edit_problems = apply_edits(root, check_only)
     pkg_problems = patch_package_json(root, check_only)
+    locale_changed, locale_skipped = patch_locale(root, check_only)
     problems = copy_problems + edit_problems + pkg_problems
 
     print(f"  overlay files : {copied}")
     print(f"  edits applied : {applied}")
     print(f"  already done  : {skipped}")
+    print(f"  locale strings: {locale_changed} rebranded, {len(locale_skipped)} left (Orca services)")
     if problems:
         print(f"  PROBLEMS      : {len(problems)}")
         for p in problems:

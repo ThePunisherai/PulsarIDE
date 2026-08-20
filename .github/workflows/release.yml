@@ -156,7 +156,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm exec electron-builder --config config/electron-builder.config.cjs --win --publish never
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path 'dist/planide-windows-setup.exe')) {
+          if (-not (Test-Path 'dist/pulsar-windows-setup.exe')) {
             Get-ChildItem dist | Format-Table Name, Length
             throw 'the installer was not produced'
           }
@@ -171,8 +171,8 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           gh release upload "${{ needs.create-release.outputs.tag }}" \
-            dist/planide-windows-setup.exe \
-            dist/planide-windows-setup.exe.blockmap \
+            dist/pulsar-windows-setup.exe \
+            dist/pulsar-windows-setup.exe.blockmap \
             --clobber
 
   linux:
