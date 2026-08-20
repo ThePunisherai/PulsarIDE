@@ -177,6 +177,28 @@ else
   skip "can-hover variant check (no Orca checkout)"
 fi
 
+# 4c. the agent bundle deploy: the real module against a temp HOME (plain Node
+# fs, no Electron). Proves 101 team leads reach Claude/Codex/Gemini, the 48
+# curated skills incl. orchestration land, the graphify hook is wired per
+# project, and the user's own agents/hooks are never touched.
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/overlay/src/main/planide/agent-bundle.ts" --bundle --platform=node \
+       --format=cjs --outfile="$work/ab.cjs" --external:electron --log-level=error >/dev/null 2>&1; then
+    out=$(PULSAR_REPO="$ROOT" PULSAR_BUNDLE_CJS="$work/ab.cjs" node "$HERE/test/agent-bundle.test.mjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "agent bundle: $(echo "$out" | grep -oE 'PASS=[0-9]+') deploy checks"
+    else
+      bad "agent bundle deploy"; echo "$out" | grep "FAIL " | head -4
+    fi
+  else
+    bad "agent bundle: test bundle failed to build"
+  fi
+  rm -rf "$work"
+else
+  skip "agent bundle deploy (npx unavailable)"
+fi
+
 # 5. the real test: does the overlay still apply to an Orca checkout?
 if [ -f "$CHECKOUT/package.json" ]; then
   tmp=$(mktemp -d)

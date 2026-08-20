@@ -1,0 +1,49 @@
+/**
+ * Agent-bundle deploy test: the real module, run against a temp HOME.
+ *
+ * Bundled with esbuild and executed by ide/verify.sh -- no Electron needed,
+ * because the deploy is plain Node fs. PULSAR_REPO points at the repo root so it
+ * can find ide/agent-bundle.
+ */
+import { execSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const REPO = process.env.PULSAR_REPO || join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const MOD = process.env.PULSAR_BUNDLE_CJS // esbuild output, provided by verify.sh
+const { deployAgentBundle } = await import(MOD)
+
+const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
+const res = join(work, 'res'); mkdirSync(res)
+symlinkSync(join(REPO, 'ide/agent-bundle'), join(res, 'pulsar-agents'))
+const HOME = join(work, 'home'); mkdirSync(HOME)
+
+let pass = 0, fail = 0
+const ok = (n, c) => c ? (pass++, console.log('  PASS ' + n)) : (fail++, console.log('  FAIL ' + n))
+
+mkdirSync(join(HOME, '.claude/agents'), { recursive: true })
+writeFileSync(join(HOME, '.claude/agents/my-own.md'), '---\nname: mine\n---\nhi')
+writeFileSync(join(HOME, '.claude/settings.json'), JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: 'command', command: '/usr/bin/mine.sh' }] }] } }))
+
+const r1 = deployAgentBundle({ home: HOME, resourcesPath: res })
+ok('deploys on first run', r1.deployed === true)
+ok('101 team leads', r1.agents === 101)
+ok('48 skills incl. orchestration', r1.skills === 48 && existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) && existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')))
+ok('claude/gemini/codex all get the roster', readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === 101 && readdirSync(join(HOME, '.gemini/agents')).length === 101 && readdirSync(join(HOME, '.codex/agents')).filter(f => f.endsWith('.toml')).length === 101)
+try { execSync('python3 -c "import tomllib,sys;[tomllib.load(open(f,\'rb\')) for f in sys.argv[1:]]" ' + readdirSync(join(HOME, '.codex/agents')).map(f => join(HOME, '.codex/agents', f)).join(' ')); ok('every codex toml parses', true) } catch { ok('every codex toml parses', false) }
+ok('graphify hook wired per project', r1.hookWired === true && existsSync(join(HOME, '.config/pulsaride/hooks/graphify-bootstrap.sh')))
+const s1 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
+ok('user hook + agent untouched, our hook added', existsSync(join(HOME, '.claude/agents/my-own.md')) && s1.hooks.SessionStart.some(e => JSON.stringify(e).includes('mine.sh')) && s1.hooks.SessionStart.some(e => JSON.stringify(e).includes('graphify-bootstrap.sh')))
+
+const r2 = deployAgentBundle({ home: HOME, resourcesPath: res })
+ok('second run is version-gated no-op', r2.deployed === false)
+const s2 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
+ok('hook not duplicated', s2.hooks.SessionStart.filter(e => JSON.stringify(e).includes('graphify-bootstrap.sh')).length === 1)
+
+const r3 = deployAgentBundle({ home: HOME, resourcesPath: res, force: true })
+ok('force redeploys without accumulating', r3.deployed === true && readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === 101 && existsSync(join(HOME, '.claude/agents/my-own.md')))
+
+console.log(`\nPASS=${pass} FAIL=${fail}`)
+process.exit(fail ? 1 : 0)

@@ -6,6 +6,28 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.12.0] - 2026-08-20
+
+### Added
+- **ThePunisher's agents, pre-installed.** PulsarIDE now ships the 101 team-lead
+  subagents and 48 curated skills from ThePunisher-Agent inside the app, and
+  deploys them on first launch to the shared agent locations — so Claude Code,
+  Codex and Gemini running inside the IDE have the whole roster in **every
+  project**, with no dashboard and no separate install.
+- **Orchestration by default.** The `agent-orchestrator` and `dispatch`
+  (cross-tool delegation) skills are part of the default set.
+- **Graphify + Obsidian, per project.** A SessionStart hook runs the knowledge-
+  graph bootstrap and the Obsidian note-writer (vault auto-detected) once per
+  project, wired into Claude Code on Linux/macOS and its PowerShell twin on
+  Windows.
+
+### Notes
+- Only the 101 team leads deploy as native subagents — never the 5,050
+  specialists, which would blow Claude Code's agent-description budget. A team
+  lead reads and adopts a specialist on demand.
+- The deploy is version-gated (a normal launch pays nothing), reconcile-not-
+  accumulate, and never touches an agent, skill or hook you configured yourself.
+
 ## [0.11.0] - 2026-08-20
 
 ### Changed

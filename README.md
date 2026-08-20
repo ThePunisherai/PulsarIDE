@@ -38,6 +38,7 @@ PulsarIDE adds, in the sidebar, wired to the agents.
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
+| **The agents, pre-installed** | ThePunisher's 101 team leads + 48 skills (orchestration included) ship inside the app and deploy to every project — Claude Code, Codex, Gemini — with graphify + Obsidian wired per project |
 | **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
 
 <img src="assets/screenshot-board.png" alt="The PulsarIDE tracker: board, protected work, and the sidebar panel" />

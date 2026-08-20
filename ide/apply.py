@@ -335,6 +335,38 @@ EDITS: list[tuple[str, str, str, str]] = [
         "      }",
         "record finished agent turns in the tracker",
     ),
+    # ---- the agent bundle: ThePunisher agents + skills, packaged ---------- #
+    (
+        "config/electron-builder.config.cjs",
+        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources]",
+        "const pulsarAgentsResource = { from: 'resources/pulsar-agents', to: 'pulsar-agents' }\n"
+        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources, pulsarAgentsResource]",
+        "ship the ThePunisher agent bundle inside the app",
+    ),
+    (
+        "src/main/index.ts",
+        "import { recordAgentTurn } from './planide/agent-events'",
+        "import { deployAgentBundle } from './planide/agent-bundle'\n"
+        "import { recordAgentTurn } from './planide/agent-events'",
+        "agent-bundle deploy import",
+    ),
+    (
+        "src/main/index.ts",
+        "  registerPlanIdeIpc()",
+        "  registerPlanIdeIpc()\n"
+        "  // PulsarIDE: pre-install ThePunisher's team leads + skills + memory\n"
+        "  // hooks into the shared agent locations, so every CLI agent running\n"
+        "  // inside the IDE has them for every project. Deferred so it never delays\n"
+        "  // the first window; version-gated so a normal launch pays nothing.\n"
+        "  setTimeout(() => {\n"
+        "    try {\n"
+        "      deployAgentBundle({ resourcesPath: process.resourcesPath, appPath: app.getAppPath() })\n"
+        "    } catch {\n"
+        "      /* the bundle can never break startup */\n"
+        "    }\n"
+        "  }, 0)",
+        "deploy the agent bundle on launch",
+    ),
 ]
 
 # Files copied verbatim from ide/overlay/ into the checkout.
@@ -347,6 +379,7 @@ OVERLAY_FILES = [
     "src/main/planide/ipc.ts",
     "src/main/planide/agent-events.ts",
     "src/main/planide/auto-push.ts",
+    "src/main/planide/agent-bundle.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
     "src/renderer/src/components/right-sidebar/planide-engine-client.ts",
@@ -425,6 +458,28 @@ def copy_overlay(root: str, check_only: bool) -> tuple[int, list[str]]:
             shutil.copy2(src, dst)
         copied += 1
     return copied, problems
+
+
+BUNDLE_SRC = os.path.join(HERE, "agent-bundle")
+
+
+def copy_bundle(root: str, check_only: bool) -> tuple[int, list[str]]:
+    """Copy the whole agent bundle into the checkout's resources so
+    electron-builder packages it (see the pulsarAgentsResource edit)."""
+    problems: list[str] = []
+    if not os.path.isdir(BUNDLE_SRC):
+        return 0, ["agent bundle missing from this repo: ide/agent-bundle"]
+    if not os.path.isfile(os.path.join(BUNDLE_SRC, "manifest.json")):
+        return 0, ["agent bundle has no manifest.json"]
+    count = 0
+    for dirpath, _dirs, files in os.walk(BUNDLE_SRC):
+        for f in files:
+            count += 1
+    if not check_only:
+        dest = os.path.join(root, "resources", "pulsar-agents")
+        shutil.rmtree(dest, ignore_errors=True)
+        shutil.copytree(BUNDLE_SRC, dest)
+    return count, problems
 
 
 def patch_package_json(root: str, check_only: bool) -> list[str]:
@@ -553,12 +608,14 @@ def main(argv: list[str]) -> int:
 
     print(f"{'checking' if check_only else 'applying'} PlanIDE overlay -> {root}")
     copied, copy_problems = copy_overlay(root, check_only)
+    bundle_files, bundle_problems = copy_bundle(root, check_only)
     applied, skipped, edit_problems = apply_edits(root, check_only)
     pkg_problems = patch_package_json(root, check_only)
     locale_changed, locale_skipped = patch_locale(root, check_only)
-    problems = copy_problems + edit_problems + pkg_problems
+    problems = copy_problems + bundle_problems + edit_problems + pkg_problems
 
     print(f"  overlay files : {copied}")
+    print(f"  agent bundle  : {bundle_files} files")
     print(f"  edits applied : {applied}")
     print(f"  already done  : {skipped}")
     print(f"  locale strings: {locale_changed} rebranded, {len(locale_skipped)} left (Orca services)")

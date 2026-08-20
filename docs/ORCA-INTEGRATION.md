@@ -260,6 +260,35 @@ construction and review but not observed running: the packaged Electron build,
 the two surfaces rendering inside a real Electron window (they were rendered in
 headless Chromium instead), and the macOS/Windows installer artifacts. `./ide/build.sh --run` on a desktop is the next step.
 
+## The agent bundle
+
+PulsarIDE ships ThePunisher-Agent's roster inside the app and installs it for
+every project, with no dashboard. `ide/agent-bundle/` holds the 101 team-lead
+subagents, 48 curated skills (including the `agent-orchestrator` and `dispatch`
+orchestration skills), and the graphify + Obsidian memory hooks -- assembled
+from [`ThePunisherai/ThePunisher-Agent`](https://github.com/ThePunisherai/ThePunisher-Agent).
+`apply.py` copies it to `resources/pulsar-agents/` and an anchored edit adds it
+to electron-builder's `commonExtraResources`, so it packages into the app.
+
+On launch, `src/main/planide/agent-bundle.ts` deploys it into the locations the
+CLI agents actually read: team leads to `~/.claude/agents/`, `~/.gemini/agents/`
+and `~/.codex/agents/` (converted to Codex TOML); skills to `~/.claude/skills/`;
+and the graphify SessionStart hook (which runs the Obsidian note-writer too)
+into `~/.claude/settings.json`. It is version-gated, reconcile-not-accumulate,
+and wrapped so it can never break startup.
+
+**Only the 101 team leads deploy as native subagents** -- never the 5,050
+specialists. Deploying all of them blows Claude Code's ~15k-token
+agent-description budget; that is ThePunisher-Agent's own documented lesson. A
+team lead reads and adopts a specialist on demand.
+
+Verified here: the deploy runs against a temp HOME (plain Node fs, no Electron)
+-- 101 team leads reach all three tools with valid Codex TOML, the 48 skills
+incl. orchestration land, the graphify hook wires per project, a second launch
+is a version-gated no-op, a forced redeploy does not accumulate, and a user's
+own agent and SessionStart hook are left untouched. Orca's full typecheck exits
+0 with the wiring applied.
+
 ## Releasing
 
 `.github/workflows/release.yml`, on a `v*` tag. Every job does the same three
