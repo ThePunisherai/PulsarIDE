@@ -1,0 +1,221 @@
+# Build PlanIDE and publish it.
+#
+# PlanIDE is an overlay, not a fork, so every job does the same three things:
+# clone Orca at the pinned revision, apply ide/apply.py, and build inside that
+# clone with Orca's own scripts. The recipe below (pnpm, build:release,
+# ensure-native-runtime, electron-builder) is Orca's own release recipe, not an
+# invented one.
+#
+#   git tag v0.10.0 && git push origin v0.10.0     -> builds and publishes
+#   or run it by hand from the Actions tab
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v0.10.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - name: Checkout PlanIDE
+        uses: actions/checkout@v4
+
+      - name: Read the pinned Orca revision
+        id: pin
+        shell: bash
+        run: |
+          pin=$(grep -oE '^PINNED_COMMIT = "[a-f0-9]{40}"' ide/apply.py | grep -oE '[a-f0-9]{40}')
+          [ -n "$pin" ] || { echo "could not read PINNED_COMMIT"; exit 1; }
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+
+      # A shallow fetch of the exact commit: the full history is ~1 GB and the
+      # overlay only ever applies to one revision.
+      - name: Fetch Orca at the pinned revision
+        shell: bash
+        run: |
+          mkdir -p work/orca && cd work/orca
+          git init -q
+          git remote add origin https://github.com/stablyai/orca.git
+          git fetch -q --depth 1 origin ${{ steps.pin.outputs.sha }}
+          git checkout -q FETCH_HEAD
+
+      - name: Apply the PlanIDE overlay
+        shell: bash
+        run: python3 ide/apply.py work/orca
+
+      # Both read Orca's package.json, not ours: the pnpm version and the node
+      # version are upstream's pins, and this repo has neither.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: work/orca/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: work/orca/package.json
+          cache: pnpm
+          cache-dependency-path: work/orca/pnpm-lock.yaml
+
+      - name: Cache electron-builder downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: electron-builder-win-${{ steps.pin.outputs.sha }}
+          restore-keys: electron-builder-win-
+
+      - name: Install dependencies
+        working-directory: work/orca
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: work/orca
+        run: pnpm build:release
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      # Orca's own Windows packaging steps, in its own order.
+      - name: Package the installer
+        working-directory: work/orca
+        shell: pwsh
+        run: |
+          node config/scripts/ensure-native-runtime.mjs --runtime=electron
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm exec electron-builder --config config/electron-builder.config.cjs --win --publish never
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path 'dist/planide-windows-setup.exe')) {
+            Get-ChildItem dist | Format-Table Name, Length
+            throw 'the installer was not produced'
+          }
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: planide-windows
+          path: |
+            work/orca/dist/planide-windows-setup.exe
+            work/orca/dist/planide-windows-setup.exe.blockmap
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout PlanIDE
+        uses: actions/checkout@v4
+
+      - name: Read the pinned Orca revision
+        id: pin
+        run: |
+          pin=$(grep -oE '^PINNED_COMMIT = "[a-f0-9]{40}"' ide/apply.py | grep -oE '[a-f0-9]{40}')
+          [ -n "$pin" ] || { echo "could not read PINNED_COMMIT"; exit 1; }
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch Orca at the pinned revision
+        run: |
+          mkdir -p work/orca && cd work/orca
+          git init -q
+          git remote add origin https://github.com/stablyai/orca.git
+          git fetch -q --depth 1 origin ${{ steps.pin.outputs.sha }}
+          git checkout -q FETCH_HEAD
+
+      - name: Apply the PlanIDE overlay
+        run: python3 ide/apply.py work/orca
+
+      # Both read Orca's package.json, not ours: the pnpm version and the node
+      # version are upstream's pins, and this repo has neither.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: work/orca/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: work/orca/package.json
+          cache: pnpm
+          cache-dependency-path: work/orca/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: work/orca
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: work/orca
+        run: pnpm build:release
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Package the AppImage
+        working-directory: work/orca
+        run: |
+          node config/scripts/ensure-native-runtime.mjs --runtime=electron
+          pnpm exec electron-builder --config config/electron-builder.config.cjs --linux AppImage --publish never
+          ls -la dist/*.AppImage
+
+      - name: Upload the AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: planide-linux
+          path: work/orca/dist/*.AppImage
+          if-no-files-found: error
+
+  publish:
+    # Windows is what the release is for; Linux is a bonus and must not hold it
+    # up if AppImage packaging has a bad day.
+    needs: [windows, linux]
+    if: ${{ always() && needs.windows.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PlanIDE
+        uses: actions/checkout@v4
+
+      - name: Collect the builds
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Work out the tag
+        id: tag
+        run: |
+          tag="${{ github.event.inputs.tag }}"
+          [ -n "$tag" ] || tag="${GITHUB_REF_NAME}"
+          echo "name=$tag" >> "$GITHUB_OUTPUT"
+
+      # The release page reads the changelog rather than a commit list: what you
+      # get, not what was typed.
+      - name: Take this version's section from CHANGELOG.md
+        id: notes
+        run: |
+          version="${{ steps.tag.outputs.name }}"
+          version="${version#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { grab = 1; next }
+            grab && /^## \[/ { exit }
+            grab { print }
+          ' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "See CHANGELOG.md." > notes.md
+          cat notes.md
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: PlanIDE ${{ steps.tag.outputs.name }}
+          body_path: notes.md
+          files: artifacts/**/*
+          fail_on_unmatched_files: true

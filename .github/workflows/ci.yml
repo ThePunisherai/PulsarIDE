@@ -1,0 +1,32 @@
+# The self-test, on every push.
+#
+# ./verify.sh needs nothing but python3, node and network access for the pristine
+# upstream snapshot — no Electron, no pnpm install — so this stays a two-minute
+# job that still checks the overlay applies to real upstream.
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch the upstream files the overlay touches
+        run: ./ide/fetch-upstream.sh
+
+      - name: Install what the strict typecheck needs
+        run: ./ide/design/setup.sh
+
+      - name: Verify
+        run: ./verify.sh

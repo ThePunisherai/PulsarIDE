@@ -100,6 +100,17 @@ agent broke something you had protected.
 <sub>The trail reads at a glance: a regression is loud, an agent's own words are
 in italics, and every line says who did it.</sub>
 
+## Get it
+
+Windows: grab **`planide-windows-setup.exe`** from
+[Releases](https://github.com/ThePunisherai/PlanIDE/releases) and run it.
+Linux: the `.AppImage` from the same page (`chmod +x`, then run).
+
+Every release is built by GitHub Actions on a real Windows runner
+(`.github/workflows/release.yml`): it clones Orca at the pinned revision,
+applies the overlay, and packages it with Orca's own release scripts. Nothing is
+built by hand.
+
 ## Build it
 
 ```bash

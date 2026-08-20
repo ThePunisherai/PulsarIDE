@@ -249,6 +249,26 @@ construction and review but not observed running: the packaged Electron build,
 the two surfaces rendering inside a real Electron window (they were rendered in
 headless Chromium instead), and the macOS/Windows installer artifacts. `./ide/build.sh --run` on a desktop is the next step.
 
+## Releasing
+
+`.github/workflows/release.yml`, on a `v*` tag. Every job does the same three
+things — shallow-fetch Orca at `PINNED_COMMIT`, run `ide/apply.py`, then build
+inside that clone with **Orca's own** scripts (`pnpm build:release`,
+`ensure-native-runtime.mjs`, `electron-builder`), lifted from upstream's own
+Windows packaging job rather than invented. Windows produces
+`planide-windows-setup.exe`, Linux an `.AppImage`, and the release notes are the
+matching section of `CHANGELOG.md`, so the page says what you get rather than
+listing commits. `verify.sh` fails if the current `VERSION` has no changelog
+section, which makes writing it part of shipping.
+
+Verified from here, against a real fresh clone: the shallow fetch by commit SHA
+works, the overlay applies to it (28 edits, nothing already applied), the
+lockfile and `ensure-native-runtime.mjs` are where the workflow expects them,
+and the packaged installer name is `planide-windows-setup.exe`. The Windows
+build itself runs on GitHub's `windows-2022` runner — this environment has no
+Windows and no Electron toolchain, so that step is verified by the run, not by
+me.
+
 ## Upstream
 
 Pinned at `79be5b7fde1a78bf5aca52999167b55d2d72ffdf` (Orca v1.4.178-rc.2,

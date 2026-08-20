@@ -32,6 +32,15 @@ python3 -m py_compile "$HERE/apply.py" 2>/dev/null \
 bash -n "$HERE/build.sh" 2>/dev/null \
   && ok "build.sh parses" || bad "build.sh parses"
 
+# 1b. a release publishes CHANGELOG.md as its notes, so an entry for the current
+# version is part of shipping it, not an afterthought.
+ver=$(cat "$ROOT/agent-tools/VERSION" 2>/dev/null | tr -d '[:space:]')
+if grep -q "^## \[$ver\]" "$ROOT/CHANGELOG.md" 2>/dev/null; then
+  ok "CHANGELOG.md has an entry for $ver"
+else
+  bad "CHANGELOG.md has no '## [$ver]' section (the release page would be empty)"
+fi
+
 # 2. every file apply.py promises to copy actually exists
 missing=0
 for rel in $(python3 -c "

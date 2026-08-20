@@ -86,6 +86,25 @@ EDITS: list[tuple[str, str, str, str]] = [
         "    executableName: 'planide',",
         "linux executable name",
     ),
+    # Installer filenames: what you actually download from the releases page.
+    (
+        "config/electron-builder.config.cjs",
+        "    artifactName: 'orca-windows-setup.${ext}',",
+        "    artifactName: 'planide-windows-setup.${ext}',",
+        "Windows installer filename",
+    ),
+    (
+        "config/electron-builder.config.cjs",
+        "    artifactName: isLinuxArm64Release ? 'orca-linux-arm64.${ext}' : 'orca-linux.${ext}'",
+        "    artifactName: isLinuxArm64Release\n      ? 'planide-linux-arm64.${ext}'\n      : 'planide-linux.${ext}'",
+        "Linux AppImage filename",
+    ),
+    (
+        "config/electron-builder.config.cjs",
+        "    artifactName: 'orca-macos-${arch}.${ext}'",
+        "    artifactName: 'planide-macos-${arch}.${ext}'",
+        "macOS artifact filename",
+    ),
     # ---- integration: the sidebar tab ------------------------------------ #
     (
         "src/shared/ui-chrome-types.ts",
