@@ -56,6 +56,7 @@ ok('tracker deployed (CLI + package + MCP script)', r1.trackerDeployed === true 
   existsSync(trackerScript) &&
   existsSync(join(HOME, '.config/pulsaride/tracker/plan')) &&
   existsSync(join(HOME, '.config/pulsaride/tracker/planide/store.py')))
+ok('RE toolkit deployed', existsSync(join(HOME, '.config/pulsaride/tools/reverse-engineering/re-triage.sh')))
 const cj1 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
 ok('planide MCP registered at user scope, points at deployed script',
   r1.mcpWired === true && cj1.mcpServers && cj1.mcpServers.planide &&

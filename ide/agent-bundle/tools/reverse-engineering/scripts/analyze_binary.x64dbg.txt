@@ -1,0 +1,35 @@
+// ============================================================================
+// ThePunisher :: x64dbg headless analysis script
+// Usage: x64dbg.exe -script "analyze_binary.x64dbg.txt" "C:\samples\target.exe"
+//
+// Uses only documented x64dbg script commands. Lines starting with // are
+// comments. Log output lands in the x64dbg Log tab and, with -log, on stdout.
+// ============================================================================
+
+log "[ThePunisher] === static+entry triage start ==="
+
+// The target passed on the command line is auto-loaded; break at system/entry.
+// If launched without a target, uncomment and edit the next line:
+// InitDebug "C:\samples\target.exe"
+
+log "[ThePunisher] module base : {mod.base(cip)}"
+log "[ThePunisher] entry point : {mod.entry(mod.base(cip))}"
+log "[ThePunisher] main module : {mod.name(cip)}"
+
+// Run to the module entry point (OEP for non-packed samples).
+bp {mod.entry(mod.base(cip))}
+run
+
+log "[ThePunisher] stopped at entry: {cip}"
+
+// Dump the first bytes at the entry point for a quick signature check.
+log "[ThePunisher] entry bytes:"
+dump cip
+
+// Log the loaded module list (imports/exports are inspected in the GUI Symbols tab
+// or via the Scylla plugin below for a full IAT walk).
+log "[ThePunisher] loaded modules follow (see Log tab):"
+modlist
+
+log "[ThePunisher] === triage complete — hand off to BinaryAnalyst/DecompilerExpert ==="
+// Do not auto-close: leave the session live so the analyst can drive Scylla / trace.

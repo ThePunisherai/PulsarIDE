@@ -6,6 +6,28 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.17.0] - 2026-08-21
+
+### Added
+- **graphify + Obsidian now run per workspace for every agent, from the IDE
+  itself** — not only through Claude Code's SessionStart hook. The moment any
+  agent (Codex, Cursor, Claude) does work in a workspace, the IDE runs the
+  knowledge-graph + Obsidian sync for that project (throttled 6h, detached), so a
+  project opened in Codex gets its `graphify-out/graph.json` and Obsidian note
+  automatically — not just Claude projects.
+- **The reverse-engineering toolkit ships inside the IDE.** `re-triage.sh`, the
+  Ghidra/Frida/x64dbg drivers, `fuzz-driver.sh` and `linux-unpack.sh` deploy to
+  `~/.config/pulsaride/tools/` and are named in the agent's main-session
+  instructions.
+
+### Notes
+- The full 2,554-skill vendored library is deliberately NOT bundled into the
+  installer: its security/pentest content flags the installer as a virus in
+  Windows Defender (the same problem ThePunisher's own exe hit), and deploying
+  thousands of skill descriptions blows Claude Code's context budget. The 48
+  curated skills deploy, and the 100 team leads route to all 5,050 named
+  specialists on demand — so the capability is there without the risk.
+
 ## [0.16.0] - 2026-08-21
 
 ### Fixed

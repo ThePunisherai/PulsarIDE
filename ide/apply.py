@@ -327,6 +327,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "src/main/index.ts",
         "import { registerPlanIdeIpc } from './planide/ipc'",
         "import { recordAgentTurn } from './planide/agent-events'\n"
+        "import { maybeSyncMemory } from './planide/memory-sync'\n"
         "import { registerPlanIdeIpc } from './planide/ipc'",
         "agent-turn recorder import",
     ),
@@ -341,6 +342,9 @@ EDITS: list[tuple[str, str, str, str]] = [
         "        // it needs to ignore (replays, session boundaries, duplicates, untracked\n"
         "        // projects) is decided inside, and it can never throw into this pipeline.\n"
         "        recordAgentTurn({ worktreeId, paneKey, isReplay, promptInteractionKey, payload })\n"
+        "        // PlanIDE: keep graphify + Obsidian per-workspace, for every agent\n"
+        "        // (not only Claude's SessionStart hook). Throttled + detached inside.\n"
+        "        maybeSyncMemory(worktreeId)\n"
         "      }",
         "record finished agent turns in the tracker",
     ),
@@ -387,6 +391,7 @@ OVERLAY_FILES = [
     "src/main/planide/backup.ts",
     "src/main/planide/ipc.ts",
     "src/main/planide/agent-events.ts",
+    "src/main/planide/memory-sync.ts",
     "src/main/planide/auto-push.ts",
     "src/main/planide/agent-bundle.ts",
     "src/preload/planide.ts",

@@ -1,0 +1,47 @@
+// ============================================================================
+// ThePunisher :: x64dbg unpack + Scylla dump helper
+// Usage: x64dbg.exe -script "scylla_dump.x64dbg.txt" "C:\samples\packed.exe"
+//
+// Reaches the Original Entry Point (OEP) of a simple packed sample, then leaves
+// the session paused so Scylla can rebuild the IAT and dump a clean binary.
+//
+// ScyllaHide must be active first (Plugins -> ScyllaHide -> profile "ThePunisher")
+// so the packer cannot detect the debugger during this run.
+//
+// NOTE: fully automating OEP discovery across every packer is not possible from a
+// static script — packers differ. This script handles the common
+// "push everything, unpack, tail-jump to OEP" pattern. Adjust the OEP heuristic
+// per target. Import reconstruction (Scylla) is driven from the GUI or the Scylla
+// headless API (see x64dbg-setup.md) once OEP is reached.
+// ============================================================================
+
+log "[ThePunisher] === unpack+dump start (ensure ScyllaHide profile 'ThePunisher' is on) ==="
+
+// Strategy for classic PUSHAD-based packers (UPX-style):
+//   1) At entry the packer executes PUSHAD (saves all registers).
+//   2) The stack pointer right after PUSHAD is watched with a hardware breakpoint.
+//   3) When the unpacking stub restores context (POPAD) it touches that stack
+//      address -> we break, single-step over the tail jump, and land on the OEP.
+
+// Break at entry (auto-loaded target).
+bp {mod.entry(mod.base(cip))}
+run
+log "[ThePunisher] at packer entry: {cip}"
+
+// Step over the initial PUSHAD, then set a hardware access breakpoint on the
+// saved-register stack slot to catch the matching POPAD.
+StepInto
+bphws csp, "r"
+log "[ThePunisher] hardware bp armed on saved stack ({csp}); running to POPAD..."
+run
+
+// We are now near the tail jump. Remove the hw bp and step onto the OEP.
+bphwc csp
+log "[ThePunisher] context restored near tail-jump: {cip}"
+StepInto
+
+log "[ThePunisher] candidate OEP: {cip}"
+log "[ThePunisher] >>> Now run Scylla: IAT Autosearch -> Get Imports -> Dump -> Fix Dump"
+log "[ThePunisher] >>> or invoke the Scylla headless API with OEP={cip} (see x64dbg-setup.md)"
+
+// Session intentionally left paused at OEP for Scylla import reconstruction.

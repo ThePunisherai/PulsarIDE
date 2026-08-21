@@ -278,6 +278,7 @@ export function deployAgentBundle(
     // are freshly (re)deployed.
     const trackerRoot = deployTrackerFiles(home, root)
     if (trackerRoot) mcpWired = registerTrackerForAllAgents(home, join(trackerRoot, 'mcp', 'planide_mcp.py'))
+    deployToolsFiles(home, root)
 
     const marker: Marker = {
       bundle_version: manifest.bundle_version,
@@ -406,6 +407,16 @@ function deployTrackerFiles(home: string, root: string): string | null {
   return dest
 }
 
+/** Deploy ThePunisher's tool kits (the reverse-engineering toolkit) to a stable location. */
+function deployToolsFiles(home: string, root: string): string | null {
+  const src = join(root, 'tools')
+  if (!existsSync(src)) return null
+  const dest = join(configDir(home), 'tools')
+  rmSync(dest, { recursive: true, force: true })
+  cpSync(src, dest, { recursive: true })
+  return dest
+}
+
 /** The IDE-owned Python venv (graphify + fastmcp), isolated from the user's own. */
 function pyEnvDir(home: string): string {
   return join(configDir(home), 'pyenv')
@@ -531,8 +542,13 @@ function mainSessionBlock(home: string): string {
     '   before you start — a misread request executed perfectly is still wrong. (Skip the',
     '   question only when the intent is already unambiguous.)',
     '2. **Route.** Name the ThePunisher team + the specific specialist(s) that fit, then adopt',
-    '   that persona. Never repeat an approach already tried and failed.',
+    '   that persona. There are 100 team leads (installed) routing to 5,050 named specialists —',
+    '   read a specialist\'s file on demand and adopt it inline. Never repeat a failed approach.',
     '3. **Validate.** Before you claim something works, verify it — do not green-wash.',
+    '',
+    'Reverse-engineering toolkit is installed at `' + join(configDir(home), 'tools', 'reverse-engineering') + '`',
+    '(re-triage.sh, ghidra/frida/x64dbg drivers, fuzz-driver.sh, linux-unpack.sh) — use it for',
+    'binary/RE work.',
     '',
     '## PulsarIDE built-in tracker — keep it in sync with the chat',
     '',

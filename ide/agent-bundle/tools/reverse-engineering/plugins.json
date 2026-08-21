@@ -1,0 +1,37 @@
+[
+  {
+    "name": "ScyllaHide",
+    "repo": "x64dbg/ScyllaHide",
+    "enabled": true,
+    "source": "https://github.com/x64dbg/ScyllaHide/releases",
+    "purpose": "Anti-anti-debug: hides the debugger from IsDebuggerPresent/PEB/timing checks. Essential for unpacking."
+  },
+  {
+    "name": "xAnalyzer",
+    "repo": "ThirteenAG/xAnalyzer",
+    "enabled": true,
+    "source": "https://github.com/ThirteenAG/xAnalyzer/releases",
+    "purpose": "Extended static analysis: resolves API call arguments, adds comments. VERIFY the current release repo before relying on it."
+  },
+  {
+    "name": "SwissArmyKnife",
+    "repo": "",
+    "enabled": false,
+    "source": "https://github.com/mrfearless (search 'SwissArmyKnife x64dbg')",
+    "purpose": "Assorted RE utilities by mrfearless. Set 'repo' to the real release repo and enabled:true to install."
+  },
+  {
+    "name": "OllyDumpEx",
+    "repo": "",
+    "enabled": false,
+    "source": "https://low-priority.appspot.com/ollydumpex/",
+    "purpose": "Process/module dumping. NOT distributed via GitHub releases — install manually into the plugins dir."
+  },
+  {
+    "name": "Labelless",
+    "repo": "",
+    "enabled": false,
+    "source": "https://github.com/mandiant/Labelless (or a maintained fork)",
+    "purpose": "Sync labels/comments with IDA. Confirm a fork that ships x64dbg .dp32/.dp64 assets, then enable."
+  }
+]
