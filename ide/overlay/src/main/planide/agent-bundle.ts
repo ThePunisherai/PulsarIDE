@@ -41,6 +41,8 @@ import { dirname, join } from 'node:path'
 type Manifest = {
   bundle_version: string
   team_leads: number
+  /** Slugs (without .md) of the generalist team leads that deploy as native subagents. */
+  core_team_leads?: string[]
   skills: number
   skill_names: string[]
 }
@@ -210,7 +212,21 @@ export function deployAgentBundle(
 
     // --- agents: team leads -> Claude Code, Gemini CLI, Codex ------------- //
     const agentDir = join(root, 'agents')
-    const agentFiles = readdirSync(agentDir).filter((f) => f.endsWith('.md'))
+    // Only the CORE team leads deploy as native subagents. Deploying all 100 blows Claude
+    // Code's ~15k agent-description budget (a real user hit "~36.7k tokens", after which every
+    // prompt hits the context limit) -- the client counts more than the description field per
+    // file, so the fix is deploying FEWER files, not shorter text. manifest.core_team_leads
+    // lists the generalist entry points in ThePunisher roster order; the other 85
+    // domain-vertical leads stay on disk in the bundle and are reached on demand through the
+    // Council router. An older manifest without the field falls back to all (never zero), and
+    // README.md is never an agent.
+    const coreLeads = new Set((manifest.core_team_leads ?? []).map((s) => `${s}.md`))
+    const agentFiles = readdirSync(agentDir).filter(
+      (f) =>
+        f.endsWith('.md') &&
+        f.toLowerCase() !== 'readme.md' &&
+        (coreLeads.size === 0 || coreLeads.has(f))
+    )
     const wroteAgents: string[] = []
 
     const claudeAgents = join(home, '.claude', 'agents')

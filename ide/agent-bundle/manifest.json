@@ -1,5 +1,5 @@
 {
-  "bundle_version": "1.3.0",
+  "bundle_version": "1.4.0",
   "source_repo": "ThePunisherai/ThePunisher-Agent",
   "source_version": "1.67.0",
   "generated": "2026-08-20",
@@ -189,5 +189,23 @@
     "webapp-testing",
     "writing-plans",
     "writing-skills"
-  ]
+  ],
+  "core_team_leads": [
+    "council",
+    "brainstorm",
+    "task-management",
+    "coding",
+    "reverse-engineering",
+    "debug",
+    "testing-qa",
+    "learning",
+    "web-frontend",
+    "backend-api",
+    "security-pentest",
+    "devops",
+    "code-review",
+    "ai-ml",
+    "specialized-creative"
+  ],
+  "core_team_leads_note": "Only these deploy as NATIVE subagents. Deploying all 100 team leads blows Claude Code's ~15k agent-description token budget -- a real user hit '~36.7k tokens' and every prompt then hit the context limit (the client counts more than the description field per file). These are the generalist entry points, in ThePunisher roster order; the other 85 domain-vertical leads stay in the bundle on disk and are reached on demand via the Council router. Same fix as ThePunisher-Agent v1.70.0."
 }
