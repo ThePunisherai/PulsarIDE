@@ -6,6 +6,34 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.13.0] - 2026-08-21
+
+### Added
+- **Agents keep the tracker updated.** The built-in project tracker — the `plan`
+  CLI, the `planide` package and the `planide` MCP server — now ships inside the
+  app and deploys on launch. The MCP server is registered at Claude Code **user
+  scope**, so an agent in **any** project can read the board and record what it
+  builds, fixes or breaks (`get_board`, `add_item`/`set_item`,
+  `add_fix`/`mark_fixed`, `add_version`), and the IDE's Tracker tab reflects it
+  live. Every deployed team lead now carries that instruction, and the
+  SessionStart hook reminds the main session too — but only for a project you
+  already track (a repo with no `.planide/state.json` is never nudged or
+  littered).
+
+### Notes
+- Two channels, on purpose. Agents *actively* update the board via the MCP tools
+  or the `plan` CLI, and every finished agent turn is *passively* recorded to the
+  project's Activity trail — so the trail is complete even for an agent that
+  never calls a tool. The board still only shows what an agent explicitly
+  reports; nothing is auto-greened, and the `verified`/`locked` flags stay yours.
+- Graphify + Obsidian stay per project and automatic: the SessionStart hook runs
+  the knowledge-graph bootstrap and writes each project's own Obsidian note
+  (vault auto-detected), with durable per-project receipts kept outside the repo.
+- The `planide` MCP server needs Python's `mcp` package to start; without it the
+  `plan` CLI (pure stdlib) still lets agents update the board, so the tracker is
+  never dead. The registration only ever touches its own `planide` key in
+  `~/.claude.json` and preserves everything else.
+
 ## [0.12.0] - 2026-08-20
 
 ### Added

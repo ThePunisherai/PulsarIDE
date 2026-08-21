@@ -45,6 +45,7 @@ try {
     $output = @()
     $global:LASTEXITCODE = 1
 }
+$ctx = ''
 if ($LASTEXITCODE -eq 0 -and $output.Count -gt 0) {
     try {
         $receipt = [string]$output[-1] | ConvertFrom-Json
@@ -54,6 +55,18 @@ if ($LASTEXITCODE -eq 0 -and $output.Count -gt 0) {
     } catch {
         $ctx = 'Council memory sync completed.'
     }
+}
+
+# If PulsarIDE already tracks this project, tell the session to use the board.
+# Same guard agent-events.ts uses -- the state file must already exist, so an
+# untracked repo is never nudged and never littered with tracker files.
+$statePath = Join-Path (Join-Path $cwd '.planide') 'state.json'
+if (Test-Path $statePath) {
+    $note = 'This project is tracked by PulsarIDE''s built-in board (.planide/state.json), shown live in the IDE Tracker tab. Before starting, read it with the planide MCP tool get_board (or: plan board "' + $cwd + '"). As you work, record items/fixes/versions with the planide MCP tools (add_item, set_item [todo|wip|works|broken|blocked], add_fix, mark_fixed, add_version) or the plan CLI, passing project="' + $cwd + '". Report only what is real -- mark works only when it works.'
+    if ($ctx) { $ctx = $ctx + ' ' + $note } else { $ctx = $note }
+}
+
+if ($ctx) {
     $result = @{ hookSpecificOutput = @{ hookEventName = 'SessionStart'; additionalContext = $ctx } }
     ($result | ConvertTo-Json -Depth 5 -Compress)
 }

@@ -39,6 +39,7 @@ MEMORY_SCRIPT="$SCRIPT_DIR/council-memory.py"
 # One bounded cross-platform pipeline now owns Data receipts, Graphify extraction/global
 # registration, and the managed Obsidian note. It never guesses savings or activity.
 RESULT="$(timeout 40s python3 "$MEMORY_SCRIPT" --project "$CWD" --team "The Council" --event "session-start" 2>/dev/null || true)"
+CTX=""
 if [ -n "$RESULT" ]; then
     CTX="$(printf '%s' "$RESULT" | python3 -c '
 import json, sys
@@ -51,6 +52,17 @@ try:
 except Exception:
     print("Council memory sync completed.")
 ' 2>/dev/null || echo "Council memory sync completed.")"
+fi
+
+# If PulsarIDE already tracks this project, tell the session to use the board.
+# Gated on the state file existing -- exactly the guard agent-events.ts uses --
+# so a session in an untracked repo is never nudged and no repo is littered.
+if [ -f "$CWD/.planide/state.json" ]; then
+    NOTE="This project is tracked by PulsarIDE's built-in board (.planide/state.json), shown live in the IDE Tracker tab. Before starting, read it with the planide MCP tool get_board (or: plan board \"$CWD\"). As you work, record items/fixes/versions with the planide MCP tools (add_item, set_item [todo|wip|works|broken|blocked], add_fix, mark_fixed, add_version) or the plan CLI, passing project=\"$CWD\". Report only what is real -- mark works only when it works."
+    if [ -n "$CTX" ]; then CTX="$CTX $NOTE"; else CTX="$NOTE"; fi
+fi
+
+if [ -n "$CTX" ]; then
     python3 -c '
 import json, sys
 print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": sys.argv[1]}}))

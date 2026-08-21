@@ -1,9 +1,9 @@
 {
-  "bundle_version": "1.0.0",
+  "bundle_version": "1.1.0",
   "source_repo": "ThePunisherai/ThePunisher-Agent",
   "source_version": "1.67.0",
   "generated": "2026-08-20",
-  "note": "Team leads + curated skills + memory hooks, pre-installed into PulsarIDE. The 5,050 specialist subagents are deliberately NOT bundled: deploying them all as native subagents blows Claude Code's ~15k-token agent-description budget (ThePunisher-Agent's own hard-won lesson). Team leads route to specialists on demand.",
+  "note": "Team leads + curated skills + memory hooks + the built-in project tracker, pre-installed into PulsarIDE. The 5,050 specialist subagents are deliberately NOT bundled: deploying them all as native subagents blows Claude Code's ~15k-token agent-description budget (ThePunisher-Agent's own hard-won lesson). Team leads route to specialists on demand. The tracker (plan CLI + planide package + planide MCP server) lets agents read and update each project's .planide/state.json board directly, so the IDE's Tracker tab reflects agent work live.",
   "team_leads": 101,
   "skills": 48,
   "orchestration_skills": [
@@ -16,6 +16,27 @@
     "graphify-bootstrap.ps1",
     "council-memory.py"
   ],
+  "tracker": {
+    "note": "Deployed to ~/.config/pulsaride/tracker and registered as the 'planide' MCP server (user scope) so agents in every project can read/update the board.",
+    "cli": "tracker/plan",
+    "package": "tracker/planide",
+    "mcp_server": "tracker/mcp/planide_mcp.py",
+    "mcp_name": "planide",
+    "state_file": "<project>/.planide/state.json",
+    "mcp_tools": [
+      "list_projects",
+      "add_project",
+      "get_board",
+      "add_item",
+      "set_item",
+      "add_fix",
+      "mark_fixed",
+      "add_milestone",
+      "add_version",
+      "ai_report",
+      "detect_stack"
+    ]
+  },
   "agent_names": [
     "README",
     "aerospace-space",

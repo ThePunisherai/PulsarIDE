@@ -91,7 +91,8 @@ if command -v npx >/dev/null 2>&1; then
         src/main/planide/store.ts src/main/planide/detect.ts \
         src/main/planide/report.ts src/main/planide/git.ts \
         src/main/planide/backup.ts src/main/planide/ipc.ts \
-        src/main/planide/agent-events.ts \
+        src/main/planide/agent-events.ts src/main/planide/agent-bundle.ts \
+        src/main/planide/auto-push.ts \
         src/renderer/src/components/right-sidebar/planide-engine-client.ts \
         src/renderer/src/components/right-sidebar/PlanIdePanel.tsx \
         src/renderer/src/components/planide/PlanIdeView.tsx \

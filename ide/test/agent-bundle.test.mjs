@@ -26,6 +26,9 @@ const ok = (n, c) => c ? (pass++, console.log('  PASS ' + n)) : (fail++, console
 mkdirSync(join(HOME, '.claude/agents'), { recursive: true })
 writeFileSync(join(HOME, '.claude/agents/my-own.md'), '---\nname: mine\n---\nhi')
 writeFileSync(join(HOME, '.claude/settings.json'), JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: 'command', command: '/usr/bin/mine.sh' }] }] } }))
+// A realistic pre-existing ~/.claude.json (Claude Code's own state): our MCP
+// registration must add `planide` without disturbing any of it.
+writeFileSync(join(HOME, '.claude.json'), JSON.stringify({ mcpServers: { other: { command: 'x' } }, projects: { '/p': { allowedTools: [] } } }))
 
 const r1 = deployAgentBundle({ home: HOME, resourcesPath: res })
 ok('deploys on first run', r1.deployed === true)
@@ -37,6 +40,22 @@ ok('graphify hook wired per project', r1.hookWired === true && existsSync(join(H
 const s1 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
 ok('user hook + agent untouched, our hook added', existsSync(join(HOME, '.claude/agents/my-own.md')) && s1.hooks.SessionStart.some(e => JSON.stringify(e).includes('mine.sh')) && s1.hooks.SessionStart.some(e => JSON.stringify(e).includes('graphify-bootstrap.sh')))
 
+// --- tracker: CLI + package + planide MCP, so agents update the board ------ //
+const trackerScript = join(HOME, '.config/pulsaride/tracker/mcp/planide_mcp.py')
+ok('tracker deployed (CLI + package + MCP script)', r1.trackerDeployed === true &&
+  existsSync(trackerScript) &&
+  existsSync(join(HOME, '.config/pulsaride/tracker/plan')) &&
+  existsSync(join(HOME, '.config/pulsaride/tracker/planide/store.py')))
+const cj1 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
+ok('planide MCP registered at user scope, points at deployed script',
+  r1.mcpWired === true && cj1.mcpServers && cj1.mcpServers.planide &&
+  cj1.mcpServers.planide.args && cj1.mcpServers.planide.args[0] === trackerScript)
+ok('existing ~/.claude.json content preserved (never clobbered)',
+  cj1.mcpServers.other && cj1.projects && cj1.projects['/p'])
+ok('tracker instruction injected into agent bodies (Claude + Codex)',
+  readFileSync(join(HOME, '.claude/agents/pulsar-council.md'), 'utf8').includes('PulsarIDE built-in tracker') &&
+  readFileSync(join(HOME, '.codex/agents/pulsar-council.toml'), 'utf8').includes('PulsarIDE built-in tracker'))
+
 const r2 = deployAgentBundle({ home: HOME, resourcesPath: res })
 ok('second run is version-gated no-op', r2.deployed === false)
 const s2 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
@@ -44,6 +63,10 @@ ok('hook not duplicated', s2.hooks.SessionStart.filter(e => JSON.stringify(e).in
 
 const r3 = deployAgentBundle({ home: HOME, resourcesPath: res, force: true })
 ok('force redeploys without accumulating', r3.deployed === true && readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === 101 && existsSync(join(HOME, '.claude/agents/my-own.md')))
+const cj3 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
+ok('force redeploy keeps planide MCP + preserves other servers + tracker present',
+  r3.mcpWired === true && cj3.mcpServers.planide && cj3.mcpServers.other &&
+  existsSync(join(HOME, '.config/pulsaride/tracker/plan')))
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

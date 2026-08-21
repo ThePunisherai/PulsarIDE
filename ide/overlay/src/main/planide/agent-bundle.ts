@@ -49,6 +49,8 @@ type Marker = {
   agents: string[] // absolute paths we wrote
   skills: string[] // skill names we deployed into ~/.claude/skills
   hooks: string[] // absolute hook-script paths we wrote
+  tracker?: string // deployed tracker root we own
+  mcp?: string[] // MCP server names we registered at user scope
 }
 
 export type DeployResult = {
@@ -57,7 +59,37 @@ export type DeployResult = {
   agents: number
   skills: number
   hookWired: boolean
+  trackerDeployed: boolean
+  mcpWired: boolean
 }
+
+/**
+ * Appended to every deployed team-lead body (Claude Code, Gemini CLI, Codex) so
+ * a subagent PulsarIDE dispatches knows the project has a live board and updates
+ * it as it works. The main session gets the same nudge from the SessionStart
+ * hook's additionalContext (graphify-bootstrap), so this is reinforcement, not
+ * the only channel — which is why it can stay short. Kept in the body, never the
+ * frontmatter description, so it costs nothing against Claude Code's
+ * agent-description token budget.
+ */
+const TRACKER_INSTRUCTION = `
+
+## PulsarIDE built-in tracker
+
+This project may be tracked by PulsarIDE's built-in board, stored in
+\`<project>/.planide/state.json\` and shown live in the IDE's Tracker tab. When it is:
+
+- **Read it first.** Call the \`planide\` MCP tool \`get_board\` (or run
+  \`plan board <project>\`) before you start, so you build on the real state
+  instead of guessing.
+- **Record what you actually do.** As you finish work, use the \`planide\` MCP
+  tools — \`add_item\`/\`set_item\` (status: todo|wip|works|broken|blocked),
+  \`add_fix\`/\`mark_fixed\`, \`add_version\` — or the \`plan\` CLI equivalents.
+  Pass \`project\` = the project's absolute path.
+- **Only report what is real.** Mark an item \`works\` when it works, \`broken\`
+  when it does not. You cannot set the \`verified\`/\`locked\` flags — those stay
+  the user's. Never green-wash the board.
+`
 
 /** Where the bundle lives: the dev checkout, or the packaged app's resources. */
 export function bundleRoot(opts: { resourcesPath?: string; appPath?: string } = {}): string | null {
@@ -126,7 +158,9 @@ export function deployAgentBundle(
     reason,
     agents: 0,
     skills: 0,
-    hookWired: false
+    hookWired: false,
+    trackerDeployed: false,
+    mcpWired: false
   })
   try {
     const root = bundleRoot(opts)
@@ -141,6 +175,7 @@ export function deployAgentBundle(
     if (prev) {
       for (const p of prev.agents) rmSync(p, { force: true })
       for (const name of prev.skills) rmSync(join(home, '.claude', 'skills', name), { recursive: true, force: true })
+      if (prev.tracker) rmSync(prev.tracker, { recursive: true, force: true })
     }
 
     // --- agents: team leads -> Claude Code, Gemini CLI, Codex ------------- //
@@ -157,13 +192,16 @@ export function deployAgentBundle(
 
     for (const file of agentFiles) {
       const md = readFileSync(join(agentDir, file), 'utf8')
+      // Append the tracker instruction to the body (never the frontmatter
+      // description) so the subagent updates the board with zero token-budget cost.
+      const mdOut = `${md.trimEnd()}\n${TRACKER_INSTRUCTION}`
       const base = `pulsar-${file}` // pulsar- prefix marks ours and avoids clobbering
       const claudePath = join(claudeAgents, base)
       const geminiPath = join(geminiAgents, base)
       const codexPath = join(codexAgents, `pulsar-${file.replace(/\.md$/, '.toml')}`)
-      writeFileSync(claudePath, md)
-      writeFileSync(geminiPath, md)
-      writeFileSync(codexPath, toToml(md))
+      writeFileSync(claudePath, mdOut)
+      writeFileSync(geminiPath, mdOut)
+      writeFileSync(codexPath, toToml(mdOut))
       wroteAgents.push(claudePath, geminiPath, codexPath)
     }
 
@@ -183,11 +221,19 @@ export function deployAgentBundle(
     // --- memory hooks: graphify + Obsidian, per project ------------------- //
     const hookWired = wireHooks(home, root)
 
+    // --- tracker: plan CLI + planide package + planide MCP server ---------- //
+    // Deploys the built-in tracker and registers it as a user-scope MCP server,
+    // so an agent working in any project can read and update that project's
+    // .planide/state.json board directly — the IDE's Tracker tab reflects it live.
+    const tracker = deployTracker(home, root)
+
     const marker: Marker = {
       bundle_version: manifest.bundle_version,
       agents: wroteAgents,
       skills: skillNames,
-      hooks: hookWired ? [join(configDir(home), 'hooks')] : []
+      hooks: hookWired ? [join(configDir(home), 'hooks')] : [],
+      tracker: tracker.root ?? undefined,
+      mcp: tracker.mcpWired ? ['planide'] : []
     }
     mkdirSync(configDir(home), { recursive: true })
     writeFileSync(join(configDir(home), 'agent-bundle.json'), JSON.stringify(marker, null, 2))
@@ -197,7 +243,9 @@ export function deployAgentBundle(
       reason: `deployed ${manifest.bundle_version}`,
       agents: agentFiles.length,
       skills: skillNames.length,
-      hookWired
+      hookWired,
+      trackerDeployed: Boolean(tracker.root),
+      mcpWired: tracker.mcpWired
     }
   } catch (err) {
     // Never break startup.
@@ -273,6 +321,67 @@ function wireHooks(home: string, root: string): boolean {
   kept.push({ hooks: [{ type: 'command', command, timeout: 30 }] })
   hooks.SessionStart = kept
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
+  return true
+}
+
+/**
+ * Deploy the built-in tracker (the `plan` CLI, the `planide` package and the
+ * `planide` MCP server) to a stable location, and register the MCP server at
+ * Claude Code *user scope* so every project a session opens can read and write
+ * its board without any per-project setup.
+ *
+ * User scope (`~/.claude.json` top-level `mcpServers`) is deliberate: it is
+ * cross-project and needs no approval prompt, unlike a project `.mcp.json`
+ * (verified against code.claude.com/docs/en/mcp). The tracker tools each take a
+ * `project` path, so one server instance serves every project.
+ *
+ * Best-effort and reconcile-safe: a failure is swallowed (the passive
+ * agent-events recorder and the pure-stdlib `plan` CLI still work), and we only
+ * ever touch the single `planide` key in `~/.claude.json`, never anything else.
+ */
+function deployTracker(home: string, root: string): { root: string | null; mcpWired: boolean } {
+  const src = join(root, 'tracker')
+  if (!existsSync(join(src, 'mcp', 'planide_mcp.py'))) return { root: null, mcpWired: false }
+
+  const dest = join(configDir(home), 'tracker')
+  rmSync(dest, { recursive: true, force: true })
+  cpSync(src, dest, { recursive: true })
+  try {
+    chmodSync(join(dest, 'plan'), 0o755)
+  } catch {
+    /* non-fatal on filesystems without exec bits */
+  }
+
+  const mcpWired = registerPlanideMcp(home, join(dest, 'mcp', 'planide_mcp.py'))
+  return { root: dest, mcpWired }
+}
+
+/**
+ * Register (or refresh) the `planide` stdio MCP server at user scope in
+ * `~/.claude.json`. Reconcile-not-accumulate: overwrite only our own key and
+ * preserve every other server and every other field in the file. The server
+ * runs the bundled script with python; if python or the `mcp` package is
+ * missing it simply shows as unavailable — the `plan` CLI (pure stdlib) covers
+ * agents either way.
+ */
+function registerPlanideMcp(home: string, serverScript: string): boolean {
+  const path = join(home, '.claude.json')
+  let config: Record<string, unknown> = {}
+  if (existsSync(path)) {
+    try {
+      config = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+    } catch {
+      // A malformed ~/.claude.json is Claude Code's own state — never clobber it.
+      return false
+    }
+  }
+  const servers = (config.mcpServers ??= {}) as Record<string, unknown>
+  servers.planide = {
+    type: 'stdio',
+    command: process.platform === 'win32' ? 'python' : 'python3',
+    args: [serverScript]
+  }
+  writeFileSync(path, JSON.stringify(config, null, 2))
   return true
 }
 
