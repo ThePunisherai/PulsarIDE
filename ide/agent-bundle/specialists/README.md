@@ -1,0 +1,5354 @@
+# ThePunisher Subagents — full roster
+
+Generated from `agents/roster.json` by `scripts/generate-agents.py`. One real subagent file per named agent.
+
+
+## Team 1 — The Council (50 agents)
+
+- `council/thepunisher-orchestrator.md` — **ThePunisher-Orchestrator**: Receives all tasks, decomposes into sub-tasks, assigns teams, synthesizes final answers. Never executes directly.
+- `council/thepunisher-factchecker.md` — **ThePunisher-Factchecker**: Validates every claim against verifiable sources. Blocks any hallucinated fact.
+- `council/thepunisher-antihallucination.md` — **ThePunisher-AntiHallucination**: Raises a HALT flag on anything unverifiable. No speculation passes through.
+- `council/thepunisher-researcher.md` — **ThePunisher-Researcher**: When facts are unknown, searches and reads documentation, returns verified data only.
+- `council/thepunisher-smarttasker.md` — **ThePunisher-SmartTasker**: Breaks complex requests into atomic tasks with dependencies. Creates task DAGs.
+- `council/thepunisher-scopeguard.md` — **ThePunisher-ScopeGuard**: Keeps a task from expanding beyond what was actually asked -- catches scope creep before it starts.
+- `council/thepunisher-requirementsclarifier.md` — **ThePunisher-RequirementsClarifier**: Detects ambiguous/underspecified requests and drafts the specific question needed before work starts.
+- `council/thepunisher-contextsynthesizer.md` — **ThePunisher-ContextSynthesizer**: Merges findings from multiple teams into one coherent final answer.
+- `council/thepunisher-conflictresolver.md` — **ThePunisher-ConflictResolver**: Reconciles contradictory recommendations from different teams or agents.
+- `council/thepunisher-priorityarbiter.md` — **ThePunisher-PriorityArbiter**: Decides task execution order when multiple sub-tasks compete for attention.
+- `council/thepunisher-riskassessor.md` — **ThePunisher-RiskAssessor**: Flags high-blast-radius actions (destructive ops, prod changes, secrets) before execution.
+- `council/thepunisher-handoffcoordinator.md` — **ThePunisher-HandoffCoordinator**: Manages clean context handoff between sequential team engagements.
+- `council/thepunisher-progressauditor.md` — **ThePunisher-ProgressAuditor**: Periodically checks whether in-flight work is actually converging, not looping.
+- `council/thepunisher-scopeestimator.md` — **ThePunisher-ScopeEstimator**: Sizes a request (quick fix vs. multi-day effort) before committing to a plan.
+- `council/thepunisher-stakeholdertranslator.md` — **ThePunisher-StakeholderTranslator**: Converts a non-technical request into precise technical requirements.
+- `council/thepunisher-decisionlogger.md` — **ThePunisher-DecisionLogger**: Records why a choice was made, not just what was chosen, for later audit.
+- `council/thepunisher-escalationrouter.md` — **ThePunisher-EscalationRouter**: Decides when a sub-task needs a human decision versus can proceed autonomously.
+- `council/thepunisher-crossteamliaison.md` — **ThePunisher-CrossTeamLiaison**: Coordinates work items that span more than one team's specialty.
+- `council/thepunisher-qualitygatekeeper.md` — **ThePunisher-QualityGatekeeper**: Final check before anything is reported done -- verifies claims against evidence.
+- `council/thepunisher-assumptionauditor.md` — **ThePunisher-AssumptionAuditor**: Explicitly lists every assumption a plan depends on, for the user to confirm or reject.
+- `council/thepunisher-regressionwatchdog.md` — **ThePunisher-RegressionWatchdog**: Flags when a proposed fix could silently break previously-working behavior.
+- `council/thepunisher-terminologynormalizer.md` — **ThePunisher-TerminologyNormalizer**: Keeps team-to-team communication using consistent naming and definitions.
+- `council/thepunisher-multiagentscheduler.md` — **ThePunisher-MultiAgentScheduler**: Plans which agents run in parallel versus sequentially for a given task.
+- `council/thepunisher-outputcompressor.md` — **ThePunisher-OutputCompressor**: Condenses verbose multi-agent output into the shortest accurate summary.
+- `council/thepunisher-sourceciter.md` — **ThePunisher-SourceCiter**: Attaches a verifiable source (URL or file:line) to every non-obvious claim before it ships.
+- `council/thepunisher-uncertaintyflagger.md` — **ThePunisher-UncertaintyFlagger**: Explicitly marks low-confidence conclusions instead of presenting them as certain.
+- `council/thepunisher-feedbackintegrator.md` — **ThePunisher-FeedbackIntegrator**: Incorporates user corrections into the current plan without restarting from scratch.
+- `council/thepunisher-sessionmemorykeeper.md` — **ThePunisher-SessionMemoryKeeper**: Tracks what's already been tried or decided this session so it isn't repeated.
+- `council/thepunisher-goalrestater.md` — **ThePunisher-GoalRestater**: Periodically re-states the original goal to catch drift during long tasks.
+- `council/thepunisher-tradeoffanalyst.md` — **ThePunisher-TradeoffAnalyst**: Lays out the real cost/benefit of competing approaches before Council picks one.
+- `council/thepunisher-complexitytriager.md` — **ThePunisher-ComplexityTriager**: Routes a trivial question to a direct answer instead of a full team dispatch.
+- `council/thepunisher-duplicateworkdetector.md` — **ThePunisher-DuplicateWorkDetector**: Notices when two dispatched agents are about to redo the same work.
+- `council/thepunisher-budgettracker.md` — **ThePunisher-BudgetTracker**: Watches token/time budget for a task and warns before it runs away.
+- `council/thepunisher-clarityreviewer.md` — **ThePunisher-ClarityReviewer**: Checks the final answer reads clearly to someone outside the immediate context.
+- `council/thepunisher-ethicsgatekeeper.md` — **ThePunisher-EthicsGatekeeper**: Enforces the authorized-research-only boundary on RE/security work before it proceeds.
+- `council/thepunisher-versioncontextkeeper.md` — **ThePunisher-VersionContextKeeper**: Tracks which repo/tool/game version a finding applies to, so it isn't misapplied later.
+- `council/thepunisher-rollbackplanner.md` — **ThePunisher-RollbackPlanner**: Ensures any risky change has a stated, real undo path before it runs.
+- `council/thepunisher-externalclaimverifier.md` — **ThePunisher-ExternalClaimVerifier**: Specifically fact-checks claims about third-party tools, APIs, and libraries.
+- `council/thepunisher-instructionconflictdetector.md` — **ThePunisher-InstructionConflictDetector**: Flags when a new instruction contradicts an existing standing rule (e.g. CLAUDE.md).
+- `council/thepunisher-multimodalintegrator.md` — **ThePunisher-MultiModalIntegrator**: Combines findings from text, screenshots, and logs into one assessment.
+- `council/thepunisher-statusreporter.md` — **ThePunisher-StatusReporter**: Produces the what-changed/what's-next summary at the end of a work session.
+- `council/thepunisher-teamcapabilityindex.md` — **ThePunisher-TeamCapabilityIndex**: Keeps an accurate map of which team or agent can actually do what, for routing.
+- `council/thepunisher-followupplanner.md` — **ThePunisher-FollowUpPlanner**: Identifies what should happen next after the current task, without being asked.
+- `council/thepunisher-tonecalibrator.md` — **ThePunisher-ToneCalibrator**: Matches response tone and length to the complexity of what was actually asked.
+- `council/thepunisher-repeatfailureauditor.md` — **ThePunisher-RepeatFailureAuditor**: Cross-checks a new attempt against the anti-loop registry before it starts.
+- `council/thepunisher-livestatusbroadcaster.md` — **ThePunisher-LiveStatusBroadcaster**: Keeps the dashboard's Live Activity feed accurate for whatever Council is doing.
+- `council/thepunisher-languageadapter.md` — **ThePunisher-LanguageAdapter**: Handles mixed-language requests (e.g. Dutch/English) without losing precision.
+- `council/thepunisher-longcontextsummarizer.md` — **ThePunisher-LongContextSummarizer**: Compresses a long session's history into what's still relevant right now.
+- `council/thepunisher-safetyclassifierliaison.md` — **ThePunisher-SafetyClassifierLiaison**: Explains a classifier block to the user clearly instead of silently retrying around it.
+- `council/thepunisher-finalanswerassembler.md` — **ThePunisher-FinalAnswerAssembler**: Owns the literal shape of the response sent back: concise, sourced, and complete.
+
+## Team 2 — Brainstorm & Ideation (50 agents)
+
+- `brainstorm/thepunisher-brainstormer.md` — **ThePunisher-Brainstormer**: Generates 3-5 alternative approaches for any problem. No implementation yet.
+- `brainstorm/thepunisher-architect.md` — **ThePunisher-Architect**: Designs high-level system architecture, draws diagrams, chooses patterns.
+- `brainstorm/thepunisher-devil.md` — **ThePunisher-Devil**: Plays devil's advocate. Challenges every proposed solution for weaknesses.
+- `brainstorm/thepunisher-innovator.md` — **ThePunisher-Innovator**: Suggests cutting-edge approaches from recent research. Cites papers/repos.
+- `brainstorm/thepunisher-firstprinciplesthinker.md` — **ThePunisher-FirstPrinciplesThinker**: Strips a problem to its fundamental constraints before proposing solutions.
+- `brainstorm/thepunisher-analogyfinder.md` — **ThePunisher-AnalogyFinder**: Finds a solved problem in another domain that maps onto the current one.
+- `brainstorm/thepunisher-constraintmapper.md` — **ThePunisher-ConstraintMapper**: Lists the real hard constraints (time, budget, compatibility) before ideating.
+- `brainstorm/thepunisher-prototypesketcher.md` — **ThePunisher-PrototypeSketcher**: Produces a rough, throwaway proof-of-concept plan to test an idea fast.
+- `brainstorm/thepunisher-marketresearcher.md` — **ThePunisher-MarketResearcher**: Checks whether a similar solution already exists before reinventing it.
+- `brainstorm/thepunisher-userjourneymapper.md` — **ThePunisher-UserJourneyMapper**: Walks through the end-user's actual experience of a proposed idea.
+- `brainstorm/thepunisher-failuremodepredictor.md` — **ThePunisher-FailureModePredictor**: Pre-mortems an idea: how would this realistically fail?
+- `brainstorm/thepunisher-simplicityadvocate.md` — **ThePunisher-SimplicityAdvocate**: Pushes for the boring, obvious solution before the clever one.
+- `brainstorm/thepunisher-scalabilityforecaster.md` — **ThePunisher-ScalabilityForecaster**: Projects how an idea holds up at 10x/100x scale.
+- `brainstorm/thepunisher-competitiveanalyst.md` — **ThePunisher-CompetitiveAnalyst**: Compares an approach against how similar tools or projects solved the same problem.
+- `brainstorm/thepunisher-rapidprototyper.md` — **ThePunisher-RapidPrototyper**: Turns a raw idea into a minimal testable spike quickly.
+- `brainstorm/thepunisher-designpatternmatcher.md` — **ThePunisher-DesignPatternMatcher**: Suggests an established design pattern that fits the problem shape.
+- `brainstorm/thepunisher-technicaldebtforecaster.md` — **ThePunisher-TechnicalDebtForecaster**: Estimates the long-term maintenance cost of each proposed approach.
+- `brainstorm/thepunisher-crossdisciplinaryconnector.md` — **ThePunisher-CrossDisciplinaryConnector**: Pulls in ideas from adjacent engineering disciplines.
+- `brainstorm/thepunisher-assumptionchallenger.md` — **ThePunisher-AssumptionChallenger**: Questions the unstated assumptions baked into the original request.
+- `brainstorm/thepunisher-minimumviablescoper.md` — **ThePunisher-MinimumViableScoper**: Defines the smallest version of an idea that's still genuinely useful.
+- `brainstorm/thepunisher-riskvsrewardanalyst.md` — **ThePunisher-RiskVsRewardAnalyst**: Weighs an idea's upside against its implementation and maintenance risk.
+- `brainstorm/thepunisher-feasibilitychecker.md` — **ThePunisher-FeasibilityChecker**: Sanity-checks whether an idea is actually buildable with available tools.
+- `brainstorm/thepunisher-namingconsultant.md` — **ThePunisher-NamingConsultant**: Proposes clear, non-colliding names for new concepts and components.
+- `brainstorm/thepunisher-visualthinker.md` — **ThePunisher-VisualThinker**: Sketches system diagrams (ASCII/mermaid) to make an abstract idea concrete.
+- `brainstorm/thepunisher-edgecaseimaginer.md` — **ThePunisher-EdgeCaseImaginer**: Surfaces unusual inputs and scenarios an idea needs to handle.
+- `brainstorm/thepunisher-resourceestimator.md` — **ThePunisher-ResourceEstimator**: Estimates the real compute/storage/time cost of an idea before committing.
+- `brainstorm/thepunisher-alternativearchitectureexplorer.md` — **ThePunisher-AlternativeArchitectureExplorer**: Proposes a structurally different architecture for comparison.
+- `brainstorm/thepunisher-incrementalpathplanner.md` — **ThePunisher-IncrementalPathPlanner**: Breaks a big idea into small, independently shippable steps.
+- `brainstorm/thepunisher-reversibilitychecker.md` — **ThePunisher-ReversibilityChecker**: Flags ideas that would be hard to undo once implemented.
+- `brainstorm/thepunisher-toolchainscout.md` — **ThePunisher-ToolchainScout**: Identifies which existing libraries or tools already solve part of the problem.
+- `brainstorm/thepunisher-performanceideator.md` — **ThePunisher-PerformanceIdeator**: Brainstorms specifically for speed and efficiency-focused solutions.
+- `brainstorm/thepunisher-accessibilityideator.md` — **ThePunisher-AccessibilityIdeator**: Brainstorms specifically with accessibility constraints in mind.
+- `brainstorm/thepunisher-securityideator.md` — **ThePunisher-SecurityIdeator**: Brainstorms specifically with an attacker's mindset, early.
+- `brainstorm/thepunisher-offlinefirstthinker.md` — **ThePunisher-OfflineFirstThinker**: Considers how an idea behaves with no or poor network connectivity.
+- `brainstorm/thepunisher-datamodelsketcher.md` — **ThePunisher-DataModelSketcher**: Drafts a first-pass schema or data model for a new idea.
+- `brainstorm/thepunisher-apishapeproposer.md` — **ThePunisher-APIShapeProposer**: Sketches what the public interface of a new component would look like.
+- `brainstorm/thepunisher-migrationpathplanner.md` — **ThePunisher-MigrationPathPlanner**: Plans how to get from the current state to a new idea without a big-bang rewrite.
+- `brainstorm/thepunisher-costbenefitquantifier.md` — **ThePunisher-CostBenefitQuantifier**: Puts rough numbers on an idea's expected benefit versus its cost.
+- `brainstorm/thepunisher-storyteller.md` — **ThePunisher-StoryTeller**: Frames an idea as a concrete before/after scenario for a real user.
+- `brainstorm/thepunisher-contrarianthinker.md` — **ThePunisher-ContrarianThinker**: Argues the opposite of the current favorite idea, on purpose.
+- `brainstorm/thepunisher-hybridsolutioncomposer.md` — **ThePunisher-HybridSolutionComposer**: Combines the best parts of two competing proposals into one.
+- `brainstorm/thepunisher-longtermvisionplanner.md` — **ThePunisher-LongTermVisionPlanner**: Considers where an idea leads a year out, not just the next sprint.
+- `brainstorm/thepunisher-quickwinfinder.md` — **ThePunisher-QuickWinFinder**: Finds the smallest change that delivers real value immediately.
+- `brainstorm/thepunisher-researchpaperscout.md` — **ThePunisher-ResearchPaperScout**: Surfaces relevant recent papers and techniques for a hard problem.
+- `brainstorm/thepunisher-opensourcescout.md` — **ThePunisher-OpenSourceScout**: Finds an existing open-source project that already solves the problem well.
+- `brainstorm/thepunisher-uxfrictionspotter.md` — **ThePunisher-UXFrictionSpotter**: Flags where a proposed idea adds friction to the user's workflow.
+- `brainstorm/thepunisher-extensibilityplanner.md` — **ThePunisher-ExtensibilityPlanner**: Designs an idea so it can grow without a rewrite later.
+- `brainstorm/thepunisher-fallbackdesigner.md` — **ThePunisher-FallbackDesigner**: Plans what happens when the primary approach doesn't pan out.
+- `brainstorm/thepunisher-decisionmatrixbuilder.md` — **ThePunisher-DecisionMatrixBuilder**: Scores competing ideas against weighted criteria for an objective pick.
+- `brainstorm/thepunisher-ideapruner.md` — **ThePunisher-IdeaPruner**: Actively kills weak ideas early instead of letting them linger.
+
+## Team 3 — Smart Task Management (50 agents)
+
+- `task-management/thepunisher-taskmaker.md` — **ThePunisher-TaskMaker**: Creates structured task lists with priorities, dependencies, and owners.
+- `task-management/thepunisher-planner.md` — **ThePunisher-Planner**: Writes phased implementation plans with clear checkpoints (Phase 1->2->3).
+- `task-management/thepunisher-tracker.md` — **ThePunisher-Tracker**: Monitors task completion, flags blockers, reports progress.
+- `task-management/thepunisher-dependencymapper.md` — **ThePunisher-DependencyMapper**: Maps all code and task dependencies before any change.
+- `task-management/thepunisher-milestonedefiner.md` — **ThePunisher-MilestoneDefiner**: Breaks a goal into concrete milestones with clear, checkable completion criteria.
+- `task-management/thepunisher-criticalpathanalyzer.md` — **ThePunisher-CriticalPathAnalyzer**: Identifies which dependency chain actually determines the finish date.
+- `task-management/thepunisher-workbreakdownstructurer.md` — **ThePunisher-WorkBreakdownStructurer**: Decomposes a large goal into a hierarchical, estimable work breakdown.
+- `task-management/thepunisher-sprintplanner.md` — **ThePunisher-SprintPlanner**: Scopes a fixed time-box of work to a realistic, committable set of tasks.
+- `task-management/thepunisher-backloggroomer.md` — **ThePunisher-BacklogGroomer**: Keeps the task backlog current -- stale, duplicate, or obsolete items removed.
+- `task-management/thepunisher-blockerescalator.md` — **ThePunisher-BlockerEscalator**: Surfaces a blocked task to the right owner instead of letting it sit silently.
+- `task-management/thepunisher-capacityplanner.md` — **ThePunisher-CapacityPlanner**: Matches planned work against realistic available time/effort.
+- `task-management/thepunisher-deadlinerealist.md` — **ThePunisher-DeadlineRealist**: Pressure-tests a proposed deadline against actual task dependencies.
+- `task-management/thepunisher-tasksizeestimator.md` — **ThePunisher-TaskSizeEstimator**: Estimates relative task effort (S/M/L) before commitment.
+- `task-management/thepunisher-parallelizationplanner.md` — **ThePunisher-ParallelizationPlanner**: Identifies which tasks can run concurrently versus which must be sequential.
+- `task-management/thepunisher-riskregisterkeeper.md` — **ThePunisher-RiskRegisterKeeper**: Maintains a running list of known project risks and their current status.
+- `task-management/thepunisher-scopechangetracker.md` — **ThePunisher-ScopeChangeTracker**: Logs every scope change against the original plan, with the reason why.
+- `task-management/thepunisher-acceptancecriteriawriter.md` — **ThePunisher-AcceptanceCriteriaWriter**: Writes precise, testable acceptance criteria for each task before work starts.
+- `task-management/thepunisher-donedefinitionenforcer.md` — **ThePunisher-DoneDefinitionEnforcer**: Blocks a task from closing until its actual definition of done is met.
+- `task-management/thepunisher-statusrollupreporter.md` — **ThePunisher-StatusRollupReporter**: Rolls up individual task status into one accurate project-level summary.
+- `task-management/thepunisher-taskpriorityranker.md` — **ThePunisher-TaskPriorityRanker**: Orders the backlog by real impact and urgency, not just recency.
+- `task-management/thepunisher-ownerassigner.md` — **ThePunisher-OwnerAssigner**: Assigns each task a clear, single owner so nothing falls through the cracks.
+- `task-management/thepunisher-taskdeduplicator.md` — **ThePunisher-TaskDeduplicator**: Catches near-duplicate tasks before they're worked on twice.
+- `task-management/thepunisher-retrospectivefacilitator.md` — **ThePunisher-RetrospectiveFacilitator**: Runs a structured after-action review: what worked, what didn't.
+- `task-management/thepunisher-velocitytracker.md` — **ThePunisher-VelocityTracker**: Tracks actual throughput over time to calibrate future estimates.
+- `task-management/thepunisher-tasksequencer.md` — **ThePunisher-TaskSequencer**: Orders tasks respecting their real dependency graph, not guesswork.
+- `task-management/thepunisher-reworkminimizer.md` — **ThePunisher-ReworkMinimizer**: Flags tasks likely to need rework and suggests de-risking them earlier.
+- `task-management/thepunisher-handoffchecklistwriter.md` — **ThePunisher-HandoffChecklistWriter**: Writes the checklist needed for a task to hand off cleanly between owners.
+- `task-management/thepunisher-staletaskdetector.md` — **ThePunisher-StaleTaskDetector**: Flags tasks that have sat untouched past a reasonable threshold.
+- `task-management/thepunisher-crossteamtaskcoordinator.md` — **ThePunisher-CrossTeamTaskCoordinator**: Synchronizes tasks that require more than one team to complete.
+- `task-management/thepunisher-tasktemplatebuilder.md` — **ThePunisher-TaskTemplateBuilder**: Builds reusable task templates for recurring kinds of work.
+- `task-management/thepunisher-recurringtaskautomator.md` — **ThePunisher-RecurringTaskAutomator**: Identifies tasks that should be automated instead of repeated manually.
+- `task-management/thepunisher-taskcontextpreserver.md` — **ThePunisher-TaskContextPreserver**: Keeps enough context attached to a task that it can be picked up cold.
+- `task-management/thepunisher-goaltotaskmapper.md` — **ThePunisher-GoalToTaskMapper**: Traces every active task back to the actual goal it serves.
+- `task-management/thepunisher-taskriskflagger.md` — **ThePunisher-TaskRiskFlagger**: Marks individual tasks that carry outsized risk relative to their size.
+- `task-management/thepunisher-subtasksplitter.md` — **ThePunisher-SubtaskSplitter**: Splits an oversized task into independently completable subtasks.
+- `task-management/thepunisher-taskcompletionverifier.md` — **ThePunisher-TaskCompletionVerifier**: Confirms a task marked done was actually verified, not just claimed.
+- `task-management/thepunisher-timelinevisualizer.md` — **ThePunisher-TimelineVisualizer**: Produces a clear timeline/Gantt-style view of task sequencing.
+- `task-management/thepunisher-taskbacklinkkeeper.md` — **ThePunisher-TaskBacklinkKeeper**: Keeps tasks linked to the code/docs/decisions that justify them.
+- `task-management/thepunisher-priorityconflictresolver.md` — **ThePunisher-PriorityConflictResolver**: Resolves competing 'most important' claims between task owners.
+- `task-management/thepunisher-taskloadbalancer.md` — **ThePunisher-TaskLoadBalancer**: Redistributes tasks when one owner is overloaded relative to others.
+- `task-management/thepunisher-assumptiontracker.md` — **ThePunisher-AssumptionTracker**: Tracks the assumptions each task plan depends on, for later verification.
+- `task-management/thepunisher-dependencycycledetector.md` — **ThePunisher-DependencyCycleDetector**: Catches circular task dependencies before they stall a plan.
+- `task-management/thepunisher-taskagingmonitor.md` — **ThePunisher-TaskAgingMonitor**: Watches how long tasks sit in each state to spot process bottlenecks.
+- `task-management/thepunisher-rollbacktaskplanner.md` — **ThePunisher-RollbackTaskPlanner**: Plans the undo task alongside any risky change task.
+- `task-management/thepunisher-tasknotesarchivist.md` — **ThePunisher-TaskNotesArchivist**: Preserves task-level notes and decisions after a task closes.
+- `task-management/thepunisher-multiprojecttaskcoordinator.md` — **ThePunisher-MultiProjectTaskCoordinator**: Coordinates shared tasks across more than one active project.
+- `task-management/thepunisher-taskestimatecalibrator.md` — **ThePunisher-TaskEstimateCalibrator**: Compares past estimates to actuals to improve future ones.
+- `task-management/thepunisher-workinprogresslimiter.md` — **ThePunisher-WorkInProgressLimiter**: Caps how many tasks are in progress at once to avoid thrash.
+- `task-management/thepunisher-taskclosureauditor.md` — **ThePunisher-TaskClosureAuditor**: Spot-checks closed tasks to confirm they were actually completed correctly.
+- `task-management/thepunisher-nextactionsuggester.md` — **ThePunisher-NextActionSuggester**: Proposes the single next concrete action when a plan stalls.
+
+## Team 4 — Elite Coding Squad (50 agents)
+
+- `coding/thepunisher-pythonexpert.md` — **ThePunisher-PythonExpert**: Python: FastAPI, Django, asyncio, Pydantic.
+- `coding/thepunisher-cppexpert.md` — **ThePunisher-CppExpert**: C/C++ with RAII, memory safety, embedded, kernel-level.
+- `coding/thepunisher-csharpexpert.md` — **ThePunisher-CsharpExpert**: .NET, ASP.NET Core, Unity, Blazor.
+- `coding/thepunisher-rustexpert.md` — **ThePunisher-RustExpert**: Memory-safe systems, async Tokio, WASM.
+- `coding/thepunisher-goexpert.md` — **ThePunisher-GoExpert**: Microservices, gRPC, concurrency patterns.
+- `coding/thepunisher-javaexpert.md` — **ThePunisher-JavaExpert**: Spring Boot, JVM tuning, enterprise patterns.
+- `coding/thepunisher-javascriptexpert.md` — **ThePunisher-JavaScriptExpert**: Node.js, Deno, vanilla JS, V8 internals.
+- `coding/thepunisher-typescriptexpert.md` — **ThePunisher-TypeScriptExpert**: Advanced types, decorators, monorepo.
+- `coding/thepunisher-assemblyexpert.md` — **ThePunisher-AssemblyExpert**: x86/x64/ARM assembly, shellcode, optimization.
+- `coding/thepunisher-solidityexpert.md` — **ThePunisher-SolidityExpert**: Smart contracts, DeFi, EVM internals.
+- `coding/thepunisher-multilingualcoder.md` — **ThePunisher-MultiLingualCoder**: Any other language, polyglot code translation.
+- `coding/thepunisher-cleancoder.md` — **ThePunisher-CleanCoder**: Enforces clean code. No bloat, no over-engineering (ponytail).
+- `coding/thepunisher-kotlinexpert.md` — **ThePunisher-KotlinExpert**: Kotlin: coroutines, Android/Ktor, multiplatform projects.
+- `coding/thepunisher-swiftexpert.md` — **ThePunisher-SwiftExpert**: Swift: iOS/macOS, SwiftUI, Combine, structured concurrency.
+- `coding/thepunisher-rubyexpert.md` — **ThePunisher-RubyExpert**: Ruby: Rails, metaprogramming, Sidekiq background jobs.
+- `coding/thepunisher-phpexpert.md` — **ThePunisher-PHPExpert**: PHP: Laravel, Symfony, modern PHP 8+ typing.
+- `coding/thepunisher-scalaexpert.md` — **ThePunisher-ScalaExpert**: Scala: Akka, functional patterns, Spark pipelines.
+- `coding/thepunisher-haskellexpert.md` — **ThePunisher-HaskellExpert**: Haskell: pure functional programming, type-level design.
+- `coding/thepunisher-elixirexpert.md` — **ThePunisher-ElixirExpert**: Elixir/Erlang: OTP, Phoenix, fault-tolerant distributed systems.
+- `coding/thepunisher-dartexpert.md` — **ThePunisher-DartExpert**: Dart/Flutter: cross-platform mobile and desktop UI.
+- `coding/thepunisher-luaexpert.md` — **ThePunisher-LuaExpert**: Lua: embedded scripting, game engine modding.
+- `coding/thepunisher-zigexpert.md` — **ThePunisher-ZigExpert**: Zig: low-level systems programming, comptime metaprogramming.
+- `coding/thepunisher-objectivecexpert.md` — **ThePunisher-ObjectiveCExpert**: Objective-C: legacy Apple codebases, bridging to Swift.
+- `coding/thepunisher-perlexpert.md` — **ThePunisher-PerlExpert**: Perl: legacy scripts, text processing, one-liners.
+- `coding/thepunisher-rexpert.md` — **ThePunisher-RExpert**: R: statistical computing and data analysis scripts.
+- `coding/thepunisher-juliaexpert.md` — **ThePunisher-JuliaExpert**: Julia: numerical and scientific computing performance.
+- `coding/thepunisher-cobolexpert.md` — **ThePunisher-CobolExpert**: COBOL: legacy mainframe code modernization and migration.
+- `coding/thepunisher-fortranexpert.md` — **ThePunisher-FortranExpert**: Fortran: scientific and HPC legacy codebases.
+- `coding/thepunisher-functionalprogrammingexpert.md` — **ThePunisher-FunctionalProgrammingExpert**: Functional patterns across languages: immutability, composition, monads.
+- `coding/thepunisher-concurrencyexpert.md` — **ThePunisher-ConcurrencyExpert**: Threading and async patterns across languages: locks, channels, actors.
+- `coding/thepunisher-memorysafetyauditor.md` — **ThePunisher-MemorySafetyAuditor**: Finds use-after-free/buffer-overflow-class bugs in unsafe code.
+- `coding/thepunisher-apidesignexpert.md` — **ThePunisher-APIDesignExpert**: Designs clean, versionable public library and API surfaces.
+- `coding/thepunisher-sdkbuilder.md` — **ThePunisher-SDKBuilder**: Builds client SDKs and language bindings for an existing API.
+- `coding/thepunisher-clitoolbuilder.md` — **ThePunisher-CLIToolBuilder**: Designs ergonomic command-line interfaces: flags, help text, exit codes.
+- `coding/thepunisher-regexexpert.md` — **ThePunisher-RegexExpert**: Writes and debugs precise, non-catastrophic regular expressions.
+- `coding/thepunisher-algorithmsexpert.md` — **ThePunisher-AlgorithmsExpert**: Chooses and implements the right algorithm and data structure for the job.
+- `coding/thepunisher-compilerexpert.md` — **ThePunisher-CompilerExpert**: Parsers, ASTs, and compiler/interpreter internals.
+- `coding/thepunisher-buildsystemexpert.md` — **ThePunisher-BuildSystemExpert**: Build tooling: Bazel, Make, CMake, Gradle, monorepo builds.
+- `coding/thepunisher-packagemanagerexpert.md` — **ThePunisher-PackageManagerExpert**: Dependency resolution and publishing across npm/pip/cargo/etc.
+- `coding/thepunisher-codegenexpert.md` — **ThePunisher-CodeGenExpert**: Template-driven or reflection-based code generation.
+- `coding/thepunisher-wasmexpert.md` — **ThePunisher-WASMExpert**: Compiling to and working with WebAssembly across languages.
+- `coding/thepunisher-embeddedsystemsexpert.md` — **ThePunisher-EmbeddedSystemsExpert**: Microcontroller firmware, RTOS, bare-metal constraints.
+- `coding/thepunisher-gpuprogrammingexpert.md` — **ThePunisher-GPUProgrammingExpert**: CUDA/OpenCL/compute shaders for parallel workloads.
+- `coding/thepunisher-databasequeryoptimizer.md` — **ThePunisher-DatabaseQueryOptimizer**: Hand-tunes SQL and query execution plans for performance.
+- `coding/thepunisher-legacycodemodernizer.md` — **ThePunisher-LegacyCodeModernizer**: Safely migrates old codebases to current language/framework versions.
+- `coding/thepunisher-monorepoexpert.md` — **ThePunisher-MonorepoExpert**: Structures and tools large multi-package monorepos.
+- `coding/thepunisher-crossplatformexpert.md` — **ThePunisher-CrossPlatformExpert**: Handles OS/architecture-specific code paths correctly.
+- `coding/thepunisher-binaryserializationexpert.md` — **ThePunisher-BinarySerializationExpert**: Protocol Buffers, FlatBuffers, MessagePack, custom binary formats.
+- `coding/thepunisher-statemanagementexpert.md` — **ThePunisher-StateManagementExpert**: Application state architecture: Redux-style, actor-based, event-sourced.
+- `coding/thepunisher-codemigrationscripter.md` — **ThePunisher-CodeMigrationScripter**: Writes one-off scripts to bulk-migrate code or data safely.
+
+## Team 5 — Reverse Engineering Command (100 agents)
+
+- `reverse-engineering/thepunisher-recommander.md` — **ThePunisher-RECommander**: Lead RE agent. Coordinates all RE sub-agents. Never starts analysis without a plan.
+- `reverse-engineering/thepunisher-binaryanalyst.md` — **ThePunisher-BinaryAnalyst**: Static binary analysis (Ghidra/r2/objdump): functions, strings, imports.
+- `reverse-engineering/thepunisher-dynamicanalyst.md` — **ThePunisher-DynamicAnalyst**: Dynamic analysis (Frida/strace/ltrace): hooks functions, traces execution.
+- `reverse-engineering/thepunisher-unpackerexpert.md` — **ThePunisher-UnpackerExpert**: Uses x64dbg + Scylla + ScyllaHide to defeat packers/protectors, reach the OEP, and rebuild a clean, importable dump.
+- `reverse-engineering/thepunisher-malwareanalyst.md` — **ThePunisher-MalwareAnalyst**: Malware behavior analysis, IOC extraction, YARA rule generation.
+- `reverse-engineering/thepunisher-protocolre.md` — **ThePunisher-ProtocolRE**: Reverse engineers network protocols from captures (Wireshark/Scapy headless).
+- `reverse-engineering/thepunisher-firmwareanalyst.md` — **ThePunisher-FirmwareAnalyst**: Extracts and analyzes firmware (binwalk headless, squashfs unpacking).
+- `reverse-engineering/thepunisher-cryptoanalyst.md` — **ThePunisher-CryptoAnalyst**: Identifies and breaks weak cryptography. ECC analysis (SageMath).
+- `reverse-engineering/thepunisher-exploitdev.md` — **ThePunisher-ExploitDev**: Exploit research (buffer overflows, ROP chains, heap spraying) with pwntools.
+- `reverse-engineering/thepunisher-decompilerexpert.md` — **ThePunisher-DecompilerExpert**: Reads and annotates decompiled C from Ghidra/RetDec. Reconstructs source.
+- `reverse-engineering/thepunisher-obfuscationbreaker.md` — **ThePunisher-ObfuscationBreaker**: Breaks packing, obfuscation, anti-debug tricks, VM detection.
+- `reverse-engineering/thepunisher-formatparser.md` — **ThePunisher-FormatParser**: Parses PE/ELF/Mach-O/DEX. Extracts metadata, sections, resources.
+- `reverse-engineering/thepunisher-androidre.md` — **ThePunisher-AndroidRE**: APK analysis (jadx/apktool), smali decompilation, dex analysis.
+- `reverse-engineering/thepunisher-iosre.md` — **ThePunisher-iOSRE**: IPA analysis, MachO parsing, ObjC/Swift class dump.
+- `reverse-engineering/thepunisher-webappre.md` — **ThePunisher-WebAppRE**: JavaScript deobfuscation, WASM analysis, web protocol RE.
+- `reverse-engineering/thepunisher-emulator.md` — **ThePunisher-Emulator**: Console/hardware emulator development (CPU/GPU/memory-map RE, HLE/LLE) and game-server emulation (client-server protocol RE from packet captures) for interoperability, preservation, and homebrew — verifies legal scope (own hardware/ROMs, abandoned/EOL titles, no live-service ToS violation) before writing a line of code. Mandatory full analysis pass before any implementation: binary/hex-level disassembly of the client or firmware (architecture, opcodes, memory map — with BinaryAnalyst/FormatParser), full network capture analysis (every port, IP, packet structure, session/connection lifecycle — with ProtocolRE), the complete handshake/auth sequence byte-by-byte, and identification of every cryptographic primitive in play (AES/RSA/custom XOR/checksums — with CryptoAnalyst). The launcher/patch client is its own separate binary handled by LauncherPatchRE (update-check format, patch manifest, delta-patch mechanism, integrity checks) before any LauncherWeb code is written. This applies per client version, not per game: a different build of the same game (e.g. Rakion v1085 or v1140 vs. the v258 reference below) gets its own full analysis pass — packet layouts, opcodes, crypto keys, and even the handshake sequence commonly change between client versions, so findings never carry over from one version to another without re-verification. Implementation defaults (deviate only when the target's own ecosystem clearly requires otherwise, e.g. matching an existing C/C++ console SDK): C# (.NET 8+) for server/emulator code and SQLite (via EF Core or Dapper) for persistence (accounts, world/save state, session data) — SQLite specifically, even where a real-world reference project uses a heavier DB. For a client-server MMO/game-server target (not a standalone console emulator), split the host into the multi-service shape verified against JohnPitter/openrakion (a real, GPL-3.0, C#/.NET reimplementation of Rakion v258's server, itself reverse-engineered from a discontinued game's binaries+protocol): a Common library (shared packet codecs, IPC crypto, config, logging), a World service (session/login handling, lobby, inventory, gameplay — the bulk of the simulation), a Broker service (server-list/channel coordination and login hand-off between World instances), optionally a Buddy service (friends/social messaging, only if the target has that feature), a LauncherWeb service (ASP.NET: launcher authentication AND the patch/auto-update system in one place, serving the client version manifest and update files over HTTP), and an Admin service (account/item/currency management) — plus a Suite: one operator-facing orchestrator process (.NET Generic Host) that starts/stops/health-checks Broker+World+Buddy+LauncherWeb+Admin together and surfaces their live status in one place, so running the whole stack isn't juggling N terminals by hand. Take ONLY this service shape from openrakion, never its UI: LauncherWeb/Admin get their own real design pass through Team 9, not a copy of any reference project's dated look. Each service is its own deployable project referencing the shared Common/Data libraries, not copy-pasted per service — and each service's actual packet/session logic still comes only from that specific target+version's own RE analysis pass, never assumed from openrakion's specific protocol.
+- `reverse-engineering/thepunisher-gameserveremulator.md` — **ThePunisher-GameServerEmulator**: Focused split-off from Emulator for pure client-server protocol work: packet capture analysis, session/handshake reconstruction, and private-server protocol implementation for a specific client+version (see Emulator's own per-version re-verification rule — findings never carry over between client builds). Coordinates with ProtocolRE for the capture analysis and CryptoAnalyst for any in-protocol crypto; Emulator itself owns the console/hardware side and the overall service-architecture decisions.
+- `reverse-engineering/thepunisher-launcherpatchre.md` — **ThePunisher-LauncherPatchRE**: Reverse engineers a game or app's separate launcher/patch client — update-check request format, patch manifest format, delta-vs-full-file patch mechanism, and any hash/signature integrity check — confirmed from the actual binary and a real capture, never assumed, before any launcher-equivalent service gets written against it.
+- `reverse-engineering/thepunisher-anticheatanalyst.md` — **ThePunisher-AntiCheatAnalyst**: Analyzes anti-cheat/DRM/copy-protection systems (kernel-mode drivers, integrity checks, VM/debugger detection) found in a client binary before any private-server or preservation work proceeds — documents what the mechanism actually does via static+dynamic analysis with BinaryAnalyst/DynamicAnalyst/ObfuscationBreaker, same legal-scope check as Emulator (own hardware, no live-service ToS violation, authorized research only) before any bypass technique is even discussed.
+- `reverse-engineering/thepunisher-kerneldriverre.md` — **ThePunisher-KernelDriverRE**: Reverse engineers Windows/Linux kernel-mode drivers and rootkits (WDM/WDF, IOCTL handlers, kernel callbacks) — static analysis of the .sys/.ko binary plus, where legally scoped, dynamic kernel tracing (WinDbg, ftrace) to document what a driver actually does before any userspace component that depends on it gets built or analyzed.
+- `reverse-engineering/thepunisher-bindiffexpert.md` — **ThePunisher-BinDiffExpert**: Binary-diffs two builds of the same target (patch vs. pre-patch, client version N vs. N+1) to surface exactly what changed at the function/opcode level — accelerates the 'per client version' re-verification Emulator's own role already mandates, instead of re-analyzing an entire binary from scratch on every version bump.
+- `reverse-engineering/thepunisher-symbolicexecutionexpert.md` — **ThePunisher-SymbolicExecutionExpert**: Drives symbolic execution (angr-style path exploration, constraint solving) to find reachable code paths, input constraints, and edge cases a manual read-through would miss — for vulnerability discovery, license-check/serial-validation logic, or hidden protocol branches.
+- `reverse-engineering/thepunisher-disassemblyannotator.md` — **ThePunisher-DisassemblyAnnotator**: Systematically labels functions, structs, and enums in a disassembly for readability.
+- `reverse-engineering/thepunisher-typereconstructionexpert.md` — **ThePunisher-TypeReconstructionExpert**: Recovers struct/class layouts and vtables from compiled binaries.
+- `reverse-engineering/thepunisher-callingconventionanalyst.md` — **ThePunisher-CallingConventionAnalyst**: Identifies non-standard or custom calling conventions in compiled code.
+- `reverse-engineering/thepunisher-patchauthor.md` — **ThePunisher-PatchAuthor**: Writes and applies precise binary patches: NOPs, jump redirects, byte patches.
+- `reverse-engineering/thepunisher-signaturescanner.md` — **ThePunisher-SignatureScanner**: Builds byte-pattern signatures (IDA/x64dbg style) for finding functions across versions.
+- `reverse-engineering/thepunisher-stringdeobfuscator.md` — **ThePunisher-StringDeobfuscator**: Recovers encrypted or obfuscated strings embedded in a binary.
+- `reverse-engineering/thepunisher-vmbasedprotectionanalyst.md` — **ThePunisher-VMBasedProtectionAnalyst**: Reverses custom VM-based obfuscators: bytecode interpreters embedded in a binary.
+- `reverse-engineering/thepunisher-hardwaredongleanalyst.md` — **ThePunisher-HardwareDongleAnalyst**: Analyzes hardware dongle and licensing protection schemes (authorized research only).
+- `reverse-engineering/thepunisher-networkpacketcapturer.md` — **ThePunisher-NetworkPacketCapturer**: Captures and organizes raw traffic (tcpdump/Wireshark) for later protocol RE.
+- `reverse-engineering/thepunisher-replayattacktester.md` — **ThePunisher-ReplayAttackTester**: Builds protocol replay harnesses to validate a reversed protocol spec (authorized only).
+- `reverse-engineering/thepunisher-gameassetextractor.md` — **ThePunisher-GameAssetExtractor**: Extracts and catalogs game assets: models, textures, archives from client files.
+- `reverse-engineering/thepunisher-savefileformatanalyst.md` — **ThePunisher-SaveFileFormatAnalyst**: Reverses proprietary save-game and config file formats.
+- `reverse-engineering/thepunisher-scriptingenginere.md` — **ThePunisher-ScriptingEngineRE**: Reverses embedded scripting VMs (Lua/Python/custom) inside an application.
+- `reverse-engineering/thepunisher-antitamperanalyst.md` — **ThePunisher-AntiTamperAnalyst**: Analyzes integrity-check and anti-tamper mechanisms: checksums, self-verification.
+- `reverse-engineering/thepunisher-drmanalyst.md` — **ThePunisher-DRMAnalyst**: Analyzes DRM and licensing schemes for compatibility research (authorized only).
+- `reverse-engineering/thepunisher-patchdifftriager.md` — **ThePunisher-PatchDiffTriager**: Prioritizes which functions actually changed between two binary versions for review.
+- `reverse-engineering/thepunisher-remotedebuggerbridge.md` — **ThePunisher-RemoteDebuggerBridge**: Sets up remote and kernel debugging bridges (WinDbg, JTAG/SWD) for hard-to-reach targets.
+- `reverse-engineering/thepunisher-ropchainbuilder.md` — **ThePunisher-ROPChainBuilder**: Constructs return-oriented-programming chains for exploit research.
+- `reverse-engineering/thepunisher-heapanalyst.md` — **ThePunisher-HeapAnalyst**: Analyzes heap layout and allocator internals for exploitation or bug analysis.
+- `reverse-engineering/thepunisher-ipcprotocolanalyst.md` — **ThePunisher-IPCProtocolAnalyst**: Reverses inter-process communication (named pipes, shared memory, COM) between components.
+- `reverse-engineering/thepunisher-licensekeyanalyst.md` — **ThePunisher-LicenseKeyAnalyst**: Analyzes license key validation algorithms (authorized research only).
+- `reverse-engineering/thepunisher-elfcoredumpanalyst.md` — **ThePunisher-ELFCoreDumpAnalyst**: Analyzes Linux core dumps to reconstruct crash state.
+- `reverse-engineering/thepunisher-windowsinternalsexpert.md` — **ThePunisher-WindowsInternalsExpert**: Deep Windows kernel and user-mode internals: handles, objects, PEB/TEB.
+- `reverse-engineering/thepunisher-retaskdocumenter.md` — **ThePunisher-RETaskDocumenter**: Writes up findings into the research/<target>/ documentation convention this repo uses.
+- `reverse-engineering/thepunisher-containerimagere.md` — **ThePunisher-ContainerImageRE**: Reverses containerized application images: Docker layers, entrypoints.
+- `reverse-engineering/thepunisher-iotfirmwarere.md` — **ThePunisher-IoTFirmwareRE**: Reverses embedded and IoT device firmware images end to end.
+- `reverse-engineering/thepunisher-gamenetworkopcodemapper.md` — **ThePunisher-GameNetworkOpcodeMapper**: Builds and maintains opcode tables for a reversed game network protocol.
+- `reverse-engineering/thepunisher-legacyprotocolarchivist.md` — **ThePunisher-LegacyProtocolArchivist**: Preserves and cross-references protocol maps across multiple client versions.
+- `reverse-engineering/thepunisher-emulatorcpurecompilerexpert.md` — **ThePunisher-EmulatorCPURecompilerExpert**: Dynarec/JIT recompiler engineering for CPU emulation
+- `reverse-engineering/thepunisher-emulatorgpupipelineexpert.md` — **ThePunisher-EmulatorGPUPipelineExpert**: GPU/graphics pipeline emulation: texture cache, shader translation
+- `reverse-engineering/thepunisher-emulatorhleexpert.md` — **ThePunisher-EmulatorHLEExpert**: High-level emulation: BIOS/OS-call implementation
+- `reverse-engineering/thepunisher-emulatorlleexpert.md` — **ThePunisher-EmulatorLLEExpert**: Low-level/hardware-accurate boot ROM emulation
+- `reverse-engineering/thepunisher-emulatoraudiodspexpert.md` — **ThePunisher-EmulatorAudioDSPExpert**: Audio DSP emulation
+- `reverse-engineering/thepunisher-emulatorsavestateexpert.md` — **ThePunisher-EmulatorSaveStateExpert**: Save-state serialization engineering
+- `reverse-engineering/thepunisher-emulatorinputmappingexpert.md` — **ThePunisher-EmulatorInputMappingExpert**: Controller/input emulation, rumble/force-feedback
+- `reverse-engineering/thepunisher-emulatornetplayexpert.md` — **ThePunisher-EmulatorNetplayExpert**: Netplay/rollback-netcode implementation for emulators
+- `reverse-engineering/thepunisher-emulatortimingsyncexpert.md` — **ThePunisher-EmulatorTimingSyncExpert**: Cycle-accurate timing synchronization
+- `reverse-engineering/thepunisher-emulatorcorearchitectureexpert.md` — **ThePunisher-EmulatorCoreArchitectureExpert**: Libretro-style plugin/core architecture engineering
+- `reverse-engineering/thepunisher-emulatorshadermoddingexpert.md` — **ThePunisher-EmulatorShaderModdingExpert**: Shader/texture-pack modding support engineering
+- `reverse-engineering/thepunisher-emulatorjitcacheoptimizationexpert.md` — **ThePunisher-EmulatorJITCacheOptimizationExpert**: Emulator performance optimization/JIT caching
+- `reverse-engineering/thepunisher-discimageformatexpert.md` — **ThePunisher-DiscImageFormatExpert**: ISO/BIN-CUE/CHD encrypted disc-format RE
+- `reverse-engineering/thepunisher-emulatormemorycardexpert.md` — **ThePunisher-EmulatorMemoryCardExpert**: Memory-card/save-file emulation
+- `reverse-engineering/thepunisher-emulatorfrontendexpert.md` — **ThePunisher-EmulatorFrontendExpert**: Emulator frontend/UI development
+- `reverse-engineering/thepunisher-cheatcodeengineexpert.md` — **ThePunisher-CheatCodeEngineExpert**: Action Replay/GameShark cheat code-format RE
+- `reverse-engineering/thepunisher-regionlockbypassresearchexpert.md` — **ThePunisher-RegionLockBypassResearchExpert**: Region-lock/BIOS-check bypass research (authorized preservation only)
+- `reverse-engineering/thepunisher-legacyperipheralemulationexpert.md` — **ThePunisher-LegacyPeripheralEmulationExpert**: Light guns, special controllers, memory-card peripheral emulation
+- `reverse-engineering/thepunisher-romheaderformatexpert.md` — **ThePunisher-ROMHeaderFormatExpert**: ROM header/format parsing: iNES, N64, and similar
+- `reverse-engineering/thepunisher-emulatoraccuracytestingexpert.md` — **ThePunisher-EmulatorAccuracyTestingExpert**: Test-ROM validation/regression-suite engineering
+- `reverse-engineering/thepunisher-firmwarebootloaderreexpert.md` — **ThePunisher-FirmwareBootloaderREExpert**: secure-boot/bootloader reverse engineering and bypass research (authorized only).
+- `reverse-engineering/thepunisher-sidechannelanalysisexpert.md` — **ThePunisher-SideChannelAnalysisExpert**: power/timing/EM side-channel analysis.
+- `reverse-engineering/thepunisher-faultinjectionexpert.md` — **ThePunisher-FaultInjectionExpert**: voltage/clock glitching fault-injection research (authorized only).
+- `reverse-engineering/thepunisher-jtagswddebugexpert.md` — **ThePunisher-JTAGSWDDebugExpert**: JTAG/SWD hardware debug-interface access and analysis.
+- `reverse-engineering/thepunisher-chipdecappinganalysisexpert.md` — **ThePunisher-ChipDecappingAnalysisExpert**: physical chip decapping/die-analysis research methodology.
+- `reverse-engineering/thepunisher-bluetoothleprotocolreexpert.md` — **ThePunisher-BluetoothLEProtocolREExpert**: Bluetooth Low Energy protocol reverse engineering.
+- `reverse-engineering/thepunisher-canbusprotocolreexpert.md` — **ThePunisher-CANBusProtocolREExpert**: automotive CAN bus protocol reverse engineering.
+- `reverse-engineering/thepunisher-usbprotocolanalystexpert.md` — **ThePunisher-USBProtocolAnalystExpert**: USB protocol capture/analysis (descriptor parsing, HID/mass-storage RE).
+- `reverse-engineering/thepunisher-codesigningbypassresearchexpert.md` — **ThePunisher-CodeSigningBypassResearchExpert**: code-signing/certificate-validation bypass research (authorized only).
+- `reverse-engineering/thepunisher-yararuleengineeringexpert.md` — **ThePunisher-YaraRuleEngineeringExpert**: dedicated YARA/Sigma detection-rule authoring for RE findings.
+- `reverse-engineering/thepunisher-binaryinstrumentationframeworkexpert.md` — **ThePunisher-BinaryInstrumentationFrameworkExpert**: DynamoRIO/Pin-style binary instrumentation framework engineering.
+- `reverse-engineering/thepunisher-concolicexecutionexpert.md` — **ThePunisher-ConcolicExecutionExpert**: concolic (hybrid symbolic+concrete) execution and hybrid fuzzing.
+- `reverse-engineering/thepunisher-firmwareemulationexpert.md` — **ThePunisher-FirmwareEmulationExpert**: QEMU-based full-system firmware emulation for headless analysis.
+- `reverse-engineering/thepunisher-retraininglabexpert.md` — **ThePunisher-RETrainingLabExpert**: reverse-engineering CTF/wargame challenge design for skill-building.
+- `reverse-engineering/thepunisher-ghidrascriptingexpert.md` — **ThePunisher-GhidraScriptingExpert**: dedicated Ghidra Python/Java scripting automation for repeatable analysis.
+- `reverse-engineering/thepunisher-dotnetbytecodeanalysisexpert.md` — **ThePunisher-DotNetBytecodeAnalysisExpert**: .NET CIL/MSIL bytecode analysis and decompilation.
+- `reverse-engineering/thepunisher-javabytecodeanalysisexpert.md` — **ThePunisher-JavaBytecodeAnalysisExpert**: JVM bytecode analysis (distinct from AndroidRE's Dalvik-specific focus).
+- `reverse-engineering/thepunisher-webassemblyreexpert.md` — **ThePunisher-WebAssemblyREExpert**: WebAssembly (WASM) binary reverse engineering.
+- `reverse-engineering/thepunisher-smartcontractbytecodereexpert.md` — **ThePunisher-SmartContractBytecodeREExpert**: EVM bytecode-level smart-contract reverse engineering (distinct from Team 18's source-level development focus).
+- `reverse-engineering/thepunisher-rustbinaryreexpert.md` — **ThePunisher-RustBinaryREExpert**: Rust-compiled binary reverse engineering (no-symbol/monomorphization challenges).
+- `reverse-engineering/thepunisher-golangbinaryreexpert.md` — **ThePunisher-GolangBinaryREExpert**: Go-compiled binary reverse engineering (goroutine/runtime-structure analysis).
+- `reverse-engineering/thepunisher-antisandboxdetectionanalysisexpert.md` — **ThePunisher-AntiSandboxDetectionAnalysisExpert**: malware sandbox/VM-detection-evasion technique analysis.
+- `reverse-engineering/thepunisher-ransomwaredecryptionresearchexpert.md` — **ThePunisher-RansomwareDecryptionResearchExpert**: authorized ransomware key-recovery research for incident response.
+- `reverse-engineering/thepunisher-machobinaryanalysisexpert.md` — **ThePunisher-MachOBinaryAnalysisExpert**: macOS Mach-O binary format deep analysis.
+- `reverse-engineering/thepunisher-importtablereconstructionexpert.md` — **ThePunisher-ImportTableReconstructionExpert**: IAT/import-table reconstruction after unpacking.
+- `reverse-engineering/thepunisher-antiantidebugbypassexpert.md` — **ThePunisher-AntiAntiDebugBypassExpert**: dedicated anti-anti-debug bypass technique engineering.
+- `reverse-engineering/thepunisher-kernelexploitdevelopmentexpert.md` — **ThePunisher-KernelExploitDevelopmentExpert**: authorized kernel-vulnerability exploit development.
+- `reverse-engineering/thepunisher-trustzonesecureenclaveanalysisexpert.md` — **ThePunisher-TrustZoneSecureEnclaveAnalysisExpert**: ARM TrustZone/Secure Enclave reverse engineering.
+- `reverse-engineering/thepunisher-statictaintanalysisexpert.md` — **ThePunisher-StaticTaintAnalysisExpert**: dedicated static taint-tracking tooling engineering.
+- `reverse-engineering/thepunisher-binaryrewritingrecompilationexpert.md` — **ThePunisher-BinaryRewritingRecompilationExpert**: static binary rewriting/patch-recompilation engineering.
+
+## Team 6 — Debug & Diagnosis (50 agents)
+
+- `debug/thepunisher-debugger.md` — **ThePunisher-Debugger**: Systematic debugging: reproduce -> isolate -> fix.
+- `debug/thepunisher-rootcause.md` — **ThePunisher-RootCause**: Identifies WHY a bug exists, not just what it is.
+- `debug/thepunisher-performanceprofiler.md` — **ThePunisher-PerformanceProfiler**: CPU/memory profiling. Identifies bottlenecks.
+- `debug/thepunisher-errortracer.md` — **ThePunisher-ErrorTracer**: Reads stack traces, logs, error messages. Pinpoints exact failure.
+- `debug/thepunisher-loopdetector.md` — **ThePunisher-LoopDetector**: Hunts infinite loops, deadlocks, and race conditions.
+- `debug/thepunisher-stacktracedecoder.md` — **ThePunisher-StackTraceDecoder**: Decodes minified/symbol-stripped stack traces back to real source locations.
+- `debug/thepunisher-memoryleakhunter.md` — **ThePunisher-MemoryLeakHunter**: Tracks down memory leaks via allocation/retention analysis.
+- `debug/thepunisher-raceconditionhunter.md` — **ThePunisher-RaceConditionHunter**: Isolates race conditions through controlled interleaving and instrumentation.
+- `debug/thepunisher-deadlockanalyst.md` — **ThePunisher-DeadlockAnalyst**: Diagnoses lock-ordering deadlocks from thread/lock state.
+- `debug/thepunisher-flakytestinvestigator.md` — **ThePunisher-FlakyTestInvestigator**: Root-causes intermittently failing tests instead of just re-running them.
+- `debug/thepunisher-logcorrelator.md` — **ThePunisher-LogCorrelator**: Correlates events across multiple log sources to reconstruct a failure timeline.
+- `debug/thepunisher-crashdumpanalyst.md` — **ThePunisher-CrashDumpAnalyst**: Analyzes crash dumps/core files to pinpoint the faulting instruction and state.
+- `debug/thepunisher-networklatencydebugger.md` — **ThePunisher-NetworkLatencyDebugger**: Diagnoses where network latency is actually being lost in a request path.
+- `debug/thepunisher-databasequerydebugger.md` — **ThePunisher-DatabaseQueryDebugger**: Diagnoses slow or incorrect queries via execution plans.
+- `debug/thepunisher-cacheinvalidationdebugger.md` — **ThePunisher-CacheInvalidationDebugger**: Diagnoses stale-cache and invalidation-ordering bugs.
+- `debug/thepunisher-statecorruptiontracer.md` — **ThePunisher-StateCorruptionTracer**: Traces how in-memory or persisted state became inconsistent.
+- `debug/thepunisher-binarysearchbisector.md` — **ThePunisher-BinarySearchBisector**: Uses git bisect/binary search to isolate the exact commit that introduced a bug.
+- `debug/thepunisher-environmentdriftdetector.md` — **ThePunisher-EnvironmentDriftDetector**: Finds 'works on my machine' causes: env var, config, or version drift.
+- `debug/thepunisher-intermittentbugreproducer.md` — **ThePunisher-IntermittentBugReproducer**: Builds a reliable reproduction for a rare or intermittent bug.
+- `debug/thepunisher-timingbuganalyst.md` — **ThePunisher-TimingBugAnalyst**: Diagnoses bugs caused by timing or ordering assumptions.
+- `debug/thepunisher-resourceexhaustiondebugger.md` — **ThePunisher-ResourceExhaustionDebugger**: Diagnoses OOM, file-descriptor, or connection-pool exhaustion.
+- `debug/thepunisher-apicontractviolationfinder.md` — **ThePunisher-APIContractViolationFinder**: Finds where a caller violates an API's documented contract.
+- `debug/thepunisher-serializationbughunter.md` — **ThePunisher-SerializationBugHunter**: Diagnoses bugs at (de)serialization boundaries.
+- `debug/thepunisher-threaddumpanalyst.md` — **ThePunisher-ThreadDumpAnalyst**: Reads thread dumps to pinpoint contention and hangs.
+- `debug/thepunisher-garbagecollectiontuner.md` — **ThePunisher-GarbageCollectionTuner**: Diagnoses GC-pause-related performance issues.
+- `debug/thepunisher-nullreferencehunter.md` — **ThePunisher-NullReferenceHunter**: Traces null/undefined-reference bugs to their true origin.
+- `debug/thepunisher-offbyonehunter.md` — **ThePunisher-OffByOneHunter**: Specifically hunts boundary and off-by-one errors.
+- `debug/thepunisher-encodingbughunter.md` — **ThePunisher-EncodingBugHunter**: Diagnoses charset/encoding mismatches -- mojibake-class bugs.
+- `debug/thepunisher-timezonebughunter.md` — **ThePunisher-TimezoneBugHunter**: Diagnoses date, time, and timezone handling bugs.
+- `debug/thepunisher-concurrencybugreproducer.md` — **ThePunisher-ConcurrencyBugReproducer**: Forces interleavings to reliably reproduce a concurrency bug.
+- `debug/thepunisher-regressionbisector.md` — **ThePunisher-RegressionBisector**: Pinpoints exactly which change caused a regression.
+- `debug/thepunisher-silentfailuredetector.md` — **ThePunisher-SilentFailureDetector**: Finds errors that were swallowed instead of surfaced.
+- `debug/thepunisher-exceptionchainanalyst.md` — **ThePunisher-ExceptionChainAnalyst**: Traces a wrapped or rethrown exception back to its root cause.
+- `debug/thepunisher-dependencyversionconflictdebugger.md` — **ThePunisher-DependencyVersionConflictDebugger**: Diagnoses bugs caused by conflicting transitive dependency versions.
+- `debug/thepunisher-buildfailurediagnoser.md` — **ThePunisher-BuildFailureDiagnoser**: Diagnoses why a build fails in one environment but not another.
+- `debug/thepunisher-cispecificfailuredebugger.md` — **ThePunisher-CISpecificFailureDebugger**: Diagnoses failures that only reproduce in CI, not locally.
+- `debug/thepunisher-uirenderingbughunter.md` — **ThePunisher-UIRenderingBugHunter**: Diagnoses visual and layout bugs across browsers and devices.
+- `debug/thepunisher-apilatencyspikeinvestigator.md` — **ThePunisher-APILatencySpikeInvestigator**: Finds the cause of sporadic API latency spikes.
+- `debug/thepunisher-datacorruptioninvestigator.md` — **ThePunisher-DataCorruptionInvestigator**: Traces how and where persisted data got corrupted.
+- `debug/thepunisher-authfailuredebugger.md` — **ThePunisher-AuthFailureDebugger**: Diagnoses authentication and authorization failures.
+- `debug/thepunisher-configdriftdebugger.md` — **ThePunisher-ConfigDriftDebugger**: Diagnoses bugs caused by mismatched config between environments.
+- `debug/thepunisher-thirdpartyapidebugger.md` — **ThePunisher-ThirdPartyAPIDebugger**: Diagnoses bugs originating in an external API or service's behavior.
+- `debug/thepunisher-mobilecrashdebugger.md` — **ThePunisher-MobileCrashDebugger**: Diagnoses mobile-app-specific crashes, native and cross-platform.
+- `debug/thepunisher-websocketdebugger.md` — **ThePunisher-WebSocketDebugger**: Diagnoses real-time connection drop and reconnect bugs.
+- `debug/thepunisher-queuebacklogdebugger.md` — **ThePunisher-QueueBacklogDebugger**: Diagnoses message queue backlog and poison-message issues.
+- `debug/thepunisher-hotreloadstatebughunter.md` — **ThePunisher-HotReloadStateBugHunter**: Diagnoses bugs specific to hot-reload/dev-server state.
+- `debug/thepunisher-permissiondenieddebugger.md` — **ThePunisher-PermissionDeniedDebugger**: Diagnoses file and OS permission-related failures.
+- `debug/thepunisher-startupsequencedebugger.md` — **ThePunisher-StartupSequenceDebugger**: Diagnoses bugs in application startup and initialization order.
+- `debug/thepunisher-shutdownhangdebugger.md` — **ThePunisher-ShutdownHangDebugger**: Diagnoses processes that hang on graceful shutdown.
+- `debug/thepunisher-reproducibilityscriptwriter.md` — **ThePunisher-ReproducibilityScriptWriter**: Turns a manual repro into an automated, shareable script.
+
+## Team 7 — Testing & Quality Assurance (50 agents)
+
+- `testing-qa/thepunisher-unittester.md` — **ThePunisher-UnitTester**: Writes unit tests (pytest, Jest, JUnit, Go test).
+- `testing-qa/thepunisher-integrationtester.md` — **ThePunisher-IntegrationTester**: Integration tests, API contract tests.
+- `testing-qa/thepunisher-e2etester.md` — **ThePunisher-E2ETester**: End-to-end tests using Playwright.
+- `testing-qa/thepunisher-securitytester.md` — **ThePunisher-SecurityTester**: SAST scanning, dependency audits, secret detection.
+- `testing-qa/thepunisher-fuzztester.md` — **ThePunisher-FuzzTester**: Generates fuzz inputs for robust testing.
+- `testing-qa/thepunisher-qareviewer.md` — **ThePunisher-QAReviewer**: Final QA gate. Nothing ships without QA sign-off.
+- `testing-qa/thepunisher-loadtester.md` — **ThePunisher-LoadTester**: Simulates realistic concurrent load to find capacity limits.
+- `testing-qa/thepunisher-stresstester.md` — **ThePunisher-StressTester**: Pushes a system past normal limits to find its actual breaking point.
+- `testing-qa/thepunisher-chaosengineer.md` — **ThePunisher-ChaosEngineer**: Deliberately injects failures to verify a system degrades gracefully.
+- `testing-qa/thepunisher-contracttestwriter.md` — **ThePunisher-ContractTestWriter**: Writes consumer-driven contract tests between services.
+- `testing-qa/thepunisher-snapshottestwriter.md` — **ThePunisher-SnapshotTestWriter**: Writes and maintains snapshot tests for stable output verification.
+- `testing-qa/thepunisher-mutationtester.md` — **ThePunisher-MutationTester**: Runs mutation testing to verify the test suite actually catches real bugs.
+- `testing-qa/thepunisher-visualregressiontester.md` — **ThePunisher-VisualRegressionTester**: Catches unintended visual/layout changes via screenshot diffing.
+- `testing-qa/thepunisher-accessibilitytester.md` — **ThePunisher-AccessibilityTester**: Runs automated + manual accessibility checks against WCAG criteria.
+- `testing-qa/thepunisher-performancebenchmarker.md` — **ThePunisher-PerformanceBenchmarker**: Builds repeatable benchmarks to track performance over time.
+- `testing-qa/thepunisher-testdatagenerator.md` — **ThePunisher-TestDataGenerator**: Generates realistic, varied test data without using real user data.
+- `testing-qa/thepunisher-testfixturebuilder.md` — **ThePunisher-TestFixtureBuilder**: Builds reusable, isolated test fixtures and setup/teardown logic.
+- `testing-qa/thepunisher-mockingexpert.md` — **ThePunisher-MockingExpert**: Designs precise mocks/stubs that isolate the unit under test correctly.
+- `testing-qa/thepunisher-testcoverageanalyst.md` — **ThePunisher-TestCoverageAnalyst**: Analyzes coverage to find meaningfully untested code paths, not just percentages.
+- `testing-qa/thepunisher-regressionsuitemaintainer.md` — **ThePunisher-RegressionSuiteMaintainer**: Keeps the regression suite current as features change.
+- `testing-qa/thepunisher-smoketester.md` — **ThePunisher-SmokeTester**: Runs a fast, minimal check that core functionality still works.
+- `testing-qa/thepunisher-canarytestdesigner.md` — **ThePunisher-CanaryTestDesigner**: Designs canary tests to catch issues before a full rollout.
+- `testing-qa/thepunisher-apicontracttester.md` — **ThePunisher-APIContractTester**: Verifies an API's actual behavior matches its documented contract.
+- `testing-qa/thepunisher-crossbrowsertester.md` — **ThePunisher-CrossBrowserTester**: Verifies behavior across the real browser matrix, not just one.
+- `testing-qa/thepunisher-mobiledevicetester.md` — **ThePunisher-MobileDeviceTester**: Tests across real device/OS-version combinations.
+- `testing-qa/thepunisher-localizationtester.md` — **ThePunisher-LocalizationTester**: Verifies correct behavior across languages, locales, and text expansion.
+- `testing-qa/thepunisher-usabilitytester.md` — **ThePunisher-UsabilityTester**: Evaluates whether a real user can complete a task without confusion.
+- `testing-qa/thepunisher-soaktester.md` — **ThePunisher-SoakTester**: Runs long-duration stability tests to catch slow leaks and degradation.
+- `testing-qa/thepunisher-testenvironmentprovisioner.md` — **ThePunisher-TestEnvironmentProvisioner**: Spins up clean, reproducible test environments on demand.
+- `testing-qa/thepunisher-testflakinessquantifier.md` — **ThePunisher-TestFlakinessQuantifier**: Measures and tracks flaky-test rates over time.
+- `testing-qa/thepunisher-propertybasedtester.md` — **ThePunisher-PropertyBasedTester**: Writes property-based/generative tests (Hypothesis/QuickCheck-style).
+- `testing-qa/thepunisher-testparallelizationexpert.md` — **ThePunisher-TestParallelizationExpert**: Speeds up test suites via safe parallel execution.
+- `testing-qa/thepunisher-goldenfiletester.md` — **ThePunisher-GoldenFileTester**: Maintains golden-file/approval-style test baselines.
+- `testing-qa/thepunisher-securityregressiontester.md` — **ThePunisher-SecurityRegressionTester**: Re-tests that previously found vulnerabilities stay fixed.
+- `testing-qa/thepunisher-apiversioningtester.md` — **ThePunisher-APIVersioningTester**: Tests backward compatibility across API versions.
+- `testing-qa/thepunisher-databasemigrationtester.md` — **ThePunisher-DatabaseMigrationTester**: Tests that schema migrations apply and roll back cleanly.
+- `testing-qa/thepunisher-testreportanalyst.md` — **ThePunisher-TestReportAnalyst**: Turns raw test output into an actionable pass/fail summary.
+- `testing-qa/thepunisher-testsuitearchitect.md` — **ThePunisher-TestSuiteArchitect**: Designs the overall test pyramid and strategy for a project.
+- `testing-qa/thepunisher-edgecasetestwriter.md` — **ThePunisher-EdgeCaseTestWriter**: Specifically writes tests for boundary and edge-case inputs.
+- `testing-qa/thepunisher-idempotencytester.md` — **ThePunisher-IdempotencyTester**: Verifies operations are safely repeatable without side effects.
+- `testing-qa/thepunisher-ratelimittester.md` — **ThePunisher-RateLimitTester**: Verifies rate-limiting and throttling behave correctly.
+- `testing-qa/thepunisher-failovertester.md` — **ThePunisher-FailoverTester**: Tests behavior when a dependency goes down mid-operation.
+- `testing-qa/thepunisher-dataintegritytester.md` — **ThePunisher-DataIntegrityTester**: Verifies data stays consistent across writes, reads, and migrations.
+- `testing-qa/thepunisher-testdoubledesigner.md` — **ThePunisher-TestDoubleDesigner**: Designs stubs, fakes, and spies that behave realistically.
+- `testing-qa/thepunisher-exploratorytester.md` — **ThePunisher-ExploratoryTester**: Manually probes an app for unexpected behavior outside scripted tests.
+- `testing-qa/thepunisher-testautomationengineer.md` — **ThePunisher-TestAutomationEngineer**: Builds and maintains the test automation framework itself.
+- `testing-qa/thepunisher-regressionriskassessor.md` — **ThePunisher-RegressionRiskAssessor**: Decides which tests are critical to re-run for a given change.
+- `testing-qa/thepunisher-testflakinesstriager.md` — **ThePunisher-TestFlakinessTriager**: Distinguishes a genuinely broken test from a genuinely broken app.
+- `testing-qa/thepunisher-productionsmoketestdesigner.md` — **ThePunisher-ProductionSmokeTestDesigner**: Designs safe, minimal tests to run against production.
+- `testing-qa/thepunisher-testdataprivacyauditor.md` — **ThePunisher-TestDataPrivacyAuditor**: Ensures test data never contains real user PII.
+
+## Team 8 — Learning & Error Prevention (50 agents)
+
+- `learning/thepunisher-lessonslearned.md` — **ThePunisher-LessonsLearned**: After every failure, writes a lesson to CLAUDE.local.md.
+- `learning/thepunisher-patternrecognizer.md` — **ThePunisher-PatternRecognizer**: Identifies patterns in repeated failures. Suggests systemic fixes.
+- `learning/thepunisher-knowledgebase.md` — **ThePunisher-KnowledgeBase**: Maintains a session knowledge base of what works and what doesn't.
+- `learning/thepunisher-antiloopguard.md` — **ThePunisher-AntiLoopGuard**: Real-time monitor. Blocks repeated failed approaches (scripts/anti-loop.sh).
+- `learning/thepunisher-failurecategorizer.md` — **ThePunisher-FailureCategorizer**: Sorts failures into consistent categories so patterns become visible.
+- `learning/thepunisher-rootcausearchivist.md` — **ThePunisher-RootCauseArchivist**: Keeps a searchable archive of confirmed root causes for past bugs.
+- `learning/thepunisher-mistakereplaypreventer.md` — **ThePunisher-MistakeReplayPreventer**: Checks a new plan against past mistakes before it's attempted again.
+- `learning/thepunisher-knowledgegraphcurator.md` — **ThePunisher-KnowledgeGraphCurator**: Curates the graphify knowledge graph so it stays accurate and useful.
+- `learning/thepunisher-sessionretrospector.md` — **ThePunisher-SessionRetrospector**: Reviews a finished session for what should be remembered going forward.
+- `learning/thepunisher-errortaxonomybuilder.md` — **ThePunisher-ErrorTaxonomyBuilder**: Builds and maintains a consistent taxonomy of error types.
+- `learning/thepunisher-fixeffectivenesstracker.md` — **ThePunisher-FixEffectivenessTracker**: Tracks whether past fixes actually held, or the bug came back.
+- `learning/thepunisher-antipatterncatalogwriter.md` — **ThePunisher-AntiPatternCatalogWriter**: Documents recurring anti-patterns worth avoiding in this codebase.
+- `learning/thepunisher-postmortemwriter.md` — **ThePunisher-PostmortemWriter**: Writes clear, blameless postmortems after significant failures.
+- `learning/thepunisher-recurringissuedetector.md` — **ThePunisher-RecurringIssueDetector**: Detects when the same class of issue keeps resurfacing.
+- `learning/thepunisher-learningnotewriter.md` — **ThePunisher-LearningNoteWriter**: Writes durable lessons to CLAUDE.local.md-style notes for future sessions.
+- `learning/thepunisher-confidencecalibrator.md` — **ThePunisher-ConfidenceCalibrator**: Tracks how often past confident claims turned out right, to calibrate future confidence.
+- `learning/thepunisher-heuristicrefiner.md` — **ThePunisher-HeuristicRefiner**: Updates internal rules of thumb based on what's actually worked before.
+- `learning/thepunisher-feedbackloopbuilder.md` — **ThePunisher-FeedbackLoopBuilder**: Designs mechanisms that turn outcomes back into future improvements.
+- `learning/thepunisher-tribalknowledgeextractor.md` — **ThePunisher-TribalKnowledgeExtractor**: Surfaces undocumented know-how before it's lost.
+- `learning/thepunisher-onboardingdocwriter.md` — **ThePunisher-OnboardingDocWriter**: Writes docs that help a new session get up to speed fast.
+- `learning/thepunisher-decisionoutcometracker.md` — **ThePunisher-DecisionOutcomeTracker**: Tracks whether past decisions actually paid off.
+- `learning/thepunisher-skillgapidentifier.md` — **ThePunisher-SkillGapIdentifier**: Identifies where the current agent roster lacks a needed specialty.
+- `learning/thepunisher-experimentlogger.md` — **ThePunisher-ExperimentLogger**: Records what was tried, what was measured, and what was concluded.
+- `learning/thepunisher-failureseverityranker.md` — **ThePunisher-FailureSeverityRanker**: Ranks past failures by real impact, not just frequency.
+- `learning/thepunisher-rootcausetagger.md` — **ThePunisher-RootCauseTagger**: Tags each fixed bug with its true category of root cause.
+- `learning/thepunisher-knownissuetracker.md` — **ThePunisher-KnownIssueTracker**: Maintains a live list of known, not-yet-fixed issues.
+- `learning/thepunisher-workaroundarchivist.md` — **ThePunisher-WorkaroundArchivist**: Documents workarounds and when they should be replaced with a real fix.
+- `learning/thepunisher-regressionhistorykeeper.md` — **ThePunisher-RegressionHistoryKeeper**: Tracks which areas of the codebase regress most often.
+- `learning/thepunisher-toolfailurelogger.md` — **ThePunisher-ToolFailureLogger**: Tracks which tools or commands reliably fail in this environment, and why.
+- `learning/thepunisher-assumptionfailuretracker.md` — **ThePunisher-AssumptionFailureTracker**: Tracks which past assumptions turned out to be wrong.
+- `learning/thepunisher-crosssessionmemorylinker.md` — **ThePunisher-CrossSessionMemoryLinker**: Connects related lessons learned across separate sessions.
+- `learning/thepunisher-improvementbacklogcurator.md` — **ThePunisher-ImprovementBacklogCurator**: Maintains a prioritized list of process improvements to make.
+- `learning/thepunisher-debtfromshortcutstracker.md` — **ThePunisher-DebtFromShortcutsTracker**: Tracks technical debt explicitly incurred by past shortcuts.
+- `learning/thepunisher-verificationgapfinder.md` — **ThePunisher-VerificationGapFinder**: Finds places where past work was claimed done without real verification.
+- `learning/thepunisher-escalationhistoryanalyst.md` — **ThePunisher-EscalationHistoryAnalyst**: Reviews why past escalations to Council happened, to prevent repeats.
+- `learning/thepunisher-changeimpacthistorian.md` — **ThePunisher-ChangeImpactHistorian**: Tracks the real-world impact of past changes after they shipped.
+- `learning/thepunisher-userfeedbackintegrator.md` — **ThePunisher-UserFeedbackIntegrator**: Folds direct user corrections into durable rules, not just this session.
+- `learning/thepunisher-falsepositivetracker.md` — **ThePunisher-FalsePositiveTracker**: Tracks cases where a flagged problem turned out not to be one.
+- `learning/thepunisher-successpatternextractor.md` — **ThePunisher-SuccessPatternExtractor**: Identifies what past successful approaches had in common.
+- `learning/thepunisher-staleknowledgedetector.md` — **ThePunisher-StaleKnowledgeDetector**: Flags documented knowledge that's since gone out of date.
+- `learning/thepunisher-learningprioritizer.md` — **ThePunisher-LearningPrioritizer**: Decides which lessons are worth formally recording versus noise.
+- `learning/thepunisher-crossprojectlessonsharer.md` — **ThePunisher-CrossProjectLessonSharer**: Surfaces a lesson learned in one project that applies to another.
+- `learning/thepunisher-riskpatternlibrarian.md` — **ThePunisher-RiskPatternLibrarian**: Maintains a library of risk patterns seen before, for early detection.
+- `learning/thepunisher-processdriftdetector.md` — **ThePunisher-ProcessDriftDetector**: Notices when actual practice has drifted from documented process.
+- `learning/thepunisher-failurerecoverytimetracker.md` — **ThePunisher-FailureRecoveryTimeTracker**: Tracks how long it actually took to recover from past failures.
+- `learning/thepunisher-toolmisusedetector.md` — **ThePunisher-ToolMisuseDetector**: Flags patterns of a tool being used in a way that reliably causes problems.
+- `learning/thepunisher-confirmationbiaschecker.md` — **ThePunisher-ConfirmationBiasChecker**: Actively looks for evidence against the current favored explanation.
+- `learning/thepunisher-lessonapplicabilitychecker.md` — **ThePunisher-LessonApplicabilityChecker**: Confirms a past lesson still applies before reusing it blindly.
+- `learning/thepunisher-continuousimprovementplanner.md` — **ThePunisher-ContinuousImprovementPlanner**: Turns accumulated lessons into a concrete next-improvement plan.
+- `learning/thepunisher-metalearninganalyst.md` — **ThePunisher-MetaLearningAnalyst**: Studies how well the learning process itself is working.
+
+## Team 9 — Web Design & Frontend (50 agents)
+
+- `web-frontend/thepunisher-webdesigner.md` — **ThePunisher-WebDesigner**: UI/UX design: dark mode, glassmorphism, micro-animations.
+- `web-frontend/thepunisher-frontenddev.md` — **ThePunisher-FrontendDev**: React, Next.js, Vue, Svelte. Clean component architecture.
+- `web-frontend/thepunisher-cssmaster.md` — **ThePunisher-CSSMaster**: Vanilla CSS, animations, responsive design, custom properties.
+- `web-frontend/thepunisher-accessibilityexpert.md` — **ThePunisher-AccessibilityExpert**: WCAG 2.1 AA compliance, screen reader testing.
+- `web-frontend/thepunisher-performanceoptimizer.md` — **ThePunisher-PerformanceOptimizer**: Core Web Vitals, bundle analysis, lazy loading.
+- `web-frontend/thepunisher-webcloner.md` — **ThePunisher-WebCloner**: Clones any website design using ai-website-cloner-template patterns.
+- `web-frontend/thepunisher-graphicsdesigner.md` — **ThePunisher-GraphicsDesigner**: Visual design, color systems, typography.
+- `web-frontend/thepunisher-reactexpert.md` — **ThePunisher-ReactExpert**: Deep React: hooks, server components, suspense, rendering internals.
+- `web-frontend/thepunisher-vueexpert.md` — **ThePunisher-VueExpert**: Vue 3: composition API, reactivity internals, Pinia.
+- `web-frontend/thepunisher-svelteexpert.md` — **ThePunisher-SvelteExpert**: Svelte/SvelteKit: compiler-driven reactivity, stores.
+- `web-frontend/thepunisher-angularexpert.md` — **ThePunisher-AngularExpert**: Angular: signals, dependency injection, RxJS patterns.
+- `web-frontend/thepunisher-nextjsexpert.md` — **ThePunisher-NextJsExpert**: Next.js: routing, server actions, edge/serverless rendering.
+- `web-frontend/thepunisher-tailwindexpert.md` — **ThePunisher-TailwindExpert**: Tailwind CSS: utility-first architecture, design tokens, config.
+- `web-frontend/thepunisher-animationexpert.md` — **ThePunisher-AnimationExpert**: Framer Motion/GSAP/CSS animation choreography.
+- `web-frontend/thepunisher-responsivedesignexpert.md` — **ThePunisher-ResponsiveDesignExpert**: Fluid layouts and breakpoints that work across every real device size.
+- `web-frontend/thepunisher-designsystembuilder.md` — **ThePunisher-DesignSystemBuilder**: Builds and maintains a coherent, reusable design system.
+- `web-frontend/thepunisher-componentlibraryarchitect.md` — **ThePunisher-ComponentLibraryArchitect**: Architects a component library for reuse across products.
+- `web-frontend/thepunisher-formuxexpert.md` — **ThePunisher-FormUXExpert**: Designs forms that are fast, clear, and forgiving of user error.
+- `web-frontend/thepunisher-darkmodeimplementer.md` — **ThePunisher-DarkModeImplementer**: Implements correct, theme-aware dark mode across a whole app.
+- `web-frontend/thepunisher-microinteractiondesigner.md` — **ThePunisher-MicroInteractionDesigner**: Designs small, purposeful interaction feedback (hover, focus, transitions).
+- `web-frontend/thepunisher-typographyexpert.md` — **ThePunisher-TypographyExpert**: Type scale, line-height, and readability across a real interface.
+- `web-frontend/thepunisher-colortheoryexpert.md` — **ThePunisher-ColorTheoryExpert**: Accessible, coherent color systems grounded in real color theory.
+- `web-frontend/thepunisher-iconographydesigner.md` — **ThePunisher-IconographyDesigner**: Designs and curates consistent icon sets.
+- `web-frontend/thepunisher-seooptimizer.md` — **ThePunisher-SEOOptimizer**: Technical SEO: metadata, structured data, crawlability.
+- `web-frontend/thepunisher-webvitalsauditor.md` — **ThePunisher-WebVitalsAuditor**: Audits and improves Core Web Vitals (LCP/INP/CLS).
+- `web-frontend/thepunisher-bundlesizeoptimizer.md` — **ThePunisher-BundleSizeOptimizer**: Reduces JS/CSS bundle size via real, measured analysis.
+- `web-frontend/thepunisher-serviceworkerexpert.md` — **ThePunisher-ServiceWorkerExpert**: Service worker caching strategies and offline support.
+- `web-frontend/thepunisher-pwaexpert.md` — **ThePunisher-PWAExpert**: Progressive Web App manifest, install flow, offline behavior.
+- `web-frontend/thepunisher-webcomponentsexpert.md` — **ThePunisher-WebComponentsExpert**: Framework-agnostic custom elements and shadow DOM.
+- `web-frontend/thepunisher-statemanagementfrontendexpert.md` — **ThePunisher-StateManagementFrontendExpert**: Frontend state management: Redux/Zustand/Pinia and when to use each.
+- `web-frontend/thepunisher-ssrexpert.md` — **ThePunisher-SSRExpert**: Server-side rendering architecture and hydration correctness.
+- `web-frontend/thepunisher-staticsitegeneratorexpert.md` — **ThePunisher-StaticSiteGeneratorExpert**: Astro/Eleventy/Hugo-style static site generation.
+- `web-frontend/thepunisher-canvasgraphicsexpert.md` — **ThePunisher-CanvasGraphicsExpert**: 2D canvas rendering and performance.
+- `web-frontend/thepunisher-svgexpert.md` — **ThePunisher-SVGExpert**: Hand-authored and optimized SVG graphics and animation.
+- `web-frontend/thepunisher-webaudioexpert.md` — **ThePunisher-WebAudioExpert**: Web Audio API: playback, synthesis, visualization.
+- `web-frontend/thepunisher-draganddropexpert.md` — **ThePunisher-DragAndDropExpert**: Accessible, reliable drag-and-drop interactions.
+- `web-frontend/thepunisher-virtualscrollexpert.md` — **ThePunisher-VirtualScrollExpert**: Virtualized lists/grids for large datasets without jank.
+- `web-frontend/thepunisher-formvalidationexpert.md` — **ThePunisher-FormValidationExpert**: Client + server-consistent form validation logic.
+- `web-frontend/thepunisher-i18nexpert.md` — **ThePunisher-i18nExpert**: Internationalization architecture: message catalogs, pluralization, RTL.
+- `web-frontend/thepunisher-browsercompatibilityexpert.md` — **ThePunisher-BrowserCompatibilityExpert**: Cross-browser quirks and graceful degradation strategy.
+- `web-frontend/thepunisher-websecurityfrontendexpert.md` — **ThePunisher-WebSecurityFrontendExpert**: XSS/CSRF/CSP hardening specifically on the frontend.
+- `web-frontend/thepunisher-designhandoffexpert.md` — **ThePunisher-DesignHandoffExpert**: Translates Figma/design files into accurate, buildable specs.
+- `web-frontend/thepunisher-prototypingexpert.md` — **ThePunisher-PrototypingExpert**: Builds interactive prototypes to validate a design before full build.
+- `web-frontend/thepunisher-userresearchanalyst.md` — **ThePunisher-UserResearchAnalyst**: Synthesizes user research into concrete design decisions.
+- `web-frontend/thepunisher-wireframedesigner.md` — **ThePunisher-WireframeDesigner**: Produces low-fidelity wireframes to nail down layout/flow first.
+- `web-frontend/thepunisher-brandidentitydesigner.md` — **ThePunisher-BrandIdentityDesigner**: Develops cohesive visual brand identity: logo, palette, voice.
+- `web-frontend/thepunisher-emailtemplatedesigner.md` — **ThePunisher-EmailTemplateDesigner**: Builds email templates that render correctly across mail clients.
+- `web-frontend/thepunisher-landingpageoptimizer.md` — **ThePunisher-LandingPageOptimizer**: Optimizes landing page structure and copy for clarity and conversion.
+- `web-frontend/thepunisher-conversionrateoptimizer.md` — **ThePunisher-ConversionRateOptimizer**: Runs structured experiments to improve real conversion outcomes.
+- `web-frontend/thepunisher-webperformancebudgetkeeper.md` — **ThePunisher-WebPerformanceBudgetKeeper**: Enforces a performance budget so the app doesn't quietly bloat.
+
+## Team 10 — Backend & API Engineering (50 agents)
+
+- `backend-api/thepunisher-backendarchitect.md` — **ThePunisher-BackendArchitect**: Designs backend systems, chooses the right frameworks.
+- `backend-api/thepunisher-apiexpert.md` — **ThePunisher-APIExpert**: REST, GraphQL, gRPC API design and implementation.
+- `backend-api/thepunisher-databaseexpert.md` — **ThePunisher-DatabaseExpert**: PostgreSQL, MySQL, MongoDB, Redis, Elasticsearch optimization.
+- `backend-api/thepunisher-microservicesexpert.md` — **ThePunisher-MicroservicesExpert**: Service mesh, Docker, Kubernetes, message queues.
+- `backend-api/thepunisher-authexpert.md` — **ThePunisher-AuthExpert**: OAuth2, JWT, OIDC, zero-trust authentication systems.
+- `backend-api/thepunisher-dataengineer.md` — **ThePunisher-DataEngineer**: ETL pipelines, data warehousing, streaming (Kafka).
+- `backend-api/thepunisher-graphqlexpert.md` — **ThePunisher-GraphQLExpert**: GraphQL schema design, resolvers, N+1 query prevention.
+- `backend-api/thepunisher-grpcexpert.md` — **ThePunisher-gRPCExpert**: gRPC service design, protobuf contracts, streaming RPCs.
+- `backend-api/thepunisher-webhooksexpert.md` — **ThePunisher-WebhooksExpert**: Designs reliable, verifiable inbound and outbound webhooks.
+- `backend-api/thepunisher-ratelimitingexpert.md` — **ThePunisher-RateLimitingExpert**: Designs rate-limiting and quota systems that stay fair under load.
+- `backend-api/thepunisher-cachingstrategyexpert.md` — **ThePunisher-CachingStrategyExpert**: Designs cache layers and invalidation strategy for correctness under load.
+- `backend-api/thepunisher-messagequeueexpert.md` — **ThePunisher-MessageQueueExpert**: Kafka/RabbitMQ/SQS: delivery guarantees, ordering, dead-letter handling.
+- `backend-api/thepunisher-eventdrivenarchitect.md` — **ThePunisher-EventDrivenArchitect**: Designs event-driven systems with clear ownership boundaries.
+- `backend-api/thepunisher-cqrsexpert.md` — **ThePunisher-CQRSExpert**: Command/query responsibility segregation architecture.
+- `backend-api/thepunisher-eventsourcingexpert.md` — **ThePunisher-EventSourcingExpert**: Event-sourced persistence: append-only logs, projections, replay.
+- `backend-api/thepunisher-sagapatternexpert.md` — **ThePunisher-SagaPatternExpert**: Distributed transaction coordination via the saga pattern.
+- `backend-api/thepunisher-idempotencyexpert.md` — **ThePunisher-IdempotencyExpert**: Designs idempotent APIs safe against retries and duplicate delivery.
+- `backend-api/thepunisher-apigatewayexpert.md` — **ThePunisher-APIGatewayExpert**: API gateway design: routing, auth, rate limiting at the edge.
+- `backend-api/thepunisher-servicemeshexpert.md` — **ThePunisher-ServiceMeshExpert**: Service mesh configuration: Istio/Linkerd traffic and policy.
+- `backend-api/thepunisher-loadbalancingexpert.md` — **ThePunisher-LoadBalancingExpert**: Load balancer algorithms and health-check design.
+- `backend-api/thepunisher-databaseshardingexpert.md` — **ThePunisher-DatabaseShardingExpert**: Horizontal sharding strategy and cross-shard query tradeoffs.
+- `backend-api/thepunisher-databasereplicationexpert.md` — **ThePunisher-DatabaseReplicationExpert**: Replication topology, failover, and read-replica consistency.
+- `backend-api/thepunisher-connectionpoolexpert.md` — **ThePunisher-ConnectionPoolExpert**: Tunes database/service connection pooling for real load patterns.
+- `backend-api/thepunisher-ormexpert.md` — **ThePunisher-ORMExpert**: ORM query behavior, N+1 prevention, migration generation.
+- `backend-api/thepunisher-nosqlexpert.md` — **ThePunisher-NoSQLExpert**: Document/key-value store data modeling: MongoDB, DynamoDB, Redis.
+- `backend-api/thepunisher-timeseriesdbexpert.md` — **ThePunisher-TimeSeriesDBExpert**: Time-series database design: InfluxDB, TimescaleDB, retention policy.
+- `backend-api/thepunisher-graphdatabaseexpert.md` — **ThePunisher-GraphDatabaseExpert**: Graph database modeling and traversal queries: Neo4j, graph stores.
+- `backend-api/thepunisher-searchengineexpert.md` — **ThePunisher-SearchEngineExpert**: Elasticsearch/OpenSearch/Meilisearch indexing and relevance tuning.
+- `backend-api/thepunisher-fulltextsearchexpert.md` — **ThePunisher-FullTextSearchExpert**: Full-text search ranking, tokenization, and query design.
+- `backend-api/thepunisher-backgroundjobexpert.md` — **ThePunisher-BackgroundJobExpert**: Reliable background job processing: retries, backoff, dead-letter queues.
+- `backend-api/thepunisher-schedulingexpert.md` — **ThePunisher-SchedulingExpert**: Cron and distributed scheduler design for reliable recurring work.
+- `backend-api/thepunisher-filestorageexpert.md` — **ThePunisher-FileStorageExpert**: Object storage architecture: S3-compatible storage, lifecycle policy.
+- `backend-api/thepunisher-cdnexpert.md` — **ThePunisher-CDNExpert**: CDN caching rules, invalidation, and edge routing.
+- `backend-api/thepunisher-sessionmanagementexpert.md` — **ThePunisher-SessionManagementExpert**: Session storage, expiry, and cross-service session consistency.
+- `backend-api/thepunisher-multitenancyexpert.md` — **ThePunisher-MultiTenancyExpert**: Multi-tenant data isolation and resource-sharing architecture.
+- `backend-api/thepunisher-apiversioningexpert.md` — **ThePunisher-APIVersioningExpert**: API versioning strategy that avoids breaking existing consumers.
+- `backend-api/thepunisher-apidocumentationexpert.md` — **ThePunisher-APIDocumentationExpert**: OpenAPI/Swagger spec authoring that stays in sync with real behavior.
+- `backend-api/thepunisher-serverlessexpert.md` — **ThePunisher-ServerlessExpert**: Serverless function architecture: cold starts, concurrency limits.
+- `backend-api/thepunisher-edgecomputingexpert.md` — **ThePunisher-EdgeComputingExpert**: Edge function/runtime architecture for latency-sensitive logic.
+- `backend-api/thepunisher-backendsecurityexpert.md` — **ThePunisher-BackendSecurityExpert**: Backend-specific hardening: injection, SSRF, secrets handling.
+- `backend-api/thepunisher-inputvalidationexpert.md` — **ThePunisher-InputValidationExpert**: Server-side input validation and sanitization boundaries.
+- `backend-api/thepunisher-databasemigrationexpert.md` — **ThePunisher-DatabaseMigrationExpert**: Zero-downtime schema migration strategy for live systems.
+- `backend-api/thepunisher-transactionexpert.md` — **ThePunisher-TransactionExpert**: ACID and distributed transaction correctness.
+- `backend-api/thepunisher-consistencymodelexpert.md` — **ThePunisher-ConsistencyModelExpert**: CAP-theorem tradeoffs applied to real system design decisions.
+- `backend-api/thepunisher-batchprocessingexpert.md` — **ThePunisher-BatchProcessingExpert**: Large-scale batch job design: chunking, checkpointing, retries.
+- `backend-api/thepunisher-streamprocessingexpert.md` — **ThePunisher-StreamProcessingExpert**: Real-time stream processing: windowing, exactly-once semantics.
+- `backend-api/thepunisher-webhookdeliveryreliabilityexpert.md` — **ThePunisher-WebhookDeliveryReliabilityExpert**: Designs retry/backoff and delivery guarantees for outbound webhooks.
+- `backend-api/thepunisher-apithrottlingexpert.md` — **ThePunisher-APIThrottlingExpert**: Tiered throttling and burst-handling design for public APIs.
+- `backend-api/thepunisher-backendobservabilityexpert.md` — **ThePunisher-BackendObservabilityExpert**: Structured logging, tracing, and metrics wired through the backend.
+- `backend-api/thepunisher-datapipelineorchestrator.md` — **ThePunisher-DataPipelineOrchestrator**: Orchestrates multi-step data pipelines with clear failure handling.
+
+## Team 11 — Security & Pentest (50 agents)
+
+- `security-pentest/thepunisher-securityauditor.md` — **ThePunisher-SecurityAuditor**: Code security review, OWASP Top 10 check.
+- `security-pentest/thepunisher-pentestagent.md` — **ThePunisher-PentestAgent**: Pentest methodology: recon -> scan -> exploit -> report (authorized only).
+- `security-pentest/thepunisher-vulnresearcher.md` — **ThePunisher-VulnResearcher**: CVE analysis, vulnerability discovery, PoC development.
+- `security-pentest/thepunisher-threatmodeler.md` — **ThePunisher-ThreatModeler**: STRIDE threat modeling for all new systems.
+- `security-pentest/thepunisher-socanalyst.md` — **ThePunisher-SOCAnalyst**: Log analysis, SIEM queries, incident detection.
+- `security-pentest/thepunisher-compliancechecker.md` — **ThePunisher-ComplianceChecker**: GDPR, SOC2, PCI-DSS compliance checking.
+- `security-pentest/thepunisher-networkpentester.md` — **ThePunisher-NetworkPentester**: Authorized network penetration testing: scanning, exploitation, reporting.
+- `security-pentest/thepunisher-webapppentester.md` — **ThePunisher-WebAppPentester**: Authorized web application penetration testing against the OWASP Top 10.
+- `security-pentest/thepunisher-mobileapppentester.md` — **ThePunisher-MobileAppPentester**: Authorized mobile app security testing: iOS/Android specific attack surface.
+- `security-pentest/thepunisher-cloudsecurityauditor.md` — **ThePunisher-CloudSecurityAuditor**: Audits cloud IAM, storage, and network configuration for misconfigurations.
+- `security-pentest/thepunisher-containersecurityauditor.md` — **ThePunisher-ContainerSecurityAuditor**: Audits container images and runtime configuration for security gaps.
+- `security-pentest/thepunisher-apisecuritytester.md` — **ThePunisher-APISecurityTester**: Authorized API security testing: broken auth, injection, mass assignment.
+- `security-pentest/thepunisher-socialengineeringawarenesstrainer.md` — **ThePunisher-SocialEngineeringAwarenessTrainer**: Builds awareness training/simulations for phishing and social engineering (defensive).
+- `security-pentest/thepunisher-redteamoperator.md` — **ThePunisher-RedTeamOperator**: Runs authorized red-team engagements end to end, scoped and documented.
+- `security-pentest/thepunisher-blueteamdefender.md` — **ThePunisher-BlueTeamDefender**: Designs and tunes detections to catch the attacks red team simulates.
+- `security-pentest/thepunisher-purpleteamcoordinator.md` — **ThePunisher-PurpleTeamCoordinator**: Coordinates red/blue collaboration so findings actually improve detection.
+- `security-pentest/thepunisher-incidentresponder.md` — **ThePunisher-IncidentResponder**: Leads structured incident response: contain, eradicate, recover.
+- `security-pentest/thepunisher-digitalforensicsanalyst.md` — **ThePunisher-DigitalForensicsAnalyst**: Collects and analyzes forensic evidence following defensible chain-of-custody.
+- `security-pentest/thepunisher-malwaresandboxanalyst.md` — **ThePunisher-MalwareSandboxAnalyst**: Runs and analyzes malware behavior in isolated sandbox environments.
+- `security-pentest/thepunisher-phishinganalyst.md` — **ThePunisher-PhishingAnalyst**: Analyzes phishing campaigns and extracts indicators of compromise.
+- `security-pentest/thepunisher-secretsscanningexpert.md` — **ThePunisher-SecretsScanningExpert**: Finds hardcoded secrets/credentials in code and history before they leak.
+- `security-pentest/thepunisher-dependencyvulnscanner.md` — **ThePunisher-DependencyVulnScanner**: Scans dependency trees for known CVEs and prioritizes real exposure.
+- `security-pentest/thepunisher-sastexpert.md` — **ThePunisher-SASTExpert**: Static application security testing: tuning and triaging SAST findings.
+- `security-pentest/thepunisher-dastexpert.md` — **ThePunisher-DASTExpert**: Dynamic application security testing against running applications.
+- `security-pentest/thepunisher-iamsecurityauditor.md` — **ThePunisher-IAMSecurityAuditor**: Audits identity and access management for least-privilege violations.
+- `security-pentest/thepunisher-zerotrustarchitect.md` — **ThePunisher-ZeroTrustArchitect**: Designs zero-trust network and access architecture.
+- `security-pentest/thepunisher-encryptionexpert.md` — **ThePunisher-EncryptionExpert**: Correct application of encryption at rest and in transit.
+- `security-pentest/thepunisher-keymanagementexpert.md` — **ThePunisher-KeyManagementExpert**: Cryptographic key lifecycle: generation, rotation, revocation.
+- `security-pentest/thepunisher-certificatemanagementexpert.md` — **ThePunisher-CertificateManagementExpert**: TLS certificate issuance, rotation, and expiry monitoring.
+- `security-pentest/thepunisher-securityheaderauditor.md` — **ThePunisher-SecurityHeaderAuditor**: Audits HTTP security headers for real protective effect.
+- `security-pentest/thepunisher-csppolicydesigner.md` — **ThePunisher-CSPPolicyDesigner**: Designs Content-Security-Policy rules that actually block real attacks.
+- `security-pentest/thepunisher-securecodereviewer.md` — **ThePunisher-SecureCodeReviewer**: Reviews code specifically for exploitable security defects.
+- `security-pentest/thepunisher-threatintelligenceanalyst.md` — **ThePunisher-ThreatIntelligenceAnalyst**: Tracks and correlates threat intel relevant to the systems in scope.
+- `security-pentest/thepunisher-attacksurfacemapper.md` — **ThePunisher-AttackSurfaceMapper**: Maps the full real attack surface of a system before testing it.
+- `security-pentest/thepunisher-privilegeescalationanalyst.md` — **ThePunisher-PrivilegeEscalationAnalyst**: Authorized analysis of privilege escalation paths in a target system.
+- `security-pentest/thepunisher-lateralmovementanalyst.md` — **ThePunisher-LateralMovementAnalyst**: Authorized analysis of lateral movement paths within a scoped network.
+- `security-pentest/thepunisher-securityawarenesstrainer.md` — **ThePunisher-SecurityAwarenessTrainer**: Builds practical, non-alarmist security training material.
+- `security-pentest/thepunisher-vulnerabilityprioritizer.md` — **ThePunisher-VulnerabilityPrioritizer**: Triages vulnerabilities by real exploitability, not CVSS score alone.
+- `security-pentest/thepunisher-patchmanagementcoordinator.md` — **ThePunisher-PatchManagementCoordinator**: Coordinates timely patching without breaking production.
+- `security-pentest/thepunisher-securityincidentreportwriter.md` — **ThePunisher-SecurityIncidentReportWriter**: Writes clear, accurate incident reports for stakeholders.
+- `security-pentest/thepunisher-ransomwareanalyst.md` — **ThePunisher-RansomwareAnalyst**: Analyzes ransomware behavior and encryption/propagation mechanics.
+- `security-pentest/thepunisher-botnetanalyst.md` — **ThePunisher-BotnetAnalyst**: Analyzes botnet C2 infrastructure and communication patterns.
+- `security-pentest/thepunisher-datalosspreventionexpert.md` — **ThePunisher-DataLossPreventionExpert**: Designs controls that prevent sensitive data from leaving a system.
+- `security-pentest/thepunisher-securitymetricsanalyst.md` — **ThePunisher-SecurityMetricsAnalyst**: Tracks meaningful security KPIs instead of vanity metrics.
+- `security-pentest/thepunisher-bugbountytriager.md` — **ThePunisher-BugBountyTriager**: Triages incoming bug bounty reports for validity and severity.
+- `security-pentest/thepunisher-cryptographicprotocolauditor.md` — **ThePunisher-CryptographicProtocolAuditor**: Audits custom cryptographic protocol design for real weaknesses.
+- `security-pentest/thepunisher-supplychainsecurityauditor.md` — **ThePunisher-SupplyChainSecurityAuditor**: Audits build/release pipeline integrity against supply-chain attacks.
+- `security-pentest/thepunisher-hardeningchecklistwriter.md` — **ThePunisher-HardeningChecklistWriter**: Writes concrete, verifiable system hardening checklists.
+- `security-pentest/thepunisher-securitypostureassessor.md` — **ThePunisher-SecurityPostureAssessor**: Assesses overall security posture against a recognized framework.
+- `security-pentest/thepunisher-authorizationlogicauditor.md` — **ThePunisher-AuthorizationLogicAuditor**: Audits authorization logic specifically for IDOR/broken-access-control bugs.
+
+## Team 12 — DevOps & Automation (50 agents)
+
+- `devops/thepunisher-devopsengineer.md` — **ThePunisher-DevOpsEngineer**: CI/CD pipelines (GitHub Actions, GitLab CI).
+- `devops/thepunisher-infraascode.md` — **ThePunisher-InfraAsCode**: Terraform, Pulumi, CloudFormation.
+- `devops/thepunisher-containerexpert.md` — **ThePunisher-ContainerExpert**: Docker, Docker Compose, Kubernetes.
+- `devops/thepunisher-monitoringexpert.md` — **ThePunisher-MonitoringExpert**: Prometheus, Grafana, alerting, SLOs.
+- `devops/thepunisher-cloudexpert.md` — **ThePunisher-CloudExpert**: AWS, Azure, GCP multi-cloud architecture.
+- `devops/thepunisher-kubernetesexpert.md` — **ThePunisher-KubernetesExpert**: Advanced Kubernetes: operators, CRDs, cluster autoscaling, admission control.
+- `devops/thepunisher-helmchartexpert.md` — **ThePunisher-HelmChartExpert**: Designs and maintains reusable, parameterized Helm charts.
+- `devops/thepunisher-gitopsexpert.md` — **ThePunisher-GitOpsExpert**: GitOps deployment model: declarative, git-driven cluster state.
+- `devops/thepunisher-argocdexpert.md` — **ThePunisher-ArgoCDExpert**: Argo CD/Flux continuous delivery pipelines and sync strategy.
+- `devops/thepunisher-cioptimizationexpert.md` — **ThePunisher-CIOptimizationExpert**: Speeds up CI pipelines via caching, parallelization, and right-sizing.
+- `devops/thepunisher-pipelinesecurityexpert.md` — **ThePunisher-PipelineSecurityExpert**: Hardens CI/CD pipelines against supply-chain and credential-leak risks.
+- `devops/thepunisher-secretsmanagementexpert.md` — **ThePunisher-SecretsManagementExpert**: Vault/KMS-backed secrets management and rotation.
+- `devops/thepunisher-artifactregistryexpert.md` — **ThePunisher-ArtifactRegistryExpert**: Container/package artifact registry management and retention policy.
+- `devops/thepunisher-bluegreendeploymentexpert.md` — **ThePunisher-BlueGreenDeploymentExpert**: Designs blue-green deployment strategy for zero-downtime releases.
+- `devops/thepunisher-canarydeploymentexpert.md` — **ThePunisher-CanaryDeploymentExpert**: Designs canary rollout strategy with automated rollback triggers.
+- `devops/thepunisher-featureflagexpert.md` — **ThePunisher-FeatureFlagExpert**: Feature flag architecture: rollout, targeting, cleanup discipline.
+- `devops/thepunisher-rollbackautomationexpert.md` — **ThePunisher-RollbackAutomationExpert**: Builds automated, tested rollback paths for every deployment.
+- `devops/thepunisher-infracostoptimizer.md` — **ThePunisher-InfraCostOptimizer**: Finds and eliminates wasted cloud spend without hurting reliability.
+- `devops/thepunisher-autoscalingexpert.md` — **ThePunisher-AutoscalingExpert**: Tunes horizontal/vertical autoscaling for real traffic patterns.
+- `devops/thepunisher-logaggregationexpert.md` — **ThePunisher-LogAggregationExpert**: Centralized log pipeline design: ingestion, indexing, retention.
+- `devops/thepunisher-distributedtracingexpert.md` — **ThePunisher-DistributedTracingExpert**: End-to-end distributed tracing instrumentation and analysis.
+- `devops/thepunisher-alertingrulesexpert.md` — **ThePunisher-AlertingRulesExpert**: Designs alerting rules that catch real issues without alert fatigue.
+- `devops/thepunisher-slosladesigner.md` — **ThePunisher-SLOSLADesigner**: Defines meaningful SLOs/SLAs tied to real user impact.
+- `devops/thepunisher-incidentrunbookwriter.md` — **ThePunisher-IncidentRunbookWriter**: Writes clear, actionable runbooks for common incident types.
+- `devops/thepunisher-oncallprocessdesigner.md` — **ThePunisher-OnCallProcessDesigner**: Designs sustainable on-call rotation and escalation processes.
+- `devops/thepunisher-disasterrecoveryplanner.md` — **ThePunisher-DisasterRecoveryPlanner**: Plans and tests disaster recovery: RTO/RPO targets, failover drills.
+- `devops/thepunisher-backupstrategyexpert.md` — **ThePunisher-BackupStrategyExpert**: Designs backup strategy that's actually restorable, not just taken.
+- `devops/thepunisher-chaostestingengineer.md` — **ThePunisher-ChaosTestingEngineer**: Injects infrastructure-level failures to validate resilience.
+- `devops/thepunisher-configmanagementexpert.md` — **ThePunisher-ConfigManagementExpert**: Ansible/Chef/Puppet configuration management at scale.
+- `devops/thepunisher-serverprovisioningexpert.md` — **ThePunisher-ServerProvisioningExpert**: Automated, repeatable server provisioning from bare metal or cloud.
+- `devops/thepunisher-networkinginfraexpert.md` — **ThePunisher-NetworkingInfraExpert**: VPC/subnet/routing/firewall design for cloud and on-prem infra.
+- `devops/thepunisher-dnsexpert.md` — **ThePunisher-DNSExpert**: DNS architecture, failover, and propagation troubleshooting.
+- `devops/thepunisher-loadtestinginfraexpert.md` — **ThePunisher-LoadTestingInfraExpert**: Builds the infrastructure to run realistic load tests at scale.
+- `devops/thepunisher-immutableinfraexpert.md` — **ThePunisher-ImmutableInfraExpert**: Immutable infrastructure patterns: image-based deploys, no drift.
+- `devops/thepunisher-edgedeploymentexpert.md` — **ThePunisher-EdgeDeploymentExpert**: Deploys and manages workloads at edge locations.
+- `devops/thepunisher-multiregiondeploymentexpert.md` — **ThePunisher-MultiRegionDeploymentExpert**: Designs multi-region deployment for latency and failover.
+- `devops/thepunisher-complianceautomationexpert.md` — **ThePunisher-ComplianceAutomationExpert**: Automates compliance evidence collection (SOC2/ISO-style controls).
+- `devops/thepunisher-policyascodeexpert.md` — **ThePunisher-PolicyAsCodeExpert**: OPA/Sentinel policy-as-code enforcement in infra pipelines.
+- `devops/thepunisher-vmmanagementexpert.md` — **ThePunisher-VMManagementExpert**: Virtual machine lifecycle management at scale.
+- `devops/thepunisher-windowsserveradminexpert.md` — **ThePunisher-WindowsServerAdminExpert**: Windows Server administration: AD, GPO, PowerShell remoting.
+- `devops/thepunisher-linuxsysadminexpert.md` — **ThePunisher-LinuxSysAdminExpert**: Linux system administration: systemd, networking, performance tuning.
+- `devops/thepunisher-shellscriptingexpert.md` — **ThePunisher-ShellScriptingExpert**: Robust, portable shell scripting for automation tasks.
+- `devops/thepunisher-automationscriptarchitect.md` — **ThePunisher-AutomationScriptArchitect**: Designs maintainable automation scripts instead of one-off hacks.
+- `devops/thepunisher-deploymentpipelinearchitect.md` — **ThePunisher-DeploymentPipelineArchitect**: Designs the end-to-end deployment pipeline architecture.
+- `devops/thepunisher-releasemanagementexpert.md` — **ThePunisher-ReleaseManagementExpert**: Coordinates release trains, versioning, and change communication.
+- `devops/thepunisher-environmentparityenforcer.md` — **ThePunisher-EnvironmentParityEnforcer**: Keeps dev/staging/prod environments meaningfully in sync.
+- `devops/thepunisher-infradriftdetector.md` — **ThePunisher-InfraDriftDetector**: Detects when live infrastructure has drifted from its declared state.
+- `devops/thepunisher-observabilitystackarchitect.md` — **ThePunisher-ObservabilityStackArchitect**: Designs the overall metrics/logs/traces observability stack.
+- `devops/thepunisher-capacityplanningexpert.md` — **ThePunisher-CapacityPlanningExpert**: Plans infrastructure capacity ahead of real projected demand.
+- `devops/thepunisher-uptimereliabilityengineer.md` — **ThePunisher-UptimeReliabilityEngineer**: Owns overall uptime: error budgets, reliability tradeoffs.
+
+## Team 13 — Code Review & Quality (50 agents)
+
+- `code-review/thepunisher-codereviewer.md` — **ThePunisher-CodeReviewer**: Deep code review. No rubber-stamping.
+- `code-review/thepunisher-refactorer.md` — **ThePunisher-Refactorer**: Refactors code to a clean, maintainable state.
+- `code-review/thepunisher-docwriter.md` — **ThePunisher-DocWriter**: Writes technical documentation, READMEs, API docs.
+- `code-review/thepunisher-techdebthunter.md` — **ThePunisher-TechDebtHunter**: Identifies and quantifies tech debt.
+- `code-review/thepunisher-ponytailagent.md` — **ThePunisher-PonytailAgent**: Forces minimal, un-over-engineered solutions (YAGNI enforcer).
+- `code-review/thepunisher-namingconventionenforcer.md` — **ThePunisher-NamingConventionEnforcer**: Keeps naming consistent and meaningful across the codebase.
+- `code-review/thepunisher-codestyleenforcer.md` — **ThePunisher-CodeStyleEnforcer**: Enforces the project's actual style conventions, not personal preference.
+- `code-review/thepunisher-lintruledesigner.md` — **ThePunisher-LintRuleDesigner**: Designs lint rules that catch real bugs, not just style nitpicks.
+- `code-review/thepunisher-staticanalysisconfigurer.md` — **ThePunisher-StaticAnalysisConfigurer**: Configures static analysis tooling to be useful signal, not noise.
+- `code-review/thepunisher-complexityreducer.md` — **ThePunisher-ComplexityReducer**: Reduces cyclomatic complexity in functions that have grown unwieldy.
+- `code-review/thepunisher-duplicationdetector.md` — **ThePunisher-DuplicationDetector**: Finds real, meaningful code duplication worth consolidating.
+- `code-review/thepunisher-deadcodefinder.md` — **ThePunisher-DeadCodeFinder**: Finds and safely removes code no longer reachable or used.
+- `code-review/thepunisher-apibackwardcompatchecker.md` — **ThePunisher-APIBackwardCompatChecker**: Checks whether a change breaks existing API consumers.
+- `code-review/thepunisher-breakingchangedetector.md` — **ThePunisher-BreakingChangeDetector**: Flags changes that would break downstream callers before they ship.
+- `code-review/thepunisher-commentqualityauditor.md` — **ThePunisher-CommentQualityAuditor**: Checks comments explain WHY, not restate WHAT the code already shows.
+- `code-review/thepunisher-testqualityreviewer.md` — **ThePunisher-TestQualityReviewer**: Reviews the tests themselves for real assertions, not just coverage.
+- `code-review/thepunisher-readabilityreviewer.md` — **ThePunisher-ReadabilityReviewer**: Reviews whether code reads clearly to someone new to it.
+- `code-review/thepunisher-architectureconformancechecker.md` — **ThePunisher-ArchitectureConformanceChecker**: Checks new code actually follows the intended architecture.
+- `code-review/thepunisher-dependencyhygieneauditor.md` — **ThePunisher-DependencyHygieneAuditor**: Flags unused, outdated, or risky dependencies.
+- `code-review/thepunisher-licensecompliancechecker.md` — **ThePunisher-LicenseComplianceChecker**: Checks that added dependencies carry compatible licenses.
+- `code-review/thepunisher-codeownershipmapper.md` — **ThePunisher-CodeOwnershipMapper**: Maps which parts of the codebase have a clear, current owner.
+- `code-review/thepunisher-prsizeadvisor.md` — **ThePunisher-PRSizeAdvisor**: Flags oversized pull requests and suggests how to split them.
+- `code-review/thepunisher-reviewchecklistwriter.md` — **ThePunisher-ReviewChecklistWriter**: Writes concrete review checklists for common change types.
+- `code-review/thepunisher-securitycodereviewer.md` — **ThePunisher-SecurityCodeReviewer**: Routine security-focused review pass, distinct from a full pentest.
+- `code-review/thepunisher-performancecodereviewer.md` — **ThePunisher-PerformanceCodeReviewer**: Reviews changes specifically for performance regressions.
+- `code-review/thepunisher-accessibilitycodereviewer.md` — **ThePunisher-AccessibilityCodeReviewer**: Reviews UI changes specifically for accessibility regressions.
+- `code-review/thepunisher-errorhandlingreviewer.md` — **ThePunisher-ErrorHandlingReviewer**: Reviews whether errors are handled correctly, not just caught and hidden.
+- `code-review/thepunisher-loggingqualityreviewer.md` — **ThePunisher-LoggingQualityReviewer**: Reviews whether logging is useful for debugging without being noisy.
+- `code-review/thepunisher-configurationreviewer.md` — **ThePunisher-ConfigurationReviewer**: Reviews configuration changes for correctness and safety.
+- `code-review/thepunisher-databaseschemareviewer.md` — **ThePunisher-DatabaseSchemaReviewer**: Reviews schema changes for correctness and migration safety.
+- `code-review/thepunisher-migrationsafetyreviewer.md` — **ThePunisher-MigrationSafetyReviewer**: Checks a migration is reversible and safe under concurrent writes.
+- `code-review/thepunisher-apicontractreviewer.md` — **ThePunisher-APIContractReviewer**: Reviews API changes against their documented contract.
+- `code-review/thepunisher-documentationcoverageauditor.md` — **ThePunisher-DocumentationCoverageAuditor**: Checks that new features/APIs actually get documented.
+- `code-review/thepunisher-changelogwriter.md` — **ThePunisher-ChangelogWriter**: Writes accurate, useful changelog entries for real changes.
+- `code-review/thepunisher-versioningreviewer.md` — **ThePunisher-VersioningReviewer**: Checks version bumps correctly reflect semver-meaningful changes.
+- `code-review/thepunisher-codeconsistencyenforcer.md` — **ThePunisher-CodeConsistencyEnforcer**: Keeps similar code shaped similarly across the codebase.
+- `code-review/thepunisher-refactorplanwriter.md` — **ThePunisher-RefactorPlanWriter**: Plans a safe, incremental path for a larger refactor.
+- `code-review/thepunisher-legacycodeauditor.md` — **ThePunisher-LegacyCodeAuditor**: Assesses legacy code for risk before it's touched.
+- `code-review/thepunisher-technicaldebtquantifier.md` — **ThePunisher-TechnicalDebtQuantifier**: Puts a concrete cost estimate on identified technical debt.
+- `code-review/thepunisher-codesmelldetector.md` — **ThePunisher-CodeSmellDetector**: Flags recognized code smells worth addressing.
+- `code-review/thepunisher-architecturedecisionrecordwriter.md` — **ThePunisher-ArchitectureDecisionRecordWriter**: Writes ADRs capturing why an architectural choice was made.
+- `code-review/thepunisher-pairprogrammingfacilitator.md` — **ThePunisher-PairProgrammingFacilitator**: Structures a pairing session for maximum knowledge transfer.
+- `code-review/thepunisher-codereviewmetricsanalyst.md` — **ThePunisher-CodeReviewMetricsAnalyst**: Tracks review turnaround and defect-escape metrics.
+- `code-review/thepunisher-reviewerassignmentoptimizer.md` — **ThePunisher-ReviewerAssignmentOptimizer**: Routes a review to the reviewer best positioned to catch real issues.
+- `code-review/thepunisher-mergeconflictresolver.md` — **ThePunisher-MergeConflictResolver**: Resolves merge conflicts correctly, preserving both sides' real intent.
+- `code-review/thepunisher-commitmessagequalityenforcer.md` — **ThePunisher-CommitMessageQualityEnforcer**: Keeps commit messages accurate and useful for future archaeology.
+- `code-review/thepunisher-branchingstrategyadvisor.md` — **ThePunisher-BranchingStrategyAdvisor**: Advises on branching strategy that fits the team's real workflow.
+- `code-review/thepunisher-codeownershiptransferplanner.md` — **ThePunisher-CodeOwnershipTransferPlanner**: Plans a clean handoff when ownership of code changes.
+- `code-review/thepunisher-rewritevsrefactoradvisor.md` — **ThePunisher-RewriteVsRefactorAdvisor**: Decides when a rewrite is actually warranted over incremental refactor.
+- `code-review/thepunisher-finalpremergegatekeeper.md` — **ThePunisher-FinalPreMergeGatekeeper**: Final check before merge: nothing ships without real verification.
+
+## Team 14 — AI/ML & Agent Engineering (50 agents)
+
+- `ai-ml/thepunisher-aiengineer.md` — **ThePunisher-AIEngineer**: LLM integration, prompt engineering, RAG systems.
+- `ai-ml/thepunisher-agentbuilder.md` — **ThePunisher-AgentBuilder**: Builds new subagents. Writes SKILL.md files.
+- `ai-ml/thepunisher-mlengineer.md` — **ThePunisher-MLEngineer**: ML pipelines, model training, evaluation.
+- `ai-ml/thepunisher-grillmecodex.md` — **ThePunisher-GrillMeCodex**: Interactive design alignment (grill-me-codex patterns).
+- `ai-ml/thepunisher-agentflowdesigner.md` — **ThePunisher-AgentFlowDesigner**: Designs agent flow graphs (agent-flow).
+- `ai-ml/thepunisher-promptengineeringexpert.md` — **ThePunisher-PromptEngineeringExpert**: Designs and iterates prompts for reliable, measurable model behavior.
+- `ai-ml/thepunisher-ragarchitect.md` — **ThePunisher-RAGArchitect**: Designs retrieval-augmented generation pipelines: chunking, retrieval, grounding.
+- `ai-ml/thepunisher-vectordatabaseexpert.md` — **ThePunisher-VectorDatabaseExpert**: Vector database selection, indexing, and similarity search tuning.
+- `ai-ml/thepunisher-embeddingmodelexpert.md` — **ThePunisher-EmbeddingModelExpert**: Chooses and evaluates embedding models for a given retrieval task.
+- `ai-ml/thepunisher-finetuningexpert.md` — **ThePunisher-FineTuningExpert**: Fine-tunes models responsibly: dataset prep, evaluation, overfitting checks.
+- `ai-ml/thepunisher-llmevaluationexpert.md` — **ThePunisher-LLMEvaluationExpert**: Builds real evaluation harnesses instead of trusting vibes.
+- `ai-ml/thepunisher-modelservingexpert.md` — **ThePunisher-ModelServingExpert**: Serves models reliably at scale: batching, autoscaling, latency budgets.
+- `ai-ml/thepunisher-tokenizationexpert.md` — **ThePunisher-TokenizationExpert**: Tokenizer behavior, vocabulary design, and token-cost implications.
+- `ai-ml/thepunisher-contextwindowoptimizer.md` — **ThePunisher-ContextWindowOptimizer**: Maximizes useful signal within a model's context window budget.
+- `ai-ml/thepunisher-hallucinationdetector.md` — **ThePunisher-HallucinationDetector**: Detects hallucinated output specifically in ML pipeline results.
+- `ai-ml/thepunisher-multiagentorchestrationexpert.md` — **ThePunisher-MultiAgentOrchestrationExpert**: Designs how multiple agents coordinate, hand off, and avoid conflict.
+- `ai-ml/thepunisher-toolusedesignexpert.md` — **ThePunisher-ToolUseDesignExpert**: Designs clear, unambiguous tool/function-calling schemas for agents.
+- `ai-ml/thepunisher-agentmemoryarchitect.md` — **ThePunisher-AgentMemoryArchitect**: Designs an agent's short-term and long-term memory architecture.
+- `ai-ml/thepunisher-agentevaluationexpert.md` — **ThePunisher-AgentEvaluationExpert**: Builds evaluation suites specifically for agentic (multi-step) behavior.
+- `ai-ml/thepunisher-guardrailsdesigner.md` — **ThePunisher-GuardrailsDesigner**: Designs safety guardrails that catch bad output without over-blocking good output.
+- `ai-ml/thepunisher-modelquantizationexpert.md` — **ThePunisher-ModelQuantizationExpert**: Quantizes models for efficient inference without unacceptable quality loss.
+- `ai-ml/thepunisher-inferenceoptimizationexpert.md` — **ThePunisher-InferenceOptimizationExpert**: Optimizes inference latency and throughput for real workloads.
+- `ai-ml/thepunisher-datasetcurationexpert.md` — **ThePunisher-DatasetCurationExpert**: Curates training/eval datasets for quality and representativeness.
+- `ai-ml/thepunisher-datalabelingqualityauditor.md` — **ThePunisher-DataLabelingQualityAuditor**: Audits label quality and inter-annotator agreement.
+- `ai-ml/thepunisher-mlopsengineer.md` — **ThePunisher-MLOpsEngineer**: Builds the ML pipeline infrastructure: training, deployment, rollback.
+- `ai-ml/thepunisher-modelmonitoringexpert.md` — **ThePunisher-ModelMonitoringExpert**: Monitors deployed models for real-world performance degradation.
+- `ai-ml/thepunisher-modeldriftdetector.md` — **ThePunisher-ModelDriftDetector**: Detects when a model's real-world input distribution has drifted.
+- `ai-ml/thepunisher-reinforcementlearningexpert.md` — **ThePunisher-ReinforcementLearningExpert**: RL algorithm design and reward-shaping for agentic training.
+- `ai-ml/thepunisher-computervisionexpert.md` — **ThePunisher-ComputerVisionExpert**: Computer vision pipelines: detection, segmentation, classification.
+- `ai-ml/thepunisher-nlpexpert.md` — **ThePunisher-NLPExpert**: Classical and modern NLP: entity extraction, classification, parsing.
+- `ai-ml/thepunisher-speechrecognitionexpert.md` — **ThePunisher-SpeechRecognitionExpert**: Speech-to-text and text-to-speech pipeline design.
+- `ai-ml/thepunisher-recommendersystemexpert.md` — **ThePunisher-RecommenderSystemExpert**: Recommendation system design: collaborative and content-based filtering.
+- `ai-ml/thepunisher-timeseriesforecastingexpert.md` — **ThePunisher-TimeSeriesForecastingExpert**: Time-series forecasting model selection and evaluation.
+- `ai-ml/thepunisher-anomalydetectionexpert.md` — **ThePunisher-AnomalyDetectionExpert**: Anomaly detection model design for real operational data.
+- `ai-ml/thepunisher-generativemodelexpert.md` — **ThePunisher-GenerativeModelExpert**: Diffusion and generative model behavior for image/audio generation.
+- `ai-ml/thepunisher-multimodalmodelexpert.md` — **ThePunisher-MultiModalModelExpert**: Designs pipelines that combine text, image, and audio understanding.
+- `ai-ml/thepunisher-agentsafetyresearcher.md` — **ThePunisher-AgentSafetyResearcher**: Researches and mitigates unsafe agentic behavior patterns.
+- `ai-ml/thepunisher-promptinjectiondefender.md` — **ThePunisher-PromptInjectionDefender**: Designs defenses against prompt injection from untrusted content.
+- `ai-ml/thepunisher-modelcostoptimizer.md` — **ThePunisher-ModelCostOptimizer**: Reduces model inference cost without unacceptable quality tradeoffs.
+- `ai-ml/thepunisher-abtestingformlexpert.md` — **ThePunisher-ABTestingForMLExpert**: Designs statistically sound A/B tests for model changes.
+- `ai-ml/thepunisher-featureengineeringexpert.md` — **ThePunisher-FeatureEngineeringExpert**: Designs features that actually improve model signal.
+- `ai-ml/thepunisher-mlpipelinearchitect.md` — **ThePunisher-MLPipelineArchitect**: Architects the end-to-end ML pipeline from data to deployed model.
+- `ai-ml/thepunisher-explainabilityexpert.md` — **ThePunisher-ExplainabilityExpert**: Explainable AI techniques: SHAP, LIME, attention analysis.
+- `ai-ml/thepunisher-biasfairnessauditor.md` — **ThePunisher-BiasFairnessAuditor**: Audits models for unfair bias against protected attributes.
+- `ai-ml/thepunisher-syntheticdatagenerator.md` — **ThePunisher-SyntheticDataGenerator**: Generates realistic synthetic data when real data is scarce or sensitive.
+- `ai-ml/thepunisher-llmroutingexpert.md` — **ThePunisher-LLMRoutingExpert**: Routes each task to the right model for cost/quality tradeoffs.
+- `ai-ml/thepunisher-agenttoolchaindesigner.md` — **ThePunisher-AgentToolChainDesigner**: Designs the actual toolchain (tools + permissions) an agent gets access to.
+- `ai-ml/thepunisher-conversationdesignexpert.md` — **ThePunisher-ConversationDesignExpert**: Designs multi-turn conversational flows that stay coherent and useful.
+- `ai-ml/thepunisher-modelversioningexpert.md` — **ThePunisher-ModelVersioningExpert**: Manages model version lifecycle: rollout, rollback, deprecation.
+- `ai-ml/thepunisher-aiproductintegrationexpert.md` — **ThePunisher-AIProductIntegrationExpert**: Wires ML models into real product features end to end.
+
+## Team 15 — Specialized & Creative (50 agents)
+
+- `specialized-creative/thepunisher-gamedev.md` — **ThePunisher-GameDev**: Unity, Unreal, Godot, game mechanics, ECS patterns.
+- `specialized-creative/thepunisher-threejsexpert.md` — **ThePunisher-ThreejsExpert**: Three.js, WebGL, 3D web experiences.
+- `specialized-creative/thepunisher-shaderprogrammer.md` — **ThePunisher-ShaderProgrammer**: GLSL/HLSL shaders, GPU programming.
+- `specialized-creative/thepunisher-obsidianexpert.md` — **ThePunisher-ObsidianExpert**: Obsidian vault management and automation.
+- `specialized-creative/thepunisher-documentparser.md` — **ThePunisher-DocumentParser**: PDF extraction, document analysis (MinerU).
+- `specialized-creative/thepunisher-unityexpert.md` — **ThePunisher-UnityExpert**: Unity engine: C# scripting, prefab architecture, performance profiling.
+- `specialized-creative/thepunisher-unrealengineexpert.md` — **ThePunisher-UnrealEngineExpert**: Unreal Engine: Blueprints, C++ gameplay framework, rendering pipeline.
+- `specialized-creative/thepunisher-godotexpert.md` — **ThePunisher-GodotExpert**: Godot: GDScript/C#, scene tree architecture, signal-based design.
+- `specialized-creative/thepunisher-gamenetworkingexpert.md` — **ThePunisher-GameNetworkingExpert**: Real-time multiplayer networking: client prediction, lag compensation.
+- `specialized-creative/thepunisher-gameaiexpert.md` — **ThePunisher-GameAIExpert**: NPC behavior trees, pathfinding, and decision-making systems.
+- `specialized-creative/thepunisher-gamephysicsexpert.md` — **ThePunisher-GamePhysicsExpert**: Game physics simulation: collision, rigid bodies, tuning for fun over realism.
+- `specialized-creative/thepunisher-gamebalancedesigner.md` — **ThePunisher-GameBalanceDesigner**: Tunes game systems (economy, difficulty, progression) for fair, fun balance.
+- `specialized-creative/thepunisher-leveldesigner.md` — **ThePunisher-LevelDesigner**: Designs levels/maps for pacing, flow, and player guidance.
+- `specialized-creative/thepunisher-gameuiuxdesigner.md` — **ThePunisher-GameUIUXDesigner**: In-game UI/UX: HUDs, menus, controller-friendly navigation.
+- `specialized-creative/thepunisher-gameaudiodesigner.md` — **ThePunisher-GameAudioDesigner**: Game audio: sound design, adaptive music, mixing.
+- `specialized-creative/thepunisher-proceduralgenerationexpert.md` — **ThePunisher-ProceduralGenerationExpert**: Procedural content generation: terrain, levels, loot tables.
+- `specialized-creative/thepunisher-multiplayerarchitect.md` — **ThePunisher-MultiplayerArchitect**: Architects the client-server structure for a multiplayer game.
+- `specialized-creative/thepunisher-gamemonetizationdesigner.md` — **ThePunisher-GameMonetizationDesigner**: Designs fair, sustainable in-game monetization systems.
+- `specialized-creative/thepunisher-vrexpert.md` — **ThePunisher-VRExpert**: Virtual reality development: comfort, input mapping, performance targets.
+- `specialized-creative/thepunisher-arexpert.md` — **ThePunisher-ARExpert**: Augmented reality development: tracking, anchoring, real-world overlays.
+- `specialized-creative/thepunisher-gameengineoptimizer.md` — **ThePunisher-GameEngineOptimizer**: Profiles and optimizes game engine performance for target hardware.
+- `specialized-creative/thepunisher-gamesavesystemdesigner.md` — **ThePunisher-GameSaveSystemDesigner**: Designs robust, forward-compatible save/load systems.
+- `specialized-creative/thepunisher-gamemoddingsupportexpert.md` — **ThePunisher-GameModdingSupportExpert**: Designs mod-friendly APIs and content pipelines for a game.
+- `specialized-creative/thepunisher-videoprocessingexpert.md` — **ThePunisher-VideoProcessingExpert**: Video encoding, transcoding, and processing pipelines.
+- `specialized-creative/thepunisher-audioprocessingexpert.md` — **ThePunisher-AudioProcessingExpert**: Audio signal processing: filtering, effects, format conversion.
+- `specialized-creative/thepunisher-imageprocessingexpert.md` — **ThePunisher-ImageProcessingExpert**: Image processing pipelines: resizing, filtering, format conversion.
+- `specialized-creative/thepunisher-pdfgenerationexpert.md` — **ThePunisher-PDFGenerationExpert**: Generates and manipulates PDF documents programmatically.
+- `specialized-creative/thepunisher-spreadsheetautomationexpert.md` — **ThePunisher-SpreadsheetAutomationExpert**: Automates spreadsheet generation and data manipulation.
+- `specialized-creative/thepunisher-presentationbuilder.md` — **ThePunisher-PresentationBuilder**: Builds structured, clear presentation decks programmatically.
+- `specialized-creative/thepunisher-markdowntoolingexpert.md` — **ThePunisher-MarkdownToolingExpert**: Builds tooling around Markdown parsing, linting, and generation.
+- `specialized-creative/thepunisher-notionintegrationexpert.md` — **ThePunisher-NotionIntegrationExpert**: Integrates with Notion's API for content and database sync.
+- `specialized-creative/thepunisher-calendarschedulingexpert.md` — **ThePunisher-CalendarSchedulingExpert**: Builds calendar/scheduling integrations and conflict resolution.
+- `specialized-creative/thepunisher-emailautomationexpert.md` — **ThePunisher-EmailAutomationExpert**: Builds reliable transactional and automated email flows.
+- `specialized-creative/thepunisher-chatbotdesigner.md` — **ThePunisher-ChatbotDesigner**: Designs conversational chatbot flows and fallback handling.
+- `specialized-creative/thepunisher-voiceassistantexpert.md` — **ThePunisher-VoiceAssistantExpert**: Builds voice-assistant interaction flows and intent handling.
+- `specialized-creative/thepunisher-roboticsintegrationexpert.md` — **ThePunisher-RoboticsIntegrationExpert**: Integrates software with robotics control systems (ROS-style).
+- `specialized-creative/thepunisher-iotdeviceintegrationexpert.md` — **ThePunisher-IoTDeviceIntegrationExpert**: Integrates software with IoT device protocols and telemetry.
+- `specialized-creative/thepunisher-blockchainappexpert.md` — **ThePunisher-BlockchainAppExpert**: Builds dApp/web3 frontend integration against smart contracts.
+- `specialized-creative/thepunisher-nftmetadataexpert.md` — **ThePunisher-NFTMetadataExpert**: Designs NFT metadata standards and on/off-chain storage strategy.
+- `specialized-creative/thepunisher-simulation3dexpert.md` — **ThePunisher-Simulation3DExpert**: Builds 3D simulations for non-game engineering/scientific use cases.
+- `specialized-creative/thepunisher-physicssimulationexpert.md` — **ThePunisher-PhysicsSimulationExpert**: General physics simulation outside of game contexts.
+- `specialized-creative/thepunisher-cadintegrationexpert.md` — **ThePunisher-CADIntegrationExpert**: Integrates software with CAD file formats and workflows.
+- `specialized-creative/thepunisher-gismapexpert.md` — **ThePunisher-GISMapExpert**: Geospatial data processing and interactive map integration.
+- `specialized-creative/thepunisher-datavisualizationexpert.md` — **ThePunisher-DataVisualizationExpert**: Builds clear, accurate data visualizations and dashboards.
+- `specialized-creative/thepunisher-infographicdesigner.md` — **ThePunisher-InfographicDesigner**: Designs infographics that communicate data clearly at a glance.
+- `specialized-creative/thepunisher-podcastproductionexpert.md` — **ThePunisher-PodcastProductionExpert**: Podcast production pipeline: editing, leveling, publishing.
+- `specialized-creative/thepunisher-streamingsetupexpert.md` — **ThePunisher-StreamingSetupExpert**: Live-streaming setup: OBS scenes, encoding, overlay tooling.
+- `specialized-creative/thepunisher-creativewritingassistant.md` — **ThePunisher-CreativeWritingAssistant**: Assists with narrative/creative writing tasks: tone, structure, voice.
+- `specialized-creative/thepunisher-localizationcontentwriter.md` — **ThePunisher-LocalizationContentWriter**: Writes and adapts content for accurate, natural localization.
+- `specialized-creative/thepunisher-accessibilitycontentadapter.md` — **ThePunisher-AccessibilityContentAdapter**: Produces alt-text, captions, and transcripts for accessible content.
+
+## Team 16 — Mobile & Cross-Platform Engineering (50 agents)
+
+- `mobile-engineering/thepunisher-swiftuiexpert.md` — **ThePunisher-SwiftUIExpert**: SwiftUI declarative UI, state management, animations.
+- `mobile-engineering/thepunisher-uikitexpert.md` — **ThePunisher-UIKitExpert**: UIKit imperative UI, Auto Layout, view controllers.
+- `mobile-engineering/thepunisher-swiftconcurrencyexpert.md` — **ThePunisher-SwiftConcurrencyExpert**: Swift async/await, actors, structured concurrency.
+- `mobile-engineering/thepunisher-combineexpert.md` — **ThePunisher-CombineExpert**: Reactive programming with Apple's Combine framework.
+- `mobile-engineering/thepunisher-coredataexpert.md` — **ThePunisher-CoreDataExpert**: Core Data persistence, migrations, CloudKit sync.
+- `mobile-engineering/thepunisher-xctestexpert.md` — **ThePunisher-XCTestExpert**: iOS unit/UI testing with XCTest and XCUITest.
+- `mobile-engineering/thepunisher-appstorereviewexpert.md` — **ThePunisher-AppStoreReviewExpert**: App Store review guidelines, rejection triage and resubmission.
+- `mobile-engineering/thepunisher-testflightexpert.md` — **ThePunisher-TestFlightExpert**: Beta distribution, TestFlight builds, external testing groups.
+- `mobile-engineering/thepunisher-swiftpackagemanagerexpert.md` — **ThePunisher-SwiftPackageManagerExpert**: SPM dependency management, app modularization.
+- `mobile-engineering/thepunisher-objcbridgingexpert.md` — **ThePunisher-ObjCBridgingExpert**: Objective-C/Swift interop, legacy iOS codebase bridging.
+- `mobile-engineering/thepunisher-arkitexpert.md` — **ThePunisher-ARKitExpert**: ARKit scene understanding, world tracking, RealityKit.
+- `mobile-engineering/thepunisher-metalexpert.md` — **ThePunisher-MetalExpert**: Metal GPU programming, custom shaders, rendering pipelines.
+- `mobile-engineering/thepunisher-widgetkitexpert.md` — **ThePunisher-WidgetKitExpert**: iOS home screen widgets, Live Activities, App Intents.
+- `mobile-engineering/thepunisher-jetpackcomposeexpert.md` — **ThePunisher-JetpackComposeExpert**: Android Jetpack Compose declarative UI.
+- `mobile-engineering/thepunisher-androidviewsexpert.md` — **ThePunisher-AndroidViewsExpert**: Traditional Android View system, XML layouts.
+- `mobile-engineering/thepunisher-androidroomexpert.md` — **ThePunisher-AndroidRoomExpert**: Room persistence library, SQLite on Android.
+- `mobile-engineering/thepunisher-kotlincoroutinesexpert.md` — **ThePunisher-KotlinCoroutinesExpert**: Coroutines and Flow, structured concurrency on Android.
+- `mobile-engineering/thepunisher-workmanagerexpert.md` — **ThePunisher-WorkManagerExpert**: Android background task scheduling and constraints.
+- `mobile-engineering/thepunisher-googleplaypolicyexpert.md` — **ThePunisher-GooglePlayPolicyExpert**: Play Store policies, review guidelines, appeals.
+- `mobile-engineering/thepunisher-playconsoleexpert.md` — **ThePunisher-PlayConsoleExpert**: Play Console releases, staged rollouts, App Bundles.
+- `mobile-engineering/thepunisher-gradleandroidexpert.md` — **ThePunisher-GradleAndroidExpert**: Gradle build system, Android build variants/flavors.
+- `mobile-engineering/thepunisher-proguardr8expert.md` — **ThePunisher-ProGuardR8Expert**: Code shrinking, obfuscation, R8 keep-rule authoring.
+- `mobile-engineering/thepunisher-adbdebuggingexpert.md` — **ThePunisher-ADBDebuggingExpert**: Android Debug Bridge, device debugging, logcat triage.
+- `mobile-engineering/thepunisher-androidndkexpert.md` — **ThePunisher-AndroidNDKExpert**: Android NDK, JNI, native code integration.
+- `mobile-engineering/thepunisher-reactnativeexpert.md` — **ThePunisher-ReactNativeExpert**: React Native cross-platform apps, native modules/bridging.
+- `mobile-engineering/thepunisher-flutterexpert.md` — **ThePunisher-FlutterExpert**: Flutter/Dart cross-platform apps, widget composition.
+- `mobile-engineering/thepunisher-expoexpert.md` — **ThePunisher-ExpoExpert**: Expo managed workflow, EAS Build and Update.
+- `mobile-engineering/thepunisher-capacitorexpert.md` — **ThePunisher-CapacitorExpert**: Ionic/Capacitor hybrid apps, native plugin bridges.
+- `mobile-engineering/thepunisher-dotnetmauiexpert.md` — **ThePunisher-DotNetMauiExpert**: .NET MAUI cross-platform apps (Xamarin successor).
+- `mobile-engineering/thepunisher-kotlinmultiplatformexpert.md` — **ThePunisher-KotlinMultiplatformExpert**: KMP shared business logic across iOS/Android.
+- `mobile-engineering/thepunisher-mobilesecurityexpert.md` — **ThePunisher-MobileSecurityExpert**: Jailbreak/root detection, certificate pinning, mobile threat modeling.
+- `mobile-engineering/thepunisher-mobileperformanceexpert.md` — **ThePunisher-MobilePerformanceExpert**: Battery/memory profiling, frame rate, cold-start time.
+- `mobile-engineering/thepunisher-fastlaneexpert.md` — **ThePunisher-FastlaneExpert**: Fastlane CI/CD automation, code signing pipelines.
+- `mobile-engineering/thepunisher-pushnotificationexpert.md` — **ThePunisher-PushNotificationExpert**: APNs/FCM push infrastructure, notification UX design.
+- `mobile-engineering/thepunisher-deeplinkingexpert.md` — **ThePunisher-DeepLinkingExpert**: Universal Links, App Links, deferred deep linking.
+- `mobile-engineering/thepunisher-mobileanalyticsexpert.md` — **ThePunisher-MobileAnalyticsExpert**: Mobile analytics SDKs, funnel and retention tracking.
+- `mobile-engineering/thepunisher-inapppurchaseexpert.md` — **ThePunisher-InAppPurchaseExpert**: StoreKit/Play Billing, subscriptions, receipt validation.
+- `mobile-engineering/thepunisher-mobileaccessibilityexpert.md` — **ThePunisher-MobileAccessibilityExpert**: VoiceOver/TalkBack support, mobile a11y guidelines.
+- `mobile-engineering/thepunisher-offlinefirstsyncexpert.md` — **ThePunisher-OfflineFirstSyncExpert**: Offline-first architecture, conflict resolution sync.
+- `mobile-engineering/thepunisher-appiumexpert.md` — **ThePunisher-AppiumExpert**: Cross-platform mobile UI test automation.
+- `mobile-engineering/thepunisher-appstoreoptimizationexpert.md` — **ThePunisher-AppStoreOptimizationExpert**: ASO: keyword research, screenshot/metadata optimization.
+- `mobile-engineering/thepunisher-wearableappexpert.md` — **ThePunisher-WearableAppExpert**: watchOS and Wear OS companion app development.
+- `mobile-engineering/thepunisher-foldablelayoutexpert.md` — **ThePunisher-FoldableLayoutExpert**: Foldable/tablet responsive layouts, window size classes.
+- `mobile-engineering/thepunisher-mobilepaymentsexpert.md` — **ThePunisher-MobilePaymentsExpert**: Apple Pay and Google Pay integration.
+- `mobile-engineering/thepunisher-biometricauthexpert.md` — **ThePunisher-BiometricAuthExpert**: Face ID/Touch ID and Android biometric prompt integration.
+- `mobile-engineering/thepunisher-mobilelocalizationexpert.md` — **ThePunisher-MobileLocalizationExpert**: Mobile i18n, RTL layouts, locale-specific formatting.
+- `mobile-engineering/thepunisher-mobilecrashreportingexpert.md` — **ThePunisher-MobileCrashReportingExpert**: Crashlytics/Sentry mobile, dSYM/symbolication.
+- `mobile-engineering/thepunisher-mobilebackendexpert.md` — **ThePunisher-MobileBackendExpert**: Firebase/Supabase mobile backend integration.
+- `mobile-engineering/thepunisher-mobilearchitectureexpert.md` — **ThePunisher-MobileArchitectureExpert**: MVVM/MVI/Clean Architecture for mobile apps.
+- `mobile-engineering/thepunisher-mobilecicdexpert.md` — **ThePunisher-MobileCICDExpert**: Mobile-specific CI/CD: build matrices, device farms, artifact signing.
+
+## Team 17 — Data Engineering & Analytics (50 agents)
+
+- `data-engineering/thepunisher-etlpipelineexpert.md` — **ThePunisher-ETLPipelineExpert**: Extract-transform-load pipeline design and orchestration.
+- `data-engineering/thepunisher-datawarehouseexpert.md` — **ThePunisher-DataWarehouseExpert**: Dimensional modeling, star schema, Snowflake/BigQuery/Redshift.
+- `data-engineering/thepunisher-apachesparkexpert.md` — **ThePunisher-ApacheSparkExpert**: Distributed data processing with Apache Spark.
+- `data-engineering/thepunisher-apachekafkaexpert.md` — **ThePunisher-ApacheKafkaExpert**: Event streaming, Kafka topics/partitions/consumer groups.
+- `data-engineering/thepunisher-kafkaconnectexpert.md` — **ThePunisher-KafkaConnectExpert**: Kafka Connect connectors for streaming data integration.
+- `data-engineering/thepunisher-apacheairflowexpert.md` — **ThePunisher-ApacheAirflowExpert**: Workflow orchestration, DAG design and scheduling.
+- `data-engineering/thepunisher-dbtexpert.md` — **ThePunisher-DbtExpert**: dbt transformation layer, SQL-based data modeling.
+- `data-engineering/thepunisher-datalakeexpert.md` — **ThePunisher-DataLakeExpert**: Data lake architecture: Delta Lake, Apache Iceberg, Apache Hudi.
+- `data-engineering/thepunisher-datagovernanceexpert.md` — **ThePunisher-DataGovernanceExpert**: Data lineage, cataloging, access control policy.
+- `data-engineering/thepunisher-dataqualityexpert.md` — **ThePunisher-DataQualityExpert**: Data validation, anomaly detection, Great Expectations.
+- `data-engineering/thepunisher-datawranglingexpert.md` — **ThePunisher-DataWranglingExpert**: Messy/unstructured data cleaning and reshaping at scale.
+- `data-engineering/thepunisher-columnarstorageexpert.md` — **ThePunisher-ColumnarStorageExpert**: Parquet/ORC formats, columnar query optimization.
+- `data-engineering/thepunisher-datamodelingexpert.md` — **ThePunisher-DataModelingExpert**: Conceptual, logical, and physical data modeling.
+- `data-engineering/thepunisher-businessintelligenceexpert.md` — **ThePunisher-BusinessIntelligenceExpert**: BI dashboards: Tableau, Looker, Power BI.
+- `data-engineering/thepunisher-embeddedanalyticsexpert.md` — **ThePunisher-EmbeddedAnalyticsExpert**: Embedding analytics/dashboards directly into products.
+- `data-engineering/thepunisher-analyticalsqlexpert.md` — **ThePunisher-AnalyticalSQLExpert**: OLAP query patterns, window functions, analytical query tuning.
+- `data-engineering/thepunisher-nosqlanalyticsexpert.md` — **ThePunisher-NoSQLAnalyticsExpert**: Analytical NoSQL: Cassandra and DynamoDB for analytics workloads.
+- `data-engineering/thepunisher-datapipelinetestingexpert.md` — **ThePunisher-DataPipelineTestingExpert**: Testing data pipelines, data contract validation.
+- `data-engineering/thepunisher-changedatacaptureexpert.md` — **ThePunisher-ChangeDataCaptureExpert**: CDC patterns, Debezium, log-based replication.
+- `data-engineering/thepunisher-datameshexpert.md` — **ThePunisher-DataMeshExpert**: Data mesh architecture, domain-oriented data ownership.
+- `data-engineering/thepunisher-masterdatamanagementexpert.md` — **ThePunisher-MasterDataManagementExpert**: MDM, entity resolution, golden-record management.
+- `data-engineering/thepunisher-timeseriesdataexpert.md` — **ThePunisher-TimeSeriesDataExpert**: Time-series databases: InfluxDB, TimescaleDB.
+- `data-engineering/thepunisher-graphdataexpert.md` — **ThePunisher-GraphDataExpert**: Graph databases for analytics: Neo4j, graph algorithms.
+- `data-engineering/thepunisher-dataapiexpert.md` — **ThePunisher-DataAPIExpert**: Data-as-a-service APIs, GraphQL for data access.
+- `data-engineering/thepunisher-reverseetlexpert.md` — **ThePunisher-ReverseETLExpert**: Reverse ETL: syncing warehouse data back to operational tools.
+- `data-engineering/thepunisher-datacatalogexpert.md` — **ThePunisher-DataCatalogExpert**: Metadata management, data discovery tooling.
+- `data-engineering/thepunisher-featurestoreexpert.md` — **ThePunisher-FeatureStoreExpert**: ML feature stores, feature engineering pipelines.
+- `data-engineering/thepunisher-dataobservabilityexpert.md` — **ThePunisher-DataObservabilityExpert**: Data pipeline monitoring: freshness, volume, schema alerting.
+- `data-engineering/thepunisher-clouddataplatformexpert.md` — **ThePunisher-CloudDataPlatformExpert**: Databricks/Snowflake platform administration.
+- `data-engineering/thepunisher-dataprivacyengineeringexpert.md` — **ThePunisher-DataPrivacyEngineeringExpert**: PII detection, anonymization, GDPR data engineering.
+- `data-engineering/thepunisher-datacostoptimizationexpert.md` — **ThePunisher-DataCostOptimizationExpert**: Cloud data warehouse cost tuning, query cost analysis.
+- `data-engineering/thepunisher-eventsourcinganalyticsexpert.md` — **ThePunisher-EventSourcingAnalyticsExpert**: Event sourcing for analytics, CQRS read-model design.
+- `data-engineering/thepunisher-datamigrationexpert.md` — **ThePunisher-DataMigrationExpert**: Legacy data migration, schema evolution strategy.
+- `data-engineering/thepunisher-ethicaldatascrapingexpert.md` — **ThePunisher-EthicalDataScrapingExpert**: Web scraping pipelines, robots.txt/ToS-compliant collection.
+- `data-engineering/thepunisher-statisticalanalysisexpert.md` — **ThePunisher-StatisticalAnalysisExpert**: Statistical methods, hypothesis testing, A/B test analysis.
+- `data-engineering/thepunisher-forecastingexpert.md` — **ThePunisher-ForecastingExpert**: Time-series forecasting, demand planning models.
+- `data-engineering/thepunisher-geospatialdataexpert.md` — **ThePunisher-GeospatialDataExpert**: GIS data, spatial analysis, PostGIS.
+- `data-engineering/thepunisher-datapipelinecicdexpert.md` — **ThePunisher-DataPipelineCICDExpert**: CI/CD for data pipelines: testing, staged deploys.
+- `data-engineering/thepunisher-datasecurityexpert.md` — **ThePunisher-DataSecurityExpert**: Encryption at rest/in transit for data platforms, access auditing.
+- `data-engineering/thepunisher-realtimedashboardexpert.md` — **ThePunisher-RealtimeDashboardExpert**: Real-time streaming dashboards, live-updating metrics.
+- `data-engineering/thepunisher-datacontractexpert.md` — **ThePunisher-DataContractExpert**: Schema contracts between data producers and consumers.
+- `data-engineering/thepunisher-prefectexpert.md` — **ThePunisher-PrefectExpert**: Prefect workflow orchestration (Airflow alternative).
+- `data-engineering/thepunisher-dagsterexpert.md` — **ThePunisher-DagsterExpert**: Dagster asset-based data orchestration.
+- `data-engineering/thepunisher-dataversioningexpert.md` — **ThePunisher-DataVersioningExpert**: Data versioning, DVC, reproducible dataset management.
+- `data-engineering/thepunisher-clickhouseexpert.md` — **ThePunisher-ClickHouseExpert**: ClickHouse OLAP database administration and query tuning.
+- `data-engineering/thepunisher-duckdbexpert.md` — **ThePunisher-DuckDBExpert**: DuckDB embedded analytical query engine.
+- `data-engineering/thepunisher-dataannotationexpert.md` — **ThePunisher-DataAnnotationExpert**: Data labeling pipelines for ML training datasets.
+- `data-engineering/thepunisher-surveydataexpert.md` — **ThePunisher-SurveyDataExpert**: Survey design, response data cleaning and analysis.
+- `data-engineering/thepunisher-financialdataengineeringexpert.md` — **ThePunisher-FinancialDataEngineeringExpert**: Financial data feeds, market data pipeline engineering.
+- `data-engineering/thepunisher-dataplatformsreexpert.md` — **ThePunisher-DataPlatformSREExpert**: Data platform reliability engineering, SLOs, incident response.
+
+## Team 18 — Blockchain & Web3 Engineering (50 agents)
+
+- `blockchain-web3/thepunisher-ethereumexpert.md` — **ThePunisher-EthereumExpert**: Ethereum mainnet/L1 architecture, EVM internals, gas mechanics
+- `blockchain-web3/thepunisher-solidityauditor.md` — **ThePunisher-SolidityAuditor**: Manual smart-contract security auditing: reentrancy, overflow, access control
+- `blockchain-web3/thepunisher-hardhatexpert.md` — **ThePunisher-HardhatExpert**: Hardhat dev environment: scripting, testing, deployment plugins
+- `blockchain-web3/thepunisher-foundryexpert.md` — **ThePunisher-FoundryExpert**: Foundry/Forge: fuzz testing, fast Solidity-native test suites
+- `blockchain-web3/thepunisher-openzeppelinexpert.md` — **ThePunisher-OpenZeppelinExpert**: OpenZeppelin contract libraries, secure inheritance patterns
+- `blockchain-web3/thepunisher-erc20expert.md` — **ThePunisher-ERC20Expert**: ERC-20 fungible token standard implementation and edge cases
+- `blockchain-web3/thepunisher-erc721expert.md` — **ThePunisher-ERC721Expert**: ERC-721 NFT standard: metadata, enumerable, royalties (ERC-2981)
+- `blockchain-web3/thepunisher-erc1155expert.md` — **ThePunisher-ERC1155Expert**: ERC-1155 multi-token standard: batch operations, semi-fungible design
+- `blockchain-web3/thepunisher-defiprotocoldesigner.md` — **ThePunisher-DeFiProtocolDesigner**: Lending/borrowing/AMM protocol design and mechanism analysis
+- `blockchain-web3/thepunisher-yieldfarmingexpert.md` — **ThePunisher-YieldFarmingExpert**: Yield farming/liquidity mining strategy and contract design
+- `blockchain-web3/thepunisher-tokenomicsdesigner.md` — **ThePunisher-TokenomicsDesigner**: Token supply, emission schedules, incentive-alignment modeling
+- `blockchain-web3/thepunisher-daogovernanceexpert.md` — **ThePunisher-DAOGovernanceExpert**: On-chain governance: voting, timelocks, proposal execution
+- `blockchain-web3/thepunisher-layer2expert.md` — **ThePunisher-Layer2Expert**: Optimistic/ZK rollups: Arbitrum, Optimism, zkSync, Base
+- `blockchain-web3/thepunisher-solanaexpert.md` — **ThePunisher-SolanaExpert**: Solana runtime, account model, transaction processing
+- `blockchain-web3/thepunisher-anchorexpert.md` — **ThePunisher-AnchorExpert**: Anchor framework for Solana program development
+- `blockchain-web3/thepunisher-cosmossdkexpert.md` — **ThePunisher-CosmosSDKExpert**: Cosmos SDK app-chains, IBC inter-chain communication
+- `blockchain-web3/thepunisher-substrateexpert.md` — **ThePunisher-SubstrateExpert**: Substrate/Polkadot parachain development
+- `blockchain-web3/thepunisher-crosschainbridgeexpert.md` — **ThePunisher-CrossChainBridgeExpert**: Cross-chain bridge design and security analysis
+- `blockchain-web3/thepunisher-oracleintegrationexpert.md` — **ThePunisher-OracleIntegrationExpert**: Chainlink and other oracle integration, price-feed security
+- `blockchain-web3/thepunisher-web3jsexpert.md` — **ThePunisher-Web3JsExpert**: web3.js/ethers.js dApp frontend integration
+- `blockchain-web3/thepunisher-walletintegrationexpert.md` — **ThePunisher-WalletIntegrationExpert**: MetaMask/WalletConnect/Rainbow wallet connection flows
+- `blockchain-web3/thepunisher-ipfsexpert.md` — **ThePunisher-IPFSExpert**: IPFS/Filecoin decentralized storage integration
+- `blockchain-web3/thepunisher-gasoptimizationexpert.md` — **ThePunisher-GasOptimizationExpert**: Solidity gas-cost profiling and storage-layout optimization
+- `blockchain-web3/thepunisher-mevanalyst.md` — **ThePunisher-MEVAnalyst**: MEV exposure analysis: front-running, sandwich attack mitigation
+- `blockchain-web3/thepunisher-zkproofexpert.md` — **ThePunisher-ZKProofExpert**: Zero-knowledge proof systems: zk-SNARKs/STARKs, circuit design
+- `blockchain-web3/thepunisher-nftmarketplaceexpert.md` — **ThePunisher-NFTMarketplaceExpert**: NFT marketplace contracts: listings, auctions, royalty enforcement
+- `blockchain-web3/thepunisher-stablecoinexpert.md` — **ThePunisher-StablecoinExpert**: Stablecoin mechanism design: collateralized, algorithmic, hybrid
+- `blockchain-web3/thepunisher-blockchainindexingexpert.md` — **ThePunisher-BlockchainIndexingExpert**: The Graph subgraphs, event indexing, on-chain data pipelines
+- `blockchain-web3/thepunisher-upgradeablecontractexpert.md` — **ThePunisher-UpgradeableContractExpert**: Proxy patterns: transparent, UUPS, diamond (EIP-2535)
+- `blockchain-web3/thepunisher-multisigexpert.md` — **ThePunisher-MultisigExpert**: Gnosis Safe and multisig wallet configuration/operations
+- `blockchain-web3/thepunisher-nodeoperationsexpert.md` — **ThePunisher-NodeOperationsExpert**: RPC node operation: Geth, Erigon, validator infrastructure
+- `blockchain-web3/thepunisher-smartcontractsecurityauditor.md` — **ThePunisher-SmartContractSecurityAuditor**: Automated security tooling: Slither, Mythril, Echidna
+- `blockchain-web3/thepunisher-flashloananalyst.md` — **ThePunisher-FlashLoanAnalyst**: Flash-loan attack vector analysis and mitigation design
+- `blockchain-web3/thepunisher-walletsecurityexpert.md` — **ThePunisher-WalletSecurityExpert**: Private-key management, hardware-wallet integration, seed security
+- `blockchain-web3/thepunisher-web3complianceexpert.md` — **ThePunisher-Web3ComplianceExpert**: AML/KYC integration, travel-rule compliance for on-chain apps
+- `blockchain-web3/thepunisher-gamefiexpert.md` — **ThePunisher-GameFiExpert**: Play-to-earn tokenomics, in-game asset contracts
+- `blockchain-web3/thepunisher-dexaggregatorexpert.md` — **ThePunisher-DEXAggregatorExpert**: DEX routing/aggregation: 1inch-style swap-path optimization
+- `blockchain-web3/thepunisher-liquidstakingexpert.md` — **ThePunisher-LiquidStakingExpert**: Liquid staking derivatives: Lido-style protocol design
+- `blockchain-web3/thepunisher-onchainanalyticsexpert.md` — **ThePunisher-OnChainAnalyticsExpert**: On-chain data analysis: Dune Analytics, wallet-flow tracing
+- `blockchain-web3/thepunisher-formalverificationexpert.md` — **ThePunisher-FormalVerificationExpert**: Formal verification of smart contracts: Certora, K framework
+- `blockchain-web3/thepunisher-web3paymentexpert.md` — **ThePunisher-Web3PaymentExpert**: Crypto payment gateway integration for merchants/apps
+- `blockchain-web3/thepunisher-tokenlaunchexpert.md` — **ThePunisher-TokenLaunchExpert**: Token launch mechanics: IDO, fair launch, vesting contracts
+- `blockchain-web3/thepunisher-interoperabilityexpert.md` — **ThePunisher-InteroperabilityExpert**: Cross-chain messaging protocols: LayerZero, Axelar, Wormhole
+- `blockchain-web3/thepunisher-contracttestingexpert.md` — **ThePunisher-ContractTestingExpert**: Property-based and invariant testing for smart contracts
+- `blockchain-web3/thepunisher-enterpriseblockchainexpert.md` — **ThePunisher-EnterpriseBlockchainExpert**: Permissioned chains: Hyperledger Fabric, enterprise consortium networks
+- `blockchain-web3/thepunisher-decentralizedidentityexpert.md` — **ThePunisher-DecentralizedIdentityExpert**: DID/verifiable credentials, ENS and identity-layer integration
+- `blockchain-web3/thepunisher-blockchainindexeropsexpert.md` — **ThePunisher-BlockchainIndexerOpsExpert**: Self-hosted indexer operations: Substreams, custom event pipelines
+- `blockchain-web3/thepunisher-smartcontractdeploymentexpert.md` — **ThePunisher-SmartContractDeploymentExpert**: Deployment pipelines, deterministic addresses (CREATE2), verification
+- `blockchain-web3/thepunisher-exchangeintegrationexpert.md` — **ThePunisher-ExchangeIntegrationExpert**: CEX API integration: order books, withdrawal/deposit reconciliation
+- `blockchain-web3/thepunisher-onchainreputationexpert.md` — **ThePunisher-OnChainReputationExpert**: On-chain reputation/credit-scoring system design
+
+## Team 19 — Industry & Regulated-Sector Engineering (50 agents)
+
+- `industry-verticals/thepunisher-paymentscomplianceexpert.md` — **ThePunisher-PaymentsComplianceExpert**: PCI-DSS scoping, card-data tokenization, payment-flow architecture
+- `industry-verticals/thepunisher-openbankingexpert.md` — **ThePunisher-OpenBankingExpert**: PSD2/Open Banking API standards, consent flows, bank-grade auth
+- `industry-verticals/thepunisher-frauddetectionexpert.md` — **ThePunisher-FraudDetectionExpert**: Transaction fraud scoring, rules engines, anomaly detection pipelines
+- `industry-verticals/thepunisher-kycamlexpert.md` — **ThePunisher-KYCAMLExpert**: Know-your-customer/anti-money-laundering workflow implementation
+- `industry-verticals/thepunisher-corebankingexpert.md` — **ThePunisher-CoreBankingExpert**: Ledger systems, double-entry accounting, settlement/reconciliation
+- `industry-verticals/thepunisher-tradingsystemsexpert.md` — **ThePunisher-TradingSystemsExpert**: Order matching, market-data feeds, low-latency trading infrastructure
+- `industry-verticals/thepunisher-regtechexpert.md` — **ThePunisher-RegTechExpert**: Regulatory reporting automation: MiFID II, Dodd-Frank, Basel III
+- `industry-verticals/thepunisher-hl7fhirexpert.md` — **ThePunisher-HL7FHIRExpert**: HL7/FHIR healthcare interoperability standards implementation
+- `industry-verticals/thepunisher-hipaacomplianceexpert.md` — **ThePunisher-HIPAAComplianceExpert**: HIPAA-compliant architecture: PHI handling, audit logging, BAAs
+- `industry-verticals/thepunisher-ehrintegrationexpert.md` — **ThePunisher-EHRIntegrationExpert**: Electronic health record system integration (Epic/Cerner APIs)
+- `industry-verticals/thepunisher-clinicaldecisionsupportexpert.md` — **ThePunisher-ClinicalDecisionSupportExpert**: Clinical decision support system design and validation
+- `industry-verticals/thepunisher-telehealthexpert.md` — **ThePunisher-TelehealthExpert**: Telehealth platform architecture: video, scheduling, e-prescribing
+- `industry-verticals/thepunisher-medicaldevicesoftwareexpert.md` — **ThePunisher-MedicalDeviceSoftwareExpert**: IEC 62304 medical device software lifecycle compliance
+- `industry-verticals/thepunisher-dicomimagingexpert.md` — **ThePunisher-DICOMImagingExpert**: DICOM medical imaging standard, PACS integration
+- `industry-verticals/thepunisher-contractanalysisexpert.md` — **ThePunisher-ContractAnalysisExpert**: Contract lifecycle management, clause extraction, redlining tools
+- `industry-verticals/thepunisher-elegaldiscoveryexpert.md` — **ThePunisher-ELegalDiscoveryExpert**: E-discovery pipelines, document review workflow automation
+- `industry-verticals/thepunisher-legalresearchtoolingexpert.md` — **ThePunisher-LegalResearchToolingExpert**: Case-law/citation research tooling, legal knowledge graphs
+- `industry-verticals/thepunisher-courtfilingsystemsexpert.md` — **ThePunisher-CourtFilingSystemsExpert**: Electronic court filing (ECF) system integration
+- `industry-verticals/thepunisher-govaccessibilityexpert.md` — **ThePunisher-GovAccessibilityExpert**: Section 508/WCAG compliance for government digital services
+- `industry-verticals/thepunisher-fedrampexpert.md` — **ThePunisher-FedRAMPExpert**: FedRAMP authorization architecture for government cloud systems
+- `industry-verticals/thepunisher-govidentityexpert.md` — **ThePunisher-GovIdentityExpert**: Government identity verification: Login.gov-style federated auth
+- `industry-verticals/thepunisher-publicrecordssystemsexpert.md` — **ThePunisher-PublicRecordsSystemsExpert**: Public-records management and FOIA request workflow systems
+- `industry-verticals/thepunisher-civictechexpert.md` — **ThePunisher-CivicTechExpert**: Civic-engagement platforms: voting info, permit systems, 311 services
+- `industry-verticals/thepunisher-lmsintegrationexpert.md` — **ThePunisher-LMSIntegrationExpert**: Learning management system integration: Canvas/Moodle/LTI
+- `industry-verticals/thepunisher-edtechassessmentexpert.md` — **ThePunisher-EdTechAssessmentExpert**: Adaptive assessment engines, item-response-theory scoring
+- `industry-verticals/thepunisher-ferpacomplianceexpert.md` — **ThePunisher-FERPAComplianceExpert**: FERPA-compliant student-data handling and access control
+- `industry-verticals/thepunisher-accessiblelearningexpert.md` — **ThePunisher-AccessibleLearningExpert**: Accessible courseware design for diverse learner needs
+- `industry-verticals/thepunisher-insuranceunderwritingexpert.md` — **ThePunisher-InsuranceUnderwritingExpert**: Underwriting rules engines, risk-scoring model integration
+- `industry-verticals/thepunisher-claimsprocessingexpert.md` — **ThePunisher-ClaimsProcessingExpert**: Insurance claims processing pipelines, fraud flagging
+- `industry-verticals/thepunisher-actuarialtoolingexpert.md` — **ThePunisher-ActuarialToolingExpert**: Actuarial calculation engines, reserving/pricing model tooling
+- `industry-verticals/thepunisher-propertymanagementexpert.md` — **ThePunisher-PropertyManagementExpert**: Property management platforms: leasing, maintenance workflows
+- `industry-verticals/thepunisher-realestatelistingexpert.md` — **ThePunisher-RealEstateListingExpert**: MLS integration, real-estate listing syndication systems
+- `industry-verticals/thepunisher-constructiontechexpert.md` — **ThePunisher-ConstructionTechExpert**: BIM data integration, construction project-management tooling
+- `industry-verticals/thepunisher-supplychaintraceabilityexpert.md` — **ThePunisher-SupplyChainTraceabilityExpert**: Supply-chain traceability: provenance tracking, chain-of-custody
+- `industry-verticals/thepunisher-agtechexpert.md` — **ThePunisher-AgTechExpert**: Agricultural technology: precision-ag data pipelines, IoT sensor integration
+- `industry-verticals/thepunisher-energygridexpert.md` — **ThePunisher-EnergyGridExpert**: Smart-grid/energy-management system integration
+- `industry-verticals/thepunisher-carbonaccountingexpert.md` — **ThePunisher-CarbonAccountingExpert**: Carbon accounting/ESG reporting data pipelines
+- `industry-verticals/thepunisher-nonprofittechexpert.md` — **ThePunisher-NonprofitTechExpert**: Donor-management/grant-tracking system integration
+- `industry-verticals/thepunisher-hrtechexpert.md` — **ThePunisher-HRTechExpert**: HRIS/payroll integration, applicant-tracking system architecture
+- `industry-verticals/thepunisher-benefitsadministrationexpert.md` — **ThePunisher-BenefitsAdministrationExpert**: Benefits enrollment and administration system design
+- `industry-verticals/thepunisher-taxcomplianceexpert.md` — **ThePunisher-TaxComplianceExpert**: Sales-tax/VAT calculation engine integration (Avalara-style)
+- `industry-verticals/thepunisher-accountingsystemsexpert.md` — **ThePunisher-AccountingSystemsExpert**: GAAP/IFRS-compliant accounting system integration
+- `industry-verticals/thepunisher-creditscoringexpert.md` — **ThePunisher-CreditScoringExpert**: Credit-scoring model integration, adverse-action notice generation
+- `industry-verticals/thepunisher-wealthmanagementexpert.md` — **ThePunisher-WealthManagementExpert**: Robo-advisor/portfolio-management platform architecture
+- `industry-verticals/thepunisher-cryptocomplianceexpert.md` — **ThePunisher-CryptoComplianceExpert**: Digital-asset regulatory compliance: travel rule, VASP obligations
+- `industry-verticals/thepunisher-dataresidencyexpert.md` — **ThePunisher-DataResidencyExpert**: Data-residency/sovereignty architecture for multi-region regulated data
+- `industry-verticals/thepunisher-audittrailexpert.md` — **ThePunisher-AuditTrailExpert**: Tamper-evident audit-logging systems for regulated environments
+- `industry-verticals/thepunisher-consentmanagementexpert.md` — **ThePunisher-ConsentManagementExpert**: GDPR/CCPA consent-management platform implementation
+- `industry-verticals/thepunisher-regulatorysandboxexpert.md` — **ThePunisher-RegulatorySandboxExpert**: Regulatory-sandbox program navigation for fintech/healthtech launches
+- `industry-verticals/thepunisher-verticalsaasarchitect.md` — **ThePunisher-VerticalSaaSArchitect**: Multi-tenant vertical-SaaS architecture for regulated industries
+
+## Team 20 — Finance & Quantitative Engineering (50 agents)
+
+- `finance-quant/thepunisher-derivativespricingexpert.md` — **ThePunisher-DerivativesPricingExpert**: Options/futures pricing models: Black-Scholes, binomial trees, Monte Carlo
+- `finance-quant/thepunisher-fixedincomeexpert.md` — **ThePunisher-FixedIncomeExpert**: Bond pricing, yield-curve construction, duration/convexity analytics
+- `finance-quant/thepunisher-riskmanagementexpert.md` — **ThePunisher-RiskManagementExpert**: VaR/CVaR, stress testing, scenario analysis frameworks
+- `finance-quant/thepunisher-portfoliooptimizationexpert.md` — **ThePunisher-PortfolioOptimizationExpert**: Mean-variance optimization, factor models, rebalancing algorithms
+- `finance-quant/thepunisher-algorithmictradingexpert.md` — **ThePunisher-AlgorithmicTradingExpert**: Trading strategy implementation: signal generation, backtesting harnesses
+- `finance-quant/thepunisher-marketmicrostructureexpert.md` — **ThePunisher-MarketMicrostructureExpert**: Order-book dynamics, market impact modeling, execution algorithms
+- `finance-quant/thepunisher-lowlatencytradingexpert.md` — **ThePunisher-LowLatencyTradingExpert**: Sub-millisecond trading infrastructure, kernel bypass, FPGA-adjacent design
+- `finance-quant/thepunisher-marketdatafeedexpert.md` — **ThePunisher-MarketDataFeedExpert**: Real-time market-data ingestion: FIX protocol, tick data normalization
+- `finance-quant/thepunisher-quantresearchexpert.md` — **ThePunisher-QuantResearchExpert**: Factor research, alpha signal discovery, statistical arbitrage design
+- `finance-quant/thepunisher-financialtimeseriesmodelingexpert.md` — **ThePunisher-FinancialTimeSeriesModelingExpert**: Financial time-series modeling: ARIMA/GARCH, volatility forecasting
+- `finance-quant/thepunisher-treasurymanagementexpert.md` — **ThePunisher-TreasuryManagementExpert**: Cash-flow forecasting, liquidity management, FX hedging systems
+- `finance-quant/thepunisher-financialcloseautomationexpert.md` — **ThePunisher-FinancialCloseAutomationExpert**: Month-end close automation, reconciliation, journal-entry pipelines
+- `finance-quant/thepunisher-xbrlreportingexpert.md` — **ThePunisher-XBRLReportingExpert**: XBRL/regulatory financial-statement tagging and reporting pipelines
+- `finance-quant/thepunisher-financialmodelingexpert.md` — **ThePunisher-FinancialModelingExpert**: DCF/LBO/three-statement financial model construction and validation
+- `finance-quant/thepunisher-budgetingforecastingexpert.md` — **ThePunisher-BudgetingForecastingExpert**: FP&A budgeting/forecasting system design (driver-based models)
+- `finance-quant/thepunisher-forextradingexpert.md` — **ThePunisher-ForexTradingExpert**: FX spot/forward pricing, currency-risk hedging strategy implementation
+- `finance-quant/thepunisher-commoditiestradingexpert.md` — **ThePunisher-CommoditiesTradingExpert**: Commodities futures/options pricing and physical-settlement systems
+- `finance-quant/thepunisher-creditriskmodelingexpert.md` — **ThePunisher-CreditRiskModelingExpert**: PD/LGD/EAD credit-risk model design, Basel-compliant capital calc
+- `finance-quant/thepunisher-marketrisksystemsexpert.md` — **ThePunisher-MarketRiskSystemsExpert**: Real-time market-risk aggregation and limit-monitoring systems
+- `finance-quant/thepunisher-backtestingframeworkexpert.md` — **ThePunisher-BacktestingFrameworkExpert**: Event-driven backtesting engine design, look-ahead-bias prevention
+- `finance-quant/thepunisher-ordermanagementsystemexpert.md` — **ThePunisher-OrderManagementSystemExpert**: OMS/EMS architecture: order routing, allocation, compliance checks
+- `finance-quant/thepunisher-clearingsettlementexpert.md` — **ThePunisher-ClearingSettlementExpert**: Trade clearing/settlement systems, T+1 reconciliation workflows
+- `finance-quant/thepunisher-quantitativeresearchplatformexpert.md` — **ThePunisher-QuantitativeResearchPlatformExpert**: Research-platform tooling: Jupyter-based quant workflows, data lakes for tick data
+- `finance-quant/thepunisher-structuredproductsexpert.md` — **ThePunisher-StructuredProductsExpert**: Structured-product design and pricing: notes, swaps, exotic derivatives
+- `finance-quant/thepunisher-highfrequencydataexpert.md` — **ThePunisher-HighFrequencyDataExpert**: Tick-level data storage/compression, HFT data-pipeline engineering
+- `finance-quant/thepunisher-counterpartyriskexpert.md` — **ThePunisher-CounterpartyRiskExpert**: Counterparty credit-risk exposure calculation, CVA/DVA modeling
+- `finance-quant/thepunisher-financialapiintegrationexpert.md` — **ThePunisher-FinancialAPIIntegrationExpert**: Market-data/broker API integration: Bloomberg, Refinitiv, Interactive Brokers
+- `finance-quant/thepunisher-roboadvisoryengineexpert.md` — **ThePunisher-RoboAdvisoryEngineExpert**: Automated investment-advice engine design: goal-based allocation logic
+- `finance-quant/thepunisher-esginvestingexpert.md` — **ThePunisher-ESGInvestingExpert**: ESG scoring integration and sustainable-investing screening pipelines
+- `finance-quant/thepunisher-privateequitytoolingexpert.md` — **ThePunisher-PrivateEquityToolingExpert**: PE/VC portfolio-tracking, cap-table, and waterfall-calculation tooling
+- `finance-quant/thepunisher-hedgefundoperationsexpert.md` — **ThePunisher-HedgeFundOperationsExpert**: Hedge-fund middle/back-office operations systems: NAV calc, investor reporting
+- `finance-quant/thepunisher-financialdatawarehouseexpert.md` — **ThePunisher-FinancialDataWarehouseExpert**: Financial-grade data-warehouse design: point-in-time correctness, audit trails
+- `finance-quant/thepunisher-montecarlosimulationexpert.md` — **ThePunisher-MonteCarloSimulationExpert**: Monte Carlo simulation engines for pricing/risk under uncertainty
+- `finance-quant/thepunisher-optionsstrategyexpert.md` — **ThePunisher-OptionsStrategyExpert**: Multi-leg options strategy construction and Greeks-based risk analysis
+- `finance-quant/thepunisher-cryptoderivativesexpert.md` — **ThePunisher-CryptoDerivativesExpert**: Crypto perpetuals/futures pricing and funding-rate mechanism design
+- `finance-quant/thepunisher-algorithmicexecutionexpert.md` — **ThePunisher-AlgorithmicExecutionExpert**: TWAP/VWAP/implementation-shortfall execution algorithm design
+- `finance-quant/thepunisher-financialcomplianceengineexpert.md` — **ThePunisher-FinancialComplianceEngineExpert**: Real-time pre-trade/post-trade compliance rule engines
+- `finance-quant/thepunisher-assetliabilitymanagementexpert.md` — **ThePunisher-AssetLiabilityManagementExpert**: ALM systems: interest-rate-gap analysis, balance-sheet optimization
+- `finance-quant/thepunisher-quantlibraryexpert.md` — **ThePunisher-QuantLibraryExpert**: QuantLib/quant-finance library integration and custom pricer development
+- `finance-quant/thepunisher-financialdataqualityexpert.md` — **ThePunisher-FinancialDataQualityExpert**: Reference/pricing data quality validation and golden-source reconciliation
+- `finance-quant/thepunisher-paymentsrailsexpert.md` — **ThePunisher-PaymentsRailsExpert**: ACH/wire/SWIFT/real-time-payments rail integration engineering
+- `finance-quant/thepunisher-cardnetworkintegrationexpert.md` — **ThePunisher-CardNetworkIntegrationExpert**: Card-network (Visa/Mastercard) processing integration engineering
+- `finance-quant/thepunisher-investmentbankingtoolingexpert.md` — **ThePunisher-InvestmentBankingToolingExpert**: Deal-pipeline/CRM tooling for investment-banking workflows
+- `finance-quant/thepunisher-financialstresstestingexpert.md` — **ThePunisher-FinancialStressTestingExpert**: Regulatory stress-test scenario engines: CCAR/DFAST-style modeling
+- `finance-quant/thepunisher-liquidityriskexpert.md` — **ThePunisher-LiquidityRiskExpert**: Liquidity coverage ratio/NSFR modeling and intraday liquidity monitoring
+- `finance-quant/thepunisher-quantitativemlexpert.md` — **ThePunisher-QuantitativeMLExpert**: ML-driven alpha models, feature engineering for financial time series
+- `finance-quant/thepunisher-corporateactionsexpert.md` — **ThePunisher-CorporateActionsExpert**: Corporate-actions processing: splits, dividends, mergers, entitlements
+- `finance-quant/thepunisher-collateralmanagementexpert.md` — **ThePunisher-CollateralManagementExpert**: Collateral/margin management systems, initial/variation margin calc
+- `finance-quant/thepunisher-financialaudittoolingexpert.md` — **ThePunisher-FinancialAuditToolingExpert**: Financial-audit workflow tooling: sampling, controls testing automation
+- `finance-quant/thepunisher-embeddedfinanceexpert.md` — **ThePunisher-EmbeddedFinanceExpert**: Banking-as-a-service/embedded-finance API integration for non-bank platforms
+
+## Team 21 — Embedded Systems & IoT Engineering (50 agents)
+
+- `embedded-iot/thepunisher-rtosexpert.md` — **ThePunisher-RTOSExpert**: FreeRTOS/Zephyr scheduling internals, task/priority design
+- `embedded-iot/thepunisher-embeddedcexpert.md` — **ThePunisher-EmbeddedCExpert**: Bare-metal C for microcontrollers, MISRA-C compliance
+- `embedded-iot/thepunisher-armcortexmexpert.md` — **ThePunisher-ARMCortexMExpert**: ARM Cortex-M architecture, low-level bring-up
+- `embedded-iot/thepunisher-baremetalfirmwareexpert.md` — **ThePunisher-BareMetalFirmwareExpert**: Firmware without an OS: startup code, linker scripts
+- `embedded-iot/thepunisher-bootloaderexpert.md` — **ThePunisher-BootloaderExpert**: Bootloader design, secure boot chains, firmware verification
+- `embedded-iot/thepunisher-microcontrollerperipheralexpert.md` — **ThePunisher-MicrocontrollerPeripheralExpert**: GPIO/SPI/I2C/UART/ADC driver development
+- `embedded-iot/thepunisher-embeddedlinuxexpert.md` — **ThePunisher-EmbeddedLinuxExpert**: Yocto/Buildroot embedded Linux build systems
+- `embedded-iot/thepunisher-devicetreeexpert.md` — **ThePunisher-DeviceTreeExpert**: Linux device-tree configuration for embedded boards
+- `embedded-iot/thepunisher-mqttexpert.md` — **ThePunisher-MQTTExpert**: MQTT broker/client protocol implementation for IoT messaging
+- `embedded-iot/thepunisher-coapexpert.md` — **ThePunisher-CoAPExpert**: CoAP protocol implementation for constrained IoT devices
+- `embedded-iot/thepunisher-lorawanexpert.md` — **ThePunisher-LoRaWANExpert**: LoRaWAN network architecture and gateway integration
+- `embedded-iot/thepunisher-zigbeeexpert.md` — **ThePunisher-ZigbeeExpert**: Zigbee mesh networking implementation
+- `embedded-iot/thepunisher-bleexpert.md` — **ThePunisher-BLEExpert**: Bluetooth Low Energy GATT/peripheral development
+- `embedded-iot/thepunisher-iotedgecomputingexpert.md` — **ThePunisher-IoTEdgeComputingExpert**: Edge processing pipelines on constrained IoT devices
+- `embedded-iot/thepunisher-iotsecurityexpert.md` — **ThePunisher-IoTSecurityExpert**: IoT device hardening, secure provisioning, key management
+- `embedded-iot/thepunisher-otaupdateexpert.md` — **ThePunisher-OTAUpdateExpert**: Over-the-air firmware update systems, rollback safety
+- `embedded-iot/thepunisher-sensorfusionexpert.md` — **ThePunisher-SensorFusionExpert**: IMU/sensor fusion algorithms: Kalman/complementary filters
+- `embedded-iot/thepunisher-powermanagementexpert.md` — **ThePunisher-PowerManagementExpert**: Low-power embedded design, sleep-mode/wake strategy
+- `embedded-iot/thepunisher-hardwareabstractionlayerexpert.md` — **ThePunisher-HardwareAbstractionLayerExpert**: HAL design for portable, testable firmware
+- `embedded-iot/thepunisher-jtagdebuggingexpert.md` — **ThePunisher-JTAGDebuggingExpert**: JTAG/SWD hardware debugging workflows
+- `embedded-iot/thepunisher-pcbfirmwareintegrationexpert.md` — **ThePunisher-PCBFirmwareIntegrationExpert**: Firmware-hardware co-verification against schematics
+- `embedded-iot/thepunisher-industrialprotocolexpert.md` — **ThePunisher-IndustrialProtocolExpert**: Modbus/PROFINET industrial communication protocols
+- `embedded-iot/thepunisher-canbusexpert.md` — **ThePunisher-CANBusExpert**: CAN bus automotive/industrial networking implementation
+- `embedded-iot/thepunisher-embeddedrustexpert.md` — **ThePunisher-EmbeddedRustExpert**: Rust for embedded: embedded-hal, no_std development
+- `embedded-iot/thepunisher-fpgafirmwareexpert.md` — **ThePunisher-FPGAFirmwareExpert**: FPGA/HDL co-design with embedded firmware integration
+- `embedded-iot/thepunisher-realtimeschedulingexpert.md` — **ThePunisher-RealTimeSchedulingExpert**: Hard real-time task scheduling analysis and verification
+- `embedded-iot/thepunisher-embeddedtestingexpert.md` — **ThePunisher-EmbeddedTestingExpert**: Hardware-in-the-loop testing framework design
+- `embedded-iot/thepunisher-wearabledeviceexpert.md` — **ThePunisher-WearableDeviceExpert**: Wearable device firmware and BLE integration
+- `embedded-iot/thepunisher-smarthomeprotocolexpert.md` — **ThePunisher-SmartHomeProtocolExpert**: Matter/Thread smart-home protocol integration
+- `embedded-iot/thepunisher-iotcloudintegrationexpert.md` — **ThePunisher-IoTCloudIntegrationExpert**: Device-to-cloud telemetry pipelines: AWS IoT/Azure IoT Hub
+- `embedded-iot/thepunisher-embeddedsecurebootexpert.md` — **ThePunisher-EmbeddedSecureBootExpert**: Secure boot/TPM/hardware root-of-trust implementation
+- `embedded-iot/thepunisher-embeddedgraphicsexpert.md` — **ThePunisher-EmbeddedGraphicsExpert**: Embedded GUI frameworks (LVGL) for MCU displays
+- `embedded-iot/thepunisher-uwbpositioningexpert.md` — **ThePunisher-UWBPositioningExpert**: Ultra-wideband precision positioning integration
+- `embedded-iot/thepunisher-embeddedaiexpert.md` — **ThePunisher-EmbeddedAIExpert**: TinyML/on-device inference for microcontrollers
+- `embedded-iot/thepunisher-industrialiotgatewayexpert.md` — **ThePunisher-IndustrialIoTGatewayExpert**: IIoT gateway architecture, protocol translation
+- `embedded-iot/thepunisher-rfidexpert.md` — **ThePunisher-RFIDExpert**: RFID/NFC integration for embedded systems
+- `embedded-iot/thepunisher-embeddednetworkstackexpert.md` — **ThePunisher-EmbeddedNetworkStackExpert**: lwIP/TCP-IP stack integration on constrained devices
+- `embedded-iot/thepunisher-hardwareinterruptexpert.md` — **ThePunisher-HardwareInterruptExpert**: Interrupt-driven firmware architecture and latency analysis
+- `embedded-iot/thepunisher-embeddeddatabaseexpert.md` — **ThePunisher-EmbeddedDatabaseExpert**: Flash-resident database engines: embedded SQLite, LittleFS
+- `embedded-iot/thepunisher-automotiveembeddedexpert.md` — **ThePunisher-AutomotiveEmbeddedExpert**: AUTOSAR-adjacent automotive ECU firmware development
+- `embedded-iot/thepunisher-embeddedmedicaldeviceexpert.md` — **ThePunisher-EmbeddedMedicalDeviceExpert**: Hardware-level firmware for medical devices: sensors, interlocks
+- `embedded-iot/thepunisher-energyharvestingexpert.md` — **ThePunisher-EnergyHarvestingExpert**: Energy-harvesting embedded power design
+- `embedded-iot/thepunisher-wirelesssensornetworkexpert.md` — **ThePunisher-WirelessSensorNetworkExpert**: WSN topology and routing protocol design
+- `embedded-iot/thepunisher-embeddedcertificationexpert.md` — **ThePunisher-EmbeddedCertificationExpert**: FCC/CE/UL embedded product certification preparation
+- `embedded-iot/thepunisher-droneflightcontrollerexpert.md` — **ThePunisher-DroneFlightControllerExpert**: Drone/UAV flight-controller firmware: PX4/ArduPilot
+- `embedded-iot/thepunisher-gnssintegrationexpert.md` — **ThePunisher-GNSSIntegrationExpert**: GPS/GNSS module integration and positioning accuracy tuning
+- `embedded-iot/thepunisher-embeddedprotocolfuzzerexpert.md` — **ThePunisher-EmbeddedProtocolFuzzerExpert**: Fuzzing embedded protocol stacks for robustness
+- `embedded-iot/thepunisher-hardwaresimulationexpert.md` — **ThePunisher-HardwareSimulationExpert**: QEMU/hardware-in-loop simulation for firmware development
+- `embedded-iot/thepunisher-iotdeviceprovisioningexpert.md` — **ThePunisher-IoTDeviceProvisioningExpert**: Zero-touch device provisioning and fleet enrollment
+- `embedded-iot/thepunisher-embeddedperformanceprofilerexpert.md` — **ThePunisher-EmbeddedPerformanceProfilerExpert**: Cycle-accurate embedded performance profiling
+
+## Team 22 — Robotics & Automation Engineering (50 agents)
+
+- `robotics-automation/thepunisher-ros2architectureexpert.md` — **ThePunisher-ROS2ArchitectureExpert**: ROS2 node/topic/service architecture design
+- `robotics-automation/thepunisher-motionplanningexpert.md` — **ThePunisher-MotionPlanningExpert**: Trajectory generation and collision-avoidance planning
+- `robotics-automation/thepunisher-robotkinematicsexpert.md` — **ThePunisher-RobotKinematicsExpert**: Forward/inverse kinematics for robotic manipulators
+- `robotics-automation/thepunisher-robotdynamicsexpert.md` — **ThePunisher-RobotDynamicsExpert**: Robot dynamics modeling: torque, inertia, dynamics equations
+- `robotics-automation/thepunisher-slamexpert.md` — **ThePunisher-SLAMExpert**: Simultaneous localization and mapping algorithm implementation
+- `robotics-automation/thepunisher-robotperceptionexpert.md` — **ThePunisher-RobotPerceptionExpert**: Computer vision pipelines for robotic perception
+- `robotics-automation/thepunisher-robotcontrolsystemsexpert.md` — **ThePunisher-RobotControlSystemsExpert**: PID/feedback control loop design for robot actuators
+- `robotics-automation/thepunisher-industrialplcexpert.md` — **ThePunisher-IndustrialPLCExpert**: PLC ladder-logic/structured-text programming
+- `robotics-automation/thepunisher-collaborativerobotsafetyexpert.md` — **ThePunisher-CollaborativeRobotSafetyExpert**: ISO/TS 15066 collaborative-robot (cobot) safety design
+- `robotics-automation/thepunisher-amrnavigationexpert.md` — **ThePunisher-AMRNavigationExpert**: Autonomous mobile robot navigation and path following
+- `robotics-automation/thepunisher-robotmanipulationexpert.md` — **ThePunisher-RobotManipulationExpert**: Grasping and manipulation planning for robotic arms
+- `robotics-automation/thepunisher-industrialautomationexpert.md` — **ThePunisher-IndustrialAutomationExpert**: Manufacturing line automation systems integration
+- `robotics-automation/thepunisher-roboticprocessautomationexpert.md` — **ThePunisher-RoboticProcessAutomationExpert**: RPA software-bot design for business-process automation
+- `robotics-automation/thepunisher-robotsimulationexpert.md` — **ThePunisher-RobotSimulationExpert**: Gazebo/Isaac Sim robot simulation environment design
+- `robotics-automation/thepunisher-machinevisionexpert.md` — **ThePunisher-MachineVisionExpert**: Industrial machine-vision system design and calibration
+- `robotics-automation/thepunisher-robotsafetystandardsexpert.md` — **ThePunisher-RobotSafetyStandardsExpert**: ISO 10218/12100/13849 functional-safety compliance
+- `robotics-automation/thepunisher-roboticarmprogrammingexpert.md` — **ThePunisher-RoboticArmProgrammingExpert**: Robot-arm teach-pendant/G-code programming
+- `robotics-automation/thepunisher-warehouseroboticsexpert.md` — **ThePunisher-WarehouseRoboticsExpert**: AMR/AS-RS warehouse automation system design
+- `robotics-automation/thepunisher-robotswarmexpert.md` — **ThePunisher-RobotSwarmExpert**: Multi-robot swarm coordination algorithm design
+- `robotics-automation/thepunisher-humanoidroboticsexpert.md` — **ThePunisher-HumanoidRoboticsExpert**: Humanoid robot control architecture
+- `robotics-automation/thepunisher-robotfleetmanagementexpert.md` — **ThePunisher-RobotFleetManagementExpert**: AMR fleet dispatch and traffic-management systems
+- `robotics-automation/thepunisher-robotcalibrationexpert.md` — **ThePunisher-RobotCalibrationExpert**: Sensor and kinematic calibration for robotic systems
+- `robotics-automation/thepunisher-roboticweldingexpert.md` — **ThePunisher-RoboticWeldingExpert**: Robotic welding-cell programming and process optimization
+- `robotics-automation/thepunisher-agriculturalroboticsexpert.md` — **ThePunisher-AgriculturalRoboticsExpert**: Precision-agriculture robotic actuation and field-robot design
+- `robotics-automation/thepunisher-medicalroboticsexpert.md` — **ThePunisher-MedicalRoboticsExpert**: Surgical robotics control-system engineering
+- `robotics-automation/thepunisher-underwaterroboticsexpert.md` — **ThePunisher-UnderwaterRoboticsExpert**: ROV/AUV control-system engineering
+- `robotics-automation/thepunisher-leggedrobotlocomotionexpert.md` — **ThePunisher-LeggedRobotLocomotionExpert**: Quadruped/bipedal locomotion control design
+- `robotics-automation/thepunisher-robotteleoperationexpert.md` — **ThePunisher-RobotTeleoperationExpert**: Remote teleoperation system design for robots
+- `robotics-automation/thepunisher-industrialcelldesignexpert.md` — **ThePunisher-IndustrialCellDesignExpert**: Robot work-cell layout and safety-zone design
+- `robotics-automation/thepunisher-roboticinspectionexpert.md` — **ThePunisher-RoboticInspectionExpert**: Automated visual-inspection robot system design
+- `robotics-automation/thepunisher-exoskeletonengineeringexpert.md` — **ThePunisher-ExoskeletonEngineeringExpert**: Wearable exoskeleton control-system engineering
+- `robotics-automation/thepunisher-robotmiddlewareintegrationexpert.md` — **ThePunisher-RobotMiddlewareIntegrationExpert**: ROS middleware integration with vendor robot firmware
+- `robotics-automation/thepunisher-roboticsaigovernanceexpert.md` — **ThePunisher-RoboticsAIGovernanceExpert**: AI/ML governance and validation for robotic decision systems
+- `robotics-automation/thepunisher-robotcybersecurityexpert.md` — **ThePunisher-RobotCybersecurityExpert**: IEC 62443 industrial-robot cybersecurity hardening
+- `robotics-automation/thepunisher-robotverificationvalidationexpert.md` — **ThePunisher-RobotVerificationValidationExpert**: V&V test-protocol design for robotic systems
+- `robotics-automation/thepunisher-conveyorautomationexpert.md` — **ThePunisher-ConveyorAutomationExpert**: Conveyor and material-handling automation system design
+- `robotics-automation/thepunisher-roboticpickandplaceexpert.md` — **ThePunisher-RoboticPickAndPlaceExpert**: Pick-and-place cell programming and cycle-time optimization
+- `robotics-automation/thepunisher-droneswarmcoordinationexpert.md` — **ThePunisher-DroneSwarmCoordinationExpert**: Multi-drone swarm coordination algorithm design
+- `robotics-automation/thepunisher-robotenergyefficiencyexpert.md` — **ThePunisher-RobotEnergyEfficiencyExpert**: Energy-consumption optimization for robotic systems
+- `robotics-automation/thepunisher-roboticsdigitaltwinexpert.md` — **ThePunisher-RoboticsDigitalTwinExpert**: Digital-twin simulation for robotic production cells
+- `robotics-automation/thepunisher-roboticprocessminingexpert.md` — **ThePunisher-RoboticProcessMiningExpert**: RPA process discovery and mining for automation candidates
+- `robotics-automation/thepunisher-robothardwareintheloopexpert.md` — **ThePunisher-RobotHardwareInTheLoopExpert**: Robot-specific hardware-in-the-loop test-rig design
+- `robotics-automation/thepunisher-autonomousvehicleperceptionexpert.md` — **ThePunisher-AutonomousVehiclePerceptionExpert**: Self-driving perception-stack engineering
+- `robotics-automation/thepunisher-roboticscomplianceauditexpert.md` — **ThePunisher-RoboticsComplianceAuditExpert**: Audit-ready robotics compliance documentation generation
+- `robotics-automation/thepunisher-collisionavoidancesystemsexpert.md` — **ThePunisher-CollisionAvoidanceSystemsExpert**: Real-time obstacle-avoidance system design
+- `robotics-automation/thepunisher-roboticendeffectorexpert.md` — **ThePunisher-RoboticEndEffectorExpert**: Gripper/end-effector mechanical and control design
+- `robotics-automation/thepunisher-mobilerobotlocalizationexpert.md` — **ThePunisher-MobileRobotLocalizationExpert**: Particle-filter/EKF localization for mobile robots
+- `robotics-automation/thepunisher-robotforcecontrolexpert.md` — **ThePunisher-RobotForceControlExpert**: Force/torque control for compliant manipulation
+- `robotics-automation/thepunisher-robotsoftwareupdateexpert.md` — **ThePunisher-RobotSoftwareUpdateExpert**: OTA/fleet software-update rollout for robot fleets
+- `robotics-automation/thepunisher-robotacousticsensingexpert.md` — **ThePunisher-RobotAcousticSensingExpert**: Sonar/acoustic sensing integration for robotics
+
+## Team 23 — Telecommunications & Networking Engineering (50 agents)
+
+- `telecom-networking/thepunisher-fivegcorenetworkexpert.md` — **ThePunisher-FiveGCoreNetworkExpert**: 5G core network architecture: AMF/SMF/UPF design
+- `telecom-networking/thepunisher-ranarchitectureexpert.md` — **ThePunisher-RANArchitectureExpert**: Radio access network architecture, O-RAN integration
+- `telecom-networking/thepunisher-sdnexpert.md` — **ThePunisher-SDNExpert**: Software-defined networking controller/architecture design
+- `telecom-networking/thepunisher-nfvexpert.md` — **ThePunisher-NFVExpert**: Network functions virtualization and VNF lifecycle management
+- `telecom-networking/thepunisher-voipengineeringexpert.md` — **ThePunisher-VoIPEngineeringExpert**: VoIP system architecture and codec/QoS engineering
+- `telecom-networking/thepunisher-sipprotocolexpert.md` — **ThePunisher-SIPProtocolExpert**: SIP protocol implementation and signaling troubleshooting
+- `telecom-networking/thepunisher-networkprotocoldesignexpert.md` — **ThePunisher-NetworkProtocolDesignExpert**: Custom network protocol design and specification
+- `telecom-networking/thepunisher-bgproutingexpert.md` — **ThePunisher-BGPRoutingExpert**: BGP routing architecture for carrier/enterprise networks
+- `telecom-networking/thepunisher-mplsexpert.md` — **ThePunisher-MPLSExpert**: MPLS traffic-engineering and VPN design
+- `telecom-networking/thepunisher-networksecurityarchitectexpert.md` — **ThePunisher-NetworkSecurityArchitectExpert**: Network-layer security architecture: segmentation, firewalls
+- `telecom-networking/thepunisher-networkloadbalancingexpert.md` — **ThePunisher-NetworkLoadBalancingExpert**: L4/L7 load-balancer architecture and traffic distribution
+- `telecom-networking/thepunisher-cdnarchitectureexpert.md` — **ThePunisher-CDNArchitectureExpert**: Content delivery network design and edge-cache strategy
+- `telecom-networking/thepunisher-dnsinfrastructureexpert.md` — **ThePunisher-DNSInfrastructureExpert**: DNS infrastructure design: authoritative/resolver architecture
+- `telecom-networking/thepunisher-networktopologydesignexpert.md` — **ThePunisher-NetworkTopologyDesignExpert**: Enterprise/carrier network topology design
+- `telecom-networking/thepunisher-fiberopticnetworkexpert.md` — **ThePunisher-FiberOpticNetworkExpert**: Fiber-optic network design and link-budget calculation
+- `telecom-networking/thepunisher-wifiengineeringexpert.md` — **ThePunisher-WiFiEngineeringExpert**: 802.11 Wi-Fi design and RF site-survey planning
+- `telecom-networking/thepunisher-satellitecommunicationexpert.md` — **ThePunisher-SatelliteCommunicationExpert**: Satellite communication link design and ground-station integration
+- `telecom-networking/thepunisher-vpnarchitectureexpert.md` — **ThePunisher-VPNArchitectureExpert**: VPN architecture: IPsec/WireGuard site-to-site and remote access
+- `telecom-networking/thepunisher-networktelemetryexpert.md` — **ThePunisher-NetworkTelemetryExpert**: Network-layer telemetry: NetFlow/SNMP/sFlow monitoring
+- `telecom-networking/thepunisher-telecombillingsystemsexpert.md` — **ThePunisher-TelecomBillingSystemsExpert**: Telecom billing/mediation system integration
+- `telecom-networking/thepunisher-imsarchitectureexpert.md` — **ThePunisher-IMSArchitectureExpert**: IP Multimedia Subsystem architecture design
+- `telecom-networking/thepunisher-networkslicingexpert.md` — **ThePunisher-NetworkSlicingExpert**: 5G network-slicing design and orchestration
+- `telecom-networking/thepunisher-edgecomputingtelecomexpert.md` — **ThePunisher-EdgeComputingTelecomExpert**: Multi-access edge computing (MEC) deployment architecture
+- `telecom-networking/thepunisher-volteexpert.md` — **ThePunisher-VoLTEExpert**: VoLTE call-flow engineering and interoperability testing
+- `telecom-networking/thepunisher-networkfunctionorchestrationexpert.md` — **ThePunisher-NetworkFunctionOrchestrationExpert**: NFV orchestration/MANO stack integration
+- `telecom-networking/thepunisher-telecomprovisioningexpert.md` — **ThePunisher-TelecomProvisioningExpert**: Subscriber/service provisioning system engineering
+- `telecom-networking/thepunisher-rfengineeringexpert.md` — **ThePunisher-RFEngineeringExpert**: RF planning and link-budget engineering
+- `telecom-networking/thepunisher-antennasystemsexpert.md` — **ThePunisher-AntennaSystemsExpert**: Antenna system design and coverage optimization
+- `telecom-networking/thepunisher-opticaltransportnetworkexpert.md` — **ThePunisher-OpticalTransportNetworkExpert**: DWDM/optical transport network engineering
+- `telecom-networking/thepunisher-networkautomationexpert.md` — **ThePunisher-NetworkAutomationExpert**: Network configuration automation: Ansible/NETCONF for networking
+- `telecom-networking/thepunisher-qosengineeringexpert.md` — **ThePunisher-QoSEngineeringExpert**: Quality-of-service traffic-engineering and prioritization
+- `telecom-networking/thepunisher-telecomossbssexpert.md` — **ThePunisher-TelecomOSSBSSExpert**: Operations/business support systems integration
+- `telecom-networking/thepunisher-networkcapacityplanningexpert.md` — **ThePunisher-NetworkCapacityPlanningExpert**: Network capacity planning and growth forecasting
+- `telecom-networking/thepunisher-ss7signalingexpert.md` — **ThePunisher-SS7SignalingExpert**: Legacy SS7 telecom signaling protocol engineering
+- `telecom-networking/thepunisher-telecominteroperabilityexpert.md` — **ThePunisher-TelecomInteroperabilityExpert**: Cross-carrier interoperability testing and certification
+- `telecom-networking/thepunisher-cablebroadbandexpert.md` — **ThePunisher-CableBroadbandExpert**: DOCSIS cable-broadband network engineering
+- `telecom-networking/thepunisher-telecomfrauddetectionexpert.md` — **ThePunisher-TelecomFraudDetectionExpert**: Telecom fraud detection: SIM-box, IRSF, toll-fraud systems
+- `telecom-networking/thepunisher-privatenetworkexpert.md` — **ThePunisher-PrivateNetworkExpert**: Private 5G/LTE network deployment engineering
+- `telecom-networking/thepunisher-submarinecableexpert.md` — **ThePunisher-SubmarineCableExpert**: Submarine cable network infrastructure engineering
+- `telecom-networking/thepunisher-telecomregulatorycomplianceexpert.md` — **ThePunisher-TelecomRegulatoryComplianceExpert**: FCC/telecom regulatory compliance engineering
+- `telecom-networking/thepunisher-networktestingexpert.md` — **ThePunisher-NetworkTestingExpert**: Network conformance and interoperability testing
+- `telecom-networking/thepunisher-telecomapiexpert.md` — **ThePunisher-TelecomAPIExpert**: TM Forum Open API integration for telecom systems
+- `telecom-networking/thepunisher-iotconnectivityproviderexpert.md` — **ThePunisher-IoTConnectivityProviderExpert**: Cellular IoT/eSIM connectivity management engineering
+- `telecom-networking/thepunisher-telecomtrafficanalysisexpert.md` — **ThePunisher-TelecomTrafficAnalysisExpert**: Carrier network traffic analysis and troubleshooting
+- `telecom-networking/thepunisher-telecomdisasterrecoveryexpert.md` — **ThePunisher-TelecomDisasterRecoveryExpert**: Network resilience and failover architecture design
+- `telecom-networking/thepunisher-unifiedcommunicationsexpert.md` — **ThePunisher-UnifiedCommunicationsExpert**: Unified communications platform and video-conferencing infra
+- `telecom-networking/thepunisher-networkpeeringexpert.md` — **ThePunisher-NetworkPeeringExpert**: Internet exchange/peering architecture engineering
+- `telecom-networking/thepunisher-telecomdatacenterinterconnectexpert.md` — **ThePunisher-TelecomDataCenterInterconnectExpert**: Data-center interconnect (DCI) networking engineering
+- `telecom-networking/thepunisher-wirelessspectrummanagementexpert.md` — **ThePunisher-WirelessSpectrumManagementExpert**: Spectrum licensing and allocation engineering
+- `telecom-networking/thepunisher-telecomcustomerexperienceengineeringexpert.md` — **ThePunisher-TelecomCustomerExperienceEngineeringExpert**: Network QoE monitoring for customer-experience management
+
+## Team 24 — Distributed Systems & Database Internals Engineering (50 agents)
+
+- `distributed-systems-db/thepunisher-consensusalgorithmexpert.md` — **ThePunisher-ConsensusAlgorithmExpert**: Raft/Paxos/PBFT consensus protocol implementation
+- `distributed-systems-db/thepunisher-distributedtransactionexpert.md` — **ThePunisher-DistributedTransactionExpert**: 2PC/3PC/Saga distributed transaction pattern design
+- `distributed-systems-db/thepunisher-databasestorageengineexpert.md` — **ThePunisher-DatabaseStorageEngineExpert**: LSM-tree/B-tree storage engine internals
+- `distributed-systems-db/thepunisher-writeaheadlogexpert.md` — **ThePunisher-WriteAheadLogExpert**: WAL design, crash recovery, durability guarantees
+- `distributed-systems-db/thepunisher-mvccexpert.md` — **ThePunisher-MVCCExpert**: Multi-version concurrency control implementation
+- `distributed-systems-db/thepunisher-partitioningalgorithmexpert.md` — **ThePunisher-PartitioningAlgorithmExpert**: Horizontal sharding/partitioning algorithm design
+- `distributed-systems-db/thepunisher-distributedreplicationexpert.md` — **ThePunisher-DistributedReplicationExpert**: Leader-follower/multi-leader replication design
+- `distributed-systems-db/thepunisher-distributedcachearchitectureexpert.md` — **ThePunisher-DistributedCacheArchitectureExpert**: Distributed caching architecture: Redis Cluster, Memcached
+- `distributed-systems-db/thepunisher-vectorclockexpert.md` — **ThePunisher-VectorClockExpert**: Causality tracking: vector clocks, logical clocks
+- `distributed-systems-db/thepunisher-crdtexpert.md` — **ThePunisher-CRDTExpert**: Conflict-free replicated data type design
+- `distributed-systems-db/thepunisher-distributedlockingexpert.md` — **ThePunisher-DistributedLockingExpert**: Distributed lock/lease implementation: Zookeeper/etcd
+- `distributed-systems-db/thepunisher-gossipprotocolexpert.md` — **ThePunisher-GossipProtocolExpert**: Gossip-based membership/dissemination protocol design
+- `distributed-systems-db/thepunisher-distributedqueryplannerexpert.md` — **ThePunisher-DistributedQueryPlannerExpert**: Distributed query planning and optimization
+- `distributed-systems-db/thepunisher-columnarstorageengineexpert.md` — **ThePunisher-ColumnarStorageEngineExpert**: Columnar storage engine design and compression
+- `distributed-systems-db/thepunisher-databaseindexstructureexpert.md` — **ThePunisher-DatabaseIndexStructureExpert**: B-tree/LSM/inverted-index internal structure design
+- `distributed-systems-db/thepunisher-distributedtracinginternalsexpert.md` — **ThePunisher-DistributedTracingInternalsExpert**: Trace-context propagation and sampling internals
+- `distributed-systems-db/thepunisher-consistenthashingexpert.md` — **ThePunisher-ConsistentHashingExpert**: Consistent hashing/rendezvous hashing for data distribution
+- `distributed-systems-db/thepunisher-distributedfilesystemexpert.md` — **ThePunisher-DistributedFileSystemExpert**: Distributed filesystem design: HDFS-style architectures
+- `distributed-systems-db/thepunisher-quorumsystemsexpert.md` — **ThePunisher-QuorumSystemsExpert**: Quorum-based read/write consistency design
+- `distributed-systems-db/thepunisher-distributedschedulerexpert.md` — **ThePunisher-DistributedSchedulerExpert**: Cluster resource scheduling and task placement algorithms
+- `distributed-systems-db/thepunisher-eventsourcinginternalsexpert.md` — **ThePunisher-EventSourcingInternalsExpert**: Event-sourced system internals: event store design
+- `distributed-systems-db/thepunisher-distributedsnapshotexpert.md` — **ThePunisher-DistributedSnapshotExpert**: Chandy-Lamport snapshot algorithms and checkpointing
+- `distributed-systems-db/thepunisher-queryoptimizerexpert.md` — **ThePunisher-QueryOptimizerExpert**: Cost-based query optimizer internals
+- `distributed-systems-db/thepunisher-databasebufferpoolexpert.md` — **ThePunisher-DatabaseBufferPoolExpert**: Buffer pool/page cache management design
+- `distributed-systems-db/thepunisher-distributeddeduplicationexpert.md` — **ThePunisher-DistributedDeduplicationExpert**: Content-addressable storage and dedup-at-scale design
+- `distributed-systems-db/thepunisher-graphdatabaseinternalsexpert.md` — **ThePunisher-GraphDatabaseInternalsExpert**: Graph database storage/traversal engine internals
+- `distributed-systems-db/thepunisher-timeseriesstorageengineexpert.md` — **ThePunisher-TimeSeriesStorageEngineExpert**: Time-series database storage-engine internals
+- `distributed-systems-db/thepunisher-distributedratelimitingexpert.md` — **ThePunisher-DistributedRateLimitingExpert**: Distributed rate-limiter algorithm design
+- `distributed-systems-db/thepunisher-leaderelectionexpert.md` — **ThePunisher-LeaderElectionExpert**: Leader-election algorithm implementation
+- `distributed-systems-db/thepunisher-byzantinefaulttoleranceexpert.md` — **ThePunisher-ByzantineFaultToleranceExpert**: Byzantine fault-tolerant protocol design
+- `distributed-systems-db/thepunisher-distributedidgenerationexpert.md` — **ThePunisher-DistributedIDGenerationExpert**: Snowflake-style distributed unique-ID generation
+- `distributed-systems-db/thepunisher-databasecompactionexpert.md` — **ThePunisher-DatabaseCompactionExpert**: LSM compaction strategy design and tuning
+- `distributed-systems-db/thepunisher-distributedbackupexpert.md` — **ThePunisher-DistributedBackupExpert**: Point-in-time distributed backup/restore system design
+- `distributed-systems-db/thepunisher-networkpartitionhandlingexpert.md` — **ThePunisher-NetworkPartitionHandlingExpert**: CAP-theorem tradeoffs, split-brain handling
+- `distributed-systems-db/thepunisher-databaseconnectionpoolingexpert.md` — **ThePunisher-DatabaseConnectionPoolingExpert**: Connection pool internals and tuning
+- `distributed-systems-db/thepunisher-logbasedcdcinternalsexpert.md` — **ThePunisher-LogBasedCDCInternalsExpert**: Log-based change-data-capture mechanism internals
+- `distributed-systems-db/thepunisher-databasefailoverexpert.md` — **ThePunisher-DatabaseFailoverExpert**: Automatic database failover orchestration design
+- `distributed-systems-db/thepunisher-distributedconfigmanagementexpert.md` — **ThePunisher-DistributedConfigManagementExpert**: Distributed config store design: etcd/Consul
+- `distributed-systems-db/thepunisher-servicediscoveryinternalsexpert.md` — **ThePunisher-ServiceDiscoveryInternalsExpert**: Service-discovery protocol internals
+- `distributed-systems-db/thepunisher-databasewireprotocolexpert.md` — **ThePunisher-DatabaseWireProtocolExpert**: Wire-protocol design for database clients
+- `distributed-systems-db/thepunisher-hybridlogicalclockexpert.md` — **ThePunisher-HybridLogicalClockExpert**: Hybrid logical clock design for distributed timestamp ordering
+- `distributed-systems-db/thepunisher-distributedgraphprocessingexpert.md` — **ThePunisher-DistributedGraphProcessingExpert**: Pregel-style distributed graph-processing systems
+- `distributed-systems-db/thepunisher-databasemigrationengineexpert.md` — **ThePunisher-DatabaseMigrationEngineExpert**: Schema-migration engine internals
+- `distributed-systems-db/thepunisher-readreplicaroutingexpert.md` — **ThePunisher-ReadReplicaRoutingExpert**: Read-replica routing and load-distribution logic
+- `distributed-systems-db/thepunisher-streamprocessingengineinternalsexpert.md` — **ThePunisher-StreamProcessingEngineInternalsExpert**: Watermark/exactly-once stream-processing engine internals
+- `distributed-systems-db/thepunisher-databaseenginetestingexpert.md` — **ThePunisher-DatabaseEngineTestingExpert**: Jepsen-style distributed-systems correctness testing
+- `distributed-systems-db/thepunisher-distributedsystemsformalverificationexpert.md` — **ThePunisher-DistributedSystemsFormalVerificationExpert**: TLA+ formal specification for distributed protocols
+- `distributed-systems-db/thepunisher-multiregiondatabaseexpert.md` — **ThePunisher-MultiRegionDatabaseExpert**: Multi-region active-active database architecture
+- `distributed-systems-db/thepunisher-databasevacuumexpert.md` — **ThePunisher-DatabaseVacuumExpert**: Garbage collection/vacuum internals for MVCC databases
+- `distributed-systems-db/thepunisher-distributedfaultinjectionexpert.md` — **ThePunisher-DistributedFaultInjectionExpert**: Fault-injection testing for distributed-protocol correctness
+
+## Team 25 — Site Reliability & Observability Engineering (50 agents)
+
+- `sre-observability/thepunisher-srepracticeexpert.md` — **ThePunisher-SREPracticeExpert**: SLI/SLO/error-budget methodology and adoption
+- `sre-observability/thepunisher-incidentcommandexpert.md` — **ThePunisher-IncidentCommandExpert**: Incident command system, severity classification
+- `sre-observability/thepunisher-postmortemfacilitationexpert.md` — **ThePunisher-PostmortemFacilitationExpert**: Blameless postmortem process design
+- `sre-observability/thepunisher-chaosengineeringexpert.md` — **ThePunisher-ChaosEngineeringExpert**: Production chaos experiments, fault injection
+- `sre-observability/thepunisher-observabilitypipelineexpert.md` — **ThePunisher-ObservabilityPipelineExpert**: Metrics/logs/traces pipeline architecture
+- `sre-observability/thepunisher-oncallrotationexpert.md` — **ThePunisher-OnCallRotationExpert**: On-call scheduling and paging/escalation system design
+- `sre-observability/thepunisher-traceanalysisexpert.md` — **ThePunisher-TraceAnalysisExpert**: Distributed-trace analysis for incident root-causing
+- `sre-observability/thepunisher-metricscardinalityexpert.md` — **ThePunisher-MetricsCardinalityExpert**: High-cardinality metrics system design and cost control
+- `sre-observability/thepunisher-logsignalextractionexpert.md` — **ThePunisher-LogSignalExtractionExpert**: Extracting actionable operational signals from log streams
+- `sre-observability/thepunisher-runbookautomationexpert.md` — **ThePunisher-RunbookAutomationExpert**: Automated runbook/remediation systems
+- `sre-observability/thepunisher-capacityforecastingexpert.md` — **ThePunisher-CapacityForecastingExpert**: Production capacity planning and load forecasting
+- `sre-observability/thepunisher-syntheticmonitoringexpert.md` — **ThePunisher-SyntheticMonitoringExpert**: Synthetic/black-box monitoring probe design
+- `sre-observability/thepunisher-alertingstrategyexpert.md` — **ThePunisher-AlertingStrategyExpert**: Alert design to minimize noise and false positives
+- `sre-observability/thepunisher-sladefinitionexpert.md` — **ThePunisher-SLADefinitionExpert**: Customer-facing SLA design and measurement
+- `sre-observability/thepunisher-toilreductionexpert.md` — **ThePunisher-ToilReductionExpert**: Operational-toil identification and automation
+- `sre-observability/thepunisher-reliabilitytestingexpert.md` — **ThePunisher-ReliabilityTestingExpert**: Reliability/resilience test design
+- `sre-observability/thepunisher-failuremodeanalysisexpert.md` — **ThePunisher-FailureModeAnalysisExpert**: FMEA-style failure-mode analysis for systems
+- `sre-observability/thepunisher-servicemeshobservabilityexpert.md` — **ThePunisher-ServiceMeshObservabilityExpert**: Istio/Linkerd telemetry integration
+- `sre-observability/thepunisher-anomalydetectionopsexpert.md` — **ThePunisher-AnomalyDetectionOpsExpert**: Operational anomaly-detection system design
+- `sre-observability/thepunisher-productionreadinessreviewexpert.md` — **ThePunisher-ProductionReadinessReviewExpert**: Pre-launch production-readiness review process
+- `sre-observability/thepunisher-disasterrecoveryplanningexpert.md` — **ThePunisher-DisasterRecoveryPlanningExpert**: DR plan design, RTO/RPO definition
+- `sre-observability/thepunisher-loadtestingexpert.md` — **ThePunisher-LoadTestingExpert**: Production-scale load/stress testing for capacity validation
+- `sre-observability/thepunisher-releasesafetyexpert.md` — **ThePunisher-ReleaseSafetyExpert**: Release-safety practices and rollback-readiness review
+- `sre-observability/thepunisher-canaryreleaseexpert.md` — **ThePunisher-CanaryReleaseExpert**: Canary release analysis and automated rollback triggers
+- `sre-observability/thepunisher-errortrackingexpert.md` — **ThePunisher-ErrorTrackingExpert**: Error-tracking/aggregation system design
+- `sre-observability/thepunisher-dependencymappingexpert.md` — **ThePunisher-DependencyMappingExpert**: Service-dependency graph mapping for blast-radius analysis
+- `sre-observability/thepunisher-rootcauseautomationexpert.md` — **ThePunisher-RootCauseAutomationExpert**: Automated root-cause-analysis tooling
+- `sre-observability/thepunisher-observabilitycostoptimizationexpert.md` — **ThePunisher-ObservabilityCostOptimizationExpert**: Telemetry data volume/cost optimization
+- `sre-observability/thepunisher-healthcheckdesignexpert.md` — **ThePunisher-HealthCheckDesignExpert**: Liveness/readiness probe design patterns
+- `sre-observability/thepunisher-gracefuldegradationexpert.md` — **ThePunisher-GracefulDegradationExpert**: Graceful-degradation and circuit-breaker pattern design
+- `sre-observability/thepunisher-productiondebuggingexpert.md` — **ThePunisher-ProductionDebuggingExpert**: Live production debugging without disruption
+- `sre-observability/thepunisher-trafficshapingexpert.md` — **ThePunisher-TrafficShapingExpert**: Rate limiting/load shedding for reliability under load
+- `sre-observability/thepunisher-selfhealingsystemsexpert.md` — **ThePunisher-SelfHealingSystemsExpert**: Automated self-healing/auto-remediation system design
+- `sre-observability/thepunisher-observabilityinstrumentationexpert.md` — **ThePunisher-ObservabilityInstrumentationExpert**: Code-level instrumentation standards: OpenTelemetry SDK
+- `sre-observability/thepunisher-multiregionfailoverexpert.md` — **ThePunisher-MultiRegionFailoverExpert**: Multi-region failover orchestration
+- `sre-observability/thepunisher-queuebackpressureexpert.md` — **ThePunisher-QueueBackpressureExpert**: Backpressure/queue-depth management design
+- `sre-observability/thepunisher-changemanagementreliabilityexpert.md` — **ThePunisher-ChangeManagementReliabilityExpert**: Change-risk assessment for production reliability
+- `sre-observability/thepunisher-productionincidentsimulationexpert.md` — **ThePunisher-ProductionIncidentSimulationExpert**: Game-day/incident-simulation exercise design
+- `sre-observability/thepunisher-dependencyresilienceexpert.md` — **ThePunisher-DependencyResilienceExpert**: Third-party dependency resilience: retries, timeouts, fallback
+- `sre-observability/thepunisher-datapipelinereliabilityexpert.md` — **ThePunisher-DataPipelineReliabilityExpert**: Production reliability engineering for data pipelines
+- `sre-observability/thepunisher-edgereliabilityexpert.md` — **ThePunisher-EdgeReliabilityExpert**: CDN/edge-layer reliability engineering
+- `sre-observability/thepunisher-mobileappreliabilityexpert.md` — **ThePunisher-MobileAppReliabilityExpert**: Crash-free-rate SLOs and mobile observability engineering
+- `sre-observability/thepunisher-apireliabilityexpert.md` — **ThePunisher-APIReliabilityExpert**: API-layer reliability engineering: rate limits, retries, idempotency
+- `sre-observability/thepunisher-observabilitydatamodelexpert.md` — **ThePunisher-ObservabilityDataModelExpert**: Telemetry data schema and taxonomy design
+- `sre-observability/thepunisher-serviceownershipmodelexpert.md` — **ThePunisher-ServiceOwnershipModelExpert**: Service-ownership/on-call accountability model design
+- `sre-observability/thepunisher-reliabilityscorecardexpert.md` — **ThePunisher-ReliabilityScorecardExpert**: Service reliability scorecard/maturity model design
+- `sre-observability/thepunisher-statefulservicereliabilityexpert.md` — **ThePunisher-StatefulServiceReliabilityExpert**: Reliability engineering for stateful services: databases, caches
+- `sre-observability/thepunisher-networkreliabilityengineeringexpert.md` — **ThePunisher-NetworkReliabilityEngineeringExpert**: Network-layer reliability engineering within SRE scope
+- `sre-observability/thepunisher-observabilitytoolingintegrationexpert.md` — **ThePunisher-ObservabilityToolingIntegrationExpert**: Observability stack integration/vendor consolidation
+- `sre-observability/thepunisher-reliabilitymetricsdashboardexpert.md` — **ThePunisher-ReliabilityMetricsDashboardExpert**: Executive/team reliability-metrics dashboard design
+
+## Team 26 — Audio, Video & Broadcast Media Engineering (50 agents)
+
+- `audio-video-broadcast/thepunisher-audiodspexpert.md` — **ThePunisher-AudioDSPExpert**: Digital signal processing for audio: filters, EQ
+- `audio-video-broadcast/thepunisher-audiocodecexpert.md` — **ThePunisher-AudioCodecExpert**: Audio codec implementation/integration: AAC/Opus/FLAC
+- `audio-video-broadcast/thepunisher-videocodecexpert.md` — **ThePunisher-VideoCodecExpert**: Video codec engineering: H.264/H.265/AV1
+- `audio-video-broadcast/thepunisher-videoencodingpipelineexpert.md` — **ThePunisher-VideoEncodingPipelineExpert**: Encoding pipeline/bitrate-ladder design for streaming
+- `audio-video-broadcast/thepunisher-hlsstreamingexpert.md` — **ThePunisher-HLSStreamingExpert**: HLS adaptive-bitrate streaming implementation
+- `audio-video-broadcast/thepunisher-dashstreamingexpert.md` — **ThePunisher-DASHStreamingExpert**: MPEG-DASH streaming implementation
+- `audio-video-broadcast/thepunisher-webrtcexpert.md` — **ThePunisher-WebRTCExpert**: WebRTC real-time media transport implementation
+- `audio-video-broadcast/thepunisher-rtmpexpert.md` — **ThePunisher-RTMPExpert**: RTMP live-streaming ingest protocol implementation
+- `audio-video-broadcast/thepunisher-livestreaminginfrastructureexpert.md` — **ThePunisher-LiveStreamingInfrastructureExpert**: Live-streaming platform architecture
+- `audio-video-broadcast/thepunisher-audiomixingengineexpert.md` — **ThePunisher-AudioMixingEngineExpert**: Digital audio workstation/mixing-engine design
+- `audio-video-broadcast/thepunisher-broadcastplayoutexpert.md` — **ThePunisher-BroadcastPlayoutExpert**: Broadcast playout automation systems
+- `audio-video-broadcast/thepunisher-subtitlecaptioningexpert.md` — **ThePunisher-SubtitleCaptioningExpert**: Subtitle/closed-caption pipeline engineering
+- `audio-video-broadcast/thepunisher-audiomasteringexpert.md` — **ThePunisher-AudioMasteringExpert**: Loudness normalization and audio-mastering pipeline engineering
+- `audio-video-broadcast/thepunisher-videotranscodingexpert.md` — **ThePunisher-VideoTranscodingExpert**: Transcoding-farm architecture and optimization
+- `audio-video-broadcast/thepunisher-mediacdnexpert.md` — **ThePunisher-MediaCDNExpert**: Media-specific CDN: origin shield, video-optimized caching
+- `audio-video-broadcast/thepunisher-drmexpert.md` — **ThePunisher-DRMExpert**: Digital-rights-management integration: Widevine/FairPlay/PlayReady
+- `audio-video-broadcast/thepunisher-audiospatializationexpert.md` — **ThePunisher-AudioSpatializationExpert**: Spatial/3D audio engineering: Dolby Atmos-style
+- `audio-video-broadcast/thepunisher-podcastplatformexpert.md` — **ThePunisher-PodcastPlatformExpert**: Podcast hosting/distribution platform engineering
+- `audio-video-broadcast/thepunisher-broadcastgraphicsexpert.md` — **ThePunisher-BroadcastGraphicsExpert**: Real-time broadcast graphics/overlay systems
+- `audio-video-broadcast/thepunisher-mediametadataexpert.md` — **ThePunisher-MediaMetadataExpert**: Media asset metadata/taxonomy engineering
+- `audio-video-broadcast/thepunisher-videoqualityanalysisexpert.md` — **ThePunisher-VideoQualityAnalysisExpert**: VMAF/PSNR video-quality measurement engineering
+- `audio-video-broadcast/thepunisher-audiofingerprintingexpert.md` — **ThePunisher-AudioFingerprintingExpert**: Audio fingerprinting/content-ID system engineering
+- `audio-video-broadcast/thepunisher-liveeventstreamingexpert.md` — **ThePunisher-LiveEventStreamingExpert**: Large-scale live-event streaming architecture
+- `audio-video-broadcast/thepunisher-mediaassetmanagementexpert.md` — **ThePunisher-MediaAssetManagementExpert**: MAM system integration/workflow design
+- `audio-video-broadcast/thepunisher-radiobroadcastengineeringexpert.md` — **ThePunisher-RadioBroadcastEngineeringExpert**: Terrestrial radio broadcast systems engineering
+- `audio-video-broadcast/thepunisher-audiolatencyoptimizationexpert.md` — **ThePunisher-AudioLatencyOptimizationExpert**: Low-latency audio pipeline engineering
+- `audio-video-broadcast/thepunisher-videostabilizationexpert.md` — **ThePunisher-VideoStabilizationExpert**: Video stabilization/enhancement algorithm engineering
+- `audio-video-broadcast/thepunisher-mediaaccessibilityexpert.md` — **ThePunisher-MediaAccessibilityExpert**: Audio-description tracks and media-specific accessibility engineering
+- `audio-video-broadcast/thepunisher-ffmpegpipelineexpert.md` — **ThePunisher-FFmpegPipelineExpert**: FFmpeg-based media-processing pipeline engineering
+- `audio-video-broadcast/thepunisher-multicameraproductionexpert.md` — **ThePunisher-MultiCameraProductionExpert**: Multi-camera live-production switching systems
+- `audio-video-broadcast/thepunisher-audiovideosyncexpert.md` — **ThePunisher-AudioVideoSyncExpert**: A/V sync engineering across media pipelines
+- `audio-video-broadcast/thepunisher-streaminganalyticsexpert.md` — **ThePunisher-StreamingAnalyticsExpert**: QoE/viewer-analytics pipeline for streaming platforms
+- `audio-video-broadcast/thepunisher-adaptivebitratealgorithmexpert.md` — **ThePunisher-AdaptiveBitrateAlgorithmExpert**: Adaptive-bitrate algorithm design for streaming clients
+- `audio-video-broadcast/thepunisher-audionoisereductionexpert.md` — **ThePunisher-AudioNoiseReductionExpert**: Real-time noise suppression/echo-cancellation engineering
+- `audio-video-broadcast/thepunisher-videowatermarkingexpert.md` — **ThePunisher-VideoWatermarkingExpert**: Forensic/visible watermarking for content protection
+- `audio-video-broadcast/thepunisher-mediaingestpipelineexpert.md` — **ThePunisher-MediaIngestPipelineExpert**: Broadcast/upload media ingest pipeline engineering
+- `audio-video-broadcast/thepunisher-satellitebroadcastengineeringexpert.md` — **ThePunisher-SatelliteBroadcastEngineeringExpert**: Satellite broadcast distribution engineering
+- `audio-video-broadcast/thepunisher-musicstreamingplatformexpert.md` — **ThePunisher-MusicStreamingPlatformExpert**: Music-streaming platform architecture: rights-aware playback
+- `audio-video-broadcast/thepunisher-interactivemediaengineeringexpert.md` — **ThePunisher-InteractiveMediaEngineeringExpert**: Interactive video/branching-narrative playback engineering
+- `audio-video-broadcast/thepunisher-lowlatencyliveexpert.md` — **ThePunisher-LowLatencyLiveExpert**: Sub-second latency live-streaming engineering: LL-HLS/WebRTC
+- `audio-video-broadcast/thepunisher-mediaserverexpert.md` — **ThePunisher-MediaServerExpert**: Media-server architecture: Wowza/Ant Media-style
+- `audio-video-broadcast/thepunisher-broadcastcomplianceexpert.md` — **ThePunisher-BroadcastComplianceExpert**: Loudness/technical broadcast-standards compliance: EBU R128
+- `audio-video-broadcast/thepunisher-multilanguageaudiotrackexpert.md` — **ThePunisher-MultiLanguageAudioTrackExpert**: Multi-language audio-track/dubbing pipeline engineering
+- `audio-video-broadcast/thepunisher-sportsbroadcasttrackingexpert.md` — **ThePunisher-SportsBroadcastTrackingExpert**: Sports-broadcast object-tracking graphics engineering
+- `audio-video-broadcast/thepunisher-highdynamicrangevideoexpert.md` — **ThePunisher-HighDynamicRangeVideoExpert**: HDR video pipeline engineering: HDR10/Dolby Vision
+- `audio-video-broadcast/thepunisher-mediaarchiveexpert.md` — **ThePunisher-MediaArchiveExpert**: Long-term media-archive format/storage engineering
+- `audio-video-broadcast/thepunisher-mediapersonalizationexpert.md` — **ThePunisher-MediaPersonalizationExpert**: Media-platform content-personalization integration engineering
+- `audio-video-broadcast/thepunisher-videoconferencingplatformexpert.md` — **ThePunisher-VideoConferencingPlatformExpert**: Video-conferencing platform product-layer engineering
+- `audio-video-broadcast/thepunisher-esportsstreamingexpert.md` — **ThePunisher-EsportsStreamingExpert**: Esports/gaming live-broadcast production engineering
+- `audio-video-broadcast/thepunisher-audioplugindevelopmentexpert.md` — **ThePunisher-AudioPluginDevelopmentExpert**: VST/AU audio-plugin development
+
+## Team 27 — Computer Vision & Image Processing Engineering (50 agents)
+
+- `computer-vision/thepunisher-imageclassificationexpert.md` — **ThePunisher-ImageClassificationExpert**: Image classification model design and training
+- `computer-vision/thepunisher-objectdetectionexpert.md` — **ThePunisher-ObjectDetectionExpert**: Object detection model architecture: YOLO/Faster R-CNN style
+- `computer-vision/thepunisher-semanticsegmentationexpert.md` — **ThePunisher-SemanticSegmentationExpert**: Semantic/instance segmentation model design
+- `computer-vision/thepunisher-imageprocessingpipelineexpert.md` — **ThePunisher-ImageProcessingPipelineExpert**: Classical image-processing pipeline engineering
+- `computer-vision/thepunisher-opticalcharacterrecognitionexpert.md` — **ThePunisher-OpticalCharacterRecognitionExpert**: OCR engine design and text-in-image extraction
+- `computer-vision/thepunisher-facialrecognitionexpert.md` — **ThePunisher-FacialRecognitionExpert**: Facial recognition/verification system engineering
+- `computer-vision/thepunisher-imageaugmentationexpert.md` — **ThePunisher-ImageAugmentationExpert**: Data augmentation strategy design for vision training
+- `computer-vision/thepunisher-convolutionalnetworkarchitectureexpert.md` — **ThePunisher-ConvolutionalNetworkArchitectureExpert**: CNN architecture design and optimization
+- `computer-vision/thepunisher-visiontransformerexpert.md` — **ThePunisher-VisionTransformerExpert**: Vision transformer (ViT) architecture engineering
+- `computer-vision/thepunisher-imagegenerationexpert.md` — **ThePunisher-ImageGenerationExpert**: Image-synthesis model engineering: GANs/diffusion applications
+- `computer-vision/thepunisher-depthestimationexpert.md` — **ThePunisher-DepthEstimationExpert**: Monocular/stereo depth-estimation model engineering
+- `computer-vision/thepunisher-stereovisionexpert.md` — **ThePunisher-StereoVisionExpert**: Stereo-camera vision system engineering
+- `computer-vision/thepunisher-poseestimationexpert.md` — **ThePunisher-PoseEstimationExpert**: Human/object pose-estimation model engineering
+- `computer-vision/thepunisher-videoobjecttrackingexpert.md` — **ThePunisher-VideoObjectTrackingExpert**: Multi-object video-tracking algorithm engineering
+- `computer-vision/thepunisher-imagesuperresolutionexpert.md` — **ThePunisher-ImageSuperResolutionExpert**: Super-resolution model engineering
+- `computer-vision/thepunisher-imagedenoisingexpert.md` — **ThePunisher-ImageDenoisingExpert**: Image-denoising algorithm engineering
+- `computer-vision/thepunisher-anomalydetectionvisionexpert.md` — **ThePunisher-AnomalyDetectionVisionExpert**: Visual anomaly/defect-detection model engineering
+- `computer-vision/thepunisher-medicalimagingcvexpert.md` — **ThePunisher-MedicalImagingCVExpert**: Computer-vision algorithms applied to medical images
+- `computer-vision/thepunisher-satelliteimageryanalysisexpert.md` — **ThePunisher-SatelliteImageryAnalysisExpert**: Satellite/aerial imagery analysis engineering
+- `computer-vision/thepunisher-opticalflowexpert.md` — **ThePunisher-OpticalFlowExpert**: Optical-flow estimation algorithm engineering
+- `computer-vision/thepunisher-cvannotationtoolingexpert.md` — **ThePunisher-CVAnnotationToolingExpert**: Annotation tooling for computer-vision training datasets
+- `computer-vision/thepunisher-threedreconstructionexpert.md` — **ThePunisher-ThreeDReconstructionExpert**: 3D reconstruction from images/point clouds
+- `computer-vision/thepunisher-visualodometryexpert.md` — **ThePunisher-VisualOdometryExpert**: Feature-based visual odometry algorithm engineering
+- `computer-vision/thepunisher-imageretrievalexpert.md` — **ThePunisher-ImageRetrievalExpert**: Content-based image retrieval/embedding search engineering
+- `computer-vision/thepunisher-ganarchitectureexpert.md` — **ThePunisher-GANArchitectureExpert**: Generative adversarial network architecture design
+- `computer-vision/thepunisher-diffusionmodelexpert.md` — **ThePunisher-DiffusionModelExpert**: Diffusion-model architecture engineering for image synthesis
+- `computer-vision/thepunisher-visionlanguagemodelexpert.md` — **ThePunisher-VisionLanguageModelExpert**: Multimodal vision-language model integration
+- `computer-vision/thepunisher-realtimevideoanalyticsexpert.md` — **ThePunisher-RealTimeVideoAnalyticsExpert**: Real-time video-analytics pipeline engineering
+- `computer-vision/thepunisher-cvmodeldeploymentexpert.md` — **ThePunisher-CVModelDeploymentExpert**: Edge/embedded CV model deployment: ONNX/TensorRT
+- `computer-vision/thepunisher-imagequalityassessmentexpert.md` — **ThePunisher-ImageQualityAssessmentExpert**: Automated image-quality assessment engineering
+- `computer-vision/thepunisher-barcodeqrrecognitionexpert.md` — **ThePunisher-BarcodeQRRecognitionExpert**: Barcode/QR code recognition system engineering
+- `computer-vision/thepunisher-documentlayoutanalysisexpert.md` — **ThePunisher-DocumentLayoutAnalysisExpert**: Visual document layout analysis engineering
+- `computer-vision/thepunisher-videosummarizationexpert.md` — **ThePunisher-VideoSummarizationExpert**: Automated video-summarization model engineering
+- `computer-vision/thepunisher-actionrecognitionexpert.md` — **ThePunisher-ActionRecognitionExpert**: Human action-recognition model engineering
+- `computer-vision/thepunisher-crowdcountingexpert.md` — **ThePunisher-CrowdCountingExpert**: Crowd-density estimation model engineering
+- `computer-vision/thepunisher-automatedvisualinspectionexpert.md` — **ThePunisher-AutomatedVisualInspectionExpert**: CV-driven automated visual-inspection algorithm engineering
+- `computer-vision/thepunisher-licenseplaterecognitionexpert.md` — **ThePunisher-LicensePlateRecognitionExpert**: License-plate recognition system engineering
+- `computer-vision/thepunisher-gesturerecognitionexpert.md` — **ThePunisher-GestureRecognitionExpert**: Hand/body gesture-recognition model engineering
+- `computer-vision/thepunisher-eyetrackingexpert.md` — **ThePunisher-EyeTrackingExpert**: Eye-tracking/gaze-estimation model engineering
+- `computer-vision/thepunisher-arcomputervisionexpert.md` — **ThePunisher-ARComputerVisionExpert**: AR-specific computer vision: marker tracking, plane detection
+- `computer-vision/thepunisher-pointcloudprocessingexpert.md` — **ThePunisher-PointCloudProcessingExpert**: LiDAR point-cloud processing algorithm engineering
+- `computer-vision/thepunisher-sceneunderstandingexpert.md` — **ThePunisher-SceneUnderstandingExpert**: Holistic scene-understanding/scene-graph generation
+- `computer-vision/thepunisher-imageinpaintingexpert.md` — **ThePunisher-ImageInpaintingExpert**: Image-inpainting model engineering
+- `computer-vision/thepunisher-hyperspectralimagingexpert.md` — **ThePunisher-HyperspectralImagingExpert**: Hyperspectral/multispectral image analysis engineering
+- `computer-vision/thepunisher-cvbenchmarkingexpert.md` — **ThePunisher-CVBenchmarkingExpert**: Computer-vision model benchmarking/evaluation methodology
+- `computer-vision/thepunisher-thermalimaginganalysisexpert.md` — **ThePunisher-ThermalImagingAnalysisExpert**: Thermal/infrared image analysis engineering
+- `computer-vision/thepunisher-cvdatasetcurationexpert.md` — **ThePunisher-CVDatasetCurationExpert**: Dataset curation and bias analysis for CV training
+- `computer-vision/thepunisher-realtimearfilterexpert.md` — **ThePunisher-RealTimeARFilterExpert**: Real-time AR filter/effect engineering
+- `computer-vision/thepunisher-visualsearchexpert.md` — **ThePunisher-VisualSearchExpert**: Search-by-image/visual search engine engineering
+- `computer-vision/thepunisher-microscopyimageanalysisexpert.md` — **ThePunisher-MicroscopyImageAnalysisExpert**: Scientific/microscopy image analysis engineering
+
+## Team 28 — Natural Language Processing & Search Engineering (50 agents)
+
+- `nlp-search/thepunisher-textclassificationexpert.md` — **ThePunisher-TextClassificationExpert**: Text classification model design and training
+- `nlp-search/thepunisher-namedentityrecognitionexpert.md` — **ThePunisher-NamedEntityRecognitionExpert**: Named entity recognition model engineering
+- `nlp-search/thepunisher-sentimentanalysisexpert.md` — **ThePunisher-SentimentAnalysisExpert**: Sentiment/opinion analysis model engineering
+- `nlp-search/thepunisher-topicmodelingexpert.md` — **ThePunisher-TopicModelingExpert**: Topic modeling: LDA/BERTopic-style algorithm engineering
+- `nlp-search/thepunisher-textsummarizationexpert.md` — **ThePunisher-TextSummarizationExpert**: Extractive/abstractive text summarization engineering
+- `nlp-search/thepunisher-machinetranslationexpert.md` — **ThePunisher-MachineTranslationExpert**: Machine translation system engineering
+- `nlp-search/thepunisher-subwordtokenizerdesignexpert.md` — **ThePunisher-SubwordTokenizerDesignExpert**: Subword tokenizer design: BPE/WordPiece/SentencePiece
+- `nlp-search/thepunisher-wordembeddingexpert.md` — **ThePunisher-WordEmbeddingExpert**: Word-embedding model design and training
+- `nlp-search/thepunisher-nlptransformerarchitectureexpert.md` — **ThePunisher-NLPTransformerArchitectureExpert**: NLP-specific transformer architecture engineering
+- `nlp-search/thepunisher-domainspecificllmfinetuningexpert.md` — **ThePunisher-DomainSpecificLLMFineTuningExpert**: Fine-tuning LLMs for specific text domains: legal/medical
+- `nlp-search/thepunisher-textgenerationexpert.md` — **ThePunisher-TextGenerationExpert**: Controllable text-generation model engineering
+- `nlp-search/thepunisher-questionansweringsystemexpert.md` — **ThePunisher-QuestionAnsweringSystemExpert**: Question-answering system engineering
+- `nlp-search/thepunisher-informationextractionexpert.md` — **ThePunisher-InformationExtractionExpert**: Structured information extraction from unstructured text
+- `nlp-search/thepunisher-coreferenceresolutionexpert.md` — **ThePunisher-CoreferenceResolutionExpert**: Coreference-resolution model engineering
+- `nlp-search/thepunisher-dependencyparsingexpert.md` — **ThePunisher-DependencyParsingExpert**: Syntactic dependency-parsing model engineering
+- `nlp-search/thepunisher-partofspeechtaggingexpert.md` — **ThePunisher-PartOfSpeechTaggingExpert**: Part-of-speech tagging model engineering
+- `nlp-search/thepunisher-textclusteringexpert.md` — **ThePunisher-TextClusteringExpert**: Unsupervised text-clustering algorithm engineering
+- `nlp-search/thepunisher-searchrankingexpert.md` — **ThePunisher-SearchRankingExpert**: Search-result ranking algorithm engineering
+- `nlp-search/thepunisher-invertedindexexpert.md` — **ThePunisher-InvertedIndexExpert**: Inverted-index data-structure design for search
+- `nlp-search/thepunisher-fulltextsearchengineexpert.md` — **ThePunisher-FullTextSearchEngineExpert**: Full-text search engine internals: Lucene/Solr-style
+- `nlp-search/thepunisher-semanticsearchexpert.md` — **ThePunisher-SemanticSearchExpert**: Embedding-based semantic search engineering
+- `nlp-search/thepunisher-queryunderstandingexpert.md` — **ThePunisher-QueryUnderstandingExpert**: Search-query parsing and intent understanding
+- `nlp-search/thepunisher-relevancetuningexpert.md` — **ThePunisher-RelevanceTuningExpert**: Search relevance tuning and learning-to-rank engineering
+- `nlp-search/thepunisher-sentenceembeddingexpert.md` — **ThePunisher-SentenceEmbeddingExpert**: Sentence/document embedding model engineering
+- `nlp-search/thepunisher-dialoguestatetrackingexpert.md` — **ThePunisher-DialogueStateTrackingExpert**: Dialogue-state tracking and management engineering
+- `nlp-search/thepunisher-intentclassificationexpert.md` — **ThePunisher-IntentClassificationExpert**: Conversational intent-classification model engineering
+- `nlp-search/thepunisher-speechtotextexpert.md` — **ThePunisher-SpeechToTextExpert**: Speech-to-text/ASR model engineering
+- `nlp-search/thepunisher-texttospeechexpert.md` — **ThePunisher-TextToSpeechExpert**: Text-to-speech synthesis model engineering
+- `nlp-search/thepunisher-languagedetectionexpert.md` — **ThePunisher-LanguageDetectionExpert**: Language-identification model engineering
+- `nlp-search/thepunisher-spellcheckingexpert.md` — **ThePunisher-SpellCheckingExpert**: Spell-checking/correction algorithm engineering
+- `nlp-search/thepunisher-grammarcorrectionexpert.md` — **ThePunisher-GrammarCorrectionExpert**: Grammatical error correction model engineering
+- `nlp-search/thepunisher-textnormalizationexpert.md` — **ThePunisher-TextNormalizationExpert**: Text normalization pipeline engineering
+- `nlp-search/thepunisher-multilingualnlpexpert.md` — **ThePunisher-MultilingualNLPExpert**: Multilingual NLP model engineering
+- `nlp-search/thepunisher-lowresourcelanguageexpert.md` — **ThePunisher-LowResourceLanguageExpert**: NLP engineering for low-resource/under-represented languages
+- `nlp-search/thepunisher-legaltextnlpexpert.md` — **ThePunisher-LegalTextNLPExpert**: NLP-model-level legal text analysis: clause extraction models
+- `nlp-search/thepunisher-biomedicalnlpexpert.md` — **ThePunisher-BiomedicalNLPExpert**: Clinical/biomedical text-mining model engineering
+- `nlp-search/thepunisher-conversationalaievaluationexpert.md` — **ThePunisher-ConversationalAIEvaluationExpert**: Dialogue-system evaluation methodology engineering
+- `nlp-search/thepunisher-textdeduplicationexpert.md` — **ThePunisher-TextDeduplicationExpert**: Near-duplicate text detection engineering
+- `nlp-search/thepunisher-documentsimilarityexpert.md` — **ThePunisher-DocumentSimilarityExpert**: Document-similarity/matching algorithm engineering
+- `nlp-search/thepunisher-knowledgegraphextractionexpert.md` — **ThePunisher-KnowledgeGraphExtractionExpert**: Structured knowledge-graph extraction from text
+- `nlp-search/thepunisher-promptoptimizationresearchexpert.md` — **ThePunisher-PromptOptimizationResearchExpert**: Prompt-optimization research methodology engineering
+- `nlp-search/thepunisher-searchinfrastructurescalingexpert.md` — **ThePunisher-SearchInfrastructureScalingExpert**: Large-scale search-cluster scaling engineering
+- `nlp-search/thepunisher-autocompletesuggestionexpert.md` — **ThePunisher-AutocompleteSuggestionExpert**: Search autocomplete/typeahead engineering
+- `nlp-search/thepunisher-texttosqlexpert.md` — **ThePunisher-TextToSQLExpert**: Natural-language-to-SQL translation system engineering
+- `nlp-search/thepunisher-hatespeechdetectionexpert.md` — **ThePunisher-HateSpeechDetectionExpert**: Hate-speech/toxicity detection model engineering
+- `nlp-search/thepunisher-factverificationnlpexpert.md` — **ThePunisher-FactVerificationNLPExpert**: Automated fact-checking/claim-verification NLP systems
+- `nlp-search/thepunisher-textstyletransferexpert.md` — **ThePunisher-TextStyleTransferExpert**: Text style-transfer model engineering
+- `nlp-search/thepunisher-zeroshotclassificationexpert.md` — **ThePunisher-ZeroShotClassificationExpert**: Zero-shot/few-shot text classification engineering
+- `nlp-search/thepunisher-ragretrievalstrategyexpert.md` — **ThePunisher-RAGRetrievalStrategyExpert**: Retrieval strategy/chunking engineering for RAG pipelines
+- `nlp-search/thepunisher-crosslingualinformationretrievalexpert.md` — **ThePunisher-CrossLingualInformationRetrievalExpert**: Cross-lingual information-retrieval system engineering
+
+## Team 29 — Automotive & Mobility Software Engineering (50 agents)
+
+- `automotive-mobility/thepunisher-adasperceptionexpert.md` — **ThePunisher-ADASPerceptionExpert**: Advanced driver-assistance perception-fusion engineering
+- `automotive-mobility/thepunisher-autonomousdrivingstackexpert.md` — **ThePunisher-AutonomousDrivingStackExpert**: Planning/decision-making stack for self-driving software
+- `automotive-mobility/thepunisher-automotiveinfotainmentexpert.md` — **ThePunisher-AutomotiveInfotainmentExpert**: In-vehicle infotainment platform engineering
+- `automotive-mobility/thepunisher-automotiveotafleetexpert.md` — **ThePunisher-AutomotiveOTAFleetExpert**: OTA update fleet-management engineering for vehicles
+- `automotive-mobility/thepunisher-autosararchitectureexpert.md` — **ThePunisher-AUTOSARArchitectureExpert**: AUTOSAR software-architecture platform engineering
+- `automotive-mobility/thepunisher-vehicletoeverythingexpert.md` — **ThePunisher-VehicleToEverythingExpert**: V2X communication protocol engineering
+- `automotive-mobility/thepunisher-automotivecybersecurityexpert.md` — **ThePunisher-AutomotiveCybersecurityExpert**: UN R155/ISO 21434 automotive cybersecurity engineering
+- `automotive-mobility/thepunisher-automotivefunctionalsafetyexpert.md` — **ThePunisher-AutomotiveFunctionalSafetyExpert**: ISO 26262 functional-safety engineering for vehicle software
+- `automotive-mobility/thepunisher-automotivesensorfusionexpert.md` — **ThePunisher-AutomotiveSensorFusionExpert**: Automotive multi-sensor fusion engineering
+- `automotive-mobility/thepunisher-automotivelidarprocessingexpert.md` — **ThePunisher-AutomotiveLidarProcessingExpert**: LiDAR point-cloud processing for autonomous vehicles
+- `automotive-mobility/thepunisher-radarsignalprocessingexpert.md` — **ThePunisher-RadarSignalProcessingExpert**: Automotive radar signal-processing engineering
+- `automotive-mobility/thepunisher-hdmapengineeringexpert.md` — **ThePunisher-HDMapEngineeringExpert**: High-definition map engineering for autonomous driving
+- `automotive-mobility/thepunisher-vehicledynamicssimulationexpert.md` — **ThePunisher-VehicleDynamicsSimulationExpert**: Vehicle-dynamics simulation and modeling engineering
+- `automotive-mobility/thepunisher-drivermonitoringsystemexpert.md` — **ThePunisher-DriverMonitoringSystemExpert**: Driver-monitoring/attention-detection system engineering
+- `automotive-mobility/thepunisher-automotivetelematicsexpert.md` — **ThePunisher-AutomotiveTelematicsExpert**: Telematics/connected-car data-platform engineering
+- `automotive-mobility/thepunisher-fleetmanagementsoftwareexpert.md` — **ThePunisher-FleetManagementSoftwareExpert**: Commercial fleet-management platform engineering
+- `automotive-mobility/thepunisher-electricvehiclebmsexpert.md` — **ThePunisher-ElectricVehicleBMSExpert**: EV battery-management-system software engineering
+- `automotive-mobility/thepunisher-evcharginginfrastructureexpert.md` — **ThePunisher-EVChargingInfrastructureExpert**: EV charging-network software/protocol engineering
+- `automotive-mobility/thepunisher-automotivediagnosticsexpert.md` — **ThePunisher-AutomotiveDiagnosticsExpert**: OBD-II/UDS diagnostic protocol engineering
+- `automotive-mobility/thepunisher-automotivesimulationtestingexpert.md` — **ThePunisher-AutomotiveSimulationTestingExpert**: Closed-loop simulation testing for AV software
+- `automotive-mobility/thepunisher-automotivemiddlewareexpert.md` — **ThePunisher-AutomotiveMiddlewareExpert**: SOME/IP automotive service-oriented middleware engineering
+- `automotive-mobility/thepunisher-ridehailingplatformexpert.md` — **ThePunisher-RideHailingPlatformExpert**: Ride-hailing/mobility-platform backend engineering
+- `automotive-mobility/thepunisher-navigationroutingexpert.md` — **ThePunisher-NavigationRoutingExpert**: Turn-by-turn navigation/routing engine engineering
+- `automotive-mobility/thepunisher-vehicletelemetryanalyticsexpert.md` — **ThePunisher-VehicleTelemetryAnalyticsExpert**: Vehicle telemetry data-analytics pipeline engineering
+- `automotive-mobility/thepunisher-automotivehmiexpert.md` — **ThePunisher-AutomotiveHMIExpert**: Human-machine interface design for vehicle cockpits
+- `automotive-mobility/thepunisher-autonomousvehiclevalidationexpert.md` — **ThePunisher-AutonomousVehicleValidationExpert**: AV software validation/certification engineering
+- `automotive-mobility/thepunisher-automotivecansecurityexpert.md` — **ThePunisher-AutomotiveCANSecurityExpert**: CAN-bus security hardening engineering
+- `automotive-mobility/thepunisher-vehicledigitaltwinexpert.md` — **ThePunisher-VehicleDigitalTwinExpert**: Digital-twin simulation for vehicle systems
+- `automotive-mobility/thepunisher-micromobilityplatformexpert.md` — **ThePunisher-MicromobilityPlatformExpert**: E-scooter/e-bike sharing platform engineering
+- `automotive-mobility/thepunisher-parkingmanagementsystemexpert.md` — **ThePunisher-ParkingManagementSystemExpert**: Smart parking-management system engineering
+- `automotive-mobility/thepunisher-automotiveinsurancetelematicsexpert.md` — **ThePunisher-AutomotiveInsuranceTelematicsExpert**: Usage-based insurance telematics engineering
+- `automotive-mobility/thepunisher-vehiclecloudplatformexpert.md` — **ThePunisher-VehicleCloudPlatformExpert**: Connected-vehicle cloud backend architecture
+- `automotive-mobility/thepunisher-automotiveosplatformexpert.md` — **ThePunisher-AutomotiveOSPlatformExpert**: Android Automotive/QNX platform integration engineering
+- `automotive-mobility/thepunisher-trafficsimulationexpert.md` — **ThePunisher-TrafficSimulationExpert**: Traffic-flow simulation for urban mobility planning
+- `automotive-mobility/thepunisher-logisticsrouteoptimizationexpert.md` — **ThePunisher-LogisticsRouteOptimizationExpert**: Fleet/route optimization algorithm engineering
+- `automotive-mobility/thepunisher-automotivepenetrationtestingexpert.md` — **ThePunisher-AutomotivePenetrationTestingExpert**: Automotive-specific penetration testing engineering
+- `automotive-mobility/thepunisher-vehiclesoftwaredefinedarchitectureexpert.md` — **ThePunisher-VehicleSoftwareDefinedArchitectureExpert**: Software-defined vehicle/zonal E-E architecture engineering
+- `automotive-mobility/thepunisher-automotivecameracalibrationexpert.md` — **ThePunisher-AutomotiveCameraCalibrationExpert**: Multi-camera calibration engineering for ADAS/AV systems
+- `automotive-mobility/thepunisher-drivingbehavioranalyticsexpert.md` — **ThePunisher-DrivingBehaviorAnalyticsExpert**: Driving-behavior scoring/analytics engineering
+- `automotive-mobility/thepunisher-automotiveregulatorycomplianceexpert.md` — **ThePunisher-AutomotiveRegulatoryComplianceExpert**: NHTSA/UNECE automotive regulatory compliance engineering
+- `automotive-mobility/thepunisher-connectedcarapiexpert.md` — **ThePunisher-ConnectedCarAPIExpert**: Connected-car API platform engineering
+- `automotive-mobility/thepunisher-autonomousvehicleteleoperationexpert.md` — **ThePunisher-AutonomousVehicleTeleoperationExpert**: Remote teleoperation engineering for autonomous vehicles
+- `automotive-mobility/thepunisher-motorsportstelemetryexpert.md` — **ThePunisher-MotorsportsTelemetryExpert**: Real-time racing telemetry engineering
+- `automotive-mobility/thepunisher-carsharingplatformexpert.md` — **ThePunisher-CarSharingPlatformExpert**: Car-sharing platform engineering
+- `automotive-mobility/thepunisher-automotiveedgecomputingexpert.md` — **ThePunisher-AutomotiveEdgeComputingExpert**: In-vehicle edge-computing architecture engineering
+- `automotive-mobility/thepunisher-automotivepredictivemaintenanceexpert.md` — **ThePunisher-AutomotivePredictiveMaintenanceExpert**: Predictive-maintenance ML engineering for vehicle fleets
+- `automotive-mobility/thepunisher-trafficsignaloptimizationexpert.md` — **ThePunisher-TrafficSignalOptimizationExpert**: Smart traffic-signal control-system engineering
+- `automotive-mobility/thepunisher-automotivedataprivacyexpert.md` — **ThePunisher-AutomotiveDataPrivacyExpert**: Vehicle-data privacy engineering
+- `automotive-mobility/thepunisher-lastmiledeliveryroboticsexpert.md` — **ThePunisher-LastMileDeliveryRoboticsExpert**: Platform/software layer for delivery-robot fleets
+- `automotive-mobility/thepunisher-mobilityasaserviceplatformexpert.md` — **ThePunisher-MobilityAsAServicePlatformExpert**: Mobility-as-a-service platform integration engineering
+
+## Team 30 — Geospatial & GIS Engineering (50 agents)
+
+- `geospatial-gis/thepunisher-gisdatamodelingexpert.md` — **ThePunisher-GISDataModelingExpert**: Geospatial data model design for GIS systems
+- `geospatial-gis/thepunisher-spatialdatabaseexpert.md` — **ThePunisher-SpatialDatabaseExpert**: PostGIS/spatial indexing and spatial-query optimization
+- `geospatial-gis/thepunisher-maptileservingexpert.md` — **ThePunisher-MapTileServingExpert**: Map tile server architecture: vector/raster tiles
+- `geospatial-gis/thepunisher-geocodingexpert.md` — **ThePunisher-GeocodingExpert**: Address-to-coordinate geocoding engine engineering
+- `geospatial-gis/thepunisher-addressnormalizationexpert.md` — **ThePunisher-AddressNormalizationExpert**: Address normalization/standardization engineering
+- `geospatial-gis/thepunisher-spatialanalysisexpert.md` — **ThePunisher-SpatialAnalysisExpert**: Spatial analysis algorithm engineering: buffer, overlay, proximity
+- `geospatial-gis/thepunisher-remotesensinggisexpert.md` — **ThePunisher-RemoteSensingGISExpert**: Remote-sensing data ingestion/processing GIS workflows
+- `geospatial-gis/thepunisher-coordinatereferencesystemexpert.md` — **ThePunisher-CoordinateReferenceSystemExpert**: CRS/projection transformation engineering
+- `geospatial-gis/thepunisher-vectorgisdataexpert.md` — **ThePunisher-VectorGISDataExpert**: Vector GIS format handling: shapefile/GeoJSON/GeoPackage
+- `geospatial-gis/thepunisher-rastergisprocessingexpert.md` — **ThePunisher-RasterGISProcessingExpert**: Raster GIS data processing and analysis
+- `geospatial-gis/thepunisher-webgisexpert.md` — **ThePunisher-WebGISExpert**: Web mapping engineering: Leaflet/Mapbox/OpenLayers
+- `geospatial-gis/thepunisher-networkanalysisgisexpert.md` — **ThePunisher-NetworkAnalysisGISExpert**: GIS network-analysis engineering: shortest path, service areas
+- `geospatial-gis/thepunisher-terrainanalysisexpert.md` — **ThePunisher-TerrainAnalysisExpert**: DEM/terrain modeling and analysis
+- `geospatial-gis/thepunisher-geofencingexpert.md` — **ThePunisher-GeofencingExpert**: Geofencing system engineering
+- `geospatial-gis/thepunisher-locationintelligenceexpert.md` — **ThePunisher-LocationIntelligenceExpert**: Location-intelligence platform engineering
+- `geospatial-gis/thepunisher-urbanplanninggisexpert.md` — **ThePunisher-UrbanPlanningGISExpert**: GIS engineering for urban-planning workflows
+- `geospatial-gis/thepunisher-cadastralmappingexpert.md` — **ThePunisher-CadastralMappingExpert**: Land parcel/cadastral mapping system engineering
+- `geospatial-gis/thepunisher-gisdatainteroperabilityexpert.md` — **ThePunisher-GISDataInteroperabilityExpert**: OGC standards engineering: WMS/WFS/WCS
+- `geospatial-gis/thepunisher-indoorpositioningexpert.md` — **ThePunisher-IndoorPositioningExpert**: Indoor positioning system engineering
+- `geospatial-gis/thepunisher-geodeticsurveyingexpert.md` — **ThePunisher-GeodeticSurveyingExpert**: Survey-grade GNSS/geodetic surveying engineering
+- `geospatial-gis/thepunisher-gisvisualizationexpert.md` — **ThePunisher-GISVisualizationExpert**: Geospatial data visualization engineering
+- `geospatial-gis/thepunisher-spatialetlexpert.md` — **ThePunisher-SpatialETLExpert**: Spatial-data ETL pipeline engineering
+- `geospatial-gis/thepunisher-threedgisexpert.md` — **ThePunisher-ThreeDGISExpert**: 3D city models and CityGML engineering
+- `geospatial-gis/thepunisher-climatedatagisexpert.md` — **ThePunisher-ClimateDataGISExpert**: Climate/weather data GIS integration
+- `geospatial-gis/thepunisher-disastermappingexpert.md` — **ThePunisher-DisasterMappingExpert**: Emergency-response/disaster-mapping system engineering
+- `geospatial-gis/thepunisher-environmentalgisexpert.md` — **ThePunisher-EnvironmentalGISExpert**: Environmental monitoring GIS system engineering
+- `geospatial-gis/thepunisher-transitnetworkgisexpert.md` — **ThePunisher-TransitNetworkGISExpert**: Transit-network GIS modeling engineering
+- `geospatial-gis/thepunisher-precisionagriculturegisexpert.md` — **ThePunisher-PrecisionAgricultureGISExpert**: Field-boundary/yield-mapping GIS engineering
+- `geospatial-gis/thepunisher-gisperformanceoptimizationexpert.md` — **ThePunisher-GISPerformanceOptimizationExpert**: Spatial-index/query performance tuning
+- `geospatial-gis/thepunisher-mobilegisexpert.md` — **ThePunisher-MobileGISExpert**: Field-data-collection mobile GIS application engineering
+- `geospatial-gis/thepunisher-gisdataqualityexpert.md` — **ThePunisher-GISDataQualityExpert**: Geospatial data-quality validation engineering
+- `geospatial-gis/thepunisher-hydrologymodelingexpert.md` — **ThePunisher-HydrologyModelingExpert**: Watershed/hydrology GIS modeling
+- `geospatial-gis/thepunisher-gisapiexpert.md` — **ThePunisher-GISAPIExpert**: Geospatial API design: REST/OGC API Features
+- `geospatial-gis/thepunisher-landuseclassificationexpert.md` — **ThePunisher-LandUseClassificationExpert**: Land-use/land-cover classification engineering
+- `geospatial-gis/thepunisher-gisversioningexpert.md` — **ThePunisher-GISVersioningExpert**: Spatial-data versioning and conflict-resolution engineering
+- `geospatial-gis/thepunisher-aerialsurveyprocessingexpert.md` — **ThePunisher-AerialSurveyProcessingExpert**: Drone/aerial photogrammetry processing engineering
+- `geospatial-gis/thepunisher-geoprivacyexpert.md` — **ThePunisher-GeoprivacyExpert**: Location-data privacy engineering
+- `geospatial-gis/thepunisher-gismachinelearningexpert.md` — **ThePunisher-GISMachineLearningExpert**: Spatial ML: land-cover classification model engineering
+- `geospatial-gis/thepunisher-giscloudinfrastructureexpert.md` — **ThePunisher-GISCloudInfrastructureExpert**: Cloud-native geospatial infrastructure: STAC, COG
+- `geospatial-gis/thepunisher-spatialstatisticsexpert.md` — **ThePunisher-SpatialStatisticsExpert**: Spatial statistics/geostatistics engineering
+- `geospatial-gis/thepunisher-realestategisexpert.md` — **ThePunisher-RealEstateGISExpert**: Spatial analysis engineering for real-estate valuation
+- `geospatial-gis/thepunisher-maritimegisexpert.md` — **ThePunisher-MaritimeGISExpert**: Nautical charting/AIS vessel-tracking GIS engineering
+- `geospatial-gis/thepunisher-georeferencingexpert.md` — **ThePunisher-GeoreferencingExpert**: Image/map georeferencing engineering
+- `geospatial-gis/thepunisher-satelliteconstellationtrackingexpert.md` — **ThePunisher-SatelliteConstellationTrackingExpert**: Satellite-constellation tracking data integration
+- `geospatial-gis/thepunisher-gisopendataexpert.md` — **ThePunisher-GISOpenDataExpert**: Open geospatial data platform engineering
+- `geospatial-gis/thepunisher-gisschemadesignexpert.md` — **ThePunisher-GISSchemaDesignExpert**: Spatial database schema design
+- `geospatial-gis/thepunisher-wildfiremappingexpert.md` — **ThePunisher-WildfireMappingExpert**: Wildfire-risk GIS modeling engineering
+- `geospatial-gis/thepunisher-gisdigitaltwinexpert.md` — **ThePunisher-GISDigitalTwinExpert**: City/infrastructure digital-twin GIS integration
+- `geospatial-gis/thepunisher-marinespatialplanningexpert.md` — **ThePunisher-MarineSpatialPlanningExpert**: Marine spatial-planning GIS engineering
+- `geospatial-gis/thepunisher-gisdataarchivalexpert.md` — **ThePunisher-GISDataArchivalExpert**: Long-term geospatial data archival engineering
+
+## Team 31 — Scientific Computing & HPC Engineering (50 agents)
+
+- `scientific-computing-hpc/thepunisher-numericalmethodsexpert.md` — **ThePunisher-NumericalMethodsExpert**: Numerical-methods algorithm design and error analysis
+- `scientific-computing-hpc/thepunisher-parallelcomputingexpert.md` — **ThePunisher-ParallelComputingExpert**: MPI/OpenMP parallel-programming engineering
+- `scientific-computing-hpc/thepunisher-gpucomputingexpert.md` — **ThePunisher-GPUComputingExpert**: CUDA/ROCm general-purpose GPU computing engineering
+- `scientific-computing-hpc/thepunisher-hpcclusterschedulingexpert.md` — **ThePunisher-HPCClusterSchedulingExpert**: Slurm/PBS HPC job-scheduling engineering
+- `scientific-computing-hpc/thepunisher-finiteelementanalysisexpert.md` — **ThePunisher-FiniteElementAnalysisExpert**: Finite element analysis (FEA) engineering
+- `scientific-computing-hpc/thepunisher-computationalfluiddynamicsexpert.md` — **ThePunisher-ComputationalFluidDynamicsExpert**: Computational fluid dynamics (CFD) simulation engineering
+- `scientific-computing-hpc/thepunisher-linearalgebralibraryexpert.md` — **ThePunisher-LinearAlgebraLibraryExpert**: BLAS/LAPACK-style numerical-library engineering
+- `scientific-computing-hpc/thepunisher-bioinformaticspipelineexpert.md` — **ThePunisher-BioinformaticsPipelineExpert**: Bioinformatics pipeline engineering
+- `scientific-computing-hpc/thepunisher-genomicssequencinganalysisexpert.md` — **ThePunisher-GenomicsSequencingAnalysisExpert**: Genomic sequencing data analysis engineering
+- `scientific-computing-hpc/thepunisher-proteinstructurepredictionexpert.md` — **ThePunisher-ProteinStructurePredictionExpert**: Protein structure prediction engineering
+- `scientific-computing-hpc/thepunisher-computationalchemistryexpert.md` — **ThePunisher-ComputationalChemistryExpert**: Computational chemistry simulation engineering
+- `scientific-computing-hpc/thepunisher-moleculardynamicssimulationexpert.md` — **ThePunisher-MolecularDynamicsSimulationExpert**: Molecular dynamics simulation engineering
+- `scientific-computing-hpc/thepunisher-climatemodelingexpert.md` — **ThePunisher-ClimateModelingExpert**: Climate-model simulation engineering
+- `scientific-computing-hpc/thepunisher-weatherforecastingmodelexpert.md` — **ThePunisher-WeatherForecastingModelExpert**: Numerical weather-forecasting model engineering
+- `scientific-computing-hpc/thepunisher-scientificmontecarloexpert.md` — **ThePunisher-ScientificMonteCarloExpert**: Monte Carlo methods for scientific simulation
+- `scientific-computing-hpc/thepunisher-sparsematrixcomputationexpert.md` — **ThePunisher-SparseMatrixComputationExpert**: Sparse-matrix computation algorithm engineering
+- `scientific-computing-hpc/thepunisher-numericaloptimizationexpert.md` — **ThePunisher-NumericalOptimizationExpert**: Numerical optimization algorithm engineering
+- `scientific-computing-hpc/thepunisher-highperformancestorageexpert.md` — **ThePunisher-HighPerformanceStorageExpert**: Parallel filesystem engineering: Lustre/GPFS
+- `scientific-computing-hpc/thepunisher-scientificworkfloworchestrationexpert.md` — **ThePunisher-ScientificWorkflowOrchestrationExpert**: Nextflow/Snakemake scientific-workflow engineering
+- `scientific-computing-hpc/thepunisher-quantumcomputingsimulationexpert.md` — **ThePunisher-QuantumComputingSimulationExpert**: Quantum-computing algorithm simulation engineering
+- `scientific-computing-hpc/thepunisher-computationalphysicsexpert.md` — **ThePunisher-ComputationalPhysicsExpert**: Computational physics simulation engineering
+- `scientific-computing-hpc/thepunisher-astrophysicssimulationexpert.md` — **ThePunisher-AstrophysicsSimulationExpert**: Astrophysics/cosmological simulation engineering
+- `scientific-computing-hpc/thepunisher-finitedifferencemethodexpert.md` — **ThePunisher-FiniteDifferenceMethodExpert**: Finite difference method numerical engineering
+- `scientific-computing-hpc/thepunisher-hpcperformanceprofilingexpert.md` — **ThePunisher-HPCPerformanceProfilingExpert**: HPC application performance profiling engineering
+- `scientific-computing-hpc/thepunisher-distributedtraininghpcexpert.md` — **ThePunisher-DistributedTrainingHPCExpert**: Cluster-level distributed-training infrastructure engineering
+- `scientific-computing-hpc/thepunisher-scientificdataformatexpert.md` — **ThePunisher-ScientificDataFormatExpert**: HDF5/NetCDF scientific-data format engineering
+- `scientific-computing-hpc/thepunisher-phylogeneticscomputingexpert.md` — **ThePunisher-PhylogeneticsComputingExpert**: Computational phylogenetics engineering
+- `scientific-computing-hpc/thepunisher-drugdiscoverycomputationexpert.md` — **ThePunisher-DrugDiscoveryComputationExpert**: Computational drug-discovery pipeline engineering
+- `scientific-computing-hpc/thepunisher-systemsbiologymodelingexpert.md` — **ThePunisher-SystemsBiologyModelingExpert**: Systems-biology computational modeling engineering
+- `scientific-computing-hpc/thepunisher-neurosciencecomputingexpert.md` — **ThePunisher-NeuroscienceComputingExpert**: Computational neuroscience/brain-simulation engineering
+- `scientific-computing-hpc/thepunisher-geophysicssimulationexpert.md` — **ThePunisher-GeophysicsSimulationExpert**: Geophysics simulation engineering
+- `scientific-computing-hpc/thepunisher-structuralengineeringsimulationexpert.md` — **ThePunisher-StructuralEngineeringSimulationExpert**: Structural-engineering simulation engineering
+- `scientific-computing-hpc/thepunisher-computationalelectromagneticsexpert.md` — **ThePunisher-ComputationalElectromagneticsExpert**: Computational electromagnetics simulation engineering
+- `scientific-computing-hpc/thepunisher-reactorphysicssimulationexpert.md` — **ThePunisher-ReactorPhysicsSimulationExpert**: Nuclear reactor physics simulation engineering
+- `scientific-computing-hpc/thepunisher-hpccontainerizationexpert.md` — **ThePunisher-HPCContainerizationExpert**: Singularity/Apptainer HPC container engineering
+- `scientific-computing-hpc/thepunisher-scientificvisualizationexpert.md` — **ThePunisher-ScientificVisualizationExpert**: Scientific data visualization engineering
+- `scientific-computing-hpc/thepunisher-numericalpdesolverexpert.md` — **ThePunisher-NumericalPDESolverExpert**: Numerical PDE solver engineering
+- `scientific-computing-hpc/thepunisher-computationalmaterialsscienceexpert.md` — **ThePunisher-ComputationalMaterialsScienceExpert**: Computational materials-science simulation engineering
+- `scientific-computing-hpc/thepunisher-hpcnetworkingexpert.md` — **ThePunisher-HPCNetworkingExpert**: InfiniBand/RDMA HPC interconnect engineering
+- `scientific-computing-hpc/thepunisher-automaticdifferentiationexpert.md` — **ThePunisher-AutomaticDifferentiationExpert**: Automatic-differentiation algorithm engineering
+- `scientific-computing-hpc/thepunisher-reproducibleresearchcomputingexpert.md` — **ThePunisher-ReproducibleResearchComputingExpert**: Computational-reproducibility/environment-pinning engineering
+- `scientific-computing-hpc/thepunisher-tensorcomputationlibraryexpert.md` — **ThePunisher-TensorComputationLibraryExpert**: Tensor-library internals: einsum/contraction optimization
+- `scientific-computing-hpc/thepunisher-computationalfinancehpcexpert.md` — **ThePunisher-ComputationalFinanceHPCExpert**: Grid-computing infrastructure for large-scale risk simulation
+- `scientific-computing-hpc/thepunisher-remotevisualizationexpert.md` — **ThePunisher-RemoteVisualizationExpert**: Remote HPC visualization/streaming pipeline engineering
+- `scientific-computing-hpc/thepunisher-hpcdatacompressionexpert.md` — **ThePunisher-HPCDataCompressionExpert**: Scientific-data compression engineering
+- `scientific-computing-hpc/thepunisher-gridcomputingexpert.md` — **ThePunisher-GridComputingExpert**: Grid-computing infrastructure engineering
+- `scientific-computing-hpc/thepunisher-computationalseismologyexpert.md` — **ThePunisher-ComputationalSeismologyExpert**: Computational seismology simulation engineering
+- `scientific-computing-hpc/thepunisher-hpcenergyefficiencyexpert.md` — **ThePunisher-HPCEnergyEfficiencyExpert**: HPC power/energy-efficiency engineering
+- `scientific-computing-hpc/thepunisher-scientificsoftwaretestingexpert.md` — **ThePunisher-ScientificSoftwareTestingExpert**: Verification/validation engineering for scientific-computing code
+- `scientific-computing-hpc/thepunisher-uncertaintyquantificationexpert.md` — **ThePunisher-UncertaintyQuantificationExpert**: Uncertainty-quantification methodology engineering
+
+## Team 32 — Platform Engineering & Developer Experience (50 agents)
+
+- `platform-devex/thepunisher-internaldeveloperplatformexpert.md` — **ThePunisher-InternalDeveloperPlatformExpert**: Internal developer platform (IDP) architecture design
+- `platform-devex/thepunisher-developerportalexpert.md` — **ThePunisher-DeveloperPortalExpert**: Backstage-style developer-portal engineering
+- `platform-devex/thepunisher-apigatewayengineeringexpert.md` — **ThePunisher-APIGatewayEngineeringExpert**: API gateway platform architecture engineering
+- `platform-devex/thepunisher-servicecatalogexpert.md` — **ThePunisher-ServiceCatalogExpert**: Service-catalog system engineering
+- `platform-devex/thepunisher-goldenpathengineeringexpert.md` — **ThePunisher-GoldenPathEngineeringExpert**: Paved-road/golden-path template engineering
+- `platform-devex/thepunisher-platformselfserviceexpert.md` — **ThePunisher-PlatformSelfServiceExpert**: Self-service platform capability engineering
+- `platform-devex/thepunisher-developeronboardingexpert.md` — **ThePunisher-DeveloperOnboardingExpert**: Developer-onboarding automation engineering
+- `platform-devex/thepunisher-internaltoolingexpert.md` — **ThePunisher-InternalToolingExpert**: Internal-tooling design and engineering
+- `platform-devex/thepunisher-clitooldevelopmentexpert.md` — **ThePunisher-CLIToolDevelopmentExpert**: Internal CLI tool development engineering
+- `platform-devex/thepunisher-sdkdesignexpert.md` — **ThePunisher-SDKDesignExpert**: Internal SDK design engineering
+- `platform-devex/thepunisher-multitenancyplatformexpert.md` — **ThePunisher-MultiTenancyPlatformExpert**: Multi-tenant internal platform architecture engineering
+- `platform-devex/thepunisher-developerproductivitymetricsexpert.md` — **ThePunisher-DeveloperProductivityMetricsExpert**: DORA metrics/DevEx measurement engineering
+- `platform-devex/thepunisher-platformtelemetryintegrationexpert.md` — **ThePunisher-PlatformTelemetryIntegrationExpert**: Platform-level telemetry integration engineering
+- `platform-devex/thepunisher-infrastructuretemplatingexpert.md` — **ThePunisher-InfrastructureTemplatingExpert**: Terraform/Helm self-service template engineering
+- `platform-devex/thepunisher-platformsecurityguardrailsexpert.md` — **ThePunisher-PlatformSecurityGuardrailsExpert**: Policy-as-code guardrail engineering: OPA/Kyverno
+- `platform-devex/thepunisher-featureflagplatformexpert.md` — **ThePunisher-FeatureFlagPlatformExpert**: Feature-flag platform engineering
+- `platform-devex/thepunisher-secretsmanagementplatformexpert.md` — **ThePunisher-SecretsManagementPlatformExpert**: Secrets-management platform engineering
+- `platform-devex/thepunisher-platformcostvisibilityexpert.md` — **ThePunisher-PlatformCostVisibilityExpert**: Internal-platform cost-visibility tooling engineering
+- `platform-devex/thepunisher-developerenvironmentautomationexpert.md` — **ThePunisher-DeveloperEnvironmentAutomationExpert**: Dev-container/ephemeral-environment automation engineering
+- `platform-devex/thepunisher-platformdocumentationengineexpert.md` — **ThePunisher-PlatformDocumentationEngineExpert**: Platform documentation-engine engineering
+- `platform-devex/thepunisher-apiversioningstrategyexpert.md` — **ThePunisher-APIVersioningStrategyExpert**: API-versioning strategy engineering
+- `platform-devex/thepunisher-platformmigrationtoolingexpert.md` — **ThePunisher-PlatformMigrationToolingExpert**: Platform-migration tooling engineering
+- `platform-devex/thepunisher-lowcodenocodeplatformexpert.md` — **ThePunisher-LowCodeNoCodePlatformExpert**: Internal low-code/no-code platform engineering
+- `platform-devex/thepunisher-workflowautomationplatformexpert.md` — **ThePunisher-WorkflowAutomationPlatformExpert**: Internal workflow-automation platform engineering
+- `platform-devex/thepunisher-platformextensibilityexpert.md` — **ThePunisher-PlatformExtensibilityExpert**: Plugin-architecture design for internal platforms
+- `platform-devex/thepunisher-buildsystemengineeringexpert.md` — **ThePunisher-BuildSystemEngineeringExpert**: Build-system tooling engineering: Bazel/Buck
+- `platform-devex/thepunisher-monorepotoolingexpert.md` — **ThePunisher-MonorepoToolingExpert**: Monorepo tooling engineering
+- `platform-devex/thepunisher-dependencymanagementplatformexpert.md` — **ThePunisher-DependencyManagementPlatformExpert**: Dependency-management platform engineering
+- `platform-devex/thepunisher-internalapimarketplaceexpert.md` — **ThePunisher-InternalAPIMarketplaceExpert**: Internal API-marketplace platform engineering
+- `platform-devex/thepunisher-selfserviceprovisioningexpert.md` — **ThePunisher-SelfServiceProvisioningExpert**: Self-service cloud-resource provisioning engineering
+- `platform-devex/thepunisher-platformrbacexpert.md` — **ThePunisher-PlatformRBACExpert**: Role-based access control engineering for internal platforms
+- `platform-devex/thepunisher-developersandboxexpert.md` — **ThePunisher-DeveloperSandboxExpert**: Developer-sandbox environment engineering
+- `platform-devex/thepunisher-platformeventbusexpert.md` — **ThePunisher-PlatformEventBusExpert**: Internal event-bus/message-broker platform engineering
+- `platform-devex/thepunisher-platformcipipelinetemplateexpert.md` — **ThePunisher-PlatformCIPipelineTemplateExpert**: Reusable CI-pipeline template engineering for platforms
+- `platform-devex/thepunisher-internalnpmregistryexpert.md` — **ThePunisher-InternalNPMRegistryExpert**: Private package-registry engineering
+- `platform-devex/thepunisher-platformcomplianceautomationexpert.md` — **ThePunisher-PlatformComplianceAutomationExpert**: Platform-level compliance-automation engineering
+- `platform-devex/thepunisher-developerexperienceresearchexpert.md` — **ThePunisher-DeveloperExperienceResearchExpert**: DevEx research/survey methodology engineering
+- `platform-devex/thepunisher-multiclusterplatformexpert.md` — **ThePunisher-MultiClusterPlatformExpert**: Multi-cluster/multi-region platform engineering
+- `platform-devex/thepunisher-platformoncalltoolingexpert.md` — **ThePunisher-PlatformOnCallToolingExpert**: Platform-team on-call tooling engineering
+- `platform-devex/thepunisher-servicemeshplatformprovisioningexpert.md` — **ThePunisher-ServiceMeshPlatformProvisioningExpert**: Service-mesh self-service provisioning engineering
+- `platform-devex/thepunisher-platformdeprecationmanagementexpert.md` — **ThePunisher-PlatformDeprecationManagementExpert**: API/platform deprecation lifecycle management engineering
+- `platform-devex/thepunisher-internaldesignsystemplatformexpert.md` — **ThePunisher-InternalDesignSystemPlatformExpert**: Component-library distribution/versioning infrastructure engineering
+- `platform-devex/thepunisher-platformtestenvironmentexpert.md` — **ThePunisher-PlatformTestEnvironmentExpert**: Platform test-environment provisioning engineering
+- `platform-devex/thepunisher-platformauditloggingexpert.md` — **ThePunisher-PlatformAuditLoggingExpert**: Platform-level audit-logging engineering
+- `platform-devex/thepunisher-platformapigovernanceexpert.md` — **ThePunisher-PlatformAPIGovernanceExpert**: Platform API-governance engineering
+- `platform-devex/thepunisher-platformincidenttoolingexpert.md` — **ThePunisher-PlatformIncidentToolingExpert**: Platform-team incident-response tooling engineering
+- `platform-devex/thepunisher-edgeplatformengineeringexpert.md` — **ThePunisher-EdgePlatformEngineeringExpert**: Edge-deployment platform tooling engineering
+- `platform-devex/thepunisher-platformknowledgebaseexpert.md` — **ThePunisher-PlatformKnowledgeBaseExpert**: Platform knowledge-base/documentation-search engineering
+- `platform-devex/thepunisher-developertoolchainstandardizationexpert.md` — **ThePunisher-DeveloperToolchainStandardizationExpert**: Developer-toolchain standardization engineering
+- `platform-devex/thepunisher-platformvendorintegrationexpert.md` — **ThePunisher-PlatformVendorIntegrationExpert**: Third-party vendor-tool integration engineering for platforms
+
+## Team 33 — AR/VR/XR Engineering (50 agents)
+
+- `ar-vr-xr/thepunisher-arkitdevelopmentexpert.md` — **ThePunisher-ARKitDevelopmentExpert**: Apple ARKit application development
+- `ar-vr-xr/thepunisher-arcoredevelopmentexpert.md` — **ThePunisher-ARCoreDevelopmentExpert**: Google ARCore application development
+- `ar-vr-xr/thepunisher-unityxrexpert.md` — **ThePunisher-UnityXRExpert**: Unity XR toolkit/plugin development
+- `ar-vr-xr/thepunisher-webxrexpert.md` — **ThePunisher-WebXRExpert**: WebXR browser-based XR application development
+- `ar-vr-xr/thepunisher-vrheadsetsdkexpert.md` — **ThePunisher-VRHeadsetSDKExpert**: Quest/PICO/Vision Pro SDK integration
+- `ar-vr-xr/thepunisher-spatialanchorexpert.md` — **ThePunisher-SpatialAnchorExpert**: Spatial anchors/persistence engineering for AR
+- `ar-vr-xr/thepunisher-xrhandtrackingexpert.md` — **ThePunisher-XRHandTrackingExpert**: Hand-tracking integration for XR platforms
+- `ar-vr-xr/thepunisher-hapticfeedbackexpert.md` — **ThePunisher-HapticFeedbackExpert**: Haptic feedback system engineering
+- `ar-vr-xr/thepunisher-xruxdesignexpert.md` — **ThePunisher-XRUXDesignExpert**: XR-specific interaction/UX design engineering
+- `ar-vr-xr/thepunisher-mixedrealityexpert.md` — **ThePunisher-MixedRealityExpert**: Mixed-reality application engineering
+- `ar-vr-xr/thepunisher-vrlocomotionexpert.md` — **ThePunisher-VRLocomotionExpert**: VR movement/locomotion system design
+- `ar-vr-xr/thepunisher-xrperformanceoptimizationexpert.md` — **ThePunisher-XRPerformanceOptimizationExpert**: XR rendering/frame-rate performance optimization
+- `ar-vr-xr/thepunisher-volumetricvideoexpert.md` — **ThePunisher-VolumetricVideoExpert**: Volumetric capture/playback engineering
+- `ar-vr-xr/thepunisher-xravatarsystemexpert.md` — **ThePunisher-XRAvatarSystemExpert**: XR avatar system engineering
+- `ar-vr-xr/thepunisher-xrspatialaudioexpert.md` — **ThePunisher-XRSpatialAudioExpert**: XR-specific spatial audio integration engineering
+- `ar-vr-xr/thepunisher-xrmultiplayernetworkingexpert.md` — **ThePunisher-XRMultiplayerNetworkingExpert**: XR multiplayer networking engineering
+- `ar-vr-xr/thepunisher-xraccessibilityexpert.md` — **ThePunisher-XRAccessibilityExpert**: XR accessibility engineering
+- `ar-vr-xr/thepunisher-vrsicknessmitigationexpert.md` — **ThePunisher-VRSicknessMitigationExpert**: VR comfort/motion-sickness mitigation engineering
+- `ar-vr-xr/thepunisher-xrcontentpipelineexpert.md` — **ThePunisher-XRContentPipelineExpert**: 3D asset pipeline engineering for XR
+- `ar-vr-xr/thepunisher-arenterprisetrainingexpert.md` — **ThePunisher-AREnterpriseTrainingExpert**: Industrial AR training-application engineering
+- `ar-vr-xr/thepunisher-xrdevicecalibrationexpert.md` — **ThePunisher-XRDeviceCalibrationExpert**: XR device calibration engineering
+- `ar-vr-xr/thepunisher-xrcloudrenderingexpert.md` — **ThePunisher-XRCloudRenderingExpert**: Cloud-streamed XR rendering engineering
+- `ar-vr-xr/thepunisher-arremoteassistanceexpert.md` — **ThePunisher-ARRemoteAssistanceExpert**: AR remote-assist/telepresence application engineering
+- `ar-vr-xr/thepunisher-xrdigitaltwinvisualizationexpert.md` — **ThePunisher-XRDigitalTwinVisualizationExpert**: XR visualization engineering for digital twins
+- `ar-vr-xr/thepunisher-xranalyticsexpert.md` — **ThePunisher-XRAnalyticsExpert**: XR usage/engagement analytics engineering
+- `ar-vr-xr/thepunisher-arnavigationoverlayexpert.md` — **ThePunisher-ARNavigationOverlayExpert**: AR wayfinding/navigation overlay engineering
+- `ar-vr-xr/thepunisher-xrsecurityexpert.md` — **ThePunisher-XRSecurityExpert**: XR-specific privacy/security engineering
+- `ar-vr-xr/thepunisher-xrtestingautomationexpert.md` — **ThePunisher-XRTestingAutomationExpert**: Automated testing engineering for XR applications
+- `ar-vr-xr/thepunisher-xrinputdeviceexpert.md` — **ThePunisher-XRInputDeviceExpert**: Controller/input-device integration engineering
+- `ar-vr-xr/thepunisher-socialarplatformexpert.md` — **ThePunisher-SocialARPlatformExpert**: Social AR filter/effect platform engineering
+- `ar-vr-xr/thepunisher-xrcontentmoderationexpert.md` — **ThePunisher-XRContentModerationExpert**: Real-time content-moderation engineering for XR spaces
+- `ar-vr-xr/thepunisher-vrfitnessapplicationexpert.md` — **ThePunisher-VRFitnessApplicationExpert**: VR fitness application engineering
+- `ar-vr-xr/thepunisher-xrretailexperienceexpert.md` — **ThePunisher-XRRetailExperienceExpert**: Virtual try-on/AR shopping experience engineering
+- `ar-vr-xr/thepunisher-xreducationplatformexpert.md` — **ThePunisher-XREducationPlatformExpert**: XR education platform engineering
+- `ar-vr-xr/thepunisher-xrhealthcareapplicationexpert.md` — **ThePunisher-XRHealthcareApplicationExpert**: XR healthcare application engineering
+- `ar-vr-xr/thepunisher-sixdoftrackingexpert.md` — **ThePunisher-SixDoFTrackingExpert**: 6DoF positional tracking engineering
+- `ar-vr-xr/thepunisher-xrcrossplatformexpert.md` — **ThePunisher-XRCrossPlatformExpert**: Cross-headset compatibility engineering
+- `ar-vr-xr/thepunisher-xrassetstreamingexpert.md` — **ThePunisher-XRAssetStreamingExpert**: Streaming large 3D assets for XR applications
+- `ar-vr-xr/thepunisher-vrcollaborationplatformexpert.md` — **ThePunisher-VRCollaborationPlatformExpert**: VR collaboration/co-presence platform engineering
+- `ar-vr-xr/thepunisher-xrprototypingexpert.md` — **ThePunisher-XRPrototypingExpert**: Rapid XR prototyping engineering
+- `ar-vr-xr/thepunisher-arindustrialinspectionexpert.md` — **ThePunisher-ARIndustrialInspectionExpert**: AR-overlay industrial inspection engineering
+- `ar-vr-xr/thepunisher-xrengineoptimizationexpert.md` — **ThePunisher-XREngineOptimizationExpert**: XR-specific game-engine integration/optimization engineering
+- `ar-vr-xr/thepunisher-vrtherapeuticapplicationexpert.md` — **ThePunisher-VRTherapeuticApplicationExpert**: VR therapy/rehabilitation application engineering
+- `ar-vr-xr/thepunisher-xrwearableintegrationexpert.md` — **ThePunisher-XRWearableIntegrationExpert**: XR headset wearable-sensor integration engineering
+- `ar-vr-xr/thepunisher-armeasurementtoolexpert.md` — **ThePunisher-ARMeasurementToolExpert**: AR measurement/scanning tool engineering
+- `ar-vr-xr/thepunisher-xrsdkabstractionexpert.md` — **ThePunisher-XRSDKAbstractionExpert**: Cross-SDK abstraction-layer engineering for XR
+- `ar-vr-xr/thepunisher-virtualproductionexpert.md` — **ThePunisher-VirtualProductionExpert**: Real-time VR virtual-production engineering for film/broadcast
+- `ar-vr-xr/thepunisher-metaverseinteroperabilityexpert.md` — **ThePunisher-MetaverseInteroperabilityExpert**: Cross-platform avatar/asset interoperability engineering
+- `ar-vr-xr/thepunisher-arlocationbasedexperienceexpert.md` — **ThePunisher-ARLocationBasedExperienceExpert**: Location-based AR experience engineering
+- `ar-vr-xr/thepunisher-xrdevicefirmwareinterfaceexpert.md` — **ThePunisher-XRDeviceFirmwareInterfaceExpert**: Application-level XR-device firmware interface engineering
+
+## Team 34 — Identity & Access Management Engineering (50 agents)
+
+- `identity-access-management/thepunisher-singlesignonexpert.md` — **ThePunisher-SingleSignOnExpert**: SSO architecture design
+- `identity-access-management/thepunisher-samlprotocolexpert.md` — **ThePunisher-SAMLProtocolExpert**: SAML protocol implementation and troubleshooting
+- `identity-access-management/thepunisher-scimprovisioningexpert.md` — **ThePunisher-SCIMProvisioningExpert**: SCIM user-provisioning protocol implementation
+- `identity-access-management/thepunisher-directoryservicesexpert.md` — **ThePunisher-DirectoryServicesExpert**: LDAP/Active Directory engineering
+- `identity-access-management/thepunisher-privilegedaccessmanagementexpert.md` — **ThePunisher-PrivilegedAccessManagementExpert**: Privileged access management (PAM) system engineering
+- `identity-access-management/thepunisher-identitygovernanceexpert.md` — **ThePunisher-IdentityGovernanceExpert**: Identity governance and administration (IGA) engineering
+- `identity-access-management/thepunisher-multifactorauthenticationexpert.md` — **ThePunisher-MultiFactorAuthenticationExpert**: Multi-factor authentication system engineering
+- `identity-access-management/thepunisher-passwordlessauthexpert.md` — **ThePunisher-PasswordlessAuthExpert**: Passwordless authentication system engineering
+- `identity-access-management/thepunisher-federatedidentityexpert.md` — **ThePunisher-FederatedIdentityExpert**: Federated identity architecture engineering
+- `identity-access-management/thepunisher-enterpriseoidcfederationexpert.md` — **ThePunisher-EnterpriseOIDCFederationExpert**: Enterprise-scale OIDC federation engineering
+- `identity-access-management/thepunisher-identitylifecyclemanagementexpert.md` — **ThePunisher-IdentityLifecycleManagementExpert**: Joiner-mover-leaver identity lifecycle automation
+- `identity-access-management/thepunisher-rolebasedaccesscontroldesignexpert.md` — **ThePunisher-RoleBasedAccessControlDesignExpert**: Enterprise-wide RBAC model design
+- `identity-access-management/thepunisher-attributebasedaccesscontrolexpert.md` — **ThePunisher-AttributeBasedAccessControlExpert**: Attribute-based access control (ABAC) engineering
+- `identity-access-management/thepunisher-zerotrustarchitectureexpert.md` — **ThePunisher-ZeroTrustArchitectureExpert**: Zero-trust architecture design
+- `identity-access-management/thepunisher-customeridentityaccessmanagementexpert.md` — **ThePunisher-CustomerIdentityAccessManagementExpert**: CIAM platform engineering
+- `identity-access-management/thepunisher-biometricauthenticationexpert.md` — **ThePunisher-BiometricAuthenticationExpert**: Biometric authentication system engineering
+- `identity-access-management/thepunisher-identityproofingexpert.md` — **ThePunisher-IdentityProofingExpert**: Identity-proofing/verification engineering
+- `identity-access-management/thepunisher-enterprisesessionsecurityexpert.md` — **ThePunisher-EnterpriseSessionSecurityExpert**: Enterprise session-security engineering
+- `identity-access-management/thepunisher-accessreviewautomationexpert.md` — **ThePunisher-AccessReviewAutomationExpert**: Periodic access-review/certification automation
+- `identity-access-management/thepunisher-justintimeaccessexpert.md` — **ThePunisher-JustInTimeAccessExpert**: Just-in-time/ephemeral access provisioning engineering
+- `identity-access-management/thepunisher-iamauditloggingexpert.md` — **ThePunisher-IAMAuditLoggingExpert**: IAM-specific audit-logging engineering
+- `identity-access-management/thepunisher-workforceidentityexpert.md` — **ThePunisher-WorkforceIdentityExpert**: Employee identity platform engineering
+- `identity-access-management/thepunisher-b2bidentityfederationexpert.md` — **ThePunisher-B2BIdentityFederationExpert**: B2B identity federation engineering
+- `identity-access-management/thepunisher-identityanalyticsexpert.md` — **ThePunisher-IdentityAnalyticsExpert**: Identity risk-scoring/anomaly analytics engineering
+- `identity-access-management/thepunisher-credentialrotationautomationexpert.md` — **ThePunisher-CredentialRotationAutomationExpert**: Automated credential-rotation engineering
+- `identity-access-management/thepunisher-serviceaccountmanagementexpert.md` — **ThePunisher-ServiceAccountManagementExpert**: Non-human identity/service-account governance engineering
+- `identity-access-management/thepunisher-iampolicyascodeexpert.md` — **ThePunisher-IAMPolicyAsCodeExpert**: IAM policy-as-code engineering
+- `identity-access-management/thepunisher-devicetrustexpert.md` — **ThePunisher-DeviceTrustExpert**: Device-posture/trust evaluation engineering for access decisions
+- `identity-access-management/thepunisher-passkeyimplementationexpert.md` — **ThePunisher-PasskeyImplementationExpert**: WebAuthn/FIDO2 passkey engineering
+- `identity-access-management/thepunisher-identityprovidermigrationexpert.md` — **ThePunisher-IdentityProviderMigrationExpert**: Identity-provider migration engineering
+- `identity-access-management/thepunisher-consentandprivacyiamexpert.md` — **ThePunisher-ConsentAndPrivacyIAMExpert**: Consent-management integration engineering for IAM
+- `identity-access-management/thepunisher-cloudiamexpert.md` — **ThePunisher-CloudIAMExpert**: AWS IAM/Azure AD/GCP IAM engineering
+- `identity-access-management/thepunisher-containeridentityexpert.md` — **ThePunisher-ContainerIdentityExpert**: Workload identity engineering for containers/service mesh
+- `identity-access-management/thepunisher-accessrequestworkflowexpert.md` — **ThePunisher-AccessRequestWorkflowExpert**: Access-request workflow engineering
+- `identity-access-management/thepunisher-identitybreachresponseexpert.md` — **ThePunisher-IdentityBreachResponseExpert**: Identity-breach incident-response engineering
+- `identity-access-management/thepunisher-delegatedadministrationexpert.md` — **ThePunisher-DelegatedAdministrationExpert**: Delegated administration model engineering
+- `identity-access-management/thepunisher-iamcompliancemappingexpert.md` — **ThePunisher-IAMComplianceMappingExpert**: SOX/HIPAA/PCI IAM control-mapping engineering
+- `identity-access-management/thepunisher-iamdeprovisioningexpert.md` — **ThePunisher-IAMDeprovisioningExpert**: Offboarding/deprovisioning automation engineering
+- `identity-access-management/thepunisher-authorizationpolicyengineexpert.md` — **ThePunisher-AuthorizationPolicyEngineExpert**: Fine-grained authorization engine engineering: OPA/Cedar-style
+- `identity-access-management/thepunisher-guestaccessmanagementexpert.md` — **ThePunisher-GuestAccessManagementExpert**: Guest/external-user access management engineering
+- `identity-access-management/thepunisher-iamhighavailabilityexpert.md` — **ThePunisher-IAMHighAvailabilityExpert**: High-availability architecture for IAM infrastructure
+- `identity-access-management/thepunisher-legacyiammodernizationexpert.md` — **ThePunisher-LegacyIAMModernizationExpert**: Legacy IAM system modernization engineering
+- `identity-access-management/thepunisher-smartcardauthenticationexpert.md` — **ThePunisher-SmartCardAuthenticationExpert**: Smart-card/PKI authentication engineering
+- `identity-access-management/thepunisher-iamthreatdetectionexpert.md` — **ThePunisher-IAMThreatDetectionExpert**: Impossible-travel/credential-stuffing detection engineering
+- `identity-access-management/thepunisher-mergeracquisitioniamexpert.md` — **ThePunisher-MergerAcquisitionIAMExpert**: IAM consolidation engineering during M&A
+- `identity-access-management/thepunisher-iamselfserviceportalexpert.md` — **ThePunisher-IAMSelfServicePortalExpert**: IAM self-service portal engineering
+- `identity-access-management/thepunisher-riskbasedauthenticationexpert.md` — **ThePunisher-RiskBasedAuthenticationExpert**: Adaptive/risk-based authentication engineering
+- `identity-access-management/thepunisher-identitydatasynchronizationexpert.md` — **ThePunisher-IdentityDataSynchronizationExpert**: Identity-data synchronization engineering across systems
+- `identity-access-management/thepunisher-iamvendorintegrationexpert.md` — **ThePunisher-IAMVendorIntegrationExpert**: Third-party IAM vendor integration engineering
+- `identity-access-management/thepunisher-iamemergencyaccessexpert.md` — **ThePunisher-IAMEmergencyAccessExpert**: Break-glass emergency-access procedure engineering
+
+## Team 35 — E-commerce & Retail Platform Engineering (50 agents)
+
+- `ecommerce-retail/thepunisher-storefrontplatformexpert.md` — **ThePunisher-StorefrontPlatformExpert**: E-commerce storefront platform architecture
+- `ecommerce-retail/thepunisher-checkoutflowexpert.md` — **ThePunisher-CheckoutFlowExpert**: Checkout flow engineering and conversion optimization
+- `ecommerce-retail/thepunisher-shoppingcartengineeringexpert.md` — **ThePunisher-ShoppingCartEngineeringExpert**: Shopping-cart system engineering
+- `ecommerce-retail/thepunisher-productcatalogexpert.md` — **ThePunisher-ProductCatalogExpert**: Product-catalog system engineering
+- `ecommerce-retail/thepunisher-inventorymanagementsystemexpert.md` — **ThePunisher-InventoryManagementSystemExpert**: Retail inventory-management system engineering
+- `ecommerce-retail/thepunisher-retailordermanagementexpert.md` — **ThePunisher-RetailOrderManagementExpert**: Retail order-management system engineering
+- `ecommerce-retail/thepunisher-retailpaymentintegrationexpert.md` — **ThePunisher-RetailPaymentIntegrationExpert**: Retail checkout payment-gateway integration engineering
+- `ecommerce-retail/thepunisher-productrecommendationexpert.md` — **ThePunisher-ProductRecommendationExpert**: Product-recommendation engine engineering
+- `ecommerce-retail/thepunisher-searchmerchandisingexpert.md` — **ThePunisher-SearchMerchandisingExpert**: On-site search/merchandising ranking engineering
+- `ecommerce-retail/thepunisher-pricingengineexpert.md` — **ThePunisher-PricingEngineExpert**: Dynamic pricing engine engineering
+- `ecommerce-retail/thepunisher-promotionsdiscountengineexpert.md` — **ThePunisher-PromotionsDiscountEngineExpert**: Promotions/discount engine engineering
+- `ecommerce-retail/thepunisher-abandonedcartrecoveryexpert.md` — **ThePunisher-AbandonedCartRecoveryExpert**: Abandoned-cart recovery system engineering
+- `ecommerce-retail/thepunisher-omnichannelretailexpert.md` — **ThePunisher-OmnichannelRetailExpert**: Omnichannel retail platform integration engineering
+- `ecommerce-retail/thepunisher-possystemintegrationexpert.md` — **ThePunisher-POSSystemIntegrationExpert**: Point-of-sale system integration engineering
+- `ecommerce-retail/thepunisher-warehousemanagementsystemexpert.md` — **ThePunisher-WarehouseManagementSystemExpert**: Warehouse management system (WMS) software engineering
+- `ecommerce-retail/thepunisher-returnsmanagementexpert.md` — **ThePunisher-ReturnsManagementExpert**: Returns/reverse-logistics management engineering
+- `ecommerce-retail/thepunisher-subscriptioncommerceexpert.md` — **ThePunisher-SubscriptionCommerceExpert**: Subscription commerce platform engineering
+- `ecommerce-retail/thepunisher-marketplaceplatformexpert.md` — **ThePunisher-MarketplacePlatformExpert**: Multi-vendor marketplace platform engineering
+- `ecommerce-retail/thepunisher-productinformationmanagementexpert.md` — **ThePunisher-ProductInformationManagementExpert**: Product information management (PIM) system engineering
+- `ecommerce-retail/thepunisher-retailanalyticsexpert.md` — **ThePunisher-RetailAnalyticsExpert**: Retail analytics platform engineering
+- `ecommerce-retail/thepunisher-customerloyaltyplatformexpert.md` — **ThePunisher-CustomerLoyaltyPlatformExpert**: Customer loyalty platform engineering
+- `ecommerce-retail/thepunisher-retailfraudpreventionexpert.md` — **ThePunisher-RetailFraudPreventionExpert**: Retail checkout fraud-prevention engineering
+- `ecommerce-retail/thepunisher-salestaxengineexpert.md` — **ThePunisher-SalesTaxEngineExpert**: Sales-tax calculation engine engineering
+- `ecommerce-retail/thepunisher-shippingratecalculationexpert.md` — **ThePunisher-ShippingRateCalculationExpert**: Shipping-rate calculation engine engineering
+- `ecommerce-retail/thepunisher-headlesscommerceexpert.md` — **ThePunisher-HeadlessCommerceExpert**: Headless commerce architecture engineering
+- `ecommerce-retail/thepunisher-b2bcommerceplatformexpert.md` — **ThePunisher-B2BCommercePlatformExpert**: B2B commerce platform engineering
+- `ecommerce-retail/thepunisher-liveshoppingexpert.md` — **ThePunisher-LiveShoppingExpert**: Live-stream shopping platform engineering
+- `ecommerce-retail/thepunisher-visualmerchandisingexpert.md` — **ThePunisher-VisualMerchandisingExpert**: Digital visual-merchandising/layout engineering
+- `ecommerce-retail/thepunisher-retaildataplatformexpert.md` — **ThePunisher-RetailDataPlatformExpert**: Retail-specific data-platform engineering
+- `ecommerce-retail/thepunisher-productreviewsplatformexpert.md` — **ThePunisher-ProductReviewsPlatformExpert**: Product-reviews platform engineering
+- `ecommerce-retail/thepunisher-giftcardengineeringexpert.md` — **ThePunisher-GiftCardEngineeringExpert**: Gift-card/store-credit system engineering
+- `ecommerce-retail/thepunisher-curbsidepickupexpert.md` — **ThePunisher-CurbsidePickupExpert**: BOPIS/curbside-pickup fulfillment engineering
+- `ecommerce-retail/thepunisher-retailmedianetworkexpert.md` — **ThePunisher-RetailMediaNetworkExpert**: Retail-media/ad-platform engineering within e-commerce
+- `ecommerce-retail/thepunisher-dropshippingplatformexpert.md` — **ThePunisher-DropshippingPlatformExpert**: Dropshipping platform engineering
+- `ecommerce-retail/thepunisher-retailchatbotexpert.md` — **ThePunisher-RetailChatbotExpert**: Retail customer-service chatbot engineering
+- `ecommerce-retail/thepunisher-commerceapiexpert.md` — **ThePunisher-CommerceAPIExpert**: Commerce-platform API design: Shopify/commercetools-style
+- `ecommerce-retail/thepunisher-retailinventoryforecastingexpert.md` — **ThePunisher-RetailInventoryForecastingExpert**: Retail inventory-demand forecasting engineering
+- `ecommerce-retail/thepunisher-retailsupplychainintegrationexpert.md` — **ThePunisher-RetailSupplyChainIntegrationExpert**: Retail supply-chain system integration engineering
+- `ecommerce-retail/thepunisher-flashsaleinfrastructureexpert.md` — **ThePunisher-FlashSaleInfrastructureExpert**: High-traffic flash-sale infrastructure engineering
+- `ecommerce-retail/thepunisher-retailcustomerdataplatformexpert.md` — **ThePunisher-RetailCustomerDataPlatformExpert**: Customer data platform (CDP) engineering for retail
+- `ecommerce-retail/thepunisher-marketplaceselleronboardingexpert.md` — **ThePunisher-MarketplaceSellerOnboardingExpert**: Marketplace seller-onboarding engineering
+- `ecommerce-retail/thepunisher-productbundlingengineexpert.md` — **ThePunisher-ProductBundlingEngineExpert**: Bundle/kit pricing engine engineering
+- `ecommerce-retail/thepunisher-crossbordercommerceexpert.md` — **ThePunisher-CrossBorderCommerceExpert**: International e-commerce/customs engineering
+- `ecommerce-retail/thepunisher-merchandisingrulesengineexpert.md` — **ThePunisher-MerchandisingRulesEngineExpert**: Merchandising rules-engine engineering
+- `ecommerce-retail/thepunisher-socialcommerceexpert.md` — **ThePunisher-SocialCommerceExpert**: Social-media-native commerce integration engineering
+- `ecommerce-retail/thepunisher-retailkioskexpert.md` — **ThePunisher-RetailKioskExpert**: In-store digital kiosk engineering
+- `ecommerce-retail/thepunisher-commerceplatformmigrationexpert.md` — **ThePunisher-CommercePlatformMigrationExpert**: Commerce-platform migration engineering
+- `ecommerce-retail/thepunisher-commercelocalizationexpert.md` — **ThePunisher-CommerceLocalizationExpert**: Commerce-specific localization engineering
+- `ecommerce-retail/thepunisher-productvariantmanagementexpert.md` — **ThePunisher-ProductVariantManagementExpert**: SKU/variant matrix engineering
+- `ecommerce-retail/thepunisher-retailperformanceoptimizationexpert.md` — **ThePunisher-RetailPerformanceOptimizationExpert**: Storefront page-speed/Core-Web-Vitals-for-commerce engineering
+
+## Team 36 — Cloud FinOps & Cost Engineering (50 agents)
+
+- `cloud-finops/thepunisher-cloudcostallocationexpert.md` — **ThePunisher-CloudCostAllocationExpert**: Cloud cost allocation methodology engineering
+- `cloud-finops/thepunisher-finopspracticeexpert.md` — **ThePunisher-FinOpsPracticeExpert**: FinOps Foundation inform/optimize/operate practice engineering
+- `cloud-finops/thepunisher-cloudbudgetforecastingexpert.md` — **ThePunisher-CloudBudgetForecastingExpert**: Cloud budget forecasting engineering
+- `cloud-finops/thepunisher-reservedinstanceoptimizationexpert.md` — **ThePunisher-ReservedInstanceOptimizationExpert**: Reserved-instance/savings-plan optimization engineering
+- `cloud-finops/thepunisher-spotinstancestrategyexpert.md` — **ThePunisher-SpotInstanceStrategyExpert**: Spot-instance strategy engineering
+- `cloud-finops/thepunisher-cloudcostanomalydetectionexpert.md` — **ThePunisher-CloudCostAnomalyDetectionExpert**: Cloud cost anomaly-detection engineering
+- `cloud-finops/thepunisher-showbackchargebackexpert.md` — **ThePunisher-ShowbackChargebackExpert**: Cost showback/chargeback system engineering
+- `cloud-finops/thepunisher-rightsizingexpert.md` — **ThePunisher-RightsizingExpert**: Compute/storage rightsizing engineering
+- `cloud-finops/thepunisher-cloudwasteeliminationexpert.md` — **ThePunisher-CloudWasteEliminationExpert**: Cloud waste identification/elimination engineering
+- `cloud-finops/thepunisher-multicloudcostcomparisonexpert.md` — **ThePunisher-MultiCloudCostComparisonExpert**: Multi-cloud cost comparison engineering
+- `cloud-finops/thepunisher-kubernetescostoptimizationexpert.md` — **ThePunisher-KubernetesCostOptimizationExpert**: Kubernetes cluster cost-optimization engineering
+- `cloud-finops/thepunisher-cloudcommitmentplanningexpert.md` — **ThePunisher-CloudCommitmentPlanningExpert**: Committed-use discount planning engineering
+- `cloud-finops/thepunisher-cloudcosttaggingexpert.md` — **ThePunisher-CloudCostTaggingExpert**: Resource-tagging governance for cost allocation
+- `cloud-finops/thepunisher-uniteconomicscloudexpert.md` — **ThePunisher-UnitEconomicsCloudExpert**: Cost-per-customer/cost-per-transaction unit-economics engineering
+- `cloud-finops/thepunisher-cloudcostdashboardexpert.md` — **ThePunisher-CloudCostDashboardExpert**: Cloud cost visibility dashboard engineering
+- `cloud-finops/thepunisher-storagecostoptimizationexpert.md` — **ThePunisher-StorageCostOptimizationExpert**: Storage-tier cost optimization engineering
+- `cloud-finops/thepunisher-datatransfercostexpert.md` — **ThePunisher-DataTransferCostExpert**: Egress/data-transfer cost optimization engineering
+- `cloud-finops/thepunisher-cloudcostgovernanceexpert.md` — **ThePunisher-CloudCostGovernanceExpert**: Cloud cost governance policy engineering
+- `cloud-finops/thepunisher-finopsautomationexpert.md` — **ThePunisher-FinOpsAutomationExpert**: FinOps workflow automation engineering
+- `cloud-finops/thepunisher-cloudcostalertingexpert.md` — **ThePunisher-CloudCostAlertingExpert**: Cloud cost alerting/threshold engineering
+- `cloud-finops/thepunisher-serverlesscostoptimizationexpert.md` — **ThePunisher-ServerlessCostOptimizationExpert**: Serverless workload cost-optimization engineering
+- `cloud-finops/thepunisher-cloudcostbenchmarkingexpert.md` — **ThePunisher-CloudCostBenchmarkingExpert**: Cloud cost benchmarking methodology engineering
+- `cloud-finops/thepunisher-sustainablecloudcomputingexpert.md` — **ThePunisher-SustainableCloudComputingExpert**: Carbon-aware cloud cost/efficiency engineering
+- `cloud-finops/thepunisher-cloudcostapiintegrationexpert.md` — **ThePunisher-CloudCostAPIIntegrationExpert**: Billing API integration: AWS Cost Explorer/Azure Cost Management
+- `cloud-finops/thepunisher-multitenantcostallocationexpert.md` — **ThePunisher-MultiTenantCostAllocationExpert**: Multi-tenant SaaS cost-allocation engineering
+- `cloud-finops/thepunisher-cloudresourcelifecycleexpert.md` — **ThePunisher-CloudResourceLifecycleExpert**: Automated resource cleanup/lifecycle-policy engineering
+- `cloud-finops/thepunisher-cloudcostforensicsexpert.md` — **ThePunisher-CloudCostForensicsExpert**: Root-cause analysis engineering for cost spikes
+- `cloud-finops/thepunisher-licensecostoptimizationexpert.md` — **ThePunisher-LicenseCostOptimizationExpert**: Software-license cost-optimization engineering
+- `cloud-finops/thepunisher-cloudcostpolicyenforcementexpert.md` — **ThePunisher-CloudCostPolicyEnforcementExpert**: Cloud cost policy-enforcement engineering
+- `cloud-finops/thepunisher-databasecostoptimizationexpert.md` — **ThePunisher-DatabaseCostOptimizationExpert**: Database service cost-optimization engineering
+- `cloud-finops/thepunisher-networkingcostoptimizationexpert.md` — **ThePunisher-NetworkingCostOptimizationExpert**: Cloud networking cost-optimization engineering
+- `cloud-finops/thepunisher-finopsmaturityassessmentexpert.md` — **ThePunisher-FinOpsMaturityAssessmentExpert**: FinOps maturity-model assessment engineering
+- `cloud-finops/thepunisher-cloudarbitrageexpert.md` — **ThePunisher-CloudArbitrageExpert**: Multi-region/multi-provider price-arbitrage engineering
+- `cloud-finops/thepunisher-aicostoptimizationexpert.md` — **ThePunisher-AICostOptimizationExpert**: LLM/AI-inference cost-optimization engineering
+- `cloud-finops/thepunisher-greensoftwareengineeringexpert.md` — **ThePunisher-GreenSoftwareEngineeringExpert**: Energy-efficient software design engineering
+- `cloud-finops/thepunisher-cloudcostsimulationexpert.md` — **ThePunisher-CloudCostSimulationExpert**: What-if cost modeling for architecture decisions
+- `cloud-finops/thepunisher-cloudcostslaexpert.md` — **ThePunisher-CloudCostSLAExpert**: Cost-vs-performance SLA tradeoff engineering
+- `cloud-finops/thepunisher-cloudvendornegotiationsupportexpert.md` — **ThePunisher-CloudVendorNegotiationSupportExpert**: Data-driven cloud vendor-contract negotiation support
+- `cloud-finops/thepunisher-idleresourcedetectionexpert.md` — **ThePunisher-IdleResourceDetectionExpert**: Idle/unused cloud-resource detection engineering
+- `cloud-finops/thepunisher-cloudbillingreconciliationexpert.md` — **ThePunisher-CloudBillingReconciliationExpert**: Cloud billing reconciliation engineering
+- `cloud-finops/thepunisher-edgecostoptimizationexpert.md` — **ThePunisher-EdgeCostOptimizationExpert**: CDN/edge-compute cost-optimization engineering
+- `cloud-finops/thepunisher-containerdensityoptimizationexpert.md` — **ThePunisher-ContainerDensityOptimizationExpert**: Container bin-packing for cost efficiency
+- `cloud-finops/thepunisher-multiaccountcostconsolidationexpert.md` — **ThePunisher-MultiAccountCostConsolidationExpert**: Multi-account cost-consolidation engineering
+- `cloud-finops/thepunisher-finopstoolingintegrationexpert.md` — **ThePunisher-FinOpsToolingIntegrationExpert**: FinOps tooling/vendor integration engineering
+- `cloud-finops/thepunisher-autoscalingcostefficiencyexpert.md` — **ThePunisher-AutoscalingCostEfficiencyExpert**: Autoscaling policy tuning for cost efficiency
+- `cloud-finops/thepunisher-onpremtocloudcostcomparisonexpert.md` — **ThePunisher-OnPremToCloudCostComparisonExpert**: On-prem-to-cloud cost-comparison engineering
+- `cloud-finops/thepunisher-cloudcostremediationworkflowexpert.md` — **ThePunisher-CloudCostRemediationWorkflowExpert**: Cost-remediation workflow automation engineering
+- `cloud-finops/thepunisher-gpucostoptimizationexpert.md` — **ThePunisher-GPUCostOptimizationExpert**: ML/GPU training-cluster cost-optimization engineering
+- `cloud-finops/thepunisher-cloudcostpredictivescalingexpert.md` — **ThePunisher-CloudCostPredictiveScalingExpert**: Predictive scaling engineering for cost efficiency
+- `cloud-finops/thepunisher-finopsorganizationalmodelexpert.md` — **ThePunisher-FinOpsOrganizationalModelExpert**: FinOps team/organizational-model design
+
+## Team 37 — Marketing Technology & Growth Engineering (50 agents)
+
+- `martech-growth/thepunisher-marketingautomationplatformexpert.md` — **ThePunisher-MarketingAutomationPlatformExpert**: Marketing automation platform engineering
+- `martech-growth/thepunisher-marketingcdpexpert.md` — **ThePunisher-MarketingCDPExpert**: Marketing customer-data-platform engineering
+- `martech-growth/thepunisher-emailmarketingengineexpert.md` — **ThePunisher-EmailMarketingEngineExpert**: Email-marketing delivery engine engineering
+- `martech-growth/thepunisher-abtestingplatformexpert.md` — **ThePunisher-ABTestingPlatformExpert**: A/B testing platform engineering
+- `martech-growth/thepunisher-growthexperimentationexpert.md` — **ThePunisher-GrowthExperimentationExpert**: Growth experimentation methodology engineering
+- `martech-growth/thepunisher-attributionmodelingexpert.md` — **ThePunisher-AttributionModelingExpert**: Marketing attribution modeling engineering
+- `martech-growth/thepunisher-marketinganalyticsexpert.md` — **ThePunisher-MarketingAnalyticsExpert**: Marketing analytics platform engineering
+- `martech-growth/thepunisher-conversionrateoptimizationexpert.md` — **ThePunisher-ConversionRateOptimizationExpert**: Conversion-rate optimization engineering
+- `martech-growth/thepunisher-programmaticadvertisingexpert.md` — **ThePunisher-ProgrammaticAdvertisingExpert**: Programmatic advertising platform engineering
+- `martech-growth/thepunisher-marketingtagmanagementexpert.md` — **ThePunisher-MarketingTagManagementExpert**: Tag-management system engineering: GTM-style
+- `martech-growth/thepunisher-campaignmanagementplatformexpert.md` — **ThePunisher-CampaignManagementPlatformExpert**: Campaign-management platform engineering
+- `martech-growth/thepunisher-leadscoringexpert.md` — **ThePunisher-LeadScoringExpert**: Lead-scoring model engineering
+- `martech-growth/thepunisher-marketingsegmentationexpert.md` — **ThePunisher-MarketingSegmentationExpert**: Customer-segmentation engine engineering
+- `martech-growth/thepunisher-pushnotificationmarketingexpert.md` — **ThePunisher-PushNotificationMarketingExpert**: Push-notification marketing engine engineering
+- `martech-growth/thepunisher-smsmarketingexpert.md` — **ThePunisher-SMSMarketingExpert**: SMS-marketing platform engineering
+- `martech-growth/thepunisher-inappmessagingexpert.md` — **ThePunisher-InAppMessagingExpert**: In-app messaging engine engineering
+- `martech-growth/thepunisher-referralprogramengineexpert.md` — **ThePunisher-ReferralProgramEngineExpert**: Referral-program engine engineering
+- `martech-growth/thepunisher-affiliatemarketingplatformexpert.md` — **ThePunisher-AffiliateMarketingPlatformExpert**: Affiliate-marketing platform engineering
+- `martech-growth/thepunisher-seotechnicalexpert.md` — **ThePunisher-SEOTechnicalExpert**: Technical SEO engineering
+- `martech-growth/thepunisher-seocontenttoolingexpert.md` — **ThePunisher-SEOContentToolingExpert**: SEO content-tooling engineering
+- `martech-growth/thepunisher-marketingmixmodelingexpert.md` — **ThePunisher-MarketingMixModelingExpert**: Marketing mix modeling/media attribution engineering
+- `martech-growth/thepunisher-customerjourneyorchestrationexpert.md` — **ThePunisher-CustomerJourneyOrchestrationExpert**: Customer-journey orchestration engine engineering
+- `martech-growth/thepunisher-growthloopengineeringexpert.md` — **ThePunisher-GrowthLoopEngineeringExpert**: Viral/growth-loop mechanism design
+- `martech-growth/thepunisher-onboardingfunnelexpert.md` — **ThePunisher-OnboardingFunnelExpert**: Onboarding-funnel engineering
+- `martech-growth/thepunisher-retentionengineeringexpert.md` — **ThePunisher-RetentionEngineeringExpert**: Retention-mechanic engineering
+- `martech-growth/thepunisher-churnpredictionexpert.md` — **ThePunisher-ChurnPredictionExpert**: Churn-prediction model engineering for marketing
+- `martech-growth/thepunisher-marketingconsentcomplianceexpert.md` — **ThePunisher-MarketingConsentComplianceExpert**: Marketing-specific consent-compliance engineering
+- `martech-growth/thepunisher-socialmediaapiintegrationexpert.md` — **ThePunisher-SocialMediaAPIIntegrationExpert**: Social-media platform API integration engineering
+- `martech-growth/thepunisher-influencerplatformexpert.md` — **ThePunisher-InfluencerPlatformExpert**: Influencer-marketing platform engineering
+- `martech-growth/thepunisher-growthanalyticsdashboardexpert.md` — **ThePunisher-GrowthAnalyticsDashboardExpert**: Growth-analytics dashboard engineering
+- `martech-growth/thepunisher-landingpageoptimizationexpert.md` — **ThePunisher-LandingPageOptimizationExpert**: Landing-page optimization engineering
+- `martech-growth/thepunisher-marketingpersonalizationengineexpert.md` — **ThePunisher-MarketingPersonalizationEngineExpert**: Marketing personalization-engine engineering
+- `martech-growth/thepunisher-cookielesstrackingexpert.md` — **ThePunisher-CookielessTrackingExpert**: Privacy-first/cookieless attribution engineering
+- `martech-growth/thepunisher-martechstackintegrationexpert.md` — **ThePunisher-MartechStackIntegrationExpert**: Martech-stack integration engineering
+- `martech-growth/thepunisher-marketingdatawarehouseexpert.md` — **ThePunisher-MarketingDataWarehouseExpert**: Marketing-specific data-warehouse engineering
+- `martech-growth/thepunisher-referralfrauddetectionexpert.md` — **ThePunisher-ReferralFraudDetectionExpert**: Referral/affiliate fraud-detection engineering
+- `martech-growth/thepunisher-marketingcontentcmsexpert.md` — **ThePunisher-MarketingContentCMSExpert**: Marketing-specific headless CMS engineering
+- `martech-growth/thepunisher-webanalyticsinstrumentationexpert.md` — **ThePunisher-WebAnalyticsInstrumentationExpert**: Web-analytics instrumentation engineering
+- `martech-growth/thepunisher-mobileappattributionexpert.md` — **ThePunisher-MobileAppAttributionExpert**: Mobile-app install attribution engineering
+- `martech-growth/thepunisher-growthpricingexperimentationexpert.md` — **ThePunisher-GrowthPricingExperimentationExpert**: Pricing-page experimentation engineering
+- `martech-growth/thepunisher-productledgrowthengineeringexpert.md` — **ThePunisher-ProductLedGrowthEngineeringExpert**: Product-led-growth mechanism engineering
+- `martech-growth/thepunisher-viralcoefficientanalyticsexpert.md` — **ThePunisher-ViralCoefficientAnalyticsExpert**: Viral-coefficient analytics engineering
+- `martech-growth/thepunisher-adtechbiddingexpert.md` — **ThePunisher-AdTechBiddingExpert**: Real-time-bidding/programmatic ad-tech engineering
+- `martech-growth/thepunisher-marketingplatformapiexpert.md` — **ThePunisher-MarketingPlatformAPIExpert**: Marketing-platform API design engineering
+- `martech-growth/thepunisher-crosschannelattributionexpert.md` — **ThePunisher-CrossChannelAttributionExpert**: Cross-channel attribution engineering
+- `martech-growth/thepunisher-subscriptiongrowthengineeringexpert.md` — **ThePunisher-SubscriptionGrowthEngineeringExpert**: Subscription/renewal growth-mechanic engineering
+- `martech-growth/thepunisher-marketingexperimentstatisticsexpert.md` — **ThePunisher-MarketingExperimentStatisticsExpert**: Statistical rigor engineering for growth experiments
+- `martech-growth/thepunisher-brandtrackinganalyticsexpert.md` — **ThePunisher-BrandTrackingAnalyticsExpert**: Brand-tracking analytics engineering
+- `martech-growth/thepunisher-waitlistgrowthmechanicsexpert.md` — **ThePunisher-WaitlistGrowthMechanicsExpert**: Waitlist/scarcity growth-mechanic engineering
+- `martech-growth/thepunisher-customerwinbackcampaignexpert.md` — **ThePunisher-CustomerWinbackCampaignExpert**: Customer win-back campaign engineering
+
+## Team 38 — Manufacturing & Industrial IoT / MES Engineering (50 agents)
+
+- `manufacturing-mes/thepunisher-manufacturingexecutionsystemexpert.md` — **ThePunisher-ManufacturingExecutionSystemExpert**: Manufacturing execution system (MES) engineering
+- `manufacturing-mes/thepunisher-scadaintegrationexpert.md` — **ThePunisher-SCADAIntegrationExpert**: SCADA system integration engineering
+- `manufacturing-mes/thepunisher-qualitymanagementsystemexpert.md` — **ThePunisher-QualityManagementSystemExpert**: Quality management system (QMS) software engineering
+- `manufacturing-mes/thepunisher-statisticalprocesscontrolexpert.md` — **ThePunisher-StatisticalProcessControlExpert**: Statistical process control (SPC) engineering
+- `manufacturing-mes/thepunisher-predictivemaintenancemanufacturingexpert.md` — **ThePunisher-PredictiveMaintenanceManufacturingExpert**: Predictive-maintenance ML engineering for manufacturing equipment
+- `manufacturing-mes/thepunisher-digitalmanufacturingexpert.md` — **ThePunisher-DigitalManufacturingExpert**: Digital manufacturing transformation engineering
+- `manufacturing-mes/thepunisher-manufacturingdatahistorianexpert.md` — **ThePunisher-ManufacturingDataHistorianExpert**: Industrial data-historian engineering
+- `manufacturing-mes/thepunisher-oeeanalyticsexpert.md` — **ThePunisher-OEEAnalyticsExpert**: Overall equipment effectiveness (OEE) analytics engineering
+- `manufacturing-mes/thepunisher-manufacturingtraceabilityexpert.md` — **ThePunisher-ManufacturingTraceabilityExpert**: Shop-floor unit/lot traceability engineering
+- `manufacturing-mes/thepunisher-productionschedulingexpert.md` — **ThePunisher-ProductionSchedulingExpert**: Production-scheduling system engineering
+- `manufacturing-mes/thepunisher-manufacturingerpintegrationexpert.md` — **ThePunisher-ManufacturingERPIntegrationExpert**: MES-to-ERP integration engineering
+- `manufacturing-mes/thepunisher-manufacturingedgeanalyticsexpert.md` — **ThePunisher-ManufacturingEdgeAnalyticsExpert**: Plant-floor edge-analytics engineering
+- `manufacturing-mes/thepunisher-additivemanufacturingexpert.md` — **ThePunisher-AdditiveManufacturingExpert**: 3D printing/additive manufacturing engineering
+- `manufacturing-mes/thepunisher-cadcamintegrationexpert.md` — **ThePunisher-CADCAMIntegrationExpert**: CAD/CAM integration engineering
+- `manufacturing-mes/thepunisher-productlifecyclemanagementexpert.md` — **ThePunisher-ProductLifecycleManagementExpert**: Product lifecycle management (PLM) system engineering
+- `manufacturing-mes/thepunisher-manufacturingsimulationexpert.md` — **ThePunisher-ManufacturingSimulationExpert**: Discrete-event factory simulation engineering
+- `manufacturing-mes/thepunisher-manufacturingchangemanagementexpert.md` — **ThePunisher-ManufacturingChangeManagementExpert**: Engineering-change-order workflow system engineering
+- `manufacturing-mes/thepunisher-otcybersecurityexpert.md` — **ThePunisher-OTCybersecurityExpert**: Operational-technology (OT) cybersecurity engineering
+- `manufacturing-mes/thepunisher-manufacturingcomplianceexpert.md` — **ThePunisher-ManufacturingComplianceExpert**: FDA/ISO 9001 manufacturing compliance software engineering
+- `manufacturing-mes/thepunisher-shopfloorconnectivityexpert.md` — **ThePunisher-ShopFloorConnectivityExpert**: Shop-floor equipment connectivity engineering
+- `manufacturing-mes/thepunisher-manufacturingdashboardexpert.md` — **ThePunisher-ManufacturingDashboardExpert**: Plant-floor operations dashboard engineering
+- `manufacturing-mes/thepunisher-billofmaterialsmanagementexpert.md` — **ThePunisher-BillOfMaterialsManagementExpert**: Bill-of-materials management system engineering
+- `manufacturing-mes/thepunisher-manufacturingcostingexpert.md` — **ThePunisher-ManufacturingCostingExpert**: Manufacturing cost-accounting system engineering
+- `manufacturing-mes/thepunisher-processmanufacturingexpert.md` — **ThePunisher-ProcessManufacturingExpert**: Continuous/batch process-manufacturing system engineering
+- `manufacturing-mes/thepunisher-industrialassetmanagementexpert.md` — **ThePunisher-IndustrialAssetManagementExpert**: Enterprise asset management (EAM) system engineering
+- `manufacturing-mes/thepunisher-manufacturingworkflowautomationexpert.md` — **ThePunisher-ManufacturingWorkflowAutomationExpert**: Plant-floor workflow automation engineering
+- `manufacturing-mes/thepunisher-vendormanagedinventoryexpert.md` — **ThePunisher-VendorManagedInventoryExpert**: Vendor-managed inventory system engineering for manufacturing
+- `manufacturing-mes/thepunisher-manufacturinglabelingexpert.md` — **ThePunisher-ManufacturingLabelingExpert**: Barcode/label printing system engineering for manufacturing
+- `manufacturing-mes/thepunisher-manufacturingsensorintegrationexpert.md` — **ThePunisher-ManufacturingSensorIntegrationExpert**: Plant-floor sensor-network integration engineering
+- `manufacturing-mes/thepunisher-smartfactoryarchitectureexpert.md` — **ThePunisher-SmartFactoryArchitectureExpert**: Industry 4.0 smart-factory architecture engineering
+- `manufacturing-mes/thepunisher-manufacturingsafetycomplianceexpert.md` — **ThePunisher-ManufacturingSafetyComplianceExpert**: Plant-floor safety compliance software engineering
+- `manufacturing-mes/thepunisher-serializedproducttrackingexpert.md` — **ThePunisher-SerializedProductTrackingExpert**: Unit-level serialization/tracking for regulated manufacturing
+- `manufacturing-mes/thepunisher-manufacturingintegrationmiddlewareexpert.md` — **ThePunisher-ManufacturingIntegrationMiddlewareExpert**: ISA-95 integration middleware engineering
+- `manufacturing-mes/thepunisher-manufacturingkpireportingexpert.md` — **ThePunisher-ManufacturingKPIReportingExpert**: Manufacturing KPI reporting engineering
+- `manufacturing-mes/thepunisher-leanmanufacturingsoftwareexpert.md` — **ThePunisher-LeanManufacturingSoftwareExpert**: Lean/kanban manufacturing software tooling engineering
+- `manufacturing-mes/thepunisher-manufacturingchangeoveroptimizationexpert.md` — **ThePunisher-ManufacturingChangeoverOptimizationExpert**: Changeover/setup-time optimization engineering
+- `manufacturing-mes/thepunisher-industrialdatamodelingexpert.md` — **ThePunisher-IndustrialDataModelingExpert**: ISA-95/B2MML industrial data-modeling engineering
+- `manufacturing-mes/thepunisher-manufacturingenergymonitoringexpert.md` — **ThePunisher-ManufacturingEnergyMonitoringExpert**: Plant energy-consumption monitoring engineering
+- `manufacturing-mes/thepunisher-factorydigitaltwinexpert.md` — **ThePunisher-FactoryDigitalTwinExpert**: Factory-floor digital-twin engineering
+- `manufacturing-mes/thepunisher-manufacturingrecipemanagementexpert.md` — **ThePunisher-ManufacturingRecipeManagementExpert**: Batch/recipe management engineering for process manufacturing
+- `manufacturing-mes/thepunisher-industrialalarmmanagementexpert.md` — **ThePunisher-IndustrialAlarmManagementExpert**: Industrial alarm-management system engineering
+- `manufacturing-mes/thepunisher-manufacturingdowntimeanalyticsexpert.md` — **ThePunisher-ManufacturingDowntimeAnalyticsExpert**: Manufacturing downtime-analytics engineering
+- `manufacturing-mes/thepunisher-supplierqualitymanagementexpert.md` — **ThePunisher-SupplierQualityManagementExpert**: Supplier quality-management system engineering
+- `manufacturing-mes/thepunisher-manufacturingaudittrailexpert.md` — **ThePunisher-ManufacturingAuditTrailExpert**: Regulated-manufacturing audit-trail engineering
+- `manufacturing-mes/thepunisher-manufacturingprotocolbridgeexpert.md` — **ThePunisher-ManufacturingProtocolBridgeExpert**: MES-specific industrial-protocol bridge engineering
+- `manufacturing-mes/thepunisher-manufacturingyieldoptimizationexpert.md` — **ThePunisher-ManufacturingYieldOptimizationExpert**: Manufacturing yield-optimization engineering
+- `manufacturing-mes/thepunisher-industrialworkforcemanagementexpert.md` — **ThePunisher-IndustrialWorkforceManagementExpert**: Shop-floor workforce-management system engineering
+- `manufacturing-mes/thepunisher-manufacturingsustainabilitytrackingexpert.md` — **ThePunisher-ManufacturingSustainabilityTrackingExpert**: Manufacturing sustainability/emissions tracking engineering
+- `manufacturing-mes/thepunisher-contractmanufacturingplatformexpert.md` — **ThePunisher-ContractManufacturingPlatformExpert**: Contract-manufacturing coordination platform engineering
+- `manufacturing-mes/thepunisher-manufacturingvisioninspectionintegrationexpert.md` — **ThePunisher-ManufacturingVisionInspectionIntegrationExpert**: CV inspection-system integration engineering into MES workflow
+
+## Team 39 — Content Moderation & Trust & Safety Engineering (50 agents)
+
+- `trust-safety/thepunisher-contentmoderationpipelineexpert.md` — **ThePunisher-ContentModerationPipelineExpert**: Content-moderation pipeline architecture
+- `trust-safety/thepunisher-communityguidelinesenforcementexpert.md` — **ThePunisher-CommunityGuidelinesEnforcementExpert**: Community-guidelines enforcement system engineering
+- `trust-safety/thepunisher-abusedetectionexpert.md` — **ThePunisher-AbuseDetectionExpert**: Platform-abuse detection system engineering
+- `trust-safety/thepunisher-spamdetectionexpert.md` — **ThePunisher-SpamDetectionExpert**: Spam-detection system engineering
+- `trust-safety/thepunisher-csamdetectionexpert.md` — **ThePunisher-CSAMDetectionExpert**: Child-safety hash-matching/detection system engineering
+- `trust-safety/thepunisher-hatespeechpolicyenforcementexpert.md` — **ThePunisher-HateSpeechPolicyEnforcementExpert**: Hate-speech policy-enforcement pipeline engineering
+- `trust-safety/thepunisher-misinformationdetectionexpert.md` — **ThePunisher-MisinformationDetectionExpert**: Misinformation-detection system engineering
+- `trust-safety/thepunisher-deepfakedetectionexpert.md` — **ThePunisher-DeepfakeDetectionExpert**: Deepfake/synthetic-media detection engineering
+- `trust-safety/thepunisher-trustandsafetypolicyengineexpert.md` — **ThePunisher-TrustAndSafetyPolicyEngineExpert**: Trust-and-safety policy-engine engineering
+- `trust-safety/thepunisher-userreportingsystemexpert.md` — **ThePunisher-UserReportingSystemExpert**: User-reporting system engineering
+- `trust-safety/thepunisher-contentmoderationqueueexpert.md` — **ThePunisher-ContentModerationQueueExpert**: Moderation-queue/workflow system engineering
+- `trust-safety/thepunisher-automatedcontentclassificationexpert.md` — **ThePunisher-AutomatedContentClassificationExpert**: Automated content-classification pipeline engineering
+- `trust-safety/thepunisher-humanintheloopmoderationexpert.md` — **ThePunisher-HumanInTheLoopModerationExpert**: Human-in-the-loop moderation workflow engineering
+- `trust-safety/thepunisher-ageverificationexpert.md` — **ThePunisher-AgeVerificationExpert**: Age-verification system engineering
+- `trust-safety/thepunisher-accountsuspensionworkflowexpert.md` — **ThePunisher-AccountSuspensionWorkflowExpert**: Account-suspension workflow engineering
+- `trust-safety/thepunisher-appealsprocessexpert.md` — **ThePunisher-AppealsProcessExpert**: Content-moderation appeals workflow engineering
+- `trust-safety/thepunisher-botdetectionexpert.md` — **ThePunisher-BotDetectionExpert**: Bot-detection system engineering
+- `trust-safety/thepunisher-fakeaccountdetectionexpert.md` — **ThePunisher-FakeAccountDetectionExpert**: Fake-account detection system engineering
+- `trust-safety/thepunisher-coordinatedinauthenticbehaviorexpert.md` — **ThePunisher-CoordinatedInauthenticBehaviorExpert**: Platform-manipulation/CIB detection engineering
+- `trust-safety/thepunisher-graphbasedabusedetectionexpert.md` — **ThePunisher-GraphBasedAbuseDetectionExpert**: Network-graph-based abuse-ring detection engineering
+- `trust-safety/thepunisher-trustscoreengineexpert.md` — **ThePunisher-TrustScoreEngineExpert**: User trust-scoring engine engineering
+- `trust-safety/thepunisher-moderationslaexpert.md` — **ThePunisher-ModerationSLAExpert**: Moderation response-time SLA engineering
+- `trust-safety/thepunisher-livestreammoderationexpert.md` — **ThePunisher-LiveStreamModerationExpert**: Live-stream moderation pipeline engineering
+- `trust-safety/thepunisher-imagemoderationexpert.md` — **ThePunisher-ImageModerationExpert**: Image-moderation pipeline engineering
+- `trust-safety/thepunisher-videomoderationexpert.md` — **ThePunisher-VideoModerationExpert**: Video-moderation pipeline engineering
+- `trust-safety/thepunisher-textmoderationexpert.md` — **ThePunisher-TextModerationExpert**: Text-moderation pipeline engineering
+- `trust-safety/thepunisher-extremistcontentdetectionexpert.md` — **ThePunisher-ExtremistContentDetectionExpert**: Extremist-content detection engineering
+- `trust-safety/thepunisher-platformintegrityexpert.md` — **ThePunisher-PlatformIntegrityExpert**: Platform-integrity monitoring engineering
+- `trust-safety/thepunisher-moderationpolicylocalizationexpert.md` — **ThePunisher-ModerationPolicyLocalizationExpert**: Region-specific moderation-policy engineering
+- `trust-safety/thepunisher-trustandsafetymetricsexpert.md` — **ThePunisher-TrustAndSafetyMetricsExpert**: Trust-and-safety metrics engineering
+- `trust-safety/thepunisher-scamdetectionexpert.md` — **ThePunisher-ScamDetectionExpert**: Scam-detection system engineering
+- `trust-safety/thepunisher-phishingdetectionplatformexpert.md` — **ThePunisher-PhishingDetectionPlatformExpert**: Platform-level phishing-detection engineering
+- `trust-safety/thepunisher-marketplacetrustsafetyexpert.md` — **ThePunisher-MarketplaceTrustSafetyExpert**: Marketplace-specific fraud/trust engineering
+- `trust-safety/thepunisher-reviewfrauddetectionexpert.md` — **ThePunisher-ReviewFraudDetectionExpert**: Review-fraud detection engineering
+- `trust-safety/thepunisher-moderationtoolingexpert.md` — **ThePunisher-ModerationToolingExpert**: Internal moderator-tooling engineering
+- `trust-safety/thepunisher-contentprovenanceexpert.md` — **ThePunisher-ContentProvenanceExpert**: Content authenticity/provenance engineering: C2PA-style
+- `trust-safety/thepunisher-syntheticmedialabelingexpert.md` — **ThePunisher-SyntheticMediaLabelingExpert**: Synthetic-media labeling system engineering
+- `trust-safety/thepunisher-selfharmcontentdetectionexpert.md` — **ThePunisher-SelfHarmContentDetectionExpert**: Self-harm/suicide-risk content detection engineering
+- `trust-safety/thepunisher-moderationescalationworkflowexpert.md` — **ThePunisher-ModerationEscalationWorkflowExpert**: Moderation-escalation workflow engineering
+- `trust-safety/thepunisher-crossplatformabuseintelligenceexpert.md` — **ThePunisher-CrossPlatformAbuseIntelligenceExpert**: Cross-platform abuse threat-intelligence sharing engineering
+- `trust-safety/thepunisher-moderationdataretentionexpert.md` — **ThePunisher-ModerationDataRetentionExpert**: Moderation-data retention policy engineering
+- `trust-safety/thepunisher-transparencyreportingexpert.md` — **ThePunisher-TransparencyReportingExpert**: Platform transparency-report generation engineering
+- `trust-safety/thepunisher-aigeneratedcontentdetectionexpert.md` — **ThePunisher-AIGeneratedContentDetectionExpert**: AI-generated-content detection engineering
+- `trust-safety/thepunisher-regulatorycompliancetrustsafetyexpert.md` — **ThePunisher-RegulatoryComplianceTrustSafetyExpert**: DSA/Online Safety Act compliance engineering
+- `trust-safety/thepunisher-moderationworkforcemanagementexpert.md` — **ThePunisher-ModerationWorkforceManagementExpert**: Content-moderator workforce/wellness tooling engineering
+- `trust-safety/thepunisher-platformmanipulationanalyticsexpert.md` — **ThePunisher-PlatformManipulationAnalyticsExpert**: Platform-manipulation analytics engineering
+- `trust-safety/thepunisher-moderationfeedbackloopexpert.md` — **ThePunisher-ModerationFeedbackLoopExpert**: Moderation-decision feedback-loop engineering for model improvement
+- `trust-safety/thepunisher-incidentresponsetrustsafetyexpert.md` — **ThePunisher-IncidentResponseTrustSafetyExpert**: Trust-and-safety-specific incident-response engineering
+- `trust-safety/thepunisher-moderationapiexpert.md` — **ThePunisher-ModerationAPIExpert**: Moderation-as-a-service API design engineering
+- `trust-safety/thepunisher-moderationqualityassuranceexpert.md` — **ThePunisher-ModerationQualityAssuranceExpert**: QA/calibration engineering for moderator decision consistency
+
+## Team 40 — CRM & Sales Technology Engineering (50 agents)
+
+- `crm-sales-tech/thepunisher-crmplatformarchitectureexpert.md` — **ThePunisher-CRMPlatformArchitectureExpert**: CRM platform architecture design
+- `crm-sales-tech/thepunisher-salespipelineengineexpert.md` — **ThePunisher-SalesPipelineEngineExpert**: Sales-pipeline engine engineering
+- `crm-sales-tech/thepunisher-leadroutingexpert.md` — **ThePunisher-LeadRoutingExpert**: Lead-routing engine engineering
+- `crm-sales-tech/thepunisher-salesforecastingexpert.md` — **ThePunisher-SalesForecastingExpert**: Sales-forecasting model engineering
+- `crm-sales-tech/thepunisher-crmdatamodelexpert.md` — **ThePunisher-CRMDataModelExpert**: CRM data-model design
+- `crm-sales-tech/thepunisher-salesenablementplatformexpert.md` — **ThePunisher-SalesEnablementPlatformExpert**: Sales-enablement platform engineering
+- `crm-sales-tech/thepunisher-quotetocashexpert.md` — **ThePunisher-QuoteToCashExpert**: Quote-to-cash workflow engineering
+- `crm-sales-tech/thepunisher-contractlifecyclemanagementexpert.md` — **ThePunisher-ContractLifecycleManagementExpert**: Contract lifecycle management (CLM) software engineering
+- `crm-sales-tech/thepunisher-salescommissionengineexpert.md` — **ThePunisher-SalesCommissionEngineExpert**: Sales-commission calculation engine engineering
+- `crm-sales-tech/thepunisher-territorymanagementexpert.md` — **ThePunisher-TerritoryManagementExpert**: Sales-territory management system engineering
+- `crm-sales-tech/thepunisher-crmintegrationexpert.md` — **ThePunisher-CRMIntegrationExpert**: CRM third-party integration engineering
+- `crm-sales-tech/thepunisher-salesdialerplatformexpert.md` — **ThePunisher-SalesDialerPlatformExpert**: Sales-dialer platform engineering
+- `crm-sales-tech/thepunisher-salesemailsequencingexpert.md` — **ThePunisher-SalesEmailSequencingExpert**: Sales-email sequencing engine engineering
+- `crm-sales-tech/thepunisher-salescallanalyticsexpert.md` — **ThePunisher-SalesCallAnalyticsExpert**: Conversation-intelligence/call-analytics engineering
+- `crm-sales-tech/thepunisher-cpqengineexpert.md` — **ThePunisher-CPQEngineExpert**: Configure-price-quote (CPQ) engine engineering
+- `crm-sales-tech/thepunisher-salesgamificationexpert.md` — **ThePunisher-SalesGamificationExpert**: Sales-gamification platform engineering
+- `crm-sales-tech/thepunisher-accountbasedmarketingplatformexpert.md` — **ThePunisher-AccountBasedMarketingPlatformExpert**: Account-based marketing platform engineering for sales
+- `crm-sales-tech/thepunisher-salesdataenrichmentexpert.md` — **ThePunisher-SalesDataEnrichmentExpert**: Sales-data enrichment pipeline engineering
+- `crm-sales-tech/thepunisher-crmworkflowautomationexpert.md` — **ThePunisher-CRMWorkflowAutomationExpert**: CRM workflow-automation engineering
+- `crm-sales-tech/thepunisher-salesperformanceanalyticsexpert.md` — **ThePunisher-SalesPerformanceAnalyticsExpert**: Sales-performance analytics engineering
+- `crm-sales-tech/thepunisher-customersuccessplatformexpert.md` — **ThePunisher-CustomerSuccessPlatformExpert**: Customer-success platform engineering
+- `crm-sales-tech/thepunisher-renewalmanagementexpert.md` — **ThePunisher-RenewalManagementExpert**: B2B contract-renewal management engineering
+- `crm-sales-tech/thepunisher-salesopstoolingexpert.md` — **ThePunisher-SalesOpsToolingExpert**: Sales-operations tooling engineering
+- `crm-sales-tech/thepunisher-crmmobileappexpert.md` — **ThePunisher-CRMMobileAppExpert**: CRM mobile-application engineering
+- `crm-sales-tech/thepunisher-salesprospectingtoolexpert.md` — **ThePunisher-SalesProspectingToolExpert**: Sales-prospecting tool engineering
+- `crm-sales-tech/thepunisher-dealdeskworkflowexpert.md` — **ThePunisher-DealDeskWorkflowExpert**: Deal-desk approval-workflow engineering
+- `crm-sales-tech/thepunisher-crmdataqualityexpert.md` — **ThePunisher-CRMDataQualityExpert**: CRM data-quality engineering
+- `crm-sales-tech/thepunisher-partnerrelationshipmanagementexpert.md` — **ThePunisher-PartnerRelationshipManagementExpert**: Partner relationship management (PRM) system engineering
+- `crm-sales-tech/thepunisher-salescoachingplatformexpert.md` — **ThePunisher-SalesCoachingPlatformExpert**: Sales-coaching platform engineering
+- `crm-sales-tech/thepunisher-crmapiexpert.md` — **ThePunisher-CRMAPIExpert**: CRM API design engineering
+- `crm-sales-tech/thepunisher-salesqualifiedleadscoringexpert.md` — **ThePunisher-SalesQualifiedLeadScoringExpert**: Sales-qualified lead-scoring model engineering
+- `crm-sales-tech/thepunisher-crmdatamigrationexpert.md` — **ThePunisher-CRMDataMigrationExpert**: CRM data-migration engineering
+- `crm-sales-tech/thepunisher-salescontractesignatureexpert.md` — **ThePunisher-SalesContractESignatureExpert**: Sales-contract e-signature integration engineering
+- `crm-sales-tech/thepunisher-channelpartnerportalexpert.md` — **ThePunisher-ChannelPartnerPortalExpert**: Channel-partner portal engineering
+- `crm-sales-tech/thepunisher-b2bsalesanalyticsexpert.md` — **ThePunisher-B2BSalesAnalyticsExpert**: B2B sales analytics engineering
+- `crm-sales-tech/thepunisher-customerhealthscoringexpert.md` — **ThePunisher-CustomerHealthScoringExpert**: Customer-health-score engine engineering
+- `crm-sales-tech/thepunisher-salesplaybookautomationexpert.md` — **ThePunisher-SalesPlaybookAutomationExpert**: Sales-playbook automation engineering
+- `crm-sales-tech/thepunisher-crmcustomizationexpert.md` — **ThePunisher-CRMCustomizationExpert**: CRM platform customization/scripting engineering
+- `crm-sales-tech/thepunisher-revopstoolingexpert.md` — **ThePunisher-RevOpsToolingExpert**: Revenue-operations tooling engineering
+- `crm-sales-tech/thepunisher-outboundsalesautomationexpert.md` — **ThePunisher-OutboundSalesAutomationExpert**: Outbound sales-automation engineering
+- `crm-sales-tech/thepunisher-inboundleadcaptureexpert.md` — **ThePunisher-InboundLeadCaptureExpert**: Inbound lead-capture engineering
+- `crm-sales-tech/thepunisher-salesmeetingschedulingexpert.md` — **ThePunisher-SalesMeetingSchedulingExpert**: Sales-meeting scheduling engine engineering
+- `crm-sales-tech/thepunisher-salesintentdataexpert.md` — **ThePunisher-SalesIntentDataExpert**: Buyer-intent data integration engineering
+- `crm-sales-tech/thepunisher-fieldsalestoolingexpert.md` — **ThePunisher-FieldSalesToolingExpert**: Field-sales mobile tooling engineering
+- `crm-sales-tech/thepunisher-crmplatformmigrationexpert.md` — **ThePunisher-CRMPlatformMigrationExpert**: CRM platform-migration engineering
+- `crm-sales-tech/thepunisher-customerreferencemanagementexpert.md` — **ThePunisher-CustomerReferenceManagementExpert**: Customer-reference management engineering
+- `crm-sales-tech/thepunisher-accountplanningtoolexpert.md` — **ThePunisher-AccountPlanningToolExpert**: Strategic-account-planning tool engineering
+- `crm-sales-tech/thepunisher-salestechstackintegrationexpert.md` — **ThePunisher-SalesTechStackIntegrationExpert**: Sales-tech-stack integration engineering
+- `crm-sales-tech/thepunisher-b2bbuyerjourneyorchestrationexpert.md` — **ThePunisher-B2BBuyerJourneyOrchestrationExpert**: B2B buyer-journey orchestration engineering
+- `crm-sales-tech/thepunisher-crmchangemanagementexpert.md` — **ThePunisher-CRMChangeManagementExpert**: CRM rollout/change-management engineering
+
+## Team 41 — Renewable Energy & Grid Software Engineering (50 agents)
+
+- `renewable-energy-grid/thepunisher-smartgridarchitectureexpert.md` — **ThePunisher-SmartGridArchitectureExpert**: Smart-grid software architecture design
+- `renewable-energy-grid/thepunisher-solarpvmonitoringexpert.md` — **ThePunisher-SolarPVMonitoringExpert**: Solar PV monitoring system engineering
+- `renewable-energy-grid/thepunisher-windfarmscadaexpert.md` — **ThePunisher-WindFarmSCADAExpert**: Wind-farm SCADA system engineering
+- `renewable-energy-grid/thepunisher-energystoragemanagementexpert.md` — **ThePunisher-EnergyStorageManagementExpert**: Battery energy storage system (BESS) software engineering
+- `renewable-energy-grid/thepunisher-demandresponseexpert.md` — **ThePunisher-DemandResponseExpert**: Demand-response program software engineering
+- `renewable-energy-grid/thepunisher-gridforecastingexpert.md` — **ThePunisher-GridForecastingExpert**: Load/generation forecasting engineering
+- `renewable-energy-grid/thepunisher-virtualpowerplantexpert.md` — **ThePunisher-VirtualPowerPlantExpert**: Virtual power plant (VPP) software engineering
+- `renewable-energy-grid/thepunisher-energytradingplatformexpert.md` — **ThePunisher-EnergyTradingPlatformExpert**: Energy-trading platform engineering
+- `renewable-energy-grid/thepunisher-renewableenergycertificateexpert.md` — **ThePunisher-RenewableEnergyCertificateExpert**: REC tracking/trading system engineering
+- `renewable-energy-grid/thepunisher-microgridcontrolexpert.md` — **ThePunisher-MicrogridControlExpert**: Microgrid control-system engineering
+- `renewable-energy-grid/thepunisher-gridstabilitymonitoringexpert.md` — **ThePunisher-GridStabilityMonitoringExpert**: Grid-stability monitoring system engineering
+- `renewable-energy-grid/thepunisher-energymanagementsystemexpert.md` — **ThePunisher-EnergyManagementSystemExpert**: Energy management system (EMS) engineering
+- `renewable-energy-grid/thepunisher-smartmeterdataexpert.md` — **ThePunisher-SmartMeterDataExpert**: AMI/smart-meter data-platform engineering
+- `renewable-energy-grid/thepunisher-distributedenergyresourceexpert.md` — **ThePunisher-DistributedEnergyResourceExpert**: Distributed energy resource (DER) management system engineering
+- `renewable-energy-grid/thepunisher-gridinteroperabilityexpert.md` — **ThePunisher-GridInteroperabilityExpert**: IEC 61850/DNP3 grid-protocol interoperability engineering
+- `renewable-energy-grid/thepunisher-energyefficiencyanalyticsexpert.md` — **ThePunisher-EnergyEfficiencyAnalyticsExpert**: Energy-efficiency analytics engineering
+- `renewable-energy-grid/thepunisher-gridcarbonintensityexpert.md` — **ThePunisher-GridCarbonIntensityExpert**: Grid carbon-intensity tracking engineering
+- `renewable-energy-grid/thepunisher-powerflowsimulationexpert.md` — **ThePunisher-PowerFlowSimulationExpert**: Power-flow simulation engineering
+- `renewable-energy-grid/thepunisher-evfleetchargingoptimizationexpert.md` — **ThePunisher-EVFleetChargingOptimizationExpert**: EV-fleet grid-interaction charging-optimization engineering
+- `renewable-energy-grid/thepunisher-gridresilienceengineeringexpert.md` — **ThePunisher-GridResilienceEngineeringExpert**: Grid-resilience engineering
+- `renewable-energy-grid/thepunisher-powerqualitymonitoringexpert.md` — **ThePunisher-PowerQualityMonitoringExpert**: Power-quality monitoring system engineering
+- `renewable-energy-grid/thepunisher-renewableintegrationengineeringexpert.md` — **ThePunisher-RenewableIntegrationEngineeringExpert**: Renewable-generation grid-integration engineering
+- `renewable-energy-grid/thepunisher-energydataplatformexpert.md` — **ThePunisher-EnergyDataPlatformExpert**: Energy-sector data-platform engineering
+- `renewable-energy-grid/thepunisher-hydroelectriccontrolsystemexpert.md` — **ThePunisher-HydroelectricControlSystemExpert**: Hydroelectric control-system engineering
+- `renewable-energy-grid/thepunisher-offshorewindengineeringsoftwareexpert.md` — **ThePunisher-OffshoreWindEngineeringSoftwareExpert**: Offshore-wind operations software engineering
+- `renewable-energy-grid/thepunisher-gridotsecurityexpert.md` — **ThePunisher-GridOTSecurityExpert**: Grid operational-technology security engineering
+- `renewable-energy-grid/thepunisher-energybillingsystemexpert.md` — **ThePunisher-EnergyBillingSystemExpert**: Energy-utility billing system engineering
+- `renewable-energy-grid/thepunisher-netmeteringexpert.md` — **ThePunisher-NetMeteringExpert**: Net-metering system engineering
+- `renewable-energy-grid/thepunisher-powerpurchaseagreementtoolingexpert.md` — **ThePunisher-PowerPurchaseAgreementToolingExpert**: PPA contract-management software engineering
+- `renewable-energy-grid/thepunisher-gridloadbalancingexpert.md` — **ThePunisher-GridLoadBalancingExpert**: Grid load-balancing algorithm engineering
+- `renewable-energy-grid/thepunisher-energyregulatorycomplianceexpert.md` — **ThePunisher-EnergyRegulatoryComplianceExpert**: FERC/NERC regulatory-compliance software engineering
+- `renewable-energy-grid/thepunisher-energystoragedispatchoptimizationexpert.md` — **ThePunisher-EnergyStorageDispatchOptimizationExpert**: Battery-dispatch optimization algorithm engineering
+- `renewable-energy-grid/thepunisher-transmissionsystemmonitoringexpert.md` — **ThePunisher-TransmissionSystemMonitoringExpert**: Transmission-system monitoring engineering
+- `renewable-energy-grid/thepunisher-distributionautomationexpert.md` — **ThePunisher-DistributionAutomationExpert**: Distribution-automation system engineering
+- `renewable-energy-grid/thepunisher-gridedgedeviceexpert.md` — **ThePunisher-GridEdgeDeviceExpert**: Grid edge-device/gateway engineering
+- `renewable-energy-grid/thepunisher-renewablesitinganalyticsexpert.md` — **ThePunisher-RenewableSitingAnalyticsExpert**: Renewable-project siting/feasibility analytics engineering
+- `renewable-energy-grid/thepunisher-energycommunityplatformexpert.md` — **ThePunisher-EnergyCommunityPlatformExpert**: Community-solar/shared-energy platform engineering
+- `renewable-energy-grid/thepunisher-griddigitaltwinexpert.md` — **ThePunisher-GridDigitalTwinExpert**: Grid-infrastructure digital-twin engineering
+- `renewable-energy-grid/thepunisher-energyassetperformanceexpert.md` — **ThePunisher-EnergyAssetPerformanceExpert**: Renewable-asset performance-monitoring engineering
+- `renewable-energy-grid/thepunisher-substationautomationexpert.md` — **ThePunisher-SubstationAutomationExpert**: Substation-automation system engineering
+- `renewable-energy-grid/thepunisher-gridoutagemanagementexpert.md` — **ThePunisher-GridOutageManagementExpert**: Grid outage-management system engineering
+- `renewable-energy-grid/thepunisher-energymarketsettlementexpert.md` — **ThePunisher-EnergyMarketSettlementExpert**: Energy-market settlement system engineering
+- `renewable-energy-grid/thepunisher-evgridintegrationexpert.md` — **ThePunisher-EVGridIntegrationExpert**: Vehicle-to-grid (V2G) integration engineering
+- `renewable-energy-grid/thepunisher-energyconsumerappexpert.md` — **ThePunisher-EnergyConsumerAppExpert**: Consumer-facing energy-usage app engineering
+- `renewable-energy-grid/thepunisher-energyflexibilitymarketexpert.md` — **ThePunisher-EnergyFlexibilityMarketExpert**: Flexibility-market/ancillary-services software engineering
+- `renewable-energy-grid/thepunisher-renewablecurtailmentanalyticsexpert.md` — **ThePunisher-RenewableCurtailmentAnalyticsExpert**: Renewable-generation curtailment analytics engineering
+- `renewable-energy-grid/thepunisher-gridplanningsoftwareexpert.md` — **ThePunisher-GridPlanningSoftwareExpert**: Grid capacity-planning software engineering
+- `renewable-energy-grid/thepunisher-energystoragesafetymonitoringexpert.md` — **ThePunisher-EnergyStorageSafetyMonitoringExpert**: Energy-storage safety-monitoring system engineering
+- `renewable-energy-grid/thepunisher-distributedledgerenergytradingexpert.md` — **ThePunisher-DistributedLedgerEnergyTradingExpert**: Peer-to-peer energy-trading DLT engineering
+- `renewable-energy-grid/thepunisher-powerelectronicscontrolsoftwareexpert.md` — **ThePunisher-PowerElectronicsControlSoftwareExpert**: Inverter/power-electronics control-software engineering
+
+## Team 42 — Localization & Internationalization Engineering (50 agents)
+
+- `localization-i18n/thepunisher-localizationpipelineexpert.md` — **ThePunisher-LocalizationPipelineExpert**: Localization pipeline architecture
+- `localization-i18n/thepunisher-translationmanagementsystemexpert.md` — **ThePunisher-TranslationManagementSystemExpert**: Translation management system (TMS) engineering
+- `localization-i18n/thepunisher-internationalizationarchitectureexpert.md` — **ThePunisher-InternationalizationArchitectureExpert**: i18n code architecture: string externalization
+- `localization-i18n/thepunisher-localeformattingexpert.md` — **ThePunisher-LocaleFormattingExpert**: Date/number/currency locale-formatting engineering
+- `localization-i18n/thepunisher-rtllayoutexpert.md` — **ThePunisher-RTLLayoutExpert**: Right-to-left layout engineering
+- `localization-i18n/thepunisher-cjktypographyexpert.md` — **ThePunisher-CJKTypographyExpert**: Chinese/Japanese/Korean typography engineering
+- `localization-i18n/thepunisher-translationmemoryexpert.md` — **ThePunisher-TranslationMemoryExpert**: Translation-memory system engineering
+- `localization-i18n/thepunisher-machinetranslationposteditingexpert.md` — **ThePunisher-MachineTranslationPostEditingExpert**: Machine-translation post-editing workflow engineering
+- `localization-i18n/thepunisher-localizationqaexpert.md` — **ThePunisher-LocalizationQAExpert**: Localization QA engineering
+- `localization-i18n/thepunisher-pseudolocalizationexpert.md` — **ThePunisher-PseudolocalizationExpert**: Pseudo-localization testing engineering
+- `localization-i18n/thepunisher-contentlocalizationworkflowexpert.md` — **ThePunisher-ContentLocalizationWorkflowExpert**: Content-localization workflow engineering
+- `localization-i18n/thepunisher-globalizationtestingexpert.md` — **ThePunisher-GlobalizationTestingExpert**: Globalization testing engineering
+- `localization-i18n/thepunisher-localizationvendorintegrationexpert.md` — **ThePunisher-LocalizationVendorIntegrationExpert**: Localization-vendor integration engineering
+- `localization-i18n/thepunisher-translationapiexpert.md` — **ThePunisher-TranslationAPIExpert**: Translation-API integration engineering
+- `localization-i18n/thepunisher-localedetectionexpert.md` — **ThePunisher-LocaleDetectionExpert**: Locale-detection engineering
+- `localization-i18n/thepunisher-unicodeencodingexpert.md` — **ThePunisher-UnicodeEncodingExpert**: Unicode encoding/normalization engineering
+- `localization-i18n/thepunisher-localizationcicdexpert.md` — **ThePunisher-LocalizationCICDExpert**: Continuous-localization pipeline integration engineering
+- `localization-i18n/thepunisher-regionalcompliancelocalizationexpert.md` — **ThePunisher-RegionalComplianceLocalizationExpert**: Locale-specific legal/regulatory content engineering
+- `localization-i18n/thepunisher-multicurrencyexpert.md` — **ThePunisher-MultiCurrencyExpert**: Multi-currency display/conversion engineering
+- `localization-i18n/thepunisher-timezonehandlingexpert.md` — **ThePunisher-TimeZoneHandlingExpert**: Time-zone handling engineering
+- `localization-i18n/thepunisher-localizationglossarymanagementexpert.md` — **ThePunisher-LocalizationGlossaryManagementExpert**: Localization glossary/terminology management engineering
+- `localization-i18n/thepunisher-transcreationexpert.md` — **ThePunisher-TransCreationExpert**: Marketing transcreation engineering
+- `localization-i18n/thepunisher-localizationcostoptimizationexpert.md` — **ThePunisher-LocalizationCostOptimizationExpert**: Localization cost-optimization engineering
+- `localization-i18n/thepunisher-voicelocalizationexpert.md` — **ThePunisher-VoiceLocalizationExpert**: Dubbing/voice-localization pipeline engineering
+- `localization-i18n/thepunisher-gamelocalizationexpert.md` — **ThePunisher-GameLocalizationExpert**: Game localization engineering
+- `localization-i18n/thepunisher-localizationfileformatexpert.md` — **ThePunisher-LocalizationFileFormatExpert**: XLIFF/PO/resource-file format engineering
+- `localization-i18n/thepunisher-culturaladaptationexpert.md` — **ThePunisher-CulturalAdaptationExpert**: Cultural-adaptation review engineering
+- `localization-i18n/thepunisher-localizationautomationexpert.md` — **ThePunisher-LocalizationAutomationExpert**: Localization workflow-automation engineering
+- `localization-i18n/thepunisher-multilingualseoexpert.md` — **ThePunisher-MultilingualSEOExpert**: Multilingual SEO engineering
+- `localization-i18n/thepunisher-localizationprojectmanagementtoolingexpert.md` — **ThePunisher-LocalizationProjectManagementToolingExpert**: Localization project-management tooling engineering
+- `localization-i18n/thepunisher-localizationapiintegrationexpert.md` — **ThePunisher-LocalizationAPIIntegrationExpert**: Localization-platform API integration engineering
+- `localization-i18n/thepunisher-regionalpaymentlocalizationexpert.md` — **ThePunisher-RegionalPaymentLocalizationExpert**: Region-specific payment-method localization engineering
+- `localization-i18n/thepunisher-localizationaccessibilityexpert.md` — **ThePunisher-LocalizationAccessibilityExpert**: Localization accessibility engineering
+- `localization-i18n/thepunisher-sourcestringmanagementexpert.md` — **ThePunisher-SourceStringManagementExpert**: Source-string management engineering
+- `localization-i18n/thepunisher-localizationversioningexpert.md` — **ThePunisher-LocalizationVersioningExpert**: Localization-content versioning engineering
+- `localization-i18n/thepunisher-internationaldomainnameexpert.md` — **ThePunisher-InternationalDomainNameExpert**: Internationalized domain-name (IDN) engineering
+- `localization-i18n/thepunisher-localizationreviewworkflowexpert.md` — **ThePunisher-LocalizationReviewWorkflowExpert**: Localization review-workflow engineering
+- `localization-i18n/thepunisher-minoritylanguagesupportexpert.md` — **ThePunisher-MinorityLanguageSupportExpert**: Minority-language product-support engineering
+- `localization-i18n/thepunisher-translationqualityscoringexpert.md` — **ThePunisher-TranslationQualityScoringExpert**: Translation-quality scoring engineering
+- `localization-i18n/thepunisher-globalcontentstrategyexpert.md` — **ThePunisher-GlobalContentStrategyExpert**: Global content-strategy engineering
+- `localization-i18n/thepunisher-regionalfeatureflaggingexpert.md` — **ThePunisher-RegionalFeatureFlaggingExpert**: Region-based feature-rollout engineering
+- `localization-i18n/thepunisher-localizationdataresidencyexpert.md` — **ThePunisher-LocalizationDataResidencyExpert**: Localization-specific data-residency engineering
+- `localization-i18n/thepunisher-localizationfontmanagementexpert.md` — **ThePunisher-LocalizationFontManagementExpert**: Localization font-management engineering
+- `localization-i18n/thepunisher-localizationstyleguideexpert.md` — **ThePunisher-LocalizationStyleGuideExpert**: Localization style-guide engineering
+- `localization-i18n/thepunisher-internationalizationlibraryexpert.md` — **ThePunisher-InternationalizationLibraryExpert**: i18n library integration engineering: ICU/gettext
+- `localization-i18n/thepunisher-localizationoutsourcingmanagementexpert.md` — **ThePunisher-LocalizationOutsourcingManagementExpert**: Localization outsourcing-management engineering
+- `localization-i18n/thepunisher-localizationmetricsexpert.md` — **ThePunisher-LocalizationMetricsExpert**: Localization-program metrics engineering
+- `localization-i18n/thepunisher-localizationcrowdsourcingexpert.md` — **ThePunisher-LocalizationCrowdsourcingExpert**: Community-translation platform engineering
+- `localization-i18n/thepunisher-multiregioncontentdeliverylocalizationexpert.md` — **ThePunisher-MultiRegionContentDeliveryLocalizationExpert**: Multi-region content-delivery localization engineering
+- `localization-i18n/thepunisher-localizationonboardingexpert.md` — **ThePunisher-LocalizationOnboardingExpert**: New-market localization launch-process engineering
+
+## Team 43 — Aerospace & Space Systems Engineering (50 agents)
+
+- `aerospace-space/thepunisher-satellitebusarchitectureexpert.md` — **ThePunisher-SatelliteBusArchitectureExpert**: Satellite bus software architecture design
+- `aerospace-space/thepunisher-spacecraftattitudecontrolexpert.md` — **ThePunisher-SpacecraftAttitudeControlExpert**: Spacecraft attitude-control software engineering
+- `aerospace-space/thepunisher-orbitalmechanicsexpert.md` — **ThePunisher-OrbitalMechanicsExpert**: Orbital mechanics computation engineering
+- `aerospace-space/thepunisher-groundstationsoftwareexpert.md` — **ThePunisher-GroundStationSoftwareExpert**: Ground-station software engineering
+- `aerospace-space/thepunisher-spacemissionplanningexpert.md` — **ThePunisher-SpaceMissionPlanningExpert**: Space mission-planning software engineering
+- `aerospace-space/thepunisher-satellitecommunicationspayloadexpert.md` — **ThePunisher-SatelliteCommunicationsPayloadExpert**: Satellite communications-payload software engineering
+- `aerospace-space/thepunisher-launchvehiclesoftwareexpert.md` — **ThePunisher-LaunchVehicleSoftwareExpert**: Launch-vehicle flight-software engineering
+- `aerospace-space/thepunisher-avionicssoftwareexpert.md` — **ThePunisher-AvionicsSoftwareExpert**: Avionics software engineering
+- `aerospace-space/thepunisher-spacedebristrackingexpert.md` — **ThePunisher-SpaceDebrisTrackingExpert**: Space-debris tracking software engineering
+- `aerospace-space/thepunisher-satelliteconstellationmanagementexpert.md` — **ThePunisher-SatelliteConstellationManagementExpert**: Satellite-constellation mission-operations engineering
+- `aerospace-space/thepunisher-flightsoftwareverificationexpert.md` — **ThePunisher-FlightSoftwareVerificationExpert**: Flight-software verification engineering
+- `aerospace-space/thepunisher-spacecraftthermalcontrolsoftwareexpert.md` — **ThePunisher-SpacecraftThermalControlSoftwareExpert**: Spacecraft thermal-control software engineering
+- `aerospace-space/thepunisher-spacesituationalawarenessexpert.md` — **ThePunisher-SpaceSituationalAwarenessExpert**: Space situational-awareness software engineering
+- `aerospace-space/thepunisher-rocketpropulsioncontrolexpert.md` — **ThePunisher-RocketPropulsionControlExpert**: Rocket propulsion control-software engineering
+- `aerospace-space/thepunisher-cubesatdevelopmentexpert.md` — **ThePunisher-CubeSatDevelopmentExpert**: CubeSat software development engineering
+- `aerospace-space/thepunisher-spacegroundsegmentexpert.md` — **ThePunisher-SpaceGroundSegmentExpert**: Space ground-segment architecture engineering
+- `aerospace-space/thepunisher-satellitetelemetryprocessingexpert.md` — **ThePunisher-SatelliteTelemetryProcessingExpert**: Satellite telemetry-processing engineering
+- `aerospace-space/thepunisher-spaceradiationhardeningexpert.md` — **ThePunisher-SpaceRadiationHardeningExpert**: Radiation-hardened software design engineering
+- `aerospace-space/thepunisher-aerospacesoftwarecertificationexpert.md` — **ThePunisher-AerospaceSoftwareCertificationExpert**: DO-178C aerospace software-certification engineering
+- `aerospace-space/thepunisher-spacedatadownlinkexpert.md` — **ThePunisher-SpaceDataDownlinkExpert**: Space data-downlink engineering
+- `aerospace-space/thepunisher-remotesensingsatelliteexpert.md` — **ThePunisher-RemoteSensingSatelliteExpert**: Remote-sensing satellite-payload software engineering
+- `aerospace-space/thepunisher-spacemissionsimulationexpert.md` — **ThePunisher-SpaceMissionSimulationExpert**: Space mission-simulation engineering
+- `aerospace-space/thepunisher-autonomousspacecraftnavigationexpert.md` — **ThePunisher-AutonomousSpacecraftNavigationExpert**: Autonomous spacecraft-navigation software engineering
+- `aerospace-space/thepunisher-lunarmissionsoftwareexpert.md` — **ThePunisher-LunarMissionSoftwareExpert**: Lunar mission software engineering
+- `aerospace-space/thepunisher-spacelaunchschedulingexpert.md` — **ThePunisher-SpaceLaunchSchedulingExpert**: Space launch-scheduling software engineering
+- `aerospace-space/thepunisher-satellitegroundnetworkoperationsexpert.md` — **ThePunisher-SatelliteGroundNetworkOperationsExpert**: Satellite ground-network operations engineering
+- `aerospace-space/thepunisher-aerospacesupplychainsoftwareexpert.md` — **ThePunisher-AerospaceSupplyChainSoftwareExpert**: Aerospace-specific supply-chain software engineering
+- `aerospace-space/thepunisher-spaceweathermonitoringexpert.md` — **ThePunisher-SpaceWeatherMonitoringExpert**: Space-weather monitoring software engineering
+- `aerospace-space/thepunisher-intersatellitelinkexpert.md` — **ThePunisher-InterSatelliteLinkExpert**: Inter-satellite link software engineering
+- `aerospace-space/thepunisher-spaceprogramcomplianceexpert.md` — **ThePunisher-SpaceProgramComplianceExpert**: ITAR/export-control compliance engineering for space software
+- `aerospace-space/thepunisher-aerospacedigitaltwinexpert.md` — **ThePunisher-AerospaceDigitalTwinExpert**: Aerospace-system digital-twin engineering
+- `aerospace-space/thepunisher-satelliteimageprocessingpipelineexpert.md` — **ThePunisher-SatelliteImageProcessingPipelineExpert**: Satellite image-processing pipeline engineering
+- `aerospace-space/thepunisher-spacedockingrendezvousexpert.md` — **ThePunisher-SpaceDockingRendezvousExpert**: Autonomous docking/rendezvous software engineering
+- `aerospace-space/thepunisher-aerospacetestautomationexpert.md` — **ThePunisher-AerospaceTestAutomationExpert**: Aerospace software test-automation engineering
+- `aerospace-space/thepunisher-satellitebatterypowermanagementexpert.md` — **ThePunisher-SatelliteBatteryPowerManagementExpert**: Satellite battery/power-management software engineering
+- `aerospace-space/thepunisher-spaceprogrammissionassuranceexpert.md` — **ThePunisher-SpaceProgramMissionAssuranceExpert**: Space-program mission-assurance engineering
+- `aerospace-space/thepunisher-aerospaceflightsimulatorexpert.md` — **ThePunisher-AerospaceFlightSimulatorExpert**: Aerospace flight-simulator software engineering
+- `aerospace-space/thepunisher-spacetrafficmanagementexpert.md` — **ThePunisher-SpaceTrafficManagementExpert**: Space traffic-management software engineering
+- `aerospace-space/thepunisher-satellitefirmwareupdateexpert.md` — **ThePunisher-SatelliteFirmwareUpdateExpert**: Spacecraft firmware-update engineering
+- `aerospace-space/thepunisher-aerospacerequirementstraceabilityexpert.md` — **ThePunisher-AerospaceRequirementsTraceabilityExpert**: Requirements-traceability engineering for certified aerospace software
+- `aerospace-space/thepunisher-spacecommunicationprotocolexpert.md` — **ThePunisher-SpaceCommunicationProtocolExpert**: CCSDS space-communication protocol engineering
+- `aerospace-space/thepunisher-spacelaunchtelemetrydashboardexpert.md` — **ThePunisher-SpaceLaunchTelemetryDashboardExpert**: Space-launch telemetry dashboard engineering
+- `aerospace-space/thepunisher-humanspaceflightsoftwareexpert.md` — **ThePunisher-HumanSpaceflightSoftwareExpert**: Human-spaceflight software engineering
+- `aerospace-space/thepunisher-satelliteantennapointingexpert.md` — **ThePunisher-SatelliteAntennaPointingExpert**: Satellite antenna-pointing software engineering
+- `aerospace-space/thepunisher-spacemissiondataarchiveexpert.md` — **ThePunisher-SpaceMissionDataArchiveExpert**: Space mission data-archive engineering
+- `aerospace-space/thepunisher-aerospacecybersecurityexpert.md` — **ThePunisher-AerospaceCybersecurityExpert**: Space-system cybersecurity engineering
+- `aerospace-space/thepunisher-aerospacemodelbasedsystemsengineeringexpert.md` — **ThePunisher-AerospaceModelBasedSystemsEngineeringExpert**: Model-based systems engineering (MBSE) for aerospace
+- `aerospace-space/thepunisher-propulsiontelemetryanalyticsexpert.md` — **ThePunisher-PropulsionTelemetryAnalyticsExpert**: Propulsion telemetry-analytics engineering
+- `aerospace-space/thepunisher-satelliteorbitdeterminationexpert.md` — **ThePunisher-SatelliteOrbitDeterminationExpert**: Satellite orbit-determination software engineering
+- `aerospace-space/thepunisher-spacecraftfaultdetectionexpert.md` — **ThePunisher-SpacecraftFaultDetectionExpert**: Onboard fault detection, isolation, and recovery (FDIR) engineering
+
+## Team 44 — HR Technology & People Analytics Engineering (50 agents)
+
+- `hr-tech-people-analytics/thepunisher-hrisplatformexpert.md` — **ThePunisher-HRISPlatformExpert**: HR information system (HRIS) engineering
+- `hr-tech-people-analytics/thepunisher-applicanttrackingsystemexpert.md` — **ThePunisher-ApplicantTrackingSystemExpert**: Applicant tracking system (ATS) engineering
+- `hr-tech-people-analytics/thepunisher-payrollsystemengineeringexpert.md` — **ThePunisher-PayrollSystemEngineeringExpert**: Payroll system engineering
+- `hr-tech-people-analytics/thepunisher-performancemanagementplatformexpert.md` — **ThePunisher-PerformanceManagementPlatformExpert**: Performance-management platform engineering
+- `hr-tech-people-analytics/thepunisher-peopleanalyticsexpert.md` — **ThePunisher-PeopleAnalyticsExpert**: People-analytics platform engineering
+- `hr-tech-people-analytics/thepunisher-employeeengagementplatformexpert.md` — **ThePunisher-EmployeeEngagementPlatformExpert**: Employee-engagement platform engineering
+- `hr-tech-people-analytics/thepunisher-compensationplanningsoftwareexpert.md` — **ThePunisher-CompensationPlanningSoftwareExpert**: Compensation-planning software engineering
+- `hr-tech-people-analytics/thepunisher-onboardingworkflowhrexpert.md` — **ThePunisher-OnboardingWorkflowHRExpert**: Employee-onboarding workflow engineering
+- `hr-tech-people-analytics/thepunisher-learningmanagementsystemhrexpert.md` — **ThePunisher-LearningManagementSystemHRExpert**: Corporate learning-management system engineering
+- `hr-tech-people-analytics/thepunisher-workforceplanningexpert.md` — **ThePunisher-WorkforcePlanningExpert**: Workforce-planning software engineering
+- `hr-tech-people-analytics/thepunisher-hrchatbotexpert.md` — **ThePunisher-HRChatbotExpert**: HR-specific chatbot engineering
+- `hr-tech-people-analytics/thepunisher-employeeselfserviceportalexpert.md` — **ThePunisher-EmployeeSelfServicePortalExpert**: Employee self-service portal engineering
+- `hr-tech-people-analytics/thepunisher-timeandattendanceexpert.md` — **ThePunisher-TimeAndAttendanceExpert**: Time-and-attendance system engineering
+- `hr-tech-people-analytics/thepunisher-successionplanningsoftwareexpert.md` — **ThePunisher-SuccessionPlanningSoftwareExpert**: Succession-planning software engineering
+- `hr-tech-people-analytics/thepunisher-diversityequityinclusionanalyticsexpert.md` — **ThePunisher-DiversityEquityInclusionAnalyticsExpert**: DEI analytics engineering
+- `hr-tech-people-analytics/thepunisher-hrdataprivacyexpert.md` — **ThePunisher-HRDataPrivacyExpert**: HR-specific data-privacy engineering
+- `hr-tech-people-analytics/thepunisher-recruitingcrmexpert.md` — **ThePunisher-RecruitingCRMExpert**: Recruiting CRM engineering
+- `hr-tech-people-analytics/thepunisher-candidateexperienceplatformexpert.md` — **ThePunisher-CandidateExperiencePlatformExpert**: Candidate-experience platform engineering
+- `hr-tech-people-analytics/thepunisher-employeesurveyplatformexpert.md` — **ThePunisher-EmployeeSurveyPlatformExpert**: Employee-survey platform engineering
+- `hr-tech-people-analytics/thepunisher-hrworkflowautomationexpert.md` — **ThePunisher-HRWorkflowAutomationExpert**: HR workflow-automation engineering
+- `hr-tech-people-analytics/thepunisher-skillstaxonomyexpert.md` — **ThePunisher-SkillsTaxonomyExpert**: Skills-graph/taxonomy engineering for HR systems
+- `hr-tech-people-analytics/thepunisher-internalmobilityplatformexpert.md` — **ThePunisher-InternalMobilityPlatformExpert**: Internal-mobility platform engineering
+- `hr-tech-people-analytics/thepunisher-offboardingworkflowexpert.md` — **ThePunisher-OffboardingWorkflowExpert**: Employee-offboarding workflow engineering
+- `hr-tech-people-analytics/thepunisher-peopledatawarehouseexpert.md` — **ThePunisher-PeopleDataWarehouseExpert**: People-data warehouse engineering
+- `hr-tech-people-analytics/thepunisher-hrcompliancereportingexpert.md` — **ThePunisher-HRComplianceReportingExpert**: HR compliance-reporting engineering
+- `hr-tech-people-analytics/thepunisher-employeewellnessplatformexpert.md` — **ThePunisher-EmployeeWellnessPlatformExpert**: Employee-wellness platform engineering
+- `hr-tech-people-analytics/thepunisher-attritionpredictionexpert.md` — **ThePunisher-AttritionPredictionExpert**: Attrition/churn prediction model engineering for HR
+- `hr-tech-people-analytics/thepunisher-jobarchitectureexpert.md` — **ThePunisher-JobArchitectureExpert**: Job-leveling/architecture system engineering
+- `hr-tech-people-analytics/thepunisher-hrservicedeskexpert.md` — **ThePunisher-HRServiceDeskExpert**: HR service-desk platform engineering
+- `hr-tech-people-analytics/thepunisher-globalpayrollcomplianceexpert.md` — **ThePunisher-GlobalPayrollComplianceExpert**: Global payroll-compliance engineering
+- `hr-tech-people-analytics/thepunisher-recruitmentmarketingexpert.md` — **ThePunisher-RecruitmentMarketingExpert**: Recruitment-marketing engineering
+- `hr-tech-people-analytics/thepunisher-hrsystemsmigrationexpert.md` — **ThePunisher-HRSystemsMigrationExpert**: HR systems-migration engineering
+- `hr-tech-people-analytics/thepunisher-employeereferralplatformexpert.md` — **ThePunisher-EmployeeReferralPlatformExpert**: Employee-referral platform engineering
+- `hr-tech-people-analytics/thepunisher-hrdatagovernanceexpert.md` — **ThePunisher-HRDataGovernanceExpert**: HR data-governance engineering
+- `hr-tech-people-analytics/thepunisher-videointerviewingplatformexpert.md` — **ThePunisher-VideoInterviewingPlatformExpert**: Video-interviewing platform engineering
+- `hr-tech-people-analytics/thepunisher-assessmenttestingplatformhrexpert.md` — **ThePunisher-AssessmentTestingPlatformHRExpert**: Pre-hire skills/psychometric assessment engineering
+- `hr-tech-people-analytics/thepunisher-headcountplanningexpert.md` — **ThePunisher-HeadcountPlanningExpert**: Headcount-planning software engineering
+- `hr-tech-people-analytics/thepunisher-hrvendorintegrationexpert.md` — **ThePunisher-HRVendorIntegrationExpert**: HR-vendor integration engineering
+- `hr-tech-people-analytics/thepunisher-remoteworkforcetoolingexpert.md` — **ThePunisher-RemoteWorkforceToolingExpert**: Remote-workforce tooling engineering
+- `hr-tech-people-analytics/thepunisher-hrmobileappexpert.md` — **ThePunisher-HRMobileAppExpert**: HR mobile-application engineering
+- `hr-tech-people-analytics/thepunisher-gigworkforcemanagementexpert.md` — **ThePunisher-GigWorkforceManagementExpert**: Contingent/gig-worker management platform engineering
+- `hr-tech-people-analytics/thepunisher-pulsesurveyanalyticsexpert.md` — **ThePunisher-PulseSurveyAnalyticsExpert**: Pulse-survey analytics engineering
+- `hr-tech-people-analytics/thepunisher-talentacquisitionanalyticsexpert.md` — **ThePunisher-TalentAcquisitionAnalyticsExpert**: Talent-acquisition analytics engineering
+- `hr-tech-people-analytics/thepunisher-hrprocessminingexpert.md` — **ThePunisher-HRProcessMiningExpert**: HR-specific process-mining engineering
+- `hr-tech-people-analytics/thepunisher-employeerecognitionplatformexpert.md` — **ThePunisher-EmployeeRecognitionPlatformExpert**: Employee-recognition platform engineering
+- `hr-tech-people-analytics/thepunisher-hraudittrailexpert.md` — **ThePunisher-HRAuditTrailExpert**: HR audit-trail engineering
+- `hr-tech-people-analytics/thepunisher-payequityanalyticsexpert.md` — **ThePunisher-PayEquityAnalyticsExpert**: Pay-equity analytics engineering
+- `hr-tech-people-analytics/thepunisher-workforceschedulingexpert.md` — **ThePunisher-WorkforceSchedulingExpert**: Workforce-scheduling software engineering
+- `hr-tech-people-analytics/thepunisher-talentmarketplaceexpert.md` — **ThePunisher-TalentMarketplaceExpert**: Internal talent-marketplace platform engineering
+- `hr-tech-people-analytics/thepunisher-hrchangemanagementtoolingexpert.md` — **ThePunisher-HRChangeManagementToolingExpert**: HR change-management tooling engineering
+
+## Team 45 — Data Privacy Engineering (50 agents)
+
+- `data-privacy/thepunisher-privacybydesignexpert.md` — **ThePunisher-PrivacyByDesignExpert**: Privacy-by-design architecture review
+- `data-privacy/thepunisher-dataminimizationexpert.md` — **ThePunisher-DataMinimizationExpert**: Data-minimization engineering
+- `data-privacy/thepunisher-piidetectionexpert.md` — **ThePunisher-PIIDetectionExpert**: PII detection/scanning engineering
+- `data-privacy/thepunisher-dataanonymizationexpert.md` — **ThePunisher-DataAnonymizationExpert**: Data anonymization engineering
+- `data-privacy/thepunisher-differentialprivacyexpert.md` — **ThePunisher-DifferentialPrivacyExpert**: Differential privacy implementation engineering
+- `data-privacy/thepunisher-consentmanagementengineexpert.md` — **ThePunisher-ConsentManagementEngineExpert**: Core consent-management engine engineering
+- `data-privacy/thepunisher-datasubjectrequestautomationexpert.md` — **ThePunisher-DataSubjectRequestAutomationExpert**: DSAR fulfillment automation engineering
+- `data-privacy/thepunisher-privacyimpactassessmentexpert.md` — **ThePunisher-PrivacyImpactAssessmentExpert**: Privacy impact assessment (PIA) engineering
+- `data-privacy/thepunisher-dataretentionpolicyengineexpert.md` — **ThePunisher-DataRetentionPolicyEngineExpert**: Data-retention policy engine engineering
+- `data-privacy/thepunisher-crossborderdatatransferexpert.md` — **ThePunisher-CrossBorderDataTransferExpert**: Cross-border data-transfer compliance engineering
+- `data-privacy/thepunisher-privacypreservinganalyticsexpert.md` — **ThePunisher-PrivacyPreservingAnalyticsExpert**: Privacy-preserving analytics engineering
+- `data-privacy/thepunisher-tokenizationprivacyexpert.md` — **ThePunisher-TokenizationPrivacyExpert**: Privacy-focused data tokenization engineering
+- `data-privacy/thepunisher-datamaskingexpert.md` — **ThePunisher-DataMaskingExpert**: Data-masking engineering
+- `data-privacy/thepunisher-privacycomplianceautomationexpert.md` — **ThePunisher-PrivacyComplianceAutomationExpert**: GDPR/CCPA/LGPD automated compliance tooling
+- `data-privacy/thepunisher-homomorphicencryptionexpert.md` — **ThePunisher-HomomorphicEncryptionExpert**: Homomorphic encryption implementation engineering
+- `data-privacy/thepunisher-securemultipartycomputationexpert.md` — **ThePunisher-SecureMultipartyComputationExpert**: Secure multi-party computation engineering
+- `data-privacy/thepunisher-privacypolicygeneratorexpert.md` — **ThePunisher-PrivacyPolicyGeneratorExpert**: Automated privacy-policy generation engineering
+- `data-privacy/thepunisher-datadiscoveryclassificationexpert.md` — **ThePunisher-DataDiscoveryClassificationExpert**: Automated sensitive-data discovery/classification engineering
+- `data-privacy/thepunisher-privacyengineeringframeworkexpert.md` — **ThePunisher-PrivacyEngineeringFrameworkExpert**: NIST privacy-framework implementation engineering
+- `data-privacy/thepunisher-righttobeforgottenexpert.md` — **ThePunisher-RightToBeForgottenExpert**: Erasure/deletion-pipeline engineering
+- `data-privacy/thepunisher-privacydashboardexpert.md` — **ThePunisher-PrivacyDashboardExpert**: User-facing privacy-preference dashboard engineering
+- `data-privacy/thepunisher-federatedlearningprivacyexpert.md` — **ThePunisher-FederatedLearningPrivacyExpert**: Privacy engineering for federated learning systems
+- `data-privacy/thepunisher-datalineageprivacyexpert.md` — **ThePunisher-DataLineagePrivacyExpert**: Privacy-focused data-lineage tracking engineering
+- `data-privacy/thepunisher-thirdpartydatasharingcomplianceexpert.md` — **ThePunisher-ThirdPartyDataSharingComplianceExpert**: Third-party data-sharing compliance engineering
+- `data-privacy/thepunisher-cookieconsentengineexpert.md` — **ThePunisher-CookieConsentEngineExpert**: Cookie-consent engine engineering
+- `data-privacy/thepunisher-biometricdataprivacyexpert.md` — **ThePunisher-BiometricDataPrivacyExpert**: Biometric-data privacy engineering
+- `data-privacy/thepunisher-childrenprivacycomplianceexpert.md` — **ThePunisher-ChildrenPrivacyComplianceExpert**: COPPA compliance engineering
+- `data-privacy/thepunisher-privacyriskscoringexpert.md` — **ThePunisher-PrivacyRiskScoringExpert**: Privacy-risk scoring engineering
+- `data-privacy/thepunisher-dataprocessingagreementtoolingexpert.md` — **ThePunisher-DataProcessingAgreementToolingExpert**: DPA/vendor-privacy contract tooling engineering
+- `data-privacy/thepunisher-pseudonymizationexpert.md` — **ThePunisher-PseudonymizationExpert**: Pseudonymization engineering
+- `data-privacy/thepunisher-privacypreservingidentifierexpert.md` — **ThePunisher-PrivacyPreservingIdentifierExpert**: Privacy-safe user-identifier generation engineering
+- `data-privacy/thepunisher-gdprarticle30recordsexpert.md` — **ThePunisher-GDPRArticle30RecordsExpert**: Records-of-processing-activity automation engineering
+- `data-privacy/thepunisher-privacytestingexpert.md` — **ThePunisher-PrivacyTestingExpert**: Automated privacy-regression testing engineering
+- `data-privacy/thepunisher-databreachnotificationexpert.md` — **ThePunisher-DataBreachNotificationExpert**: Data-breach notification workflow engineering
+- `data-privacy/thepunisher-syntheticdataprivacyexpert.md` — **ThePunisher-SyntheticDataPrivacyExpert**: Synthetic-data generation engineering for privacy-safe testing
+- `data-privacy/thepunisher-privacypreservingmlexpert.md` — **ThePunisher-PrivacyPreservingMLExpert**: Privacy-preserving machine-learning engineering
+- `data-privacy/thepunisher-vendorprivacyassessmentexpert.md` — **ThePunisher-VendorPrivacyAssessmentExpert**: Vendor privacy-assessment engineering
+- `data-privacy/thepunisher-dataresidencyenforcementexpert.md` — **ThePunisher-DataResidencyEnforcementExpert**: Data-residency technical-enforcement engineering
+- `data-privacy/thepunisher-privacymetadatataggingexpert.md` — **ThePunisher-PrivacyMetadataTaggingExpert**: Privacy-metadata tagging engineering
+- `data-privacy/thepunisher-privacyapigovernanceexpert.md` — **ThePunisher-PrivacyAPIGovernanceExpert**: Privacy-focused API-governance engineering
+- `data-privacy/thepunisher-anonymizationreidentificationriskexpert.md` — **ThePunisher-AnonymizationReidentificationRiskExpert**: Re-identification risk-analysis engineering
+- `data-privacy/thepunisher-privacyoperationsplatformexpert.md` — **ThePunisher-PrivacyOperationsPlatformExpert**: Privacy-operations platform engineering
+- `data-privacy/thepunisher-privacyincidentresponseexpert.md` — **ThePunisher-PrivacyIncidentResponseExpert**: Privacy-specific incident-response engineering
+- `data-privacy/thepunisher-datasovereigntyengineeringexpert.md` — **ThePunisher-DataSovereigntyEngineeringExpert**: Data-sovereignty technical-enforcement engineering
+- `data-privacy/thepunisher-privacyenhancingtechnologyintegrationexpert.md` — **ThePunisher-PrivacyEnhancingTechnologyIntegrationExpert**: Privacy-enhancing technology (PET) integration engineering
+- `data-privacy/thepunisher-kanonymityexpert.md` — **ThePunisher-KAnonymityExpert**: K-anonymity/l-diversity anonymization technique engineering
+- `data-privacy/thepunisher-privacyaudittrailexpert.md` — **ThePunisher-PrivacyAuditTrailExpert**: Privacy-specific audit-trail engineering
+- `data-privacy/thepunisher-zeroknowledgeproofprivacyexpert.md` — **ThePunisher-ZeroKnowledgeProofPrivacyExpert**: Zero-knowledge-proof privacy-application engineering
+- `data-privacy/thepunisher-dataclassificationlabelingexpert.md` — **ThePunisher-DataClassificationLabelingExpert**: Data-classification labeling-system engineering
+- `data-privacy/thepunisher-globalprivacyregulationtrackingexpert.md` — **ThePunisher-GlobalPrivacyRegulationTrackingExpert**: Global privacy-regulation change-tracking engineering
+
+## Team 46 — Voice Technology & Conversational Interfaces Engineering (50 agents)
+
+- `voice-conversational-tech/thepunisher-voiceassistantplatformexpert.md` — **ThePunisher-VoiceAssistantPlatformExpert**: Voice-assistant platform engineering
+- `voice-conversational-tech/thepunisher-wakeworddetectionexpert.md` — **ThePunisher-WakeWordDetectionExpert**: Wake-word detection engineering
+- `voice-conversational-tech/thepunisher-voiceuidesignexpert.md` — **ThePunisher-VoiceUIDesignExpert**: Voice user interface (VUI) design engineering
+- `voice-conversational-tech/thepunisher-speechrecognitionintegrationexpert.md` — **ThePunisher-SpeechRecognitionIntegrationExpert**: Speech-recognition product integration engineering
+- `voice-conversational-tech/thepunisher-voicebiometricsexpert.md` — **ThePunisher-VoiceBiometricsExpert**: Voice-biometric authentication engineering
+- `voice-conversational-tech/thepunisher-conversationalflowdesignexpert.md` — **ThePunisher-ConversationalFlowDesignExpert**: Conversational flow design engineering
+- `voice-conversational-tech/thepunisher-voicecommerceexpert.md` — **ThePunisher-VoiceCommerceExpert**: Voice-commerce integration engineering
+- `voice-conversational-tech/thepunisher-smartspeakerskilldevelopmentexpert.md` — **ThePunisher-SmartSpeakerSkillDevelopmentExpert**: Smart-speaker skill development engineering
+- `voice-conversational-tech/thepunisher-voiceaccessibilityexpert.md` — **ThePunisher-VoiceAccessibilityExpert**: Voice-interface accessibility engineering
+- `voice-conversational-tech/thepunisher-multiturndialoguemanagementexpert.md` — **ThePunisher-MultiTurnDialogueManagementExpert**: Multi-turn dialogue-management product engineering
+- `voice-conversational-tech/thepunisher-voicecloningexpert.md` — **ThePunisher-VoiceCloningExpert**: Voice-cloning product engineering
+- `voice-conversational-tech/thepunisher-realtimespeechtranslationexpert.md` — **ThePunisher-RealTimeSpeechTranslationExpert**: Real-time speech-translation product engineering
+- `voice-conversational-tech/thepunisher-voiceanalyticsexpert.md` — **ThePunisher-VoiceAnalyticsExpert**: Voice-interaction analytics engineering
+- `voice-conversational-tech/thepunisher-ivrsystemexpert.md` — **ThePunisher-IVRSystemExpert**: Interactive voice response (IVR) system engineering
+- `voice-conversational-tech/thepunisher-callcentervoiceaiexpert.md` — **ThePunisher-CallCenterVoiceAIExpert**: Call-center voice-AI engineering
+- `voice-conversational-tech/thepunisher-voiceemotiondetectionexpert.md` — **ThePunisher-VoiceEmotionDetectionExpert**: Voice emotion-detection engineering
+- `voice-conversational-tech/thepunisher-voiceprivacyexpert.md` — **ThePunisher-VoicePrivacyExpert**: Voice-specific privacy engineering
+- `voice-conversational-tech/thepunisher-voicesdkintegrationexpert.md` — **ThePunisher-VoiceSDKIntegrationExpert**: Voice SDK integration engineering
+- `voice-conversational-tech/thepunisher-conversationalnluintegrationexpert.md` — **ThePunisher-ConversationalNLUIntegrationExpert**: Conversational NLU product-integration engineering
+- `voice-conversational-tech/thepunisher-voiceapptestingexpert.md` — **ThePunisher-VoiceAppTestingExpert**: Voice-application testing engineering
+- `voice-conversational-tech/thepunisher-ambientcomputingvoiceexpert.md` — **ThePunisher-AmbientComputingVoiceExpert**: Always-on ambient voice-interface engineering
+- `voice-conversational-tech/thepunisher-incarvoiceassistantexpert.md` — **ThePunisher-InCarVoiceAssistantExpert**: In-car voice-assistant engineering
+- `voice-conversational-tech/thepunisher-conversationdesignsystemexpert.md` — **ThePunisher-ConversationDesignSystemExpert**: Conversation design-system engineering
+- `voice-conversational-tech/thepunisher-voicecontentmoderationexpert.md` — **ThePunisher-VoiceContentModerationExpert**: Voice-specific content-moderation engineering
+- `voice-conversational-tech/thepunisher-texttospeechvoicecustomizationexpert.md` — **ThePunisher-TextToSpeechVoiceCustomizationExpert**: TTS voice-customization product engineering
+- `voice-conversational-tech/thepunisher-voicecommandgrammarexpert.md` — **ThePunisher-VoiceCommandGrammarExpert**: Voice command-grammar engineering
+- `voice-conversational-tech/thepunisher-multilingualvoiceassistantexpert.md` — **ThePunisher-MultilingualVoiceAssistantExpert**: Multilingual voice-assistant engineering
+- `voice-conversational-tech/thepunisher-voiceinterruptionhandlingexpert.md` — **ThePunisher-VoiceInterruptionHandlingExpert**: Barge-in/interruption-handling engineering
+- `voice-conversational-tech/thepunisher-podcastvoicesearchexpert.md` — **ThePunisher-PodcastVoiceSearchExpert**: Voice-search engineering for podcast/audio content
+- `voice-conversational-tech/thepunisher-syntheticvoiceethicsexpert.md` — **ThePunisher-SyntheticVoiceEthicsExpert**: Voice-clone consent/ethics engineering
+- `voice-conversational-tech/thepunisher-conversationalagentorchestrationexpert.md` — **ThePunisher-ConversationalAgentOrchestrationExpert**: Voice-specific conversational-agent orchestration engineering
+- `voice-conversational-tech/thepunisher-voiceuserresearchtoolingexpert.md` — **ThePunisher-VoiceUserResearchToolingExpert**: Voice user-research tooling engineering
+- `voice-conversational-tech/thepunisher-voiceoveripintegrationexpert.md` — **ThePunisher-VoiceOverIPIntegrationExpert**: Voice-application VoIP integration engineering
+- `voice-conversational-tech/thepunisher-conversationalonboardingexpert.md` — **ThePunisher-ConversationalOnboardingExpert**: Conversational onboarding-flow engineering
+- `voice-conversational-tech/thepunisher-voicedataannotationexpert.md` — **ThePunisher-VoiceDataAnnotationExpert**: Voice-specific data-annotation engineering
+- `voice-conversational-tech/thepunisher-realtimetranscriptionserviceexpert.md` — **ThePunisher-RealTimeTranscriptionServiceExpert**: Real-time transcription service engineering
+- `voice-conversational-tech/thepunisher-voiceagentescalationexpert.md` — **ThePunisher-VoiceAgentEscalationExpert**: Voice-bot-to-human escalation engineering
+- `voice-conversational-tech/thepunisher-prosodycontrolexpert.md` — **ThePunisher-ProsodyControlExpert**: Speech prosody/intonation control engineering for TTS
+- `voice-conversational-tech/thepunisher-voicesearchoptimizationexpert.md` — **ThePunisher-VoiceSearchOptimizationExpert**: Voice-search optimization engineering
+- `voice-conversational-tech/thepunisher-voicenotificationexpert.md` — **ThePunisher-VoiceNotificationExpert**: Voice-based alert/notification system engineering
+- `voice-conversational-tech/thepunisher-voiceapplocalizationexpert.md` — **ThePunisher-VoiceAppLocalizationExpert**: Voice-application localization engineering
+- `voice-conversational-tech/thepunisher-smarthomevoicecontrolexpert.md` — **ThePunisher-SmartHomeVoiceControlExpert**: Smart-home voice-control engineering
+- `voice-conversational-tech/thepunisher-voicebotcomplianceexpert.md` — **ThePunisher-VoiceBotComplianceExpert**: TCPA/robocall compliance engineering for voice bots
+- `voice-conversational-tech/thepunisher-voicelatencyoptimizationexpert.md` — **ThePunisher-VoiceLatencyOptimizationExpert**: Voice-interaction latency-optimization engineering
+- `voice-conversational-tech/thepunisher-telephonyspeechgatewayexpert.md` — **ThePunisher-TelephonySpeechGatewayExpert**: Telephony speech-gateway engineering
+- `voice-conversational-tech/thepunisher-voiceappdeploymentexpert.md` — **ThePunisher-VoiceAppDeploymentExpert**: Voice-application deployment engineering
+- `voice-conversational-tech/thepunisher-conversationaluxmetricsexpert.md` — **ThePunisher-ConversationalUXMetricsExpert**: Conversational UX metrics engineering
+- `voice-conversational-tech/thepunisher-voicemodelfinetuningintegrationexpert.md` — **ThePunisher-VoiceModelFineTuningIntegrationExpert**: Voice-model fine-tuning product-integration engineering
+- `voice-conversational-tech/thepunisher-robocalldetectionexpert.md` — **ThePunisher-RoboCallDetectionExpert**: Robocall/spam-call detection engineering
+- `voice-conversational-tech/thepunisher-voiceinterfaceinternationalizationexpert.md` — **ThePunisher-VoiceInterfaceInternationalizationExpert**: Voice-interface internationalization engineering
+
+## Team 47 — Maritime & Shipping Technology Engineering (50 agents)
+
+- `maritime-shipping/thepunisher-vesseltrackingaisexpert.md` — **ThePunisher-VesselTrackingAISExpert**: Automatic Identification System (AIS) vessel-tracking engineering
+- `maritime-shipping/thepunisher-maritimenavigationsoftwareexpert.md` — **ThePunisher-MaritimeNavigationSoftwareExpert**: Maritime navigation software engineering
+- `maritime-shipping/thepunisher-portmanagementsystemexpert.md` — **ThePunisher-PortManagementSystemExpert**: Port management system engineering
+- `maritime-shipping/thepunisher-containerterminaloperatingsystemexpert.md` — **ThePunisher-ContainerTerminalOperatingSystemExpert**: Container terminal operating system (TOS) engineering
+- `maritime-shipping/thepunisher-maritimerouteoptimizationexpert.md` — **ThePunisher-MaritimeRouteOptimizationExpert**: Maritime route-optimization engineering
+- `maritime-shipping/thepunisher-shipengineperformancemonitoringexpert.md` — **ThePunisher-ShipEnginePerformanceMonitoringExpert**: Ship engine performance-monitoring engineering
+- `maritime-shipping/thepunisher-maritimefleetmanagementexpert.md` — **ThePunisher-MaritimeFleetManagementExpert**: Maritime fleet-management platform engineering
+- `maritime-shipping/thepunisher-vesseltrafficserviceexpert.md` — **ThePunisher-VesselTrafficServiceExpert**: Vessel traffic service (VTS) system engineering
+- `maritime-shipping/thepunisher-maritimecargomanifestexpert.md` — **ThePunisher-MaritimeCargoManifestExpert**: Maritime cargo-manifest system engineering
+- `maritime-shipping/thepunisher-shippingcontainertrackingexpert.md` — **ThePunisher-ShippingContainerTrackingExpert**: Shipping-container tracking engineering
+- `maritime-shipping/thepunisher-maritimeweatherroutingexpert.md` — **ThePunisher-MaritimeWeatherRoutingExpert**: Maritime weather-routing engineering
+- `maritime-shipping/thepunisher-autonomousshippingexpert.md` — **ThePunisher-AutonomousShippingExpert**: Autonomous/uncrewed vessel software engineering
+- `maritime-shipping/thepunisher-maritimecomplianceexpert.md` — **ThePunisher-MaritimeComplianceExpert**: IMO/SOLAS regulatory-compliance software engineering
+- `maritime-shipping/thepunisher-portauthorityintegrationexpert.md` — **ThePunisher-PortAuthorityIntegrationExpert**: Port-authority system integration engineering
+- `maritime-shipping/thepunisher-maritimefuelefficiencyexpert.md` — **ThePunisher-MaritimeFuelEfficiencyExpert**: Maritime fuel-efficiency analytics engineering
+- `maritime-shipping/thepunisher-shiptoshorecommunicationexpert.md` — **ThePunisher-ShipToShoreCommunicationExpert**: Ship-to-shore communication system engineering
+- `maritime-shipping/thepunisher-maritimesecurityscreeningexpert.md` — **ThePunisher-MaritimeSecurityScreeningExpert**: ISPS code compliance software engineering
+- `maritime-shipping/thepunisher-vesselmaintenancemanagementexpert.md` — **ThePunisher-VesselMaintenanceManagementExpert**: Vessel maintenance-management system engineering
+- `maritime-shipping/thepunisher-maritimecrewmanagementexpert.md` — **ThePunisher-MaritimeCrewManagementExpert**: Maritime crew-management system engineering
+- `maritime-shipping/thepunisher-customsclearanceintegrationexpert.md` — **ThePunisher-CustomsClearanceIntegrationExpert**: Maritime customs-clearance integration engineering
+- `maritime-shipping/thepunisher-maritimeinsurancetechexpert.md` — **ThePunisher-MaritimeInsuranceTechExpert**: Maritime insurance-technology engineering
+- `maritime-shipping/thepunisher-maritimeemissionsmonitoringexpert.md` — **ThePunisher-MaritimeEmissionsMonitoringExpert**: Maritime emissions-monitoring engineering
+- `maritime-shipping/thepunisher-portcongestionanalyticsexpert.md` — **ThePunisher-PortCongestionAnalyticsExpert**: Port-congestion analytics engineering
+- `maritime-shipping/thepunisher-maritimedigitaltwinexpert.md` — **ThePunisher-MaritimeDigitalTwinExpert**: Vessel/port digital-twin engineering
+- `maritime-shipping/thepunisher-freightratemanagementexpert.md` — **ThePunisher-FreightRateManagementExpert**: Freight-rate management system engineering
+- `maritime-shipping/thepunisher-containeryardoptimizationexpert.md` — **ThePunisher-ContainerYardOptimizationExpert**: Container-yard optimization engineering
+- `maritime-shipping/thepunisher-maritimeiotsensorexpert.md` — **ThePunisher-MaritimeIoTSensorExpert**: Maritime IoT sensor-integration engineering
+- `maritime-shipping/thepunisher-shipclassificationsocietycomplianceexpert.md` — **ThePunisher-ShipClassificationSocietyComplianceExpert**: Classification-society digital-compliance engineering
+- `maritime-shipping/thepunisher-maritimecybersecurityexpert.md` — **ThePunisher-MaritimeCyberSecurityExpert**: Maritime cybersecurity engineering
+- `maritime-shipping/thepunisher-bargeandinlandwaterwayexpert.md` — **ThePunisher-BargeAndInlandWaterwayExpert**: Barge/inland-waterway logistics software engineering
+- `maritime-shipping/thepunisher-maritimeelectronicchartexpert.md` — **ThePunisher-MaritimeElectronicChartExpert**: ECDIS electronic chart display system engineering
+- `maritime-shipping/thepunisher-vesselcharteringplatformexpert.md` — **ThePunisher-VesselCharteringPlatformExpert**: Vessel-chartering platform engineering
+- `maritime-shipping/thepunisher-portcommunityplatformexpert.md` — **ThePunisher-PortCommunityPlatformExpert**: Port community system (PCS) engineering
+- `maritime-shipping/thepunisher-shiprepairschedulingexpert.md` — **ThePunisher-ShipRepairSchedulingExpert**: Ship-repair scheduling system engineering
+- `maritime-shipping/thepunisher-maritimepilotageschedulingexpert.md` — **ThePunisher-MaritimePilotageSchedulingExpert**: Maritime pilotage-scheduling engineering
+- `maritime-shipping/thepunisher-coldchainmaritimelogisticsexpert.md` — **ThePunisher-ColdChainMaritimeLogisticsExpert**: Reefer-container cold-chain monitoring engineering
+- `maritime-shipping/thepunisher-maritimedroneinspectionexpert.md` — **ThePunisher-MaritimeDroneInspectionExpert**: Maritime drone-inspection engineering
+- `maritime-shipping/thepunisher-vesselfuelbunkeringexpert.md` — **ThePunisher-VesselFuelBunkeringExpert**: Vessel fuel-bunkering system engineering
+- `maritime-shipping/thepunisher-maritimetradedocumentationexpert.md` — **ThePunisher-MaritimeTradeDocumentationExpert**: Bill-of-lading/trade-document digitization engineering
+- `maritime-shipping/thepunisher-maritimeriskassessmentexpert.md` — **ThePunisher-MaritimeRiskAssessmentExpert**: Maritime risk-assessment engineering
+- `maritime-shipping/thepunisher-shipstabilitycalculationexpert.md` — **ThePunisher-ShipStabilityCalculationExpert**: Ship stability-calculation engineering
+- `maritime-shipping/thepunisher-maritimesatellitecommunicationexpert.md` — **ThePunisher-MaritimeSatelliteCommunicationExpert**: Maritime satellite-communication engineering
+- `maritime-shipping/thepunisher-maritimelaborcomplianceexpert.md` — **ThePunisher-MaritimeLaborComplianceExpert**: Maritime Labour Convention (MLC) compliance software engineering
+- `maritime-shipping/thepunisher-containerbookingplatformexpert.md` — **ThePunisher-ContainerBookingPlatformExpert**: Container-booking platform engineering
+- `maritime-shipping/thepunisher-shipyardproductionplanningexpert.md` — **ThePunisher-ShipyardProductionPlanningExpert**: Shipyard production-planning system engineering
+- `maritime-shipping/thepunisher-maritimeincidentreportingexpert.md` — **ThePunisher-MaritimeIncidentReportingExpert**: Maritime incident-reporting system engineering
+- `maritime-shipping/thepunisher-portsecurityaccesscontrolexpert.md` — **ThePunisher-PortSecurityAccessControlExpert**: Port security access-control system engineering
+- `maritime-shipping/thepunisher-maritimedataexchangeplatformexpert.md` — **ThePunisher-MaritimeDataExchangePlatformExpert**: Industry data-exchange standards engineering: DCSA-style
+- `maritime-shipping/thepunisher-maritimetankeroperationsexpert.md` — **ThePunisher-MaritimeTankerOperationsExpert**: Tanker-operations software engineering
+- `maritime-shipping/thepunisher-globalshippingnetworkanalyticsexpert.md` — **ThePunisher-GlobalShippingNetworkAnalyticsExpert**: Global shipping-network analytics engineering
+
+## Team 48 — Sports Technology & Analytics Engineering (50 agents)
+
+- `sports-tech-analytics/thepunisher-sportsperformanceanalyticsexpert.md` — **ThePunisher-SportsPerformanceAnalyticsExpert**: Athlete performance-analytics engineering
+- `sports-tech-analytics/thepunisher-wearablesportsdataexpert.md` — **ThePunisher-WearableSportsDataExpert**: Sports wearable-data platform engineering
+- `sports-tech-analytics/thepunisher-sportsvideoanalysisexpert.md` — **ThePunisher-SportsVideoAnalysisExpert**: Coaching-facing sports video-analysis engineering
+- `sports-tech-analytics/thepunisher-fantasysportsplatformexpert.md` — **ThePunisher-FantasySportsPlatformExpert**: Fantasy-sports platform engineering
+- `sports-tech-analytics/thepunisher-sportsbettingoddsengineexpert.md` — **ThePunisher-SportsBettingOddsEngineExpert**: Sports-betting odds-engine engineering
+- `sports-tech-analytics/thepunisher-sportsticketingplatformexpert.md` — **ThePunisher-SportsTicketingPlatformExpert**: Sports ticketing-platform engineering
+- `sports-tech-analytics/thepunisher-athleteinjurypredictionexpert.md` — **ThePunisher-AthleteInjuryPredictionExpert**: Athlete injury-prediction model engineering
+- `sports-tech-analytics/thepunisher-sportsscoutingplatformexpert.md` — **ThePunisher-SportsScoutingPlatformExpert**: Sports scouting-platform engineering
+- `sports-tech-analytics/thepunisher-gamestrategysimulationexpert.md` — **ThePunisher-GameStrategySimulationExpert**: Sports game-strategy simulation engineering
+- `sports-tech-analytics/thepunisher-sportsstatisticsdatabaseexpert.md` — **ThePunisher-SportsStatisticsDatabaseExpert**: Sports statistics-database engineering
+- `sports-tech-analytics/thepunisher-livescoringsystemexpert.md` — **ThePunisher-LiveScoringSystemExpert**: Live-scoring system engineering
+- `sports-tech-analytics/thepunisher-sportsfanengagementplatformexpert.md` — **ThePunisher-SportsFanEngagementPlatformExpert**: Sports fan-engagement platform engineering
+- `sports-tech-analytics/thepunisher-stadiumtechnologyexpert.md` — **ThePunisher-StadiumTechnologyExpert**: In-venue stadium-technology engineering
+- `sports-tech-analytics/thepunisher-sportssensorfusionexpert.md` — **ThePunisher-SportsSensorFusionExpert**: Sports-specific sensor-fusion engineering
+- `sports-tech-analytics/thepunisher-refereedecisionsupportexpert.md` — **ThePunisher-RefereeDecisionSupportExpert**: VAR-style video-review decision-support engineering
+- `sports-tech-analytics/thepunisher-sportsteammanagementsoftwareexpert.md` — **ThePunisher-SportsTeamManagementSoftwareExpert**: Sports team-management software engineering
+- `sports-tech-analytics/thepunisher-esportsanalyticsexpert.md` — **ThePunisher-EsportsAnalyticsExpert**: Esports performance-analytics engineering
+- `sports-tech-analytics/thepunisher-sportsdraftanalyticsexpert.md` — **ThePunisher-SportsDraftAnalyticsExpert**: Sports draft-analytics engineering
+- `sports-tech-analytics/thepunisher-sportssalarycapmanagementexpert.md` — **ThePunisher-SportsSalaryCapManagementExpert**: Sports salary-cap management engineering
+- `sports-tech-analytics/thepunisher-sportsmediarightsplatformexpert.md` — **ThePunisher-SportsMediaRightsPlatformExpert**: Sports media-rights platform engineering
+- `sports-tech-analytics/thepunisher-sportsnutritiontrackingexpert.md` — **ThePunisher-SportsNutritionTrackingExpert**: Athlete nutrition-tracking engineering
+- `sports-tech-analytics/thepunisher-sportstrainingloadmanagementexpert.md` — **ThePunisher-SportsTrainingLoadManagementExpert**: Sports training-load management engineering
+- `sports-tech-analytics/thepunisher-sportsofficiatingtechnologyexpert.md` — **ThePunisher-SportsOfficiatingTechnologyExpert**: Sports officiating-technology engineering
+- `sports-tech-analytics/thepunisher-sportsfacilitymanagementexpert.md` — **ThePunisher-SportsFacilityManagementExpert**: Sports facility-management software engineering
+- `sports-tech-analytics/thepunisher-sportsrecruitingplatformexpert.md` — **ThePunisher-SportsRecruitingPlatformExpert**: Sports recruiting-platform engineering
+- `sports-tech-analytics/thepunisher-sportsbroadcastgraphicsintegrationexpert.md` — **ThePunisher-SportsBroadcastGraphicsIntegrationExpert**: Sports data-driven broadcast-graphics integration
+- `sports-tech-analytics/thepunisher-sportspredictivemodelingexpert.md` — **ThePunisher-SportsPredictiveModelingExpert**: Sports outcome predictive-modeling engineering
+- `sports-tech-analytics/thepunisher-sportsgamblingcomplianceexpert.md` — **ThePunisher-SportsGamblingComplianceExpert**: Sports-gambling regulatory-compliance engineering
+- `sports-tech-analytics/thepunisher-sportsperformancebenchmarkingexpert.md` — **ThePunisher-SportsPerformanceBenchmarkingExpert**: Athlete performance-benchmarking engineering
+- `sports-tech-analytics/thepunisher-sportsvenuesecuritytechexpert.md` — **ThePunisher-SportsVenueSecurityTechExpert**: Sports-venue security-technology engineering
+- `sports-tech-analytics/thepunisher-sportsrevenueoptimizationexpert.md` — **ThePunisher-SportsRevenueOptimizationExpert**: Sports revenue-optimization engineering
+- `sports-tech-analytics/thepunisher-sportssponsorshipanalyticsexpert.md` — **ThePunisher-SportsSponsorshipAnalyticsExpert**: Sports sponsorship-analytics engineering
+- `sports-tech-analytics/thepunisher-sportswearableintegrationapiexpert.md` — **ThePunisher-SportsWearableIntegrationAPIExpert**: Sports-wearable integration API engineering
+- `sports-tech-analytics/thepunisher-sportsdatalicensingplatformexpert.md` — **ThePunisher-SportsDataLicensingPlatformExpert**: Sports data-licensing platform engineering
+- `sports-tech-analytics/thepunisher-sportshealthrecordsexpert.md` — **ThePunisher-SportsHealthRecordsExpert**: Sports-specific athlete health-records engineering
+- `sports-tech-analytics/thepunisher-sportscoachingtoolsexpert.md` — **ThePunisher-SportsCoachingToolsExpert**: Sports coaching-tools engineering
+- `sports-tech-analytics/thepunisher-sportscrowdanalyticsexpert.md` — **ThePunisher-SportsCrowdAnalyticsExpert**: Sports-venue crowd-analytics engineering
+- `sports-tech-analytics/thepunisher-sportschampionshipbracketexpert.md` — **ThePunisher-SportsChampionshipBracketExpert**: Tournament bracket/scheduling engine engineering
+- `sports-tech-analytics/thepunisher-amateursportsleaguemanagementexpert.md` — **ThePunisher-AmateurSportsLeagueManagementExpert**: Amateur sports-league management software engineering
+- `sports-tech-analytics/thepunisher-sportsdatastandardizationexpert.md` — **ThePunisher-SportsDataStandardizationExpert**: Sports data-standardization engineering
+- `sports-tech-analytics/thepunisher-sportsanalyticsapiexpert.md` — **ThePunisher-SportsAnalyticsAPIExpert**: Sports-analytics API design engineering
+- `sports-tech-analytics/thepunisher-sportsinjuryrehabtechexpert.md` — **ThePunisher-SportsInjuryRehabTechExpert**: Sports injury-rehabilitation technology engineering
+- `sports-tech-analytics/thepunisher-sportsmerchandisingplatformexpert.md` — **ThePunisher-SportsMerchandisingPlatformExpert**: Sports merchandising-platform engineering
+- `sports-tech-analytics/thepunisher-sportsperformancelabintegrationexpert.md` — **ThePunisher-SportsPerformanceLabIntegrationExpert**: Biomechanics-lab data-integration engineering
+- `sports-tech-analytics/thepunisher-sportsseasonschedulingexpert.md` — **ThePunisher-SportsSeasonSchedulingExpert**: Sports season-scheduling engine engineering
+- `sports-tech-analytics/thepunisher-sportsspectatorappexpert.md` — **ThePunisher-SportsSpectatorAppExpert**: Sports spectator mobile-app engineering
+- `sports-tech-analytics/thepunisher-sportsantidopingtechexpert.md` — **ThePunisher-SportsAntiDopingTechExpert**: Anti-doping testing/results-management system engineering
+- `sports-tech-analytics/thepunisher-sportsperformancedashboardexpert.md` — **ThePunisher-SportsPerformanceDashboardExpert**: Sports performance-dashboard engineering
+- `sports-tech-analytics/thepunisher-sportsequipmenttrackingexpert.md` — **ThePunisher-SportsEquipmentTrackingExpert**: Sports-equipment tracking engineering
+- `sports-tech-analytics/thepunisher-sportscommunityleagueappexpert.md` — **ThePunisher-SportsCommunityLeagueAppExpert**: Community sports-league application engineering
+
+## Team 49 — Genomics & Precision Medicine Engineering (50 agents)
+
+- `genomics-precision-medicine/thepunisher-clinicalgenomicspipelineexpert.md` — **ThePunisher-ClinicalGenomicsPipelineExpert**: Clinical genomic-sequencing pipeline engineering
+- `genomics-precision-medicine/thepunisher-variantcallingexpert.md` — **ThePunisher-VariantCallingExpert**: Genomic variant-calling engineering
+- `genomics-precision-medicine/thepunisher-genomicdatastorageexpert.md` — **ThePunisher-GenomicDataStorageExpert**: Genomic data-storage engineering
+- `genomics-precision-medicine/thepunisher-precisionmedicineplatformexpert.md` — **ThePunisher-PrecisionMedicinePlatformExpert**: Precision-medicine platform engineering
+- `genomics-precision-medicine/thepunisher-pharmacogenomicsexpert.md` — **ThePunisher-PharmacogenomicsExpert**: Pharmacogenomics software engineering
+- `genomics-precision-medicine/thepunisher-clinicaldecisionsupportgenomicsexpert.md` — **ThePunisher-ClinicalDecisionSupportGenomicsExpert**: Genomics-informed clinical decision-support engineering
+- `genomics-precision-medicine/thepunisher-genomicprivacyexpert.md` — **ThePunisher-GenomicPrivacyExpert**: Genomics-specific data-privacy engineering
+- `genomics-precision-medicine/thepunisher-biobankmanagementsoftwareexpert.md` — **ThePunisher-BiobankManagementSoftwareExpert**: Biobank management software engineering
+- `genomics-precision-medicine/thepunisher-genomicvisualizationexpert.md` — **ThePunisher-GenomicVisualizationExpert**: Genomic-data visualization engineering
+- `genomics-precision-medicine/thepunisher-nextgensequencingqcexpert.md` — **ThePunisher-NextGenSequencingQCExpert**: NGS quality-control pipeline engineering
+- `genomics-precision-medicine/thepunisher-geneticcounselingplatformexpert.md` — **ThePunisher-GeneticCounselingPlatformExpert**: Genetic-counseling platform engineering
+- `genomics-precision-medicine/thepunisher-genomicdatasharingexpert.md` — **ThePunisher-GenomicDataSharingExpert**: GA4GH-standard genomic data-sharing engineering
+- `genomics-precision-medicine/thepunisher-rarediseasegenomicsexpert.md` — **ThePunisher-RareDiseaseGenomicsExpert**: Rare-disease genomics platform engineering
+- `genomics-precision-medicine/thepunisher-cancergenomicsexpert.md` — **ThePunisher-CancerGenomicsExpert**: Oncology genomics/tumor-profiling software engineering
+- `genomics-precision-medicine/thepunisher-populationgenomicsexpert.md` — **ThePunisher-PopulationGenomicsExpert**: Population-genomics platform engineering
+- `genomics-precision-medicine/thepunisher-genomicreferencedataexpert.md` — **ThePunisher-GenomicReferenceDataExpert**: Genomic reference-data management engineering
+- `genomics-precision-medicine/thepunisher-liquidbiopsydataexpert.md` — **ThePunisher-LiquidBiopsyDataExpert**: Liquid-biopsy data-analysis engineering
+- `genomics-precision-medicine/thepunisher-genomicannotationpipelineexpert.md` — **ThePunisher-GenomicAnnotationPipelineExpert**: Genomic annotation-pipeline engineering
+- `genomics-precision-medicine/thepunisher-polygenicriskscoreexpert.md` — **ThePunisher-PolygenicRiskScoreExpert**: Polygenic risk-score engineering
+- `genomics-precision-medicine/thepunisher-genomicehrintegrationexpert.md` — **ThePunisher-GenomicEHRIntegrationExpert**: Genomic-data EHR integration engineering
+- `genomics-precision-medicine/thepunisher-directtoconsumergenomicsexpert.md` — **ThePunisher-DirectToConsumerGenomicsExpert**: Direct-to-consumer genetic-testing platform engineering
+- `genomics-precision-medicine/thepunisher-genomiccomplianceexpert.md` — **ThePunisher-GenomicComplianceExpert**: GINA/genetic-privacy regulatory-compliance engineering
+- `genomics-precision-medicine/thepunisher-singlecellgenomicsexpert.md` — **ThePunisher-SingleCellGenomicsExpert**: Single-cell genomics analysis engineering
+- `genomics-precision-medicine/thepunisher-genomicdatalakeexpert.md` — **ThePunisher-GenomicDataLakeExpert**: Genomic data-lake engineering
+- `genomics-precision-medicine/thepunisher-clinicaltrialgenomicsmatchingexpert.md` — **ThePunisher-ClinicalTrialGenomicsMatchingExpert**: Genomics-based clinical-trial matching engineering
+- `genomics-precision-medicine/thepunisher-genomicalgorithmvalidationexpert.md` — **ThePunisher-GenomicAlgorithmValidationExpert**: Genomic algorithm-validation engineering
+- `genomics-precision-medicine/thepunisher-microbiomedataanalysisexpert.md` — **ThePunisher-MicrobiomeDataAnalysisExpert**: Microbiome data-analysis engineering
+- `genomics-precision-medicine/thepunisher-genomicapiexpert.md` — **ThePunisher-GenomicAPIExpert**: Genomic-data API design engineering
+- `genomics-precision-medicine/thepunisher-newbornscreeninggenomicsexpert.md` — **ThePunisher-NewbornScreeningGenomicsExpert**: Newborn genomic-screening platform engineering
+- `genomics-precision-medicine/thepunisher-genomicworkfloworchestrationexpert.md` — **ThePunisher-GenomicWorkflowOrchestrationExpert**: Clinical-genomics workflow orchestration engineering
+- `genomics-precision-medicine/thepunisher-genomicconsentmanagementexpert.md` — **ThePunisher-GenomicConsentManagementExpert**: Genomic-data consent-management engineering
+- `genomics-precision-medicine/thepunisher-genomicsecondaryfindingsexpert.md` — **ThePunisher-GenomicSecondaryFindingsExpert**: Incidental/secondary-findings reporting engineering
+- `genomics-precision-medicine/thepunisher-genomicdatadeidentificationexpert.md` — **ThePunisher-GenomicDataDeidentificationExpert**: Genomic-data de-identification engineering
+- `genomics-precision-medicine/thepunisher-genomicresearchplatformexpert.md` — **ThePunisher-GenomicResearchPlatformExpert**: Genomic research-platform engineering
+- `genomics-precision-medicine/thepunisher-genomicbillingcodingexpert.md` — **ThePunisher-GenomicBillingCodingExpert**: Genomic-testing billing/coding engineering
+- `genomics-precision-medicine/thepunisher-genomicinteroperabilitystandardsexpert.md` — **ThePunisher-GenomicInteroperabilityStandardsExpert**: HL7 FHIR Genomics interoperability engineering
+- `genomics-precision-medicine/thepunisher-genomicmachinelearningexpert.md` — **ThePunisher-GenomicMachineLearningExpert**: Genomics-application machine-learning engineering
+- `genomics-precision-medicine/thepunisher-genomicsampletrackingexpert.md` — **ThePunisher-GenomicSampleTrackingExpert**: Genomic sample-tracking engineering
+- `genomics-precision-medicine/thepunisher-prenatalgenomicscreeningexpert.md` — **ThePunisher-PrenatalGenomicScreeningExpert**: Prenatal genomic-screening platform engineering
+- `genomics-precision-medicine/thepunisher-genomicdataqualityexpert.md` — **ThePunisher-GenomicDataQualityExpert**: Genomic data-quality engineering
+- `genomics-precision-medicine/thepunisher-genomiccloudcomputeexpert.md` — **ThePunisher-GenomicCloudComputeExpert**: Genomics-specific cloud-compute engineering
+- `genomics-precision-medicine/thepunisher-genomicclinicalreportgeneratorexpert.md` — **ThePunisher-GenomicClinicalReportGeneratorExpert**: Genomic clinical-report generation engineering
+- `genomics-precision-medicine/thepunisher-agriculturalgenomicsexpert.md` — **ThePunisher-AgriculturalGenomicsExpert**: Crop/livestock genomics engineering
+- `genomics-precision-medicine/thepunisher-genomicdataversioningexpert.md` — **ThePunisher-GenomicDataVersioningExpert**: Genomic-data versioning engineering
+- `genomics-precision-medicine/thepunisher-pathogengenomicsexpert.md` — **ThePunisher-PathogenGenomicsExpert**: Infectious-disease genomic-surveillance engineering
+- `genomics-precision-medicine/thepunisher-genomicancestryanalysisexpert.md` — **ThePunisher-GenomicAncestryAnalysisExpert**: Genomic ancestry-analysis engineering
+- `genomics-precision-medicine/thepunisher-genomictestorderingplatformexpert.md` — **ThePunisher-GenomicTestOrderingPlatformExpert**: Genomic test-ordering platform engineering
+- `genomics-precision-medicine/thepunisher-structuralvariantdetectionexpert.md` — **ThePunisher-StructuralVariantDetectionExpert**: Structural-variant detection engineering
+- `genomics-precision-medicine/thepunisher-genomicdatafederationexpert.md` — **ThePunisher-GenomicDataFederationExpert**: Federated genomic-data-access network engineering
+- `genomics-precision-medicine/thepunisher-genomicethicsreviewtoolingexpert.md` — **ThePunisher-GenomicEthicsReviewToolingExpert**: Genomics research ethics-review tooling engineering
+
+## Team 50 — API Design & Developer Documentation Engineering (50 agents)
+
+- `api-docs-design/thepunisher-apidesignstandardsexpert.md` — **ThePunisher-APIDesignStandardsExpert**: API design-standards engineering
+- `api-docs-design/thepunisher-openapispecificationexpert.md` — **ThePunisher-OpenAPISpecificationExpert**: OpenAPI specification engineering
+- `api-docs-design/thepunisher-apidocumentationgeneratorexpert.md` — **ThePunisher-APIDocumentationGeneratorExpert**: API documentation-generator engineering
+- `api-docs-design/thepunisher-developerportalcontentexpert.md` — **ThePunisher-DeveloperPortalContentExpert**: Developer-portal content engineering
+- `api-docs-design/thepunisher-apidesignversioningexpert.md` — **ThePunisher-APIDesignVersioningExpert**: API-design versioning-strategy engineering
+- `api-docs-design/thepunisher-apistyleguideexpert.md` — **ThePunisher-APIStyleGuideExpert**: API style-guide engineering
+- `api-docs-design/thepunisher-graphqlschemadesignexpert.md` — **ThePunisher-GraphQLSchemaDesignExpert**: GraphQL schema-design engineering
+- `api-docs-design/thepunisher-apireferencedocumentationexpert.md` — **ThePunisher-APIReferenceDocumentationExpert**: API reference-documentation engineering
+- `api-docs-design/thepunisher-apiconsumerexperienceexpert.md` — **ThePunisher-APIConsumerExperienceExpert**: API-consumer experience engineering
+- `api-docs-design/thepunisher-apichangelogmanagementexpert.md` — **ThePunisher-APIChangelogManagementExpert**: API changelog-management engineering
+- `api-docs-design/thepunisher-apisdkdocumentationexpert.md` — **ThePunisher-APISDKDocumentationExpert**: API SDK-documentation engineering
+- `api-docs-design/thepunisher-apitutorialwritingexpert.md` — **ThePunisher-APITutorialWritingExpert**: API tutorial-writing engineering
+- `api-docs-design/thepunisher-apierrormessagedesignexpert.md` — **ThePunisher-APIErrorMessageDesignExpert**: API error-message design engineering
+- `api-docs-design/thepunisher-apiauthenticationdocumentationexpert.md` — **ThePunisher-APIAuthenticationDocumentationExpert**: API authentication-documentation engineering
+- `api-docs-design/thepunisher-apimockingtoolingexpert.md` — **ThePunisher-APIMockingToolingExpert**: API mocking-tooling engineering
+- `api-docs-design/thepunisher-apicontracttestingdesignexpert.md` — **ThePunisher-APIContractTestingDesignExpert**: API contract-testing design engineering
+- `api-docs-design/thepunisher-apideprecationcommunicationexpert.md` — **ThePunisher-APIDeprecationCommunicationExpert**: API deprecation-communication engineering
+- `api-docs-design/thepunisher-apiinteractivedocsexpert.md` — **ThePunisher-APIInteractiveDocsExpert**: Interactive API explorer/playground engineering
+- `api-docs-design/thepunisher-apidesignreviewexpert.md` — **ThePunisher-APIDesignReviewExpert**: API design-review engineering
+- `api-docs-design/thepunisher-restfulapidesignexpert.md` — **ThePunisher-RESTfulAPIDesignExpert**: RESTful API design engineering
+- `api-docs-design/thepunisher-grpcapidesignexpert.md` — **ThePunisher-gRPCAPIDesignExpert**: gRPC API design-standards engineering
+- `api-docs-design/thepunisher-webhookdesignexpert.md` — **ThePunisher-WebhookDesignExpert**: Webhook design engineering
+- `api-docs-design/thepunisher-apiratelimitdocumentationexpert.md` — **ThePunisher-APIRateLimitDocumentationExpert**: API rate-limit documentation engineering
+- `api-docs-design/thepunisher-apionboardingguideexpert.md` — **ThePunisher-APIOnboardingGuideExpert**: API onboarding-guide engineering
+- `api-docs-design/thepunisher-apicodesamplegenerationexpert.md` — **ThePunisher-APICodeSampleGenerationExpert**: API code-sample generation engineering
+- `api-docs-design/thepunisher-apipostmancollectionexpert.md` — **ThePunisher-APIPostmanCollectionExpert**: API Postman-collection engineering
+- `api-docs-design/thepunisher-technicalwritingstyleguideexpert.md` — **ThePunisher-TechnicalWritingStyleGuideExpert**: API-specific technical-writing style-guide engineering
+- `api-docs-design/thepunisher-apiglossarymanagementexpert.md` — **ThePunisher-APIGlossaryManagementExpert**: API glossary-management engineering
+- `api-docs-design/thepunisher-apisecuritydocumentationexpert.md` — **ThePunisher-APISecurityDocumentationExpert**: API security-documentation engineering
+- `api-docs-design/thepunisher-docsusageanalyticsexpert.md` — **ThePunisher-DocsUsageAnalyticsExpert**: Documentation usage-analytics engineering
+- `api-docs-design/thepunisher-apidesignconsistencyexpert.md` — **ThePunisher-APIDesignConsistencyExpert**: API design-consistency engineering
+- `api-docs-design/thepunisher-apibackwardcompatibilityexpert.md` — **ThePunisher-APIBackwardCompatibilityExpert**: API backward-compatibility engineering
+- `api-docs-design/thepunisher-apispecvalidationexpert.md` — **ThePunisher-APISpecValidationExpert**: API spec-validation engineering
+- `api-docs-design/thepunisher-apidocslocalizationexpert.md` — **ThePunisher-APIDocsLocalizationExpert**: API-documentation localization engineering
+- `api-docs-design/thepunisher-apistatuspageexpert.md` — **ThePunisher-APIStatusPageExpert**: API status-page engineering
+- `api-docs-design/thepunisher-apidesignpatternlibraryexpert.md` — **ThePunisher-APIDesignPatternLibraryExpert**: API design-pattern library engineering
+- `api-docs-design/thepunisher-apifeedbackloopexpert.md` — **ThePunisher-APIFeedbackLoopExpert**: Documentation feedback/rating-system engineering
+- `api-docs-design/thepunisher-apischemagovernanceexpert.md` — **ThePunisher-APISchemaGovernanceExpert**: API schema-governance engineering
+- `api-docs-design/thepunisher-apiclientlibrarygenerationexpert.md` — **ThePunisher-APIClientLibraryGenerationExpert**: API client-library generation engineering
+- `api-docs-design/thepunisher-apiendpointnamingconventionexpert.md` — **ThePunisher-APIEndpointNamingConventionExpert**: API endpoint-naming convention engineering
+- `api-docs-design/thepunisher-apipaginationdesignexpert.md` — **ThePunisher-APIPaginationDesignExpert**: API pagination-design engineering
+- `api-docs-design/thepunisher-apiidempotencydesignexpert.md` — **ThePunisher-APIIdempotencyDesignExpert**: API idempotency-design engineering
+- `api-docs-design/thepunisher-apidocssearchexpert.md` — **ThePunisher-APIDocsSearchExpert**: API-documentation search engineering
+- `api-docs-design/thepunisher-apidocsversionedpublishingexpert.md` — **ThePunisher-APIDocsVersionedPublishingExpert**: Versioned API-documentation publishing engineering
+- `api-docs-design/thepunisher-apisampleappexpert.md` — **ThePunisher-APISampleAppExpert**: Reference/sample-application engineering for API docs
+- `api-docs-design/thepunisher-apicompliancedocumentationexpert.md` — **ThePunisher-APIComplianceDocumentationExpert**: API compliance-documentation engineering
+- `api-docs-design/thepunisher-apimigrationguideexpert.md` — **ThePunisher-APIMigrationGuideExpert**: API migration-guide engineering
+- `api-docs-design/thepunisher-apidocscipipelineexpert.md` — **ThePunisher-APIDocsCIPipelineExpert**: Docs-as-code CI/CD pipeline engineering
+- `api-docs-design/thepunisher-apidevelopercommunityplatformexpert.md` — **ThePunisher-APIDeveloperCommunityPlatformExpert**: API developer-community platform engineering
+- `api-docs-design/thepunisher-apidocsaccessibilityauditexpert.md` — **ThePunisher-APIDocsAccessibilityAuditExpert**: API-documentation accessibility-audit engineering
+
+## Team 51 — iOS Engineering (50 agents)
+
+- `ios-engineering/thepunisher-ioshigdesignexpert.md` — **ThePunisher-iOSHIGDesignExpert**: Apple Human Interface Guidelines-compliant design
+- `ios-engineering/thepunisher-iosdesignsystemexpert.md` — **ThePunisher-iOSDesignSystemExpert**: iOS design-system engineering
+- `ios-engineering/thepunisher-iosprototypingexpert.md` — **ThePunisher-iOSPrototypingExpert**: iOS interactive-prototyping engineering
+- `ios-engineering/thepunisher-iosaccessibilitydesignexpert.md` — **ThePunisher-iOSAccessibilityDesignExpert**: iOS-specific accessibility design engineering
+- `ios-engineering/thepunisher-iosonboardingflowdesignexpert.md` — **ThePunisher-iOSOnboardingFlowDesignExpert**: iOS onboarding-flow design engineering
+- `ios-engineering/thepunisher-swiftuiadvancedlayoutexpert.md` — **ThePunisher-SwiftUIAdvancedLayoutExpert**: Advanced SwiftUI layout-system engineering
+- `ios-engineering/thepunisher-uikitautolayoutexpert.md` — **ThePunisher-UIKitAutoLayoutExpert**: UIKit Auto Layout constraint engineering
+- `ios-engineering/thepunisher-iosnetworkinglayerexpert.md` — **ThePunisher-iOSNetworkingLayerExpert**: URLSession/Alamofire networking-layer architecture
+- `ios-engineering/thepunisher-iosdependencyinjectionexpert.md` — **ThePunisher-iOSDependencyInjectionExpert**: iOS dependency-injection architecture engineering
+- `ios-engineering/thepunisher-iosstatemanagementexpert.md` — **ThePunisher-iOSStateManagementExpert**: TCA/Redux-style state-management engineering for iOS
+- `ios-engineering/thepunisher-swiftpackagearchitectureexpert.md` — **ThePunisher-SwiftPackageArchitectureExpert**: Modular Swift Package architecture engineering
+- `ios-engineering/thepunisher-iosappextensionexpert.md` — **ThePunisher-iOSAppExtensionExpert**: Widget/share/today-extension engineering
+- `ios-engineering/thepunisher-iosbackgroundprocessingexpert.md` — **ThePunisher-iOSBackgroundProcessingExpert**: Background task/BGTaskScheduler engineering
+- `ios-engineering/thepunisher-iospersistencelayerexpert.md` — **ThePunisher-iOSPersistenceLayerExpert**: SwiftData/Core Data/Realm persistence-layer architecture
+- `ios-engineering/thepunisher-iosanimationengineeringexpert.md` — **ThePunisher-iOSAnimationEngineeringExpert**: Core Animation/SwiftUI animation engineering
+- `ios-engineering/thepunisher-swiftmacroexpert.md` — **ThePunisher-SwiftMacroExpert**: Swift macro/property-wrapper engineering
+- `ios-engineering/thepunisher-iosmodulararchitectureexpert.md` — **ThePunisher-iOSModularArchitectureExpert**: Multi-module app architecture: Tuist/XcodeGen
+- `ios-engineering/thepunisher-xcodebuildconfigurationexpert.md` — **ThePunisher-XcodeBuildConfigurationExpert**: Xcode build-configuration/scheme engineering
+- `ios-engineering/thepunisher-ioscodesigningexpert.md` — **ThePunisher-iOSCodeSigningExpert**: iOS code-signing/certificate/provisioning-profile engineering
+- `ios-engineering/thepunisher-iosarchiveexportexpert.md` — **ThePunisher-iOSArchiveExportExpert**: Xcode Archive-to-IPA export pipeline engineering
+- `ios-engineering/thepunisher-iosnotarizationexpert.md` — **ThePunisher-iOSNotarizationExpert**: iOS/macOS notarization pipeline engineering
+- `ios-engineering/thepunisher-appstoreconnectapiexpert.md` — **ThePunisher-AppStoreConnectAPIExpert**: App Store Connect API automation engineering
+- `ios-engineering/thepunisher-ioscicdpipelineexpert.md` — **ThePunisher-iOSCICDPipelineExpert**: iOS-specific CI/CD pipeline engineering
+- `ios-engineering/thepunisher-ioscrashsymbolicationexpert.md` — **ThePunisher-iOSCrashSymbolicationExpert**: iOS crash-symbolication pipeline engineering
+- `ios-engineering/thepunisher-iosappthinningexpert.md` — **ThePunisher-iOSAppThinningExpert**: App Thinning/on-demand resources engineering
+- `ios-engineering/thepunisher-iosentitlementsmanagementexpert.md` — **ThePunisher-iOSEntitlementsManagementExpert**: iOS entitlements-management engineering
+- `ios-engineering/thepunisher-iosbetadistributionexpert.md` — **ThePunisher-iOSBetaDistributionExpert**: Enterprise/OTA iOS beta-distribution engineering
+- `ios-engineering/thepunisher-iosjailbreakdetectionbypassexpert.md` — **ThePunisher-iOSJailbreakDetectionBypassExpert**: Jailbreak-detection bypass research (authorized only)
+- `ios-engineering/thepunisher-iossslpinningbypassexpert.md` — **ThePunisher-iOSSSLPinningBypassExpert**: SSL/TLS pinning bypass research (authorized only)
+- `ios-engineering/thepunisher-ipadecryptionexpert.md` — **ThePunisher-IPADecryptionExpert**: IPA decryption/dumping for authorized research
+- `ios-engineering/thepunisher-iosfridainstrumentationexpert.md` — **ThePunisher-iOSFridaInstrumentationExpert**: Frida dynamic instrumentation on iOS (authorized only)
+- `ios-engineering/thepunisher-iosclassdumpexpert.md` — **ThePunisher-iOSClassDumpExpert**: Objective-C/Swift class-dump analysis
+- `ios-engineering/thepunisher-ioslldbdebuggingexpert.md` — **ThePunisher-iOSLLDBDebuggingExpert**: LLDB debugging for iOS binary analysis
+- `ios-engineering/thepunisher-ioskeychainanalysisexpert.md` — **ThePunisher-iOSKeychainAnalysisExpert**: iOS Keychain security analysis (authorized only)
+- `ios-engineering/thepunisher-iosruntimehookingexpert.md` — **ThePunisher-iOSRuntimeHookingExpert**: Objective-C runtime method-swizzling/hooking (authorized only)
+- `ios-engineering/thepunisher-iosantitamperbypassexpert.md` — **ThePunisher-iOSAntiTamperBypassExpert**: iOS anti-tamper mechanism bypass research (authorized only)
+- `ios-engineering/thepunisher-iosstaticanalysistoolingexpert.md` — **ThePunisher-iOSStaticAnalysisToolingExpert**: MobSF-style iOS static-analysis tooling
+- `ios-engineering/thepunisher-iosbinarypatchingexpert.md` — **ThePunisher-iOSBinaryPatchingExpert**: iOS Mach-O binary patching (authorized only)
+- `ios-engineering/thepunisher-iosurlschemesecurityexpert.md` — **ThePunisher-iOSURLSchemeSecurityExpert**: iOS custom URL-scheme security analysis
+- `ios-engineering/thepunisher-iosapptransportsecuritybypassexpert.md` — **ThePunisher-iOSAppTransportSecurityBypassExpert**: App Transport Security bypass research (authorized only)
+- `ios-engineering/thepunisher-iosmachoinjectionexpert.md` — **ThePunisher-iOSMachOInjectionExpert**: Dylib injection analysis for iOS (authorized only)
+- `ios-engineering/thepunisher-iosdeviceforensicsexpert.md` — **ThePunisher-iOSDeviceForensicsExpert**: iOS device forensics (authorized only)
+- `ios-engineering/thepunisher-ioslocalizationengineeringexpert.md` — **ThePunisher-iOSLocalizationEngineeringExpert**: iOS-specific localization engineering
+- `ios-engineering/thepunisher-ioshealthkitintegrationexpert.md` — **ThePunisher-iOSHealthKitIntegrationExpert**: HealthKit integration engineering
+- `ios-engineering/thepunisher-ioscorelocationexpert.md` — **ThePunisher-iOSCoreLocationExpert**: Core Location engineering
+- `ios-engineering/thepunisher-ioscloudkitexpert.md` — **ThePunisher-iOSCloudKitExpert**: CloudKit integration engineering
+- `ios-engineering/thepunisher-iossirishortcutsexpert.md` — **ThePunisher-iOSSiriShortcutsExpert**: Siri Shortcuts/App Intents engineering
+- `ios-engineering/thepunisher-iosappclipexpert.md` — **ThePunisher-iOSAppClipExpert**: App Clip engineering
+- `ios-engineering/thepunisher-iosprivacymanifestexpert.md` — **ThePunisher-iOSPrivacyManifestExpert**: Apple privacy-manifest compliance engineering
+- `ios-engineering/thepunisher-iosmultitaskingexpert.md` — **ThePunisher-iOSMultitaskingExpert**: Split View/Stage Manager multitasking support engineering
+
+## Team 52 — Android Engineering (50 agents)
+
+- `android-engineering/thepunisher-androidmaterialdesignexpert.md` — **ThePunisher-AndroidMaterialDesignExpert**: Material Design-compliant UI design
+- `android-engineering/thepunisher-androiddesignsystemexpert.md` — **ThePunisher-AndroidDesignSystemExpert**: Android design-system engineering
+- `android-engineering/thepunisher-androidprototypingexpert.md` — **ThePunisher-AndroidPrototypingExpert**: Android interactive-prototyping engineering
+- `android-engineering/thepunisher-androidaccessibilitydesignexpert.md` — **ThePunisher-AndroidAccessibilityDesignExpert**: Android-specific accessibility design engineering
+- `android-engineering/thepunisher-androidonboardingflowdesignexpert.md` — **ThePunisher-AndroidOnboardingFlowDesignExpert**: Android onboarding-flow design engineering
+- `android-engineering/thepunisher-jetpackcomposeadvancedlayoutexpert.md` — **ThePunisher-JetpackComposeAdvancedLayoutExpert**: Advanced Jetpack Compose layout-system engineering
+- `android-engineering/thepunisher-androidviewbindingexpert.md` — **ThePunisher-AndroidViewBindingExpert**: Android view-binding architecture engineering
+- `android-engineering/thepunisher-androidnetworkinglayerexpert.md` — **ThePunisher-AndroidNetworkingLayerExpert**: Retrofit/OkHttp networking-layer architecture
+- `android-engineering/thepunisher-androiddependencyinjectionexpert.md` — **ThePunisher-AndroidDependencyInjectionExpert**: Hilt/Dagger dependency-injection architecture engineering
+- `android-engineering/thepunisher-androidstatemanagementexpert.md` — **ThePunisher-AndroidStateManagementExpert**: MVI/unidirectional data-flow state-management engineering
+- `android-engineering/thepunisher-androidmodulararchitectureexpert.md` — **ThePunisher-AndroidModularArchitectureExpert**: Multi-module Gradle architecture engineering
+- `android-engineering/thepunisher-androidwidgetexpert.md` — **ThePunisher-AndroidWidgetExpert**: Home-screen widget/Glance engineering
+- `android-engineering/thepunisher-androidbackgroundprocessingexpert.md` — **ThePunisher-AndroidBackgroundProcessingExpert**: Advanced WorkManager/foreground-service engineering
+- `android-engineering/thepunisher-androidpersistencelayerexpert.md` — **ThePunisher-AndroidPersistenceLayerExpert**: Room/DataStore persistence-layer architecture
+- `android-engineering/thepunisher-androidanimationengineeringexpert.md` — **ThePunisher-AndroidAnimationEngineeringExpert**: Compose animation/MotionLayout engineering
+- `android-engineering/thepunisher-kotlindslexpert.md` — **ThePunisher-KotlinDSLExpert**: Kotlin DSL/build-script engineering
+- `android-engineering/thepunisher-androidcleanarchitectureexpert.md` — **ThePunisher-AndroidCleanArchitectureExpert**: Clean-architecture layering engineering for Android
+- `android-engineering/thepunisher-gradlebuildconfigurationexpert.md` — **ThePunisher-GradleBuildConfigurationExpert**: Advanced Gradle build-variant configuration engineering
+- `android-engineering/thepunisher-androidkeystoresigningexpert.md` — **ThePunisher-AndroidKeystoreSigningExpert**: Android keystore/app-signing engineering
+- `android-engineering/thepunisher-androidappbundleexpert.md` — **ThePunisher-AndroidAppBundleExpert**: Android App Bundle/dynamic feature-module engineering
+- `android-engineering/thepunisher-playappsigningexpert.md` — **ThePunisher-PlayAppSigningExpert**: Play App Signing engineering
+- `android-engineering/thepunisher-playconsoleapiexpert.md` — **ThePunisher-PlayConsoleAPIExpert**: Play Console API automation engineering
+- `android-engineering/thepunisher-androidcicdpipelineexpert.md` — **ThePunisher-AndroidCICDPipelineExpert**: Android-specific CI/CD pipeline engineering
+- `android-engineering/thepunisher-androidcrashsymbolicationexpert.md` — **ThePunisher-AndroidCrashSymbolicationExpert**: Android crash-symbolication pipeline engineering
+- `android-engineering/thepunisher-androidinstantappexpert.md` — **ThePunisher-AndroidInstantAppExpert**: Android Instant App engineering
+- `android-engineering/thepunisher-androidpermissionsmanagementexpert.md` — **ThePunisher-AndroidPermissionsManagementExpert**: Android runtime-permissions management engineering
+- `android-engineering/thepunisher-androidbetadistributionexpert.md` — **ThePunisher-AndroidBetaDistributionExpert**: Firebase App Distribution/internal-testing-track engineering
+- `android-engineering/thepunisher-androidrootdetectionbypassexpert.md` — **ThePunisher-AndroidRootDetectionBypassExpert**: Root-detection bypass research (authorized only)
+- `android-engineering/thepunisher-androidsslpinningbypassexpert.md` — **ThePunisher-AndroidSSLPinningBypassExpert**: SSL/TLS pinning bypass research on Android (authorized only)
+- `android-engineering/thepunisher-apkrepackagingexpert.md` — **ThePunisher-APKRepackagingExpert**: APK repackaging/resigning for authorized research
+- `android-engineering/thepunisher-androidfridainstrumentationexpert.md` — **ThePunisher-AndroidFridaInstrumentationExpert**: Frida dynamic instrumentation on Android (authorized only)
+- `android-engineering/thepunisher-smalipatchingexpert.md` — **ThePunisher-SmaliPatchingExpert**: Smali bytecode patching (authorized only)
+- `android-engineering/thepunisher-androidobjectiontoolingexpert.md` — **ThePunisher-AndroidObjectionToolingExpert**: Objection dynamic-instrumentation framework tooling
+- `android-engineering/thepunisher-androidnativelibraryreexpert.md` — **ThePunisher-AndroidNativeLibraryREExpert**: Android native (.so) library reverse engineering
+- `android-engineering/thepunisher-androidxposedmoduleexpert.md` — **ThePunisher-AndroidXposedModuleExpert**: Xposed module analysis (authorized only)
+- `android-engineering/thepunisher-androidmagiskmoduleanalysisexpert.md` — **ThePunisher-AndroidMagiskModuleAnalysisExpert**: Magisk module analysis (authorized only)
+- `android-engineering/thepunisher-androiddeobfuscationexpert.md` — **ThePunisher-AndroidDeobfuscationExpert**: ProGuard/R8 deobfuscation for authorized research
+- `android-engineering/thepunisher-androiddynamicanalysistoolingexpert.md` — **ThePunisher-AndroidDynamicAnalysisToolingExpert**: Drozer-style Android dynamic-analysis tooling
+- `android-engineering/thepunisher-androidbinarypatchingexpert.md` — **ThePunisher-AndroidBinaryPatchingExpert**: Android binary patching (authorized only)
+- `android-engineering/thepunisher-androidintentsecurityanalysisexpert.md` — **ThePunisher-AndroidIntentSecurityAnalysisExpert**: Android Intent security-analysis engineering
+- `android-engineering/thepunisher-androidwebviewsecurityexpert.md` — **ThePunisher-AndroidWebViewSecurityExpert**: Android WebView security analysis
+- `android-engineering/thepunisher-androiddeviceforensicsexpert.md` — **ThePunisher-AndroidDeviceForensicsExpert**: Android device forensics (authorized only)
+- `android-engineering/thepunisher-androidlocalizationengineeringexpert.md` — **ThePunisher-AndroidLocalizationEngineeringExpert**: Android-specific localization engineering
+- `android-engineering/thepunisher-androidhealthconnectexpert.md` — **ThePunisher-AndroidHealthConnectExpert**: Health Connect integration engineering
+- `android-engineering/thepunisher-androidlocationservicesexpert.md` — **ThePunisher-AndroidLocationServicesExpert**: Android location-services engineering
+- `android-engineering/thepunisher-androidwearosexpert.md` — **ThePunisher-AndroidWearOSExpert**: Wear OS app engineering
+- `android-engineering/thepunisher-androidappactionsexpert.md` — **ThePunisher-AndroidAppActionsExpert**: App Actions/Google Assistant integration engineering
+- `android-engineering/thepunisher-androidprivacysandboxexpert.md` — **ThePunisher-AndroidPrivacySandboxExpert**: Privacy Sandbox for Android engineering
+- `android-engineering/thepunisher-androiddatasafetyexpert.md` — **ThePunisher-AndroidDataSafetyExpert**: Play Store Data Safety section compliance engineering
+- `android-engineering/thepunisher-androidfoldablemultiwindowexpert.md` — **ThePunisher-AndroidFoldableMultiWindowExpert**: Foldable/multi-window support engineering
+
+## Team 53 — Quantum Computing Engineering (50 agents)
+
+- `quantum-computing/thepunisher-quantumcircuitdesignexpert.md` — **ThePunisher-QuantumCircuitDesignExpert**: quantum circuit design and gate-level synthesis.
+- `quantum-computing/thepunisher-qiskitexpert.md` — **ThePunisher-QiskitExpert**: IBM Qiskit framework: circuits, transpilation, runtime primitives.
+- `quantum-computing/thepunisher-cirqexpert.md` — **ThePunisher-CirqExpert**: Google Cirq framework for NISQ-era circuit programming.
+- `quantum-computing/thepunisher-pennylaneexpert.md` — **ThePunisher-PennyLaneExpert**: PennyLane differentiable quantum programming for QML.
+- `quantum-computing/thepunisher-quantumerrorcorrectionexpert.md` — **ThePunisher-QuantumErrorCorrectionExpert**: surface codes, stabilizer codes, logical-qubit encoding.
+- `quantum-computing/thepunisher-vqeexpert.md` — **ThePunisher-VQEExpert**: Variational Quantum Eigensolver algorithm design and tuning.
+- `quantum-computing/thepunisher-qaoaexpert.md` — **ThePunisher-QAOAExpert**: Quantum Approximate Optimization Algorithm design and tuning.
+- `quantum-computing/thepunisher-quantumannealingexpert.md` — **ThePunisher-QuantumAnnealingExpert**: D-Wave-style quantum annealing problem formulation (QUBO/Ising).
+- `quantum-computing/thepunisher-hybridclassicalquantumexpert.md` — **ThePunisher-HybridClassicalQuantumExpert**: hybrid classical-quantum pipeline architecture.
+- `quantum-computing/thepunisher-quantumhardwarebackendexpert.md` — **ThePunisher-QuantumHardwareBackendExpert**: real QPU backend integration (IBM/IonQ/Rigetti/Quantinuum).
+- `quantum-computing/thepunisher-quantumsimulatorexpert.md` — **ThePunisher-QuantumSimulatorExpert**: classical state-vector/density-matrix simulation of quantum circuits.
+- `quantum-computing/thepunisher-quantumpulsecalibrationexpert.md` — **ThePunisher-QuantumPulseCalibrationExpert**: pulse-level gate calibration (OpenPulse).
+- `quantum-computing/thepunisher-quantumnoisemodelingexpert.md` — **ThePunisher-QuantumNoiseModelingExpert**: decoherence and hardware noise-model engineering.
+- `quantum-computing/thepunisher-quantumkeydistributionexpert.md` — **ThePunisher-QuantumKeyDistributionExpert**: quantum key distribution protocol implementation (BB84, E91).
+- `quantum-computing/thepunisher-quantummachinelearningexpert.md` — **ThePunisher-QuantumMachineLearningExpert**: quantum machine learning model design.
+- `quantum-computing/thepunisher-quantumchemistrysimulationexpert.md` — **ThePunisher-QuantumChemistrySimulationExpert**: molecular/materials simulation on quantum hardware.
+- `quantum-computing/thepunisher-quantumfinancemodelingexpert.md` — **ThePunisher-QuantumFinanceModelingExpert**: quantum finance algorithms (portfolio optimization, option pricing).
+- `quantum-computing/thepunisher-quantumtranspilerexpert.md` — **ThePunisher-QuantumTranspilerExpert**: circuit transpilation/optimization passes for target hardware.
+- `quantum-computing/thepunisher-quantumresourceestimationexpert.md` — **ThePunisher-QuantumResourceEstimationExpert**: qubit-count/gate-count/depth resource estimation.
+- `quantum-computing/thepunisher-quantumcloudsdkexpert.md` — **ThePunisher-QuantumCloudSDKExpert**: quantum cloud platform integration (Amazon Braket, Azure Quantum).
+- `quantum-computing/thepunisher-topologicalqubitresearchexpert.md` — **ThePunisher-TopologicalQubitResearchExpert**: topological qubit research and anyonic-braiding concepts.
+- `quantum-computing/thepunisher-quantumrandomnumbergenerationexpert.md` — **ThePunisher-QuantumRandomNumberGenerationExpert**: hardware quantum random-number-generation engineering.
+- `quantum-computing/thepunisher-quantumnetworkingexpert.md` — **ThePunisher-QuantumNetworkingExpert**: quantum repeater/quantum-internet architecture.
+- `quantum-computing/thepunisher-quantumsensingexpert.md` — **ThePunisher-QuantumSensingExpert**: quantum sensor engineering (magnetometry, atomic clocks).
+- `quantum-computing/thepunisher-quantumbenchmarkingexpert.md` — **ThePunisher-QuantumBenchmarkingExpert**: quantum volume and hardware benchmarking suites.
+- `quantum-computing/thepunisher-quantumjobschedulingexpert.md` — **ThePunisher-QuantumJobSchedulingExpert**: QPU job scheduling/queueing orchestration.
+- `quantum-computing/thepunisher-quantumalgorithmcomplexityanalyst.md` — **ThePunisher-QuantumAlgorithmComplexityAnalyst**: quantum-speedup and complexity-class analysis.
+- `quantum-computing/thepunisher-quantumcombinatorialoptimizationexpert.md` — **ThePunisher-QuantumCombinatorialOptimizationExpert**: combinatorial optimization problem mapping to QPUs.
+- `quantum-computing/thepunisher-postquantumcryptographymigrationexpert.md` — **ThePunisher-PostQuantumCryptographyMigrationExpert**: NIST PQC standard migration planning (Kyber/Dilithium).
+- `quantum-computing/thepunisher-quantumsoftwaretestingexpert.md` — **ThePunisher-QuantumSoftwareTestingExpert**: unit/integration testing methodology for quantum programs.
+- `quantum-computing/thepunisher-openqasmexpert.md` — **ThePunisher-OpenQASMExpert**: OpenQASM quantum assembly language authoring.
+- `quantum-computing/thepunisher-qsharpexpert.md` — **ThePunisher-QSharpExpert**: Microsoft Q# and the Quantum Development Kit.
+- `quantum-computing/thepunisher-quantumamplitudeestimationexpert.md` — **ThePunisher-QuantumAmplitudeEstimationExpert**: amplitude estimation algorithm implementation.
+- `quantum-computing/thepunisher-quantumwalkalgorithmexpert.md` — **ThePunisher-QuantumWalkAlgorithmExpert**: quantum-walk algorithm design.
+- `quantum-computing/thepunisher-tensornetworksimulationexpert.md` — **ThePunisher-TensorNetworkSimulationExpert**: tensor-network methods for large-scale quantum simulation.
+- `quantum-computing/thepunisher-quantummontecarloexpert.md` — **ThePunisher-QuantumMonteCarloExpert**: quantum Monte Carlo simulation techniques.
+- `quantum-computing/thepunisher-iontrapqubitexpert.md` — **ThePunisher-IonTrapQubitExpert**: trapped-ion qubit modality specifics.
+- `quantum-computing/thepunisher-superconductingqubitexpert.md` — **ThePunisher-SuperconductingQubitExpert**: superconducting transmon qubit modality specifics.
+- `quantum-computing/thepunisher-photonicquantumcomputingexpert.md` — **ThePunisher-PhotonicQuantumComputingExpert**: photonic qubit modality and linear-optical computing.
+- `quantum-computing/thepunisher-quantumerrormitigationexpert.md` — **ThePunisher-QuantumErrorMitigationExpert**: error mitigation without full error correction (zero-noise extrapolation).
+- `quantum-computing/thepunisher-quantumvariationalclassifierexpert.md` — **ThePunisher-QuantumVariationalClassifierExpert**: variational quantum classifier design.
+- `quantum-computing/thepunisher-quantumgenerativemodelexpert.md` — **ThePunisher-QuantumGenerativeModelExpert**: quantum generative adversarial network design.
+- `quantum-computing/thepunisher-quantumreinforcementlearningexpert.md` — **ThePunisher-QuantumReinforcementLearningExpert**: quantum-enhanced reinforcement learning.
+- `quantum-computing/thepunisher-quantumramarchitectureexpert.md` — **ThePunisher-QuantumRAMArchitectureExpert**: quantum random-access memory architecture research.
+- `quantum-computing/thepunisher-quantumadvantageverificationexpert.md` — **ThePunisher-QuantumAdvantageVerificationExpert**: quantum-advantage/supremacy claim verification methodology.
+- `quantum-computing/thepunisher-quantumsoftwarearchitectureexpert.md` — **ThePunisher-QuantumSoftwareArchitectureExpert**: quantum application software architecture patterns.
+- `quantum-computing/thepunisher-quantumdevopsexpert.md` — **ThePunisher-QuantumDevOpsExpert**: CI/CD pipelines for quantum program development.
+- `quantum-computing/thepunisher-quantumcircuitvisualizationexpert.md` — **ThePunisher-QuantumCircuitVisualizationExpert**: quantum circuit/state visualization tooling.
+- `quantum-computing/thepunisher-faulttolerantquantumarchitectureexpert.md` — **ThePunisher-FaultTolerantQuantumArchitectureExpert**: fault-tolerant quantum computing architecture design.
+- `quantum-computing/thepunisher-quantumeducationtoolingexpert.md` — **ThePunisher-QuantumEducationToolingExpert**: interactive quantum-computing teaching tool development.
+
+## Team 54 — Legal Technology Engineering (50 agents)
+
+- `legal-tech/thepunisher-legalcontractlifecycleexpert.md` — **ThePunisher-LegalContractLifecycleExpert**: law-firm/legal-department contract lifecycle management (CLM), distinct from Team 40's sales-CLM focus.
+- `legal-tech/thepunisher-ediscoveryengineeringexpert.md` — **ThePunisher-EDiscoveryEngineeringExpert**: e-discovery pipeline engineering (collection/processing/review).
+- `legal-tech/thepunisher-legaldocumentautomationexpert.md` — **ThePunisher-LegalDocumentAutomationExpert**: legal document assembly/automation engineering.
+- `legal-tech/thepunisher-clauseextractionnlpexpert.md` — **ThePunisher-ClauseExtractionNLPExpert**: contract clause extraction/classification NLP.
+- `legal-tech/thepunisher-redliningengineexpert.md` — **ThePunisher-RedliningEngineExpert**: document redlining/comparison engine engineering.
+- `legal-tech/thepunisher-casemanagementsystemexpert.md` — **ThePunisher-CaseManagementSystemExpert**: legal case-management system engineering.
+- `legal-tech/thepunisher-docketintegrationexpert.md` — **ThePunisher-DocketIntegrationExpert**: court docket-monitoring integration engineering.
+- `legal-tech/thepunisher-courtfilingapiexpert.md` — **ThePunisher-CourtFilingAPIExpert**: electronic court-filing (ECF) API integration.
+- `legal-tech/thepunisher-legalholdworkflowexpert.md` — **ThePunisher-LegalHoldWorkflowExpert**: litigation-hold workflow engineering.
+- `legal-tech/thepunisher-ipdocketingexpert.md` — **ThePunisher-IPDocketingExpert**: patent/trademark IP docketing system engineering.
+- `legal-tech/thepunisher-legalresearchplatformexpert.md` — **ThePunisher-LegalResearchPlatformExpert**: case-law/statute legal-research platform engineering.
+- `legal-tech/thepunisher-legalcitationparsingexpert.md` — **ThePunisher-LegalCitationParsingExpert**: legal citation parsing/normalization (Bluebook-style).
+- `legal-tech/thepunisher-contractriskscoringexpert.md` — **ThePunisher-ContractRiskScoringExpert**: contract risk-scoring model engineering.
+- `legal-tech/thepunisher-legalbillingtimetrackingexpert.md` — **ThePunisher-LegalBillingTimeTrackingExpert**: legal time-tracking/e-billing (LEDES) system engineering.
+- `legal-tech/thepunisher-mattermanagementexpert.md` — **ThePunisher-MatterManagementExpert**: legal matter-management platform engineering.
+- `legal-tech/thepunisher-legaldataroomexpert.md` — **ThePunisher-LegalDataRoomExpert**: virtual data-room engineering for M&A due diligence.
+- `legal-tech/thepunisher-legaldocumentingestionocrexpert.md` — **ThePunisher-LegalDocumentIngestionOCRExpert**: legal document OCR/ingestion pipeline engineering.
+- `legal-tech/thepunisher-privilegelogautomationexpert.md` — **ThePunisher-PrivilegeLogAutomationExpert**: attorney-client privilege log automation.
+- `legal-tech/thepunisher-legalredactionengineexpert.md` — **ThePunisher-LegalRedactionEngineExpert**: automated legal-document redaction engineering.
+- `legal-tech/thepunisher-arbitrationcasemanagementexpert.md` — **ThePunisher-ArbitrationCaseManagementExpert**: arbitration/ADR case-management system engineering.
+- `legal-tech/thepunisher-regulatoryfilingautomationexpert.md` — **ThePunisher-RegulatoryFilingAutomationExpert**: regulatory-filing automation engineering.
+- `legal-tech/thepunisher-legalknowledgegraphexpert.md` — **ThePunisher-LegalKnowledgeGraphExpert**: legal-entity/precedent knowledge-graph engineering.
+- `legal-tech/thepunisher-contractnegotiationplatformexpert.md` — **ThePunisher-ContractNegotiationPlatformExpert**: contract negotiation/collaboration platform engineering.
+- `legal-tech/thepunisher-legalanalyticsexpert.md` — **ThePunisher-LegalAnalyticsExpert**: litigation analytics/outcome-prediction engineering.
+- `legal-tech/thepunisher-contractobligationtrackingexpert.md` — **ThePunisher-ContractObligationTrackingExpert**: post-signature contract obligation-tracking system engineering.
+- `legal-tech/thepunisher-legalintakechatbotexpert.md` — **ThePunisher-LegalIntakeChatbotExpert**: client-intake conversational-interface engineering.
+- `legal-tech/thepunisher-remotenotarizationplatformexpert.md` — **ThePunisher-RemoteNotarizationPlatformExpert**: remote online notarization (RON) platform engineering.
+- `legal-tech/thepunisher-legaldocumentversioningexpert.md` — **ThePunisher-LegalDocumentVersioningExpert**: legal document version-control system engineering.
+- `legal-tech/thepunisher-legalworkflowbpmexpert.md` — **ThePunisher-LegalWorkflowBPMExpert**: legal business-process-management workflow engineering.
+- `legal-tech/thepunisher-ipportfoliomanagementexpert.md` — **ThePunisher-IPPortfolioManagementExpert**: trademark/patent portfolio-management system engineering.
+- `legal-tech/thepunisher-legalspendmanagementexpert.md` — **ThePunisher-LegalSpendManagementExpert**: outside-counsel legal-spend management engineering.
+- `legal-tech/thepunisher-esignatureintegrationexpert.md` — **ThePunisher-ESignatureIntegrationExpert**: e-signature workflow integration engineering.
+- `legal-tech/thepunisher-legalentitymanagementexpert.md` — **ThePunisher-LegalEntityManagementExpert**: corporate subsidiary/entity governance system engineering.
+- `legal-tech/thepunisher-litigationholdnotificationexpert.md` — **ThePunisher-LitigationHoldNotificationExpert**: litigation-hold notification/acknowledgment tracking engineering.
+- `legal-tech/thepunisher-legaltemplateengineexpert.md` — **ThePunisher-LegalTemplateEngineExpert**: legal document-template/assembly engine engineering.
+- `legal-tech/thepunisher-courtrecordsapiexpert.md` — **ThePunisher-CourtRecordsAPIExpert**: public court-records API integration engineering.
+- `legal-tech/thepunisher-legaldocumenttaxonomyexpert.md` — **ThePunisher-LegalDocumentTaxonomyExpert**: legal document classification/taxonomy engineering.
+- `legal-tech/thepunisher-contractcomparisondiffexpert.md` — **ThePunisher-ContractComparisonDiffExpert**: contract version-comparison/diff engine engineering.
+- `legal-tech/thepunisher-legalaudittrailexpert.md` — **ThePunisher-LegalAuditTrailExpert**: tamper-evident legal audit-trail engineering.
+- `legal-tech/thepunisher-outsidecounselmanagementexpert.md` — **ThePunisher-OutsideCounselManagementExpert**: outside-counsel management platform engineering.
+- `legal-tech/thepunisher-legalaireviewassistantexpert.md` — **ThePunisher-LegalAIReviewAssistantExpert**: AI-assisted contract/document review tooling engineering.
+- `legal-tech/thepunisher-regulatorychangetrackingexpert.md` — **ThePunisher-RegulatoryChangeTrackingExpert**: regulatory-change-tracking feed engineering for legal teams.
+- `legal-tech/thepunisher-legaldataretentionpolicyexpert.md` — **ThePunisher-LegalDataRetentionPolicyExpert**: legal data-retention policy-enforcement engineering.
+- `legal-tech/thepunisher-courtroomtechnologyexpert.md` — **ThePunisher-CourtroomTechnologyExpert**: courtroom presentation/exhibit-management technology engineering.
+- `legal-tech/thepunisher-legaltranslationlocalizationexpert.md` — **ThePunisher-LegalTranslationLocalizationExpert**: certified legal-document translation workflow engineering.
+- `legal-tech/thepunisher-contractmetadataextractionexpert.md` — **ThePunisher-ContractMetadataExtractionExpert**: contract metadata extraction engineering.
+- `legal-tech/thepunisher-legaldmsintegrationexpert.md` — **ThePunisher-LegalDMSIntegrationExpert**: document-management-system integration (iManage/NetDocuments).
+- `legal-tech/thepunisher-legalsearchrelevanceexpert.md` — **ThePunisher-LegalSearchRelevanceExpert**: legal-document search relevance/ranking engineering.
+- `legal-tech/thepunisher-accesstojusticeplatformexpert.md` — **ThePunisher-AccessToJusticePlatformExpert**: self-help legal-technology platforms for underserved communities.
+- `legal-tech/thepunisher-legaltechsecuritycomplianceexpert.md` — **ThePunisher-LegalTechSecurityComplianceExpert**: privilege- and confidentiality-specific legal-tech security engineering (authorized only).
+
+## Team 55 — Insurance Technology Engineering (50 agents)
+
+- `insurtech/thepunisher-actuarialmodelingsystemsexpert.md` — **ThePunisher-ActuarialModelingSystemsExpert**: actuarial modeling system engineering.
+- `insurtech/thepunisher-claimsprocessingpipelineexpert.md` — **ThePunisher-ClaimsProcessingPipelineExpert**: insurance claims-processing pipeline engineering.
+- `insurtech/thepunisher-underwritingengineexpert.md` — **ThePunisher-UnderwritingEngineExpert**: automated underwriting engine engineering.
+- `insurtech/thepunisher-policyadministrationsystemexpert.md` — **ThePunisher-PolicyAdministrationSystemExpert**: policy administration system (PAS) engineering.
+- `insurtech/thepunisher-telematicsinsuranceexpert.md` — **ThePunisher-TelematicsInsuranceExpert**: usage-based/telematics insurance engineering.
+- `insurtech/thepunisher-parametricinsuranceexpert.md` — **ThePunisher-ParametricInsuranceExpert**: parametric/index-based insurance product engineering.
+- `insurtech/thepunisher-acordstandardsexpert.md` — **ThePunisher-ACORDStandardsExpert**: ACORD data-standard integration engineering.
+- `insurtech/thepunisher-insuranceratingengineexpert.md` — **ThePunisher-InsuranceRatingEngineExpert**: insurance rating/pricing-engine engineering.
+- `insurtech/thepunisher-reinsurancesystemsexpert.md` — **ThePunisher-ReinsuranceSystemsExpert**: reinsurance treaty/cession system engineering.
+- `insurtech/thepunisher-insurancefrauddetectionexpert.md` — **ThePunisher-InsuranceFraudDetectionExpert**: insurance fraud-detection model engineering.
+- `insurtech/thepunisher-insurancequoteengineexpert.md` — **ThePunisher-InsuranceQuoteEngineExpert**: real-time insurance quote-engine engineering.
+- `insurtech/thepunisher-insurancebillingsystemsexpert.md` — **ThePunisher-InsuranceBillingSystemsExpert**: insurance premium-billing system engineering.
+- `insurtech/thepunisher-insurancecrmexpert.md` — **ThePunisher-InsuranceCRMExpert**: insurance-specific CRM platform engineering.
+- `insurtech/thepunisher-catastrophemodelingexpert.md` — **ThePunisher-CatastropheModelingExpert**: catastrophe/natural-disaster risk-modeling engineering.
+- `insurtech/thepunisher-insurancedocumentgenerationexpert.md` — **ThePunisher-InsuranceDocumentGenerationExpert**: policy document-generation engine engineering.
+- `insurtech/thepunisher-insurancecompliancereportingexpert.md` — **ThePunisher-InsuranceComplianceReportingExpert**: statutory insurance-compliance reporting engineering.
+- `insurtech/thepunisher-insurancedataaggregationexpert.md` — **ThePunisher-InsuranceDataAggregationExpert**: third-party insurance-data aggregation engineering.
+- `insurtech/thepunisher-lifeinsuranceadminexpert.md` — **ThePunisher-LifeInsuranceAdminExpert**: life-insurance policy administration engineering.
+- `insurtech/thepunisher-healthinsuranceclaimsediexpert.md` — **ThePunisher-HealthInsuranceClaimsEDIExpert**: health-insurance claims EDI (837/835) engineering.
+- `insurtech/thepunisher-propertycasualtyinsuranceexpert.md` — **ThePunisher-PropertyCasualtyInsuranceExpert**: property & casualty insurance system engineering.
+- `insurtech/thepunisher-insuranceagentportalexpert.md` — **ThePunisher-InsuranceAgentPortalExpert**: insurance agent/broker portal engineering.
+- `insurtech/thepunisher-insurancemobileclaimsexpert.md` — **ThePunisher-InsuranceMobileClaimsExpert**: photo-based mobile claims-capture engineering.
+- `insurtech/thepunisher-insuranceriskassessmentexpert.md` — **ThePunisher-InsuranceRiskAssessmentExpert**: insurance risk-assessment model engineering.
+- `insurtech/thepunisher-embeddedinsuranceexpert.md` — **ThePunisher-EmbeddedInsuranceExpert**: embedded/point-of-sale insurance integration engineering.
+- `insurtech/thepunisher-insuranceapigatewayexpert.md` — **ThePunisher-InsuranceAPIGatewayExpert**: insurance-carrier API gateway engineering.
+- `insurtech/thepunisher-insurancelegacymodernizationexpert.md` — **ThePunisher-InsuranceLegacyModernizationExpert**: legacy mainframe policy-admin modernization engineering.
+- `insurtech/thepunisher-insuranceactuarialpricingmodelexpert.md` — **ThePunisher-InsuranceActuarialPricingModelExpert**: actuarial pricing-model engineering.
+- `insurtech/thepunisher-insurancepredictiveanalyticsexpert.md` — **ThePunisher-InsurancePredictiveAnalyticsExpert**: insurance predictive-analytics engineering.
+- `insurtech/thepunisher-insuranceiotsensorintegrationexpert.md` — **ThePunisher-InsuranceIoTSensorIntegrationExpert**: smart-home/connected-vehicle sensor integration for insurance.
+- `insurtech/thepunisher-insuranceclaimsadjustertoolingexpert.md` — **ThePunisher-InsuranceClaimsAdjusterToolingExpert**: claims-adjuster field-tooling engineering.
+- `insurtech/thepunisher-insurancesubrogationexpert.md` — **ThePunisher-InsuranceSubrogationExpert**: insurance subrogation-recovery system engineering.
+- `insurtech/thepunisher-insurancerenewalautomationexpert.md` — **ThePunisher-InsuranceRenewalAutomationExpert**: policy-renewal automation engineering.
+- `insurtech/thepunisher-insurancecommissionmanagementexpert.md` — **ThePunisher-InsuranceCommissionManagementExpert**: agent/broker commission-management engineering.
+- `insurtech/thepunisher-insurancereservecalculationexpert.md` — **ThePunisher-InsuranceReserveCalculationExpert**: loss-reserve calculation-engine engineering.
+- `insurtech/thepunisher-insuranceregulatorycomplianceexpert.md` — **ThePunisher-InsuranceRegulatoryComplianceExpert**: state insurance-department (NAIC) regulatory-compliance engineering.
+- `insurtech/thepunisher-cyberinsuranceunderwritingexpert.md` — **ThePunisher-CyberInsuranceUnderwritingExpert**: cyber-insurance underwriting model engineering.
+- `insurtech/thepunisher-insuranceparametricsmartcontractexpert.md` — **ThePunisher-InsuranceParametricSmartContractExpert**: smart-contract-based parametric payout automation.
+- `insurtech/thepunisher-insurancekyconboardingexpert.md` — **ThePunisher-InsuranceKYCOnboardingExpert**: insurance customer KYC/onboarding engineering.
+- `insurtech/thepunisher-insurancedatawarehouseexpert.md` — **ThePunisher-InsuranceDataWarehouseExpert**: insurance-industry data-warehouse engineering.
+- `insurtech/thepunisher-insuranceactuarialvaluationexpert.md` — **ThePunisher-InsuranceActuarialValuationExpert**: actuarial reserve-valuation engineering.
+- `insurtech/thepunisher-insurancedisasterresponseexpert.md` — **ThePunisher-InsuranceDisasterResponseExpert**: catastrophe disaster-response claims-surge engineering.
+- `insurtech/thepunisher-insurancechannelintegrationexpert.md` — **ThePunisher-InsuranceChannelIntegrationExpert**: broker/MGA distribution-channel integration engineering.
+- `insurtech/thepunisher-insurancelossratioanalyticsexpert.md` — **ThePunisher-InsuranceLossRatioAnalyticsExpert**: loss-ratio analytics-engine engineering.
+- `insurtech/thepunisher-insurancepolicydocumentocrexpert.md` — **ThePunisher-InsurancePolicyDocumentOCRExpert**: insurance policy-document OCR/ingestion engineering.
+- `insurtech/thepunisher-insurancecustomerselfserviceexpert.md` — **ThePunisher-InsuranceCustomerSelfServiceExpert**: insurance customer self-service-portal engineering.
+- `insurtech/thepunisher-insurancemicroinsuranceexpert.md` — **ThePunisher-InsuranceMicroinsuranceExpert**: emerging-market microinsurance platform engineering.
+- `insurtech/thepunisher-insurancewarrantyprogramexpert.md` — **ThePunisher-InsuranceWarrantyProgramExpert**: extended-warranty program-platform engineering.
+- `insurtech/thepunisher-insuranceclaimssettlementautomationexpert.md` — **ThePunisher-InsuranceClaimsSettlementAutomationExpert**: automated claims-settlement engineering.
+- `insurtech/thepunisher-insurancetechsecuritycomplianceexpert.md` — **ThePunisher-InsuranceTechSecurityComplianceExpert**: PCI/SOC2-scoped insurance-data security engineering (authorized only).
+- `insurtech/thepunisher-insuranceactuarialreservemodelexpert.md` — **ThePunisher-InsuranceActuarialReserveModelExpert**: actuarial IBNR reserve-model engineering.
+
+## Team 56 — Education Technology Engineering (50 agents)
+
+- `education-tech/thepunisher-lmsplatformengineeringexpert.md` — **ThePunisher-LMSPlatformEngineeringExpert**: learning management system (LMS) platform engineering.
+- `education-tech/thepunisher-adaptivelearningengineexpert.md` — **ThePunisher-AdaptiveLearningEngineExpert**: adaptive/personalized learning engine engineering.
+- `education-tech/thepunisher-assessmentengineexpert.md` — **ThePunisher-AssessmentEngineExpert**: quiz/exam assessment-engine engineering.
+- `education-tech/thepunisher-onlineproctoringexpert.md` — **ThePunisher-OnlineProctoringExpert**: remote exam proctoring system engineering.
+- `education-tech/thepunisher-plagiarismdetectionexpert.md` — **ThePunisher-PlagiarismDetectionExpert**: academic plagiarism-detection engine engineering.
+- `education-tech/thepunisher-scormxapistandardsexpert.md` — **ThePunisher-SCORMxAPIStandardsExpert**: SCORM/xAPI/cmi5 e-learning content-standard integration.
+- `education-tech/thepunisher-studentinformationsystemexpert.md` — **ThePunisher-StudentInformationSystemExpert**: student information system (SIS) engineering.
+- `education-tech/thepunisher-coursewareauthoringtoolexpert.md` — **ThePunisher-CoursewareAuthoringToolExpert**: courseware/content authoring tool engineering.
+- `education-tech/thepunisher-gradebooksystemexpert.md` — **ThePunisher-GradebookSystemExpert**: gradebook/grading-workflow system engineering.
+- `education-tech/thepunisher-edtechaccessibilityexpert.md` — **ThePunisher-EdTechAccessibilityExpert**: WCAG-compliant accessibility engineering for education content.
+- `education-tech/thepunisher-moocplatformexpert.md` — **ThePunisher-MOOCPlatformExpert**: massive open online course (MOOC) platform engineering.
+- `education-tech/thepunisher-virtualclassroomexpert.md` — **ThePunisher-VirtualClassroomExpert**: live virtual-classroom video engineering.
+- `education-tech/thepunisher-learninganalyticsexpert.md` — **ThePunisher-LearningAnalyticsExpert**: learning-analytics dashboard engineering.
+- `education-tech/thepunisher-competencybasededucationexpert.md` — **ThePunisher-CompetencyBasedEducationExpert**: mastery-based/competency-based progression system engineering.
+- `education-tech/thepunisher-edtechcontentrecommendationexpert.md` — **ThePunisher-EdTechContentRecommendationExpert**: learning-content recommendation-engine engineering.
+- `education-tech/thepunisher-studentdataprivacyengineeringexpert.md` — **ThePunisher-StudentDataPrivacyEngineeringExpert**: FERPA-specific student-data-privacy engineering.
+- `education-tech/thepunisher-edtechgamificationexpert.md` — **ThePunisher-EdTechGamificationExpert**: badges/points/leaderboard gamification engineering for learning.
+- `education-tech/thepunisher-tutoringplatformexpert.md` — **ThePunisher-TutoringPlatformExpert**: 1:1/AI tutoring-platform engineering.
+- `education-tech/thepunisher-ltiintegrationexpert.md` — **ThePunisher-LTIIntegrationExpert**: Learning Tools Interoperability (LTI) integration engineering.
+- `education-tech/thepunisher-k12curriculummappingexpert.md` — **ThePunisher-K12CurriculumMappingExpert**: K-12 curriculum-standards mapping engineering.
+- `education-tech/thepunisher-higheredenrollmentsystemsexpert.md` — **ThePunisher-HigherEdEnrollmentSystemsExpert**: higher-education enrollment-system engineering.
+- `education-tech/thepunisher-edtechmobilelearningexpert.md` — **ThePunisher-EdTechMobileLearningExpert**: mobile learning-app engineering.
+- `education-tech/thepunisher-languagelearningplatformexpert.md` — **ThePunisher-LanguageLearningPlatformExpert**: language-learning platform engineering.
+- `education-tech/thepunisher-stemsimulationlabexpert.md` — **ThePunisher-STEMSimulationLabExpert**: virtual STEM lab-simulation engineering.
+- `education-tech/thepunisher-edtechcontentlocalizationexpert.md` — **ThePunisher-EdTechContentLocalizationExpert**: education-content localization engineering.
+- `education-tech/thepunisher-classroommanagementsoftwareexpert.md` — **ThePunisher-ClassroomManagementSoftwareExpert**: classroom-management software engineering.
+- `education-tech/thepunisher-edtechparentportalexpert.md` — **ThePunisher-EdTechParentPortalExpert**: parent/guardian portal engineering.
+- `education-tech/thepunisher-alumniengagementplatformexpert.md` — **ThePunisher-AlumniEngagementPlatformExpert**: alumni-engagement platform engineering.
+- `education-tech/thepunisher-edtechadmissionsworkflowexpert.md` — **ThePunisher-EdTechAdmissionsWorkflowExpert**: admissions-workflow system engineering.
+- `education-tech/thepunisher-digitaltextbookplatformexpert.md` — **ThePunisher-DigitalTextbookPlatformExpert**: digital-textbook platform engineering.
+- `education-tech/thepunisher-automatedessayscoringexpert.md` — **ThePunisher-AutomatedEssayScoringExpert**: AI-assisted writing feedback/essay-scoring engineering.
+- `education-tech/thepunisher-edtechspecialeducationtoolingexpert.md` — **ThePunisher-EdTechSpecialEducationToolingExpert**: IEP-tracking/accessibility-accommodation tooling engineering.
+- `education-tech/thepunisher-digitalcredentialingexpert.md` — **ThePunisher-DigitalCredentialingExpert**: digital credential/Open Badges certification engineering.
+- `education-tech/thepunisher-edtechattendancetrackingexpert.md` — **ThePunisher-EdTechAttendanceTrackingExpert**: attendance-tracking system engineering.
+- `education-tech/thepunisher-financialaidworkflowexpert.md` — **ThePunisher-FinancialAidWorkflowExpert**: scholarship/financial-aid workflow engineering.
+- `education-tech/thepunisher-edtechcampusoperationsexpert.md` — **ThePunisher-EdTechCampusOperationsExpert**: campus-operations platform engineering.
+- `education-tech/thepunisher-researchdatamanagementexpert.md` — **ThePunisher-ResearchDataManagementExpert**: academic research-data-management system engineering.
+- `education-tech/thepunisher-lecturecaptioningexpert.md` — **ThePunisher-LectureCaptioningExpert**: video-lecture captioning/transcription engineering.
+- `education-tech/thepunisher-peerreviewplatformexpert.md` — **ThePunisher-PeerReviewPlatformExpert**: academic peer-review platform engineering.
+- `education-tech/thepunisher-studentonboardingexpert.md` — **ThePunisher-StudentOnboardingExpert**: new-student onboarding-flow engineering.
+- `education-tech/thepunisher-rosteringstandardsexpert.md` — **ThePunisher-RosteringStandardsExpert**: Clever/ClassLink rostering-standard integration engineering.
+- `education-tech/thepunisher-vrarclassroomexpert.md` — **ThePunisher-VRARClassroomExpert**: VR/AR educational-experience engineering.
+- `education-tech/thepunisher-edtechchatbottutorexpert.md` — **ThePunisher-EdTechChatbotTutorExpert**: conversational AI tutor engineering.
+- `education-tech/thepunisher-coursecatalogexpert.md` — **ThePunisher-CourseCatalogExpert**: course-catalog/scheduling-system engineering.
+- `education-tech/thepunisher-enrollmentpredictionexpert.md` — **ThePunisher-EnrollmentPredictionExpert**: predictive-analytics engineering for enrollment forecasting.
+- `education-tech/thepunisher-examintegrityexpert.md` — **ThePunisher-ExamIntegrityExpert**: exam-security/anti-cheating system engineering.
+- `education-tech/thepunisher-learningpathdesignexpert.md` — **ThePunisher-LearningPathDesignExpert**: personalized learning-path design engineering.
+- `education-tech/thepunisher-accreditationreportingexpert.md` — **ThePunisher-AccreditationReportingExpert**: institutional accreditation-reporting engineering.
+- `education-tech/thepunisher-offlinefirstlearningexpert.md` — **ThePunisher-OfflineFirstLearningExpert**: low-connectivity/offline-first learning-app engineering.
+- `education-tech/thepunisher-teacherprofessionaldevelopmentexpert.md` — **ThePunisher-TeacherProfessionalDevelopmentExpert**: teacher professional-development platform engineering.
+
+## Team 57 — Agricultural Technology Engineering (50 agents)
+
+- `agtech/thepunisher-precisionfarmingsystemsexpert.md` — **ThePunisher-PrecisionFarmingSystemsExpert**: precision-farming system engineering.
+- `agtech/thepunisher-cropyieldpredictionexpert.md` — **ThePunisher-CropYieldPredictionExpert**: crop yield-prediction model engineering.
+- `agtech/thepunisher-agriculturaldronemappingexpert.md` — **ThePunisher-AgriculturalDroneMappingExpert**: agricultural drone field-mapping engineering.
+- `agtech/thepunisher-soilsensoriotexpert.md` — **ThePunisher-SoilSensorIoTExpert**: soil-sensor IoT network engineering.
+- `agtech/thepunisher-farmmanagementsoftwareexpert.md` — **ThePunisher-FarmManagementSoftwareExpert**: farm-management software (FMS) engineering.
+- `agtech/thepunisher-livestocktrackingexpert.md` — **ThePunisher-LivestockTrackingExpert**: livestock tracking/identification system engineering.
+- `agtech/thepunisher-agrisupplychaintraceabilityexpert.md` — **ThePunisher-AgriSupplyChainTraceabilityExpert**: farm-to-table supply-chain traceability engineering.
+- `agtech/thepunisher-variablerateapplicationexpert.md` — **ThePunisher-VariableRateApplicationExpert**: variable-rate fertilizer/pesticide application-system engineering.
+- `agtech/thepunisher-agriculturalgisexpert.md` — **ThePunisher-AgriculturalGISExpert**: agricultural GIS/field-boundary mapping engineering.
+- `agtech/thepunisher-irrigationautomationexpert.md` — **ThePunisher-IrrigationAutomationExpert**: automated irrigation-scheduling system engineering.
+- `agtech/thepunisher-autonomousfarmmachineryexpert.md` — **ThePunisher-AutonomousFarmMachineryExpert**: autonomous tractor/harvester machinery-software engineering (distinct from Team 22's field-robot hardware design).
+- `agtech/thepunisher-cropdiseasedetectionexpert.md` — **ThePunisher-CropDiseaseDetectionExpert**: computer-vision crop-disease detection engineering.
+- `agtech/thepunisher-agriculturalweathermodelingexpert.md` — **ThePunisher-AgriculturalWeatherModelingExpert**: farm-specific weather-data modeling engineering.
+- `agtech/thepunisher-livestockhealthmonitoringexpert.md` — **ThePunisher-LivestockHealthMonitoringExpert**: livestock health-monitoring sensor engineering.
+- `agtech/thepunisher-agriculturalerpexpert.md` — **ThePunisher-AgriculturalERPExpert**: agricultural enterprise-resource-planning system engineering.
+- `agtech/thepunisher-farmequipmenttelematicsexpert.md` — **ThePunisher-FarmEquipmentTelematicsExpert**: farm-equipment telematics engineering.
+- `agtech/thepunisher-agriculturalcommoditytradingexpert.md` — **ThePunisher-AgriculturalCommodityTradingExpert**: agricultural commodity-marketplace/trading-platform engineering.
+- `agtech/thepunisher-verticalfarmingautomationexpert.md` — **ThePunisher-VerticalFarmingAutomationExpert**: vertical/indoor farming automation engineering.
+- `agtech/thepunisher-greenhouseclimatecontrolexpert.md` — **ThePunisher-GreenhouseClimateControlExpert**: greenhouse climate-control system engineering.
+- `agtech/thepunisher-agriculturaldatastandardsexpert.md` — **ThePunisher-AgriculturalDataStandardsExpert**: AgGateway/ADAPT/ISOBUS agricultural data-standard integration.
+- `agtech/thepunisher-foodsafetytraceabilityexpert.md` — **ThePunisher-FoodSafetyTraceabilityExpert**: food-safety traceability/recall system engineering.
+- `agtech/thepunisher-agriculturalcarboncreditexpert.md` — **ThePunisher-AgriculturalCarbonCreditExpert**: soil-carbon-sequestration measurement/credit engineering.
+- `agtech/thepunisher-cropinsurancetechexpert.md` — **ThePunisher-CropInsuranceTechExpert**: crop-insurance-specific technology integration (yield-loss verification).
+- `agtech/thepunisher-agriculturalyieldmappingexpert.md` — **ThePunisher-AgriculturalYieldMappingExpert**: combine-harvester yield-mapping data engineering.
+- `agtech/thepunisher-autonomoustractornavigationexpert.md` — **ThePunisher-AutonomousTractorNavigationExpert**: GPS/GNSS autonomous-tractor navigation engineering.
+- `agtech/thepunisher-agriculturalsatelliteimageryexpert.md` — **ThePunisher-AgriculturalSatelliteImageryExpert**: satellite-imagery/NDVI crop-health analysis engineering.
+- `agtech/thepunisher-livestockgeneticsdataexpert.md` — **ThePunisher-LivestockGeneticsDataExpert**: livestock genetics/breeding data-system engineering.
+- `agtech/thepunisher-aquaculturemanagementexpert.md` — **ThePunisher-AquacultureManagementExpert**: aquaculture/fish-farming management-system engineering.
+- `agtech/thepunisher-agriculturallabormanagementexpert.md` — **ThePunisher-AgriculturalLaborManagementExpert**: farm-labor scheduling/management system engineering.
+- `agtech/thepunisher-farmfinancialmanagementexpert.md` — **ThePunisher-FarmFinancialManagementExpert**: farm-specific financial/accounting system engineering.
+- `agtech/thepunisher-integratedpestmanagementexpert.md` — **ThePunisher-IntegratedPestManagementExpert**: integrated pest-management (IPM) decision-support engineering.
+- `agtech/thepunisher-seedtraceabilityexpert.md` — **ThePunisher-SeedTraceabilityExpert**: seed-lot traceability/genealogy tracking engineering.
+- `agtech/thepunisher-agriculturalblockchainprovenanceexpert.md` — **ThePunisher-AgriculturalBlockchainProvenanceExpert**: blockchain-based agricultural provenance-tracking engineering.
+- `agtech/thepunisher-farmequipmentoemintegrationexpert.md` — **ThePunisher-FarmEquipmentOEMIntegrationExpert**: farm-equipment OEM API integration (John Deere/CNH-style telemetry).
+- `agtech/thepunisher-farmtoconsumermarketplaceexpert.md` — **ThePunisher-FarmToConsumerMarketplaceExpert**: farm-to-consumer direct-sales marketplace engineering.
+- `agtech/thepunisher-agriculturalsoilhealthanalyticsexpert.md` — **ThePunisher-AgriculturalSoilHealthAnalyticsExpert**: soil-health analytics-engine engineering.
+- `agtech/thepunisher-precisionplantingexpert.md` — **ThePunisher-PrecisionPlantingExpert**: precision-planting/seed-placement system engineering.
+- `agtech/thepunisher-agriculturalregulatorycomplianceexpert.md` — **ThePunisher-AgriculturalRegulatoryComplianceExpert**: agricultural regulatory-compliance engineering (pesticide/organic certification records).
+- `agtech/thepunisher-agriculturalcooperativemanagementexpert.md` — **ThePunisher-AgriculturalCooperativeManagementExpert**: agricultural cooperative membership/management system engineering.
+- `agtech/thepunisher-agriculturaldroneregulatorycomplianceexpert.md` — **ThePunisher-AgriculturalDroneRegulatoryComplianceExpert**: agricultural-drone regulatory-compliance engineering (FAA Part 107-style).
+- `agtech/thepunisher-agriculturalfieldtrialdataexpert.md` — **ThePunisher-AgriculturalFieldTrialDataExpert**: agronomic field-trial data-management engineering.
+- `agtech/thepunisher-agriculturalwatermanagementexpert.md` — **ThePunisher-AgriculturalWaterManagementExpert**: agricultural water-rights/usage-management system engineering.
+- `agtech/thepunisher-agriculturalmachineryfleetoptimizationexpert.md` — **ThePunisher-AgriculturalMachineryFleetOptimizationExpert**: farm-machinery fleet routing/optimization engineering.
+- `agtech/thepunisher-agriculturalsensorcalibrationexpert.md` — **ThePunisher-AgriculturalSensorCalibrationExpert**: field-sensor calibration/data-quality engineering.
+- `agtech/thepunisher-agriculturalyieldbenchmarkingexpert.md` — **ThePunisher-AgriculturalYieldBenchmarkingExpert**: cross-farm yield-benchmarking analytics engineering.
+- `agtech/thepunisher-agriculturalclimateadaptationexpert.md` — **ThePunisher-AgriculturalClimateAdaptationExpert**: climate-adaptation decision-support system engineering.
+- `agtech/thepunisher-agriculturalcroprotationplanningexpert.md` — **ThePunisher-AgriculturalCropRotationPlanningExpert**: crop-rotation planning-tool engineering.
+- `agtech/thepunisher-livestockfeedoptimizationexpert.md` — **ThePunisher-LivestockFeedOptimizationExpert**: livestock feed-formulation optimization engineering.
+- `agtech/thepunisher-agriculturalextensionknowledgebaseexpert.md` — **ThePunisher-AgriculturalExtensionKnowledgeBaseExpert**: agricultural-extension knowledge-base/advisory-system engineering.
+- `agtech/thepunisher-agriculturaldatainteroperabilityexpert.md` — **ThePunisher-AgriculturalDataInteroperabilityExpert**: cross-platform agricultural data-interoperability engineering.
+
+## Team 58 — Real Estate Technology Engineering (50 agents)
+
+- `proptech/thepunisher-propertymanagementsystemexpert.md` — **ThePunisher-PropertyManagementSystemExpert**: property-management system (PMS) engineering.
+- `proptech/thepunisher-mlsintegrationexpert.md` — **ThePunisher-MLSIntegrationExpert**: Multiple Listing Service (MLS) integration engineering.
+- `proptech/thepunisher-realestatecrmexpert.md` — **ThePunisher-RealEstateCRMExpert**: real-estate-specific CRM platform engineering.
+- `proptech/thepunisher-virtualpropertytourexpert.md` — **ThePunisher-VirtualPropertyTourExpert**: 3D/360-degree virtual property-tour engineering.
+- `proptech/thepunisher-mortgagelendingtechexpert.md` — **ThePunisher-MortgageLendingTechExpert**: mortgage/lending-technology platform engineering.
+- `proptech/thepunisher-tenantscreeningexpert.md` — **ThePunisher-TenantScreeningExpert**: tenant-screening system engineering.
+- `proptech/thepunisher-smartbuildingmanagementexpert.md` — **ThePunisher-SmartBuildingManagementExpert**: smart-building management-system engineering.
+- `proptech/thepunisher-realestatetransactionmanagementexpert.md` — **ThePunisher-RealEstateTransactionManagementExpert**: real-estate transaction/title/escrow workflow engineering.
+- `proptech/thepunisher-automatedvaluationmodelexpert.md` — **ThePunisher-AutomatedValuationModelExpert**: automated property-valuation model (AVM) engineering.
+- `proptech/thepunisher-realestatelistingsyndicationexpert.md` — **ThePunisher-RealEstateListingSyndicationExpert**: property-listing syndication-engine engineering.
+- `proptech/thepunisher-leasemanagementsoftwareexpert.md` — **ThePunisher-LeaseManagementSoftwareExpert**: lease-management software engineering.
+- `proptech/thepunisher-realestateinvestmentanalyticsexpert.md` — **ThePunisher-RealEstateInvestmentAnalyticsExpert**: real-estate investment-analytics engineering.
+- `proptech/thepunisher-propertymaintenanceworkorderexpert.md` — **ThePunisher-PropertyMaintenanceWorkOrderExpert**: property-maintenance work-order system engineering.
+- `proptech/thepunisher-realestatedocumentautomationexpert.md` — **ThePunisher-RealEstateDocumentAutomationExpert**: real-estate document-automation engineering.
+- `proptech/thepunisher-digitalclosingplatformexpert.md` — **ThePunisher-DigitalClosingPlatformExpert**: digital/e-closing platform engineering.
+- `proptech/thepunisher-realestatephotographyaiexpert.md` — **ThePunisher-RealEstatePhotographyAIExpert**: AI-assisted real-estate photography/virtual-staging engineering.
+- `proptech/thepunisher-commercialrealestateanalyticsexpert.md` — **ThePunisher-CommercialRealEstateAnalyticsExpert**: commercial real-estate analytics engineering.
+- `proptech/thepunisher-realestatemarketdataaggregationexpert.md` — **ThePunisher-RealEstateMarketDataAggregationExpert**: real-estate market-data aggregation engineering.
+- `proptech/thepunisher-propertyinspectionappexpert.md` — **ThePunisher-PropertyInspectionAppExpert**: property-inspection mobile-app engineering.
+- `proptech/thepunisher-realestatefractionalownershipexpert.md` — **ThePunisher-RealEstateFractionalOwnershipExpert**: tokenized/fractional real-estate ownership-platform engineering.
+- `proptech/thepunisher-realestatebrokerageoperationsexpert.md` — **ThePunisher-RealEstateBrokerageOperationsExpert**: real-estate brokerage back-office operations engineering.
+- `proptech/thepunisher-smartlockaccesscontrolexpert.md` — **ThePunisher-SmartLockAccessControlExpert**: building smart-lock/access-control system engineering.
+- `proptech/thepunisher-realestatezoningcomplianceexpert.md` — **ThePunisher-RealEstateZoningComplianceExpert**: zoning/land-use compliance engineering.
+- `proptech/thepunisher-realestateportfoliomanagementexpert.md` — **ThePunisher-RealEstatePortfolioManagementExpert**: real-estate portfolio-management platform engineering.
+- `proptech/thepunisher-propertytaxassessmentexpert.md` — **ThePunisher-PropertyTaxAssessmentExpert**: property-tax assessment-system engineering.
+- `proptech/thepunisher-buildingenergymanagementexpert.md` — **ThePunisher-BuildingEnergyManagementExpert**: building energy-efficiency management-system engineering.
+- `proptech/thepunisher-coworkingspaceplatformexpert.md` — **ThePunisher-CoworkingSpacePlatformExpert**: coworking-space booking/management platform engineering.
+- `proptech/thepunisher-realestateappraisalsoftwareexpert.md` — **ThePunisher-RealEstateAppraisalSoftwareExpert**: real-estate appraisal-software engineering.
+- `proptech/thepunisher-realestategismappingexpert.md` — **ThePunisher-RealEstateGISMappingExpert**: real-estate GIS/parcel-mapping engineering.
+- `proptech/thepunisher-rentalpricingengineexpert.md` — **ThePunisher-RentalPricingEngineExpert**: dynamic rental-pricing engine engineering.
+- `proptech/thepunisher-escrowautomationexpert.md` — **ThePunisher-EscrowAutomationExpert**: escrow-workflow automation engineering.
+- `proptech/thepunisher-realestatevendormarketplaceexpert.md` — **ThePunisher-RealEstateVendorMarketplaceExpert**: real-estate vendor/contractor marketplace engineering.
+- `proptech/thepunisher-buildingoccupancysensorexpert.md` — **ThePunisher-BuildingOccupancySensorExpert**: building occupancy-sensor IoT integration engineering.
+- `proptech/thepunisher-titlesearchautomationexpert.md` — **ThePunisher-TitleSearchAutomationExpert**: automated title-search engine engineering.
+- `proptech/thepunisher-constructionprojecttrackingexpert.md` — **ThePunisher-ConstructionProjectTrackingExpert**: real-estate development/construction project-tracking engineering.
+- `proptech/thepunisher-facilitiesmanagementexpert.md` — **ThePunisher-FacilitiesManagementExpert**: commercial facilities-management platform engineering.
+- `proptech/thepunisher-amenitybookingsystemexpert.md` — **ThePunisher-AmenityBookingSystemExpert**: residential/commercial amenity-booking system engineering.
+- `proptech/thepunisher-realestateinvestorportalexpert.md` — **ThePunisher-RealEstateInvestorPortalExpert**: real-estate investor-relations portal engineering.
+- `proptech/thepunisher-realestatedisclosurecomplianceexpert.md` — **ThePunisher-RealEstateDisclosureComplianceExpert**: real-estate disclosure/compliance-document engineering.
+- `proptech/thepunisher-shorttermrentalplatformexpert.md` — **ThePunisher-ShortTermRentalPlatformExpert**: vacation/short-term-rental platform engineering.
+- `proptech/thepunisher-hoamanagementexpert.md` — **ThePunisher-HOAManagementExpert**: homeowners-association (HOA) management-platform engineering.
+- `proptech/thepunisher-realestatedealroomexpert.md` — **ThePunisher-RealEstateDealRoomExpert**: real-estate transaction deal-room engineering.
+- `proptech/thepunisher-predictivemaintenanceforbuildingsexpert.md` — **ThePunisher-PredictiveMaintenanceForBuildingsExpert**: building predictive-maintenance system engineering.
+- `proptech/thepunisher-realestateoccupancyanalyticsexpert.md` — **ThePunisher-RealEstateOccupancyAnalyticsExpert**: space-utilization/occupancy analytics engineering.
+- `proptech/thepunisher-buildingdigitaltwinexpert.md` — **ThePunisher-BuildingDigitalTwinExpert**: building digital-twin engineering.
+- `proptech/thepunisher-realestateinsuranceintegrationexpert.md` — **ThePunisher-RealEstateInsuranceIntegrationExpert**: real-estate-specific insurance-integration engineering (title/hazard insurance workflows).
+- `proptech/thepunisher-greenbuildingcertificationexpert.md` — **ThePunisher-GreenBuildingCertificationExpert**: LEED/BREEAM green-building certification-tracking engineering.
+- `proptech/thepunisher-buyeragentmatchingexpert.md` — **ThePunisher-BuyerAgentMatchingExpert**: buyer-to-agent matching-platform engineering.
+- `proptech/thepunisher-neighborhooddataaggregationexpert.md` — **ThePunisher-NeighborhoodDataAggregationExpert**: neighborhood walkability/schools/safety data-aggregation engineering.
+- `proptech/thepunisher-realestatetransactionaudittrailexpert.md` — **ThePunisher-RealEstateTransactionAuditTrailExpert**: tamper-evident real-estate transaction audit-trail engineering.
+
+## Team 59 — Red Team Operations Engineering (50 agents)
+
+- `red-team-ops/thepunisher-adversaryemulationexpert.md` — **ThePunisher-AdversaryEmulationExpert**: MITRE ATT&CK-mapped adversary emulation planning and execution.
+- `red-team-ops/thepunisher-c2infrastructureexpert.md` — **ThePunisher-C2InfrastructureExpert**: command-and-control infrastructure engineering for authorized engagements.
+- `red-team-ops/thepunisher-initialaccessspecialist.md` — **ThePunisher-InitialAccessSpecialist**: authorized initial-access technique research and delivery.
+- `red-team-ops/thepunisher-redteamprivilegeescalationspecialist.md` — **ThePunisher-RedTeamPrivilegeEscalationSpecialist**: privilege-escalation technique research for authorized engagements.
+- `red-team-ops/thepunisher-redteamlateralmovementspecialist.md` — **ThePunisher-RedTeamLateralMovementSpecialist**: lateral-movement technique research for authorized engagements.
+- `red-team-ops/thepunisher-persistencemechanismspecialist.md` — **ThePunisher-PersistenceMechanismSpecialist**: persistence-mechanism research for authorized engagements.
+- `red-team-ops/thepunisher-dataexfiltrationsimulationexpert.md` — **ThePunisher-DataExfiltrationSimulationExpert**: authorized data-exfiltration simulation for DLP/detection validation.
+- `red-team-ops/thepunisher-redteamreportingexpert.md` — **ThePunisher-RedTeamReportingExpert**: red team engagement reporting and executive-deliverable authoring.
+- `red-team-ops/thepunisher-phishingcampaignengineeringexpert.md` — **ThePunisher-PhishingCampaignEngineeringExpert**: authorized simulated-phishing campaign engineering.
+- `red-team-ops/thepunisher-payloadobfuscationexpert.md` — **ThePunisher-PayloadObfuscationExpert**: AV/EDR evasion research for authorized red team payloads.
+- `red-team-ops/thepunisher-activedirectoryattackpathexpert.md` — **ThePunisher-ActiveDirectoryAttackPathExpert**: BloodHound-style Active Directory attack-path analysis.
+- `red-team-ops/thepunisher-cloudredteamexpert.md` — **ThePunisher-CloudRedTeamExpert**: AWS/Azure/GCP attack-path simulation for authorized engagements.
+- `red-team-ops/thepunisher-physicalredteamexpert.md` — **ThePunisher-PhysicalRedTeamExpert**: authorized physical-penetration and badge-cloning testing.
+- `red-team-ops/thepunisher-socialengineeringoperatorexpert.md` — **ThePunisher-SocialEngineeringOperatorExpert**: authorized pretexting/vishing social-engineering operations.
+- `red-team-ops/thepunisher-redteaminfrastructureopsecexpert.md` — **ThePunisher-RedTeamInfrastructureOpsecExpert**: attack-infrastructure operational-security management.
+- `red-team-ops/thepunisher-wirelessredteamexpert.md` — **ThePunisher-WirelessRedTeamExpert**: Wi-Fi/RF attack simulation for authorized engagements.
+- `red-team-ops/thepunisher-redteamtooldevelopmentexpert.md` — **ThePunisher-RedTeamToolDevelopmentExpert**: custom offensive-tooling development for authorized operations.
+- `red-team-ops/thepunisher-kerberosattackspecialist.md` — **ThePunisher-KerberosAttackSpecialist**: Kerberoasting/Golden-Ticket authorized attack-technique testing.
+- `red-team-ops/thepunisher-webapplicationredteamexpert.md` — **ThePunisher-WebApplicationRedTeamExpert**: web-application-focused red team operations.
+- `red-team-ops/thepunisher-redteampurplecollaborationliaison.md` — **ThePunisher-RedTeamPurpleCollaborationLiaison**: structured red-to-blue findings handoff for purple team exercises.
+- `red-team-ops/thepunisher-livingoffthelandtechniquesexpert.md` — **ThePunisher-LivingOffTheLandTechniquesExpert**: LOLBins/native-tool-based authorized offensive techniques.
+- `red-team-ops/thepunisher-redteamscenariodesignexpert.md` — **ThePunisher-RedTeamScenarioDesignExpert**: engagement scenario and rules-of-engagement design.
+- `red-team-ops/thepunisher-containerkubernetesredteamexpert.md` — **ThePunisher-ContainerKubernetesRedTeamExpert**: container/Kubernetes attack-path simulation.
+- `red-team-ops/thepunisher-mobileredteamexpert.md` — **ThePunisher-MobileRedTeamExpert**: mobile-app-focused red team operations (distinct from iOS/Android RE's app-level analysis).
+- `red-team-ops/thepunisher-redteamthreatintelintegrationexpert.md` — **ThePunisher-RedTeamThreatIntelIntegrationExpert**: real threat-actor TTP integration for realistic emulation.
+- `red-team-ops/thepunisher-edrbypassresearchexpert.md` — **ThePunisher-EDRBypassResearchExpert**: EDR/AV bypass research for authorized engagements.
+- `red-team-ops/thepunisher-redteamcommandchannelengineeringexpert.md` — **ThePunisher-RedTeamCommandChannelEngineeringExpert**: covert command-channel engineering (DNS/ICMP tunneling).
+- `red-team-ops/thepunisher-redteamcredentialharvestingexpert.md` — **ThePunisher-RedTeamCredentialHarvestingExpert**: authorized credential-harvesting technique research.
+- `red-team-ops/thepunisher-redteamattacksurfacemappingexpert.md` — **ThePunisher-RedTeamAttackSurfaceMappingExpert**: external attack-surface reconnaissance for engagements.
+- `red-team-ops/thepunisher-redteamrulesofengagementexpert.md` — **ThePunisher-RedTeamRulesOfEngagementExpert**: legal/scope boundary management for red team engagements.
+- `red-team-ops/thepunisher-supplychainredteamexpert.md` — **ThePunisher-SupplyChainRedTeamExpert**: authorized supply-chain-attack simulation.
+- `red-team-ops/thepunisher-redteampostexploitationexpert.md` — **ThePunisher-RedTeamPostExploitationExpert**: post-exploitation technique research for authorized engagements.
+- `red-team-ops/thepunisher-redteammalwaredevelopmentexpert.md` — **ThePunisher-RedTeamMalwareDevelopmentExpert**: custom malware development strictly for authorized testing.
+- `red-team-ops/thepunisher-redteamantiforensicsresearchexpert.md` — **ThePunisher-RedTeamAntiForensicsResearchExpert**: anti-forensics technique research for authorized engagements.
+- `red-team-ops/thepunisher-redteamosintspecialist.md` — **ThePunisher-RedTeamOSINTSpecialist**: open-source intelligence gathering for engagement reconnaissance.
+- `red-team-ops/thepunisher-redteamvulnerabilitychainingexpert.md` — **ThePunisher-RedTeamVulnerabilityChainingExpert**: chaining low-severity findings into high-impact attack paths.
+- `red-team-ops/thepunisher-redteamiotattackexpert.md` — **ThePunisher-RedTeamIoTAttackExpert**: IoT-device attack simulation for authorized engagements.
+- `red-team-ops/thepunisher-redteamapiabuseexpert.md` — **ThePunisher-RedTeamAPIAbuseExpert**: API-abuse technique research for authorized engagements.
+- `red-team-ops/thepunisher-redteamzerotrustbypassresearchexpert.md` — **ThePunisher-RedTeamZeroTrustBypassResearchExpert**: zero-trust-architecture bypass research (authorized only).
+- `red-team-ops/thepunisher-redteamscadaicsattacksimulationexpert.md` — **ThePunisher-RedTeamSCADAICSAttackSimulationExpert**: authorized SCADA/ICS attack simulation.
+- `red-team-ops/thepunisher-redteamautomationframeworkexpert.md` — **ThePunisher-RedTeamAutomationFrameworkExpert**: automating red team playbook execution.
+- `red-team-ops/thepunisher-redteamcloudidentityattackexpert.md` — **ThePunisher-RedTeamCloudIdentityAttackExpert**: Azure AD/Entra ID and cloud-identity attack-path research.
+- `red-team-ops/thepunisher-redteamcontainerescaperesearchexpert.md` — **ThePunisher-RedTeamContainerEscapeResearchExpert**: container-escape technique research (authorized only).
+- `red-team-ops/thepunisher-redteamthreatemulationplanexpert.md` — **ThePunisher-RedTeamThreatEmulationPlanExpert**: TTP-based operation planning for engagements.
+- `red-team-ops/thepunisher-redteamdebrieffacilitatorexpert.md` — **ThePunisher-RedTeamDebriefFacilitatorExpert**: structured engagement debrief facilitation.
+- `red-team-ops/thepunisher-redteamsimulatedransomwareexpert.md` — **ThePunisher-RedTeamSimulatedRansomwareExpert**: authorized simulated-ransomware exercises for resilience testing.
+- `red-team-ops/thepunisher-redteamnetworkpivotingexpert.md` — **ThePunisher-RedTeamNetworkPivotingExpert**: network-pivoting technique research for authorized engagements.
+- `red-team-ops/thepunisher-redteamcicdpipelineattackexpert.md` — **ThePunisher-RedTeamCICDPipelineAttackExpert**: authorized CI/CD pipeline compromise simulation.
+- `red-team-ops/thepunisher-redteamdeceptiondetectionexpert.md` — **ThePunisher-RedTeamDeceptionDetectionExpert**: detecting blue-team honeypots/deception during operations.
+- `red-team-ops/thepunisher-redteammetricskpiexpert.md` — **ThePunisher-RedTeamMetricsKPIExpert**: measuring red team program effectiveness.
+
+## Team 60 — Blue Team & Defensive Security Operations Engineering (50 agents)
+
+- `blue-team-defense/thepunisher-threathuntingexpert.md` — **ThePunisher-ThreatHuntingExpert**: proactive threat-hunting methodology and execution.
+- `blue-team-defense/thepunisher-siemengineeringexpert.md` — **ThePunisher-SIEMEngineeringExpert**: SIEM platform engineering and content development.
+- `blue-team-defense/thepunisher-edrengineeringexpert.md` — **ThePunisher-EDREngineeringExpert**: endpoint detection and response (EDR) platform engineering.
+- `blue-team-defense/thepunisher-sigmadetectionruleauthoringexpert.md` — **ThePunisher-SigmaDetectionRuleAuthoringExpert**: Sigma/detection-as-code rule authoring.
+- `blue-team-defense/thepunisher-socworkflowengineeringexpert.md` — **ThePunisher-SOCWorkflowEngineeringExpert**: security operations center workflow engineering.
+- `blue-team-defense/thepunisher-incidentresponseplaybookexpert.md` — **ThePunisher-IncidentResponsePlaybookExpert**: incident-response playbook authoring and maintenance.
+- `blue-team-defense/thepunisher-digitalforensicsexpert.md` — **ThePunisher-DigitalForensicsExpert**: digital forensics investigation methodology.
+- `blue-team-defense/thepunisher-malwaretriageanalystexpert.md` — **ThePunisher-MalwareTriageAnalystExpert**: SOC-level rapid malware triage (distinct from Team 5's deep RE analysis).
+- `blue-team-defense/thepunisher-networksecuritymonitoringexpert.md` — **ThePunisher-NetworkSecurityMonitoringExpert**: network security monitoring (NSM) engineering.
+- `blue-team-defense/thepunisher-soarautomationexpert.md` — **ThePunisher-SOARAutomationExpert**: security orchestration, automation, and response (SOAR) engineering.
+- `blue-team-defense/thepunisher-threatintelligenceplatformexpert.md` — **ThePunisher-ThreatIntelligencePlatformExpert**: threat-intelligence platform (TIP) engineering.
+- `blue-team-defense/thepunisher-uebaexpert.md` — **ThePunisher-UEBAExpert**: user and entity behavior analytics (UEBA) engineering.
+- `blue-team-defense/thepunisher-deceptiontechnologyexpert.md` — **ThePunisher-DeceptionTechnologyExpert**: honeypot/honeytoken deception-technology engineering.
+- `blue-team-defense/thepunisher-securitylogpipelineengineeringexpert.md` — **ThePunisher-SecurityLogPipelineEngineeringExpert**: security log-ingestion/normalization pipeline engineering.
+- `blue-team-defense/thepunisher-vulnerabilitymanagementprogramexpert.md` — **ThePunisher-VulnerabilityManagementProgramExpert**: enterprise vulnerability-management program engineering.
+- `blue-team-defense/thepunisher-securityoperationsdashboardexpert.md` — **ThePunisher-SecurityOperationsDashboardExpert**: SOC dashboard/visualization engineering.
+- `blue-team-defense/thepunisher-cloudsecurityposturemanagementexpert.md` — **ThePunisher-CloudSecurityPostureManagementExpert**: cloud security posture management (CSPM) engineering.
+- `blue-team-defense/thepunisher-identitythreatdetectionexpert.md` — **ThePunisher-IdentityThreatDetectionExpert**: identity threat detection and response (ITDR) engineering.
+- `blue-team-defense/thepunisher-ransomwareresponseexpert.md` — **ThePunisher-RansomwareResponseExpert**: ransomware incident-response methodology.
+- `blue-team-defense/thepunisher-insiderthreatdetectionexpert.md` — **ThePunisher-InsiderThreatDetectionExpert**: insider-threat detection program engineering.
+- `blue-team-defense/thepunisher-dnssecuritymonitoringexpert.md` — **ThePunisher-DNSSecurityMonitoringExpert**: DNS security monitoring/protective-DNS engineering.
+- `blue-team-defense/thepunisher-emailsecuritygatewayexpert.md` — **ThePunisher-EmailSecurityGatewayExpert**: email security gateway engineering.
+- `blue-team-defense/thepunisher-endpointhardeningexpert.md` — **ThePunisher-EndpointHardeningExpert**: endpoint hardening baseline engineering.
+- `blue-team-defense/thepunisher-networksegmentationengineeringexpert.md` — **ThePunisher-NetworkSegmentationEngineeringExpert**: network micro-segmentation engineering.
+- `blue-team-defense/thepunisher-threathuntingautomationexpert.md` — **ThePunisher-ThreatHuntingAutomationExpert**: automating recurring threat-hunt queries.
+- `blue-team-defense/thepunisher-securitydatalakeexpert.md` — **ThePunisher-SecurityDataLakeExpert**: security data-lake architecture engineering.
+- `blue-team-defense/thepunisher-mitreattackcoveragemappingexpert.md` — **ThePunisher-MITREATTACKCoverageMappingExpert**: mapping detection coverage against MITRE ATT&CK.
+- `blue-team-defense/thepunisher-detectionengineeringlifecycleexpert.md` — **ThePunisher-DetectionEngineeringLifecycleExpert**: detection-as-code lifecycle engineering (author/test/deploy/tune).
+- `blue-team-defense/thepunisher-threatintelligencefusionexpert.md` — **ThePunisher-ThreatIntelligenceFusionExpert**: fusing multiple threat-intel feeds into actionable analysis.
+- `blue-team-defense/thepunisher-securityincidentcommandexpert.md` — **ThePunisher-SecurityIncidentCommandExpert**: incident-command-system-style major-incident coordination.
+- `blue-team-defense/thepunisher-breachandattacksimulationexpert.md` — **ThePunisher-BreachAndAttackSimulationExpert**: continuous breach-and-attack-simulation (BAS) platform engineering.
+- `blue-team-defense/thepunisher-soctierescalationworkflowexpert.md` — **ThePunisher-SOCTierEscalationWorkflowExpert**: SOC tier-1/2/3 escalation-workflow engineering.
+- `blue-team-defense/thepunisher-crisiscommunicationforsecurityincidentsexpert.md` — **ThePunisher-CrisisCommunicationForSecurityIncidentsExpert**: incident crisis-communication planning.
+- `blue-team-defense/thepunisher-forensicimageacquisitionexpert.md` — **ThePunisher-ForensicImageAcquisitionExpert**: forensic disk/memory image acquisition methodology.
+- `blue-team-defense/thepunisher-memoryforensicsexpert.md` — **ThePunisher-MemoryForensicsExpert**: memory-forensics analysis (Volatility-style).
+- `blue-team-defense/thepunisher-networkforensicsexpert.md` — **ThePunisher-NetworkForensicsExpert**: full-packet-capture network-forensics analysis.
+- `blue-team-defense/thepunisher-threathuntinghypothesisdevelopmentexpert.md` — **ThePunisher-ThreatHuntingHypothesisDevelopmentExpert**: structured threat-hunt hypothesis development.
+- `blue-team-defense/thepunisher-securityalerttriageautomationexpert.md` — **ThePunisher-SecurityAlertTriageAutomationExpert**: automating security-alert triage/deduplication.
+- `blue-team-defense/thepunisher-zerodayresponseplaybookexpert.md` — **ThePunisher-ZeroDayResponsePlaybookExpert**: zero-day-vulnerability emergency-response playbooks.
+- `blue-team-defense/thepunisher-ddosmitigationengineeringexpert.md` — **ThePunisher-DDoSMitigationEngineeringExpert**: DDoS mitigation architecture engineering.
+- `blue-team-defense/thepunisher-securitychaosengineeringexpert.md` — **ThePunisher-SecurityChaosEngineeringExpert**: chaos-engineering practices applied to security-control resilience.
+- `blue-team-defense/thepunisher-threatfeedintegrationexpert.md` — **ThePunisher-ThreatFeedIntegrationExpert**: external threat-feed ingestion/integration engineering.
+- `blue-team-defense/thepunisher-waftuningexpert.md` — **ThePunisher-WAFTuningExpert**: web application firewall rule tuning.
+- `blue-team-defense/thepunisher-securityoperationsmetricsexpert.md` — **ThePunisher-SecurityOperationsMetricsExpert**: SOC KPI/metrics program engineering.
+- `blue-team-defense/thepunisher-securitybusinesscontinuityplanningexpert.md` — **ThePunisher-SecurityBusinessContinuityPlanningExpert**: security-incident business-continuity/DR planning.
+- `blue-team-defense/thepunisher-threatmodelingforblueteamexpert.md` — **ThePunisher-ThreatModelingForBlueTeamExpert**: defensive-posture-focused threat modeling for SOC prioritization.
+- `blue-team-defense/thepunisher-socshifthandoffprocessexpert.md` — **ThePunisher-SOCShiftHandoffProcessExpert**: SOC shift-handoff process engineering.
+- `blue-team-defense/thepunisher-securityawarenessincidentfeedbackloopexpert.md` — **ThePunisher-SecurityAwarenessIncidentFeedbackLoopExpert**: feeding real incidents back into security-awareness training.
+- `blue-team-defense/thepunisher-nextgenfirewallengineeringexpert.md` — **ThePunisher-NextGenFirewallEngineeringExpert**: next-generation firewall policy engineering.
+- `blue-team-defense/thepunisher-incidentpostmortemfacilitatorexpert.md` — **ThePunisher-IncidentPostMortemFacilitatorExpert**: blameless post-incident review facilitation.
+
+## Team 61 — Purple Team & Cyber Exercise Operations Engineering (50 agents)
+
+- `purple-team-exercises/thepunisher-purpleteamexercisedesignexpert.md` — **ThePunisher-PurpleTeamExerciseDesignExpert**: purple team exercise design and facilitation.
+- `purple-team-exercises/thepunisher-detectionvalidationexpert.md` — **ThePunisher-DetectionValidationExpert**: validating blue team detections against real red team TTPs.
+- `purple-team-exercises/thepunisher-mitreattackemulationplanexpert.md` — **ThePunisher-MITREATTACKEmulationPlanExpert**: authoring MITRE ATT&CK-mapped adversary emulation plans.
+- `purple-team-exercises/thepunisher-tabletopexercisefacilitatorexpert.md` — **ThePunisher-TabletopExerciseFacilitatorExpert**: tabletop cyber-exercise facilitation.
+- `purple-team-exercises/thepunisher-cyberrangeinfrastructureexpert.md` — **ThePunisher-CyberRangeInfrastructureExpert**: cyber range/wargame environment infrastructure engineering.
+- `purple-team-exercises/thepunisher-ctfinfrastructureexpert.md` — **ThePunisher-CTFInfrastructureExpert**: Capture-The-Flag platform infrastructure engineering (CTFd-style).
+- `purple-team-exercises/thepunisher-ctfchallengedesignexpert.md` — **ThePunisher-CTFChallengeDesignExpert**: CTF challenge design across categories (pwn/web/crypto/RE/forensics).
+- `purple-team-exercises/thepunisher-whiteteamexercisecontrolexpert.md` — **ThePunisher-WhiteTeamExerciseControlExpert**: White Team exercise-control: rules-of-engagement, scoring, and refereeing.
+- `purple-team-exercises/thepunisher-adversaryemulationlibraryexpert.md` — **ThePunisher-AdversaryEmulationLibraryExpert**: maintaining Atomic-Red-Team-style ATT&CK-mapped emulation libraries.
+- `purple-team-exercises/thepunisher-breachsimulationorchestrationexpert.md` — **ThePunisher-BreachSimulationOrchestrationExpert**: orchestrating breach-simulation exercises end to end.
+- `purple-team-exercises/thepunisher-purpleteammetricsexpert.md` — **ThePunisher-PurpleTeamMetricsExpert**: measuring detection-coverage improvement from purple team cycles.
+- `purple-team-exercises/thepunisher-securitycontrolvalidationexpert.md` — **ThePunisher-SecurityControlValidationExpert**: validating security-control effectiveness against real techniques.
+- `purple-team-exercises/thepunisher-wargamescenariodesignexpert.md` — **ThePunisher-WargameScenarioDesignExpert**: enterprise-scale cyber wargame scenario design.
+- `purple-team-exercises/thepunisher-redbluedebrieffacilitationexpert.md` — **ThePunisher-RedBlueDebriefFacilitationExpert**: facilitating structured red-vs-blue exercise debriefs.
+- `purple-team-exercises/thepunisher-continuouscontrolvalidationexpert.md` — **ThePunisher-ContinuousControlValidationExpert**: automated, ongoing (not point-in-time) control-validation engineering.
+- `purple-team-exercises/thepunisher-atomictestingframeworkexpert.md` — **ThePunisher-AtomicTestingFrameworkExpert**: Atomic-Red-Team-style atomic-test execution and authoring.
+- `purple-team-exercises/thepunisher-detectiongapanalysisexpert.md` — **ThePunisher-DetectionGapAnalysisExpert**: identifying and prioritizing detection coverage gaps.
+- `purple-team-exercises/thepunisher-cyberexerciseafteractionreportexpert.md` — **ThePunisher-CyberExerciseAfterActionReportExpert**: after-action-report authoring for cyber exercises.
+- `purple-team-exercises/thepunisher-securitytrainingsimulationexpert.md` — **ThePunisher-SecurityTrainingSimulationExpert**: hands-on security-training range/simulation design.
+- `purple-team-exercises/thepunisher-adversarysimulationplatformexpert.md` — **ThePunisher-AdversarySimulationPlatformExpert**: Caldera-style automated adversary-emulation platform engineering.
+- `purple-team-exercises/thepunisher-purpleteamcollaborationtoolingexpert.md` — **ThePunisher-PurpleTeamCollaborationToolingExpert**: tooling for real-time red/blue collaboration during exercises.
+- `purple-team-exercises/thepunisher-exerciseinjectdesignexpert.md` — **ThePunisher-ExerciseInjectDesignExpert**: crafting realistic 'injects' for tabletop/live exercises.
+- `purple-team-exercises/thepunisher-inteldrivenpurpleteamexpert.md` — **ThePunisher-IntelDrivenPurpleTeamExpert**: threat-intel-driven purple teaming (CTI-to-emulation pipeline).
+- `purple-team-exercises/thepunisher-cybercompetitionjudgingexpert.md` — **ThePunisher-CyberCompetitionJudgingExpert**: CTF/cyber-competition judging and scoring-system engineering.
+- `purple-team-exercises/thepunisher-securitycontroleffectivenessreportingexpert.md` — **ThePunisher-SecurityControlEffectivenessReportingExpert**: reporting security-control effectiveness to stakeholders.
+- `purple-team-exercises/thepunisher-redteamblueteamcommunicationprotocolexpert.md` — **ThePunisher-RedTeamBlueTeamCommunicationProtocolExpert**: designing safe-word/deconfliction communication protocols for live exercises.
+- `purple-team-exercises/thepunisher-exerciseparticipantonboardingexpert.md` — **ThePunisher-ExerciseParticipantOnboardingExpert**: onboarding participants into cyber exercises/ranges.
+- `purple-team-exercises/thepunisher-livefireexercisesafetyexpert.md` — **ThePunisher-LiveFireExerciseSafetyExpert**: ensuring live-fire cyber exercises stay within safe operational bounds.
+- `purple-team-exercises/thepunisher-detectionengineeringfeedbackloopexpert.md` — **ThePunisher-DetectionEngineeringFeedbackLoopExpert**: feeding purple team findings back into detection engineering.
+- `purple-team-exercises/thepunisher-cyberwargameaiopponentexpert.md` — **ThePunisher-CyberWargameAIOpponentExpert**: designing AI-driven adversary behavior for training exercises.
+- `purple-team-exercises/thepunisher-exerciseenvironmentteardownautomationexpert.md` — **ThePunisher-ExerciseEnvironmentTeardownAutomationExpert**: automating safe teardown of exercise environments.
+- `purple-team-exercises/thepunisher-multiteamexerciseorchestrationexpert.md` — **ThePunisher-MultiTeamExerciseOrchestrationExpert**: coordinating red/blue/white/gold teams in large exercises.
+- `purple-team-exercises/thepunisher-exercisecompliancemappingexpert.md` — **ThePunisher-ExerciseComplianceMappingExpert**: mapping cyber exercises to compliance-framework requirements (NIST CSF, etc.).
+- `purple-team-exercises/thepunisher-rangecontentlibraryexpert.md` — **ThePunisher-RangeContentLibraryExpert**: maintaining a reusable cyber-range scenario content library.
+- `purple-team-exercises/thepunisher-purpleteamtoolchainintegrationexpert.md` — **ThePunisher-PurpleTeamToolchainIntegrationExpert**: integrating red/blue toolchains for seamless purple team workflows.
+- `purple-team-exercises/thepunisher-securitybenchmarkingexpert.md` — **ThePunisher-SecurityBenchmarkingExpert**: benchmarking security posture before/after exercises.
+- `purple-team-exercises/thepunisher-exerciseschedulinglogisticsexpert.md` — **ThePunisher-ExerciseSchedulingLogisticsExpert**: cyber-exercise scheduling and logistics coordination.
+- `purple-team-exercises/thepunisher-cyberdefensecompetitioncoachexpert.md` — **ThePunisher-CyberDefenseCompetitionCoachExpert**: coaching teams for CCDC-style cyber-defense competitions.
+- `purple-team-exercises/thepunisher-adversaryprofilelibraryexpert.md` — **ThePunisher-AdversaryProfileLibraryExpert**: maintaining realistic threat-actor adversary profiles for emulation.
+- `purple-team-exercises/thepunisher-purpleteamautomationpipelineexpert.md` — **ThePunisher-PurpleTeamAutomationPipelineExpert**: CI/CD-style continuous purple-teaming pipeline engineering.
+- `purple-team-exercises/thepunisher-exerciseobservercontrollerexpert.md` — **ThePunisher-ExerciseObserverControllerExpert**: embedded observer/controller role during live exercises.
+- `purple-team-exercises/thepunisher-redteamfindingstodetectionpipelineexpert.md` — **ThePunisher-RedTeamFindingsToDetectionPipelineExpert**: turning red team findings directly into new detections.
+- `purple-team-exercises/thepunisher-securitygamificationexpert.md` — **ThePunisher-SecurityGamificationExpert**: gamifying security training and exercise participation.
+- `purple-team-exercises/thepunisher-nationalcyberexerciseplanningexpert.md` — **ThePunisher-NationalCyberExercisePlanningExpert**: national/large-scale multi-organization cyber exercise planning.
+- `purple-team-exercises/thepunisher-vulnerabilitydisclosurecoordinationexpert.md` — **ThePunisher-VulnerabilityDisclosureCoordinationExpert**: coordinated vulnerability disclosure process management.
+- `purple-team-exercises/thepunisher-bugbountyprogramoperationsexpert.md` — **ThePunisher-BugBountyProgramOperationsExpert**: running a crowdsourced bug bounty program end to end.
+- `purple-team-exercises/thepunisher-responsibledisclosurepolicyexpert.md` — **ThePunisher-ResponsibleDisclosurePolicyExpert**: authoring responsible-disclosure policy and safe-harbor terms.
+- `purple-team-exercises/thepunisher-securityresearchcommunityliaisonexpert.md` — **ThePunisher-SecurityResearchCommunityLiaisonExpert**: engaging with the white-hat independent security-research community.
+- `purple-team-exercises/thepunisher-ctfwriteupcurationexpert.md` — **ThePunisher-CTFWriteupCurationExpert**: curating/reviewing CTF writeups for training value.
+- `purple-team-exercises/thepunisher-purpleteamprogrammaturityassessmentexpert.md` — **ThePunisher-PurpleTeamProgramMaturityAssessmentExpert**: assessing organizational purple team program maturity.
+
+## Team 62 — Supply Chain & Logistics Technology Engineering (50 agents)
+
+- `supply-chain-logistics/thepunisher-transportationmanagementsystemexpert.md` — **ThePunisher-TransportationManagementSystemExpert**: transportation management system (TMS) engineering.
+- `supply-chain-logistics/thepunisher-logisticswarehousemanagementsystemexpert.md` — **ThePunisher-LogisticsWarehouseManagementSystemExpert**: multi-node logistics-network warehouse management system (WMS) engineering, distinct from Team 35's single-storefront-fulfillment WMS focus.
+- `supply-chain-logistics/thepunisher-lastmiledeliveryroutingexpert.md` — **ThePunisher-LastMileDeliveryRoutingExpert**: last-mile delivery route-optimization engineering.
+- `supply-chain-logistics/thepunisher-logisticsfleetmanagementexpert.md` — **ThePunisher-LogisticsFleetManagementExpert**: logistics fleet-management software engineering.
+- `supply-chain-logistics/thepunisher-freightbrokerageplatformexpert.md` — **ThePunisher-FreightBrokeragePlatformExpert**: freight brokerage marketplace-platform engineering.
+- `supply-chain-logistics/thepunisher-customstradecomplianceexpert.md` — **ThePunisher-CustomsTradeComplianceExpert**: customs/international-trade compliance engineering.
+- `supply-chain-logistics/thepunisher-coldchainmonitoringexpert.md` — **ThePunisher-ColdChainMonitoringExpert**: cold-chain temperature-monitoring system engineering.
+- `supply-chain-logistics/thepunisher-supplychainvisibilityplatformexpert.md` — **ThePunisher-SupplyChainVisibilityPlatformExpert**: end-to-end supply-chain visibility platform engineering.
+- `supply-chain-logistics/thepunisher-demandforecastingexpert.md` — **ThePunisher-DemandForecastingExpert**: supply-chain demand-forecasting model engineering.
+- `supply-chain-logistics/thepunisher-inventoryoptimizationexpert.md` — **ThePunisher-InventoryOptimizationExpert**: multi-echelon inventory-optimization engineering.
+- `supply-chain-logistics/thepunisher-multicarrierrouteoptimizationexpert.md` — **ThePunisher-MultiCarrierRouteOptimizationExpert**: cross-carrier, multi-stop logistics route-optimization engineering, distinct from Team 29's single-fleet vehicle-routing focus.
+- `supply-chain-logistics/thepunisher-containertrackingexpert.md` — **ThePunisher-ContainerTrackingExpert**: shipping-container tracking-system engineering.
+- `supply-chain-logistics/thepunisher-thirdpartylogisticsintegrationexpert.md` — **ThePunisher-ThirdPartyLogisticsIntegrationExpert**: third-party logistics (3PL) integration engineering.
+- `supply-chain-logistics/thepunisher-supplychainriskmanagementexpert.md` — **ThePunisher-SupplyChainRiskManagementExpert**: supply-chain risk-management platform engineering.
+- `supply-chain-logistics/thepunisher-procurementplatformexpert.md` — **ThePunisher-ProcurementPlatformExpert**: e-procurement platform engineering.
+- `supply-chain-logistics/thepunisher-supplierrelationshipmanagementexpert.md` — **ThePunisher-SupplierRelationshipManagementExpert**: supplier relationship management (SRM) platform engineering.
+- `supply-chain-logistics/thepunisher-reverselogisticsexpert.md` — **ThePunisher-ReverseLogisticsExpert**: returns/reverse-logistics workflow engineering.
+- `supply-chain-logistics/thepunisher-crossdockingoperationsexpert.md` — **ThePunisher-CrossDockingOperationsExpert**: cross-docking warehouse-operations engineering.
+- `supply-chain-logistics/thepunisher-logisticsediintegrationexpert.md` — **ThePunisher-LogisticsEDIIntegrationExpert**: logistics EDI (204/210/214/856) integration engineering.
+- `supply-chain-logistics/thepunisher-yardmanagementsystemexpert.md` — **ThePunisher-YardManagementSystemExpert**: yard management system (YMS) engineering.
+- `supply-chain-logistics/thepunisher-loadplanningoptimizationexpert.md` — **ThePunisher-LoadPlanningOptimizationExpert**: freight load-planning optimization engineering.
+- `supply-chain-logistics/thepunisher-freightauditpaymentexpert.md` — **ThePunisher-FreightAuditPaymentExpert**: freight audit and payment (FAP) automation engineering.
+- `supply-chain-logistics/thepunisher-supplychaindigitaltwinexpert.md` — **ThePunisher-SupplyChainDigitalTwinExpert**: supply-chain network digital-twin engineering.
+- `supply-chain-logistics/thepunisher-dronedeliverylogisticsexpert.md` — **ThePunisher-DroneDeliveryLogisticsExpert**: drone-delivery logistics-integration engineering.
+- `supply-chain-logistics/thepunisher-autonomousdeliveryrobotexpert.md` — **ThePunisher-AutonomousDeliveryRobotExpert**: autonomous delivery-robot fleet software engineering.
+- `supply-chain-logistics/thepunisher-logisticsapigatewayexpert.md` — **ThePunisher-LogisticsAPIGatewayExpert**: logistics-carrier API gateway engineering.
+- `supply-chain-logistics/thepunisher-parcelcarrierintegrationexpert.md` — **ThePunisher-ParcelCarrierIntegrationExpert**: parcel-carrier (UPS/FedEx/USPS-style) API integration engineering.
+- `supply-chain-logistics/thepunisher-supplychaincarbontrackingexpert.md` — **ThePunisher-SupplyChainCarbonTrackingExpert**: shipment-level carbon-footprint tracking engineering.
+- `supply-chain-logistics/thepunisher-manufacturingtodistributionintegrationexpert.md` — **ThePunisher-ManufacturingToDistributionIntegrationExpert**: manufacturing-to-distribution-network integration engineering.
+- `supply-chain-logistics/thepunisher-logisticscontroltowerexpert.md` — **ThePunisher-LogisticsControlTowerExpert**: logistics control-tower platform engineering.
+- `supply-chain-logistics/thepunisher-logisticsrpaautomationexpert.md` — **ThePunisher-LogisticsRPAAutomationExpert**: robotic process automation (RPA) for logistics back-office workflows.
+- `supply-chain-logistics/thepunisher-supplychainblockchainprovenanceexpert.md` — **ThePunisher-SupplyChainBlockchainProvenanceExpert**: blockchain-based supply-chain provenance-tracking engineering.
+- `supply-chain-logistics/thepunisher-fleetmaintenancepredictiveexpert.md` — **ThePunisher-FleetMaintenancePredictiveExpert**: predictive fleet-maintenance system engineering.
+- `supply-chain-logistics/thepunisher-drivereldcomplianceexpert.md` — **ThePunisher-DriverELDComplianceExpert**: Electronic Logging Device (ELD) / hours-of-service compliance engineering.
+- `supply-chain-logistics/thepunisher-freightrateengineexpert.md` — **ThePunisher-FreightRateEngineExpert**: freight rate-quoting engine engineering.
+- `supply-chain-logistics/thepunisher-warehouseautomationroboticsintegrationexpert.md` — **ThePunisher-WarehouseAutomationRoboticsIntegrationExpert**: warehouse robotics/automation integration engineering.
+- `supply-chain-logistics/thepunisher-supplychainnetworkdesignexpert.md` — **ThePunisher-SupplyChainNetworkDesignExpert**: supply-chain network-design/optimization engineering.
+- `supply-chain-logistics/thepunisher-inventoryreplenishmentautomationexpert.md` — **ThePunisher-InventoryReplenishmentAutomationExpert**: automated inventory-replenishment engineering.
+- `supply-chain-logistics/thepunisher-logisticsdatalakeexpert.md` — **ThePunisher-LogisticsDataLakeExpert**: logistics-industry data-lake architecture engineering.
+- `supply-chain-logistics/thepunisher-multimodaltransportoptimizationexpert.md` — **ThePunisher-MultimodalTransportOptimizationExpert**: multimodal (rail/truck/air/ocean) transport-optimization engineering.
+- `supply-chain-logistics/thepunisher-supplychaindisruptionsimulationexpert.md` — **ThePunisher-SupplyChainDisruptionSimulationExpert**: supply-chain disruption-scenario simulation engineering.
+- `supply-chain-logistics/thepunisher-portterminaloperatingsystemexpert.md` — **ThePunisher-PortTerminalOperatingSystemExpert**: port terminal operating system (TOS) engineering.
+- `supply-chain-logistics/thepunisher-pallettrackingrfidexpert.md` — **ThePunisher-PalletTrackingRFIDExpert**: pallet/asset RFID-tracking system engineering.
+- `supply-chain-logistics/thepunisher-logisticscustomerportalexpert.md` — **ThePunisher-LogisticsCustomerPortalExpert**: logistics customer self-service portal engineering.
+- `supply-chain-logistics/thepunisher-freightmarketplaceexpert.md` — **ThePunisher-FreightMarketplaceExpert**: digital freight-marketplace platform engineering.
+- `supply-chain-logistics/thepunisher-supplychaincompliancereportingexpert.md` — **ThePunisher-SupplyChainComplianceReportingExpert**: supply-chain regulatory-compliance reporting engineering.
+- `supply-chain-logistics/thepunisher-warehouseslottingoptimizationexpert.md` — **ThePunisher-WarehouseSlottingOptimizationExpert**: warehouse slotting/layout optimization engineering.
+- `supply-chain-logistics/thepunisher-logisticsexceptionmanagementexpert.md` — **ThePunisher-LogisticsExceptionManagementExpert**: shipment-exception management-workflow engineering.
+- `supply-chain-logistics/thepunisher-b2bordermanagementexpert.md` — **ThePunisher-B2BOrderManagementExpert**: B2B order-management system engineering.
+- `supply-chain-logistics/thepunisher-supplychainanalyticsdashboardexpert.md` — **ThePunisher-SupplyChainAnalyticsDashboardExpert**: supply-chain analytics/KPI dashboard engineering.
+
+## Team 63 — Construction Technology Engineering (50 agents)
+
+- `contech/thepunisher-bimsoftwareengineeringexpert.md` — **ThePunisher-BIMSoftwareEngineeringExpert**: Building Information Modeling (BIM) software engineering.
+- `contech/thepunisher-constructionprojectschedulingexpert.md` — **ThePunisher-ConstructionProjectSchedulingExpert**: construction project-scheduling (CPM) software engineering.
+- `contech/thepunisher-constructionsitesafetytechexpert.md` — **ThePunisher-ConstructionSiteSafetyTechExpert**: construction site-safety technology engineering.
+- `contech/thepunisher-constructionestimatingsoftwareexpert.md` — **ThePunisher-ConstructionEstimatingSoftwareExpert**: construction cost-estimating software engineering.
+- `contech/thepunisher-constructiondronesurveyingexpert.md` — **ThePunisher-ConstructionDroneSurveyingExpert**: construction-site drone surveying/mapping engineering.
+- `contech/thepunisher-constructioniotsensorexpert.md` — **ThePunisher-ConstructionIoTSensorExpert**: construction-site IoT sensor-network engineering.
+- `contech/thepunisher-constructionequipmenttelematicsexpert.md` — **ThePunisher-ConstructionEquipmentTelematicsExpert**: heavy-equipment telematics engineering for construction fleets.
+- `contech/thepunisher-constructiondocumentcontrolexpert.md` — **ThePunisher-ConstructionDocumentControlExpert**: construction document-control system engineering.
+- `contech/thepunisher-constructionfieldreportingappexpert.md` — **ThePunisher-ConstructionFieldReportingAppExpert**: construction daily field-reporting app engineering.
+- `contech/thepunisher-constructionpunchlistexpert.md` — **ThePunisher-ConstructionPunchListExpert**: construction punch-list management engineering.
+- `contech/thepunisher-constructionrfiworkflowexpert.md` — **ThePunisher-ConstructionRFIWorkflowExpert**: construction Request-for-Information (RFI) workflow engineering.
+- `contech/thepunisher-constructionchangeordermanagementexpert.md` — **ThePunisher-ConstructionChangeOrderManagementExpert**: construction change-order management engineering.
+- `contech/thepunisher-constructionsubcontractormanagementexpert.md` — **ThePunisher-ConstructionSubcontractorManagementExpert**: subcontractor management-platform engineering.
+- `contech/thepunisher-constructionbidmanagementexpert.md` — **ThePunisher-ConstructionBidManagementExpert**: construction bid-management platform engineering.
+- `contech/thepunisher-constructionmaterialtrackingexpert.md` — **ThePunisher-ConstructionMaterialTrackingExpert**: construction material-tracking system engineering.
+- `contech/thepunisher-constructionwearablesafetytechexpert.md` — **ThePunisher-ConstructionWearableSafetyTechExpert**: wearable safety-technology engineering for construction workers.
+- `contech/thepunisher-constructionroboticsautomationexpert.md` — **ThePunisher-ConstructionRoboticsAutomationExpert**: construction-site robotics/automation integration engineering.
+- `contech/thepunisher-constructionprogressdigitaltwinexpert.md` — **ThePunisher-ConstructionProgressDigitalTwinExpert**: construction-progress digital-twin engineering (distinct from post-handover building digital twins).
+- `contech/thepunisher-construction3dprintingexpert.md` — **ThePunisher-Construction3DPrintingExpert**: 3D-printed construction technology engineering.
+- `contech/thepunisher-constructionarvisualizationexpert.md` — **ThePunisher-ConstructionARVisualizationExpert**: AR-overlay BIM-on-site visualization engineering.
+- `contech/thepunisher-constructionqualitycontrolappexpert.md` — **ThePunisher-ConstructionQualityControlAppExpert**: construction quality-control inspection-app engineering.
+- `contech/thepunisher-constructionlaborproductivitytrackingexpert.md` — **ThePunisher-ConstructionLaborProductivityTrackingExpert**: construction labor-productivity tracking engineering.
+- `contech/thepunisher-constructionpermitcomplianceexpert.md` — **ThePunisher-ConstructionPermitComplianceExpert**: construction building-permit compliance-tracking engineering.
+- `contech/thepunisher-constructionsupplychaincoordinationexpert.md` — **ThePunisher-ConstructionSupplyChainCoordinationExpert**: construction-materials supply-chain coordination engineering.
+- `contech/thepunisher-constructioncostcontrolsoftwareexpert.md` — **ThePunisher-ConstructionCostControlSoftwareExpert**: construction cost-control/budget-tracking software engineering.
+- `contech/thepunisher-constructioncraneliftplanningexpert.md` — **ThePunisher-ConstructionCraneLiftPlanningExpert**: crane lift-planning software engineering.
+- `contech/thepunisher-constructionenergymodelingexpert.md` — **ThePunisher-ConstructionEnergyModelingExpert**: pre-construction building energy-performance modeling engineering.
+- `contech/thepunisher-constructionclashdetectionexpert.md` — **ThePunisher-ConstructionClashDetectionExpert**: BIM clash-detection engineering.
+- `contech/thepunisher-constructionmodularprefabcoordinationexpert.md` — **ThePunisher-ConstructionModularPrefabCoordinationExpert**: modular/prefabrication coordination-platform engineering.
+- `contech/thepunisher-constructionsiteaccesscontrolexpert.md` — **ThePunisher-ConstructionSiteAccessControlExpert**: construction-site access-control system engineering.
+- `contech/thepunisher-constructionweatherimpactplanningexpert.md` — **ThePunisher-ConstructionWeatherImpactPlanningExpert**: weather-impact construction-schedule planning engineering.
+- `contech/thepunisher-constructioninspectionchecklistappexpert.md` — **ThePunisher-ConstructionInspectionChecklistAppExpert**: construction inspection-checklist app engineering.
+- `contech/thepunisher-constructionasbuiltdocumentationexpert.md` — **ThePunisher-ConstructionAsBuiltDocumentationExpert**: as-built documentation-capture engineering.
+- `contech/thepunisher-constructionequipmentutilizationanalyticsexpert.md` — **ThePunisher-ConstructionEquipmentUtilizationAnalyticsExpert**: construction-equipment utilization-analytics engineering.
+- `contech/thepunisher-constructionsitelogisticsplanningexpert.md` — **ThePunisher-ConstructionSiteLogisticsPlanningExpert**: construction-site logistics/laydown-area planning engineering.
+- `contech/thepunisher-constructionsafetyincidentreportingexpert.md` — **ThePunisher-ConstructionSafetyIncidentReportingExpert**: construction safety-incident reporting-system engineering.
+- `contech/thepunisher-constructionworkforceschedulingexpert.md` — **ThePunisher-ConstructionWorkforceSchedulingExpert**: construction workforce-scheduling engineering.
+- `contech/thepunisher-constructiongeotechnicaldataexpert.md` — **ThePunisher-ConstructionGeotechnicalDataExpert**: geotechnical/soil-survey data-management engineering.
+- `contech/thepunisher-constructionpointcloudprocessingexpert.md` — **ThePunisher-ConstructionPointCloudProcessingExpert**: LiDAR scan-to-BIM point-cloud processing engineering.
+- `contech/thepunisher-constructionvendorprequalificationexpert.md` — **ThePunisher-ConstructionVendorPrequalificationExpert**: construction vendor-prequalification platform engineering.
+- `contech/thepunisher-constructioncontractmanagementexpert.md` — **ThePunisher-ConstructionContractManagementExpert**: construction contract-management engineering.
+- `contech/thepunisher-constructioncarbonfootprinttrackingexpert.md` — **ThePunisher-ConstructionCarbonFootprintTrackingExpert**: embodied-carbon tracking engineering for construction projects.
+- `contech/thepunisher-constructionautonomousequipmentexpert.md` — **ThePunisher-ConstructionAutonomousEquipmentExpert**: autonomous heavy-equipment (excavator/bulldozer) software engineering.
+- `contech/thepunisher-constructionsitephotogrammetryexpert.md` — **ThePunisher-ConstructionSitePhotogrammetryExpert**: construction-site photogrammetry/reality-capture engineering.
+- `contech/thepunisher-constructionownercollaborationportalexpert.md` — **ThePunisher-ConstructionOwnerCollaborationPortalExpert**: owner/stakeholder collaboration-portal engineering.
+- `contech/thepunisher-constructioninsuranceclaimsintegrationexpert.md` — **ThePunisher-ConstructionInsuranceClaimsIntegrationExpert**: builder's-risk insurance claims-integration engineering.
+- `contech/thepunisher-constructionregulatorycodecomplianceexpert.md` — **ThePunisher-ConstructionRegulatoryCodeComplianceExpert**: building-code regulatory-compliance engineering.
+- `contech/thepunisher-constructionequipmentrentalmanagementexpert.md` — **ThePunisher-ConstructionEquipmentRentalManagementExpert**: construction-equipment rental-management platform engineering.
+- `contech/thepunisher-constructionprojectdashboardexpert.md` — **ThePunisher-ConstructionProjectDashboardExpert**: construction project-dashboard/reporting engineering.
+- `contech/thepunisher-constructionhandovercloseoutexpert.md` — **ThePunisher-ConstructionHandoverCloseoutExpert**: construction project handover/closeout documentation engineering.
+
+## Team 64 — Travel & Hospitality Technology Engineering (50 agents)
+
+- `travel-hospitality/thepunisher-hotelpropertymanagementsystemexpert.md` — **ThePunisher-HotelPropertyManagementSystemExpert**: hotel property management system (PMS) engineering.
+- `travel-hospitality/thepunisher-gdsintegrationexpert.md` — **ThePunisher-GDSIntegrationExpert**: Global Distribution System (Amadeus/Sabre/Travelport) integration engineering.
+- `travel-hospitality/thepunisher-bookingengineexpert.md` — **ThePunisher-BookingEngineExpert**: travel/hospitality booking-engine engineering.
+- `travel-hospitality/thepunisher-dynamicpricingrevenuemanagementexpert.md` — **ThePunisher-DynamicPricingRevenueManagementExpert**: hospitality dynamic-pricing/revenue-management engineering.
+- `travel-hospitality/thepunisher-channelmanagerexpert.md` — **ThePunisher-ChannelManagerExpert**: OTA channel-manager distribution engineering.
+- `travel-hospitality/thepunisher-loyaltyprogramplatformexpert.md` — **ThePunisher-LoyaltyProgramPlatformExpert**: travel/hospitality loyalty-program platform engineering.
+- `travel-hospitality/thepunisher-travelitineraryplanningexpert.md` — **ThePunisher-TravelItineraryPlanningExpert**: travel itinerary-planning engine engineering.
+- `travel-hospitality/thepunisher-airlinereservationsystemexpert.md` — **ThePunisher-AirlineReservationSystemExpert**: airline reservation system (PSS) engineering.
+- `travel-hospitality/thepunisher-flightpricingengineexpert.md` — **ThePunisher-FlightPricingEngineExpert**: airline flight-pricing engine engineering.
+- `travel-hospitality/thepunisher-travelmetasearchintegrationexpert.md` — **ThePunisher-TravelMetasearchIntegrationExpert**: travel metasearch-engine integration engineering.
+- `travel-hospitality/thepunisher-carrentalreservationsystemexpert.md` — **ThePunisher-CarRentalReservationSystemExpert**: car-rental reservation-system engineering.
+- `travel-hospitality/thepunisher-cruiselinebookingsystemexpert.md` — **ThePunisher-CruiseLineBookingSystemExpert**: cruise-line booking-system engineering.
+- `travel-hospitality/thepunisher-travelpaymentgatewayexpert.md` — **ThePunisher-TravelPaymentGatewayExpert**: travel-industry payment-gateway integration engineering.
+- `travel-hospitality/thepunisher-hospitalityguestexperienceplatformexpert.md` — **ThePunisher-HospitalityGuestExperiencePlatformExpert**: hospitality guest-experience platform engineering.
+- `travel-hospitality/thepunisher-hotelhousekeepingmanagementexpert.md` — **ThePunisher-HotelHousekeepingManagementExpert**: hotel housekeeping-management system engineering.
+- `travel-hospitality/thepunisher-restaurantreservationsystemexpert.md` — **ThePunisher-RestaurantReservationSystemExpert**: restaurant reservation-system engineering.
+- `travel-hospitality/thepunisher-travelinsuranceintegrationexpert.md` — **ThePunisher-TravelInsuranceIntegrationExpert**: travel-insurance product integration engineering.
+- `travel-hospitality/thepunisher-traveldisruptionrebookingexpert.md` — **ThePunisher-TravelDisruptionRebookingExpert**: traveler-facing disruption/rebooking automation engineering.
+- `travel-hospitality/thepunisher-airportoperationssoftwareexpert.md` — **ThePunisher-AirportOperationsSoftwareExpert**: airport operations-software engineering.
+- `travel-hospitality/thepunisher-baggagetrackingsystemexpert.md` — **ThePunisher-BaggageTrackingSystemExpert**: airline baggage-tracking system engineering.
+- `travel-hospitality/thepunisher-travelexpensemanagementexpert.md` — **ThePunisher-TravelExpenseManagementExpert**: corporate travel-expense management engineering.
+- `travel-hospitality/thepunisher-corporatetravelmanagementplatformexpert.md` — **ThePunisher-CorporateTravelManagementPlatformExpert**: corporate travel-management platform engineering.
+- `travel-hospitality/thepunisher-travelpackagedynamicbundlingexpert.md` — **ThePunisher-TravelPackageDynamicBundlingExpert**: dynamic travel-package bundling-engine engineering.
+- `travel-hospitality/thepunisher-touroperatorplatformexpert.md` — **ThePunisher-TourOperatorPlatformExpert**: tour-operator booking-platform engineering.
+- `travel-hospitality/thepunisher-travelreviewsreputationmanagementexpert.md` — **ThePunisher-TravelReviewsReputationManagementExpert**: travel/hospitality review and reputation-management engineering.
+- `travel-hospitality/thepunisher-hotelrevenueforecastingexpert.md` — **ThePunisher-HotelRevenueForecastingExpert**: hotel revenue-forecasting model engineering.
+- `travel-hospitality/thepunisher-travelsearchrankingexpert.md` — **ThePunisher-TravelSearchRankingExpert**: travel-search results ranking-engine engineering.
+- `travel-hospitality/thepunisher-hospitalityposintegrationexpert.md` — **ThePunisher-HospitalityPOSIntegrationExpert**: hospitality point-of-sale (F&B) integration engineering.
+- `travel-hospitality/thepunisher-travelvisadocumentationexpert.md` — **ThePunisher-TravelVisaDocumentationExpert**: travel visa/entry-documentation requirement engineering.
+- `travel-hospitality/thepunisher-airlinecrewschedulingexpert.md` — **ThePunisher-AirlineCrewSchedulingExpert**: airline crew-scheduling system engineering.
+- `travel-hospitality/thepunisher-flightoperationscontrolexpert.md` — **ThePunisher-FlightOperationsControlExpert**: airline flight-operations control-center software engineering.
+- `travel-hospitality/thepunisher-travelancillaryservicesupsellexpert.md` — **ThePunisher-TravelAncillaryServicesUpsellExpert**: travel ancillary-services (seat/bag) upsell-engine engineering.
+- `travel-hospitality/thepunisher-hotelchannelrateparitymonitoringexpert.md` — **ThePunisher-HotelChannelRateParityMonitoringExpert**: hotel rate-parity monitoring-across-channels engineering.
+- `travel-hospitality/thepunisher-travelgroupbookingmanagementexpert.md` — **ThePunisher-TravelGroupBookingManagementExpert**: group/block travel-booking management engineering.
+- `travel-hospitality/thepunisher-hospitalityeventsmeetingsplatformexpert.md` — **ThePunisher-HospitalityEventsMeetingsPlatformExpert**: hospitality events/meetings booking-platform engineering.
+- `travel-hospitality/thepunisher-travelmobilecheckinexpert.md` — **ThePunisher-TravelMobileCheckInExpert**: mobile check-in/digital-key engineering.
+- `travel-hospitality/thepunisher-hotelsmartroomiotexpert.md` — **ThePunisher-HotelSmartRoomIoTExpert**: hotel smart-room IoT integration engineering.
+- `travel-hospitality/thepunisher-travelaccessibilitycomplianceexpert.md` — **ThePunisher-TravelAccessibilityComplianceExpert**: travel/hospitality accessibility-compliance engineering.
+- `travel-hospitality/thepunisher-travelcarbonfootprintcalculatorexpert.md` — **ThePunisher-TravelCarbonFootprintCalculatorExpert**: trip-level carbon-footprint calculator engineering.
+- `travel-hospitality/thepunisher-travelfrauddetectionexpert.md` — **ThePunisher-TravelFraudDetectionExpert**: travel-booking fraud-detection engineering.
+- `travel-hospitality/thepunisher-hospitalitystaffschedulingexpert.md` — **ThePunisher-HospitalityStaffSchedulingExpert**: hospitality staff-scheduling engineering.
+- `travel-hospitality/thepunisher-travelmulticurrencypricingexpert.md` — **ThePunisher-TravelMultiCurrencyPricingExpert**: multi-currency travel-pricing engineering.
+- `travel-hospitality/thepunisher-airlineirregularoperationsexpert.md` — **ThePunisher-AirlineIrregularOperationsExpert**: airline irregular-operations (IROPS) management engineering.
+- `travel-hospitality/thepunisher-travelsuppliercontentaggregationexpert.md` — **ThePunisher-TravelSupplierContentAggregationExpert**: travel-supplier content-aggregation engineering.
+- `travel-hospitality/thepunisher-hospitalityguestcommunicationchatbotexpert.md` — **ThePunisher-HospitalityGuestCommunicationChatbotExpert**: hospitality guest-communication chatbot engineering.
+- `travel-hospitality/thepunisher-travelagentportalexpert.md` — **ThePunisher-TravelAgentPortalExpert**: travel-agent booking-portal engineering.
+- `travel-hospitality/thepunisher-airportsecurityscreeningtechexpert.md` — **ThePunisher-AirportSecurityScreeningTechExpert**: airport security-screening technology integration engineering.
+- `travel-hospitality/thepunisher-travelpassengerdataprivacycomplianceexpert.md` — **ThePunisher-TravelPassengerDataPrivacyComplianceExpert**: PNR/passenger-data privacy-compliance engineering.
+- `travel-hospitality/thepunisher-travelbookingabandonmentrecoveryexpert.md` — **ThePunisher-TravelBookingAbandonmentRecoveryExpert**: travel-booking cart-abandonment recovery engineering.
+- `travel-hospitality/thepunisher-travelvacationrentaldistributionexpert.md` — **ThePunisher-TravelVacationRentalDistributionExpert**: vacation-rental distribution-channel engineering (travel-marketplace side, distinct from PropTech's property-management focus).
+
+## Team 65 — Public Safety & Emergency Management Technology Engineering (50 agents)
+
+- `public-safety-tech/thepunisher-computeraideddispatchexpert.md` — **ThePunisher-ComputerAidedDispatchExpert**: computer-aided dispatch (CAD) system engineering.
+- `public-safety-tech/thepunisher-ng911systemsexpert.md` — **ThePunisher-NG911SystemsExpert**: Next Generation 911 (NG911) system engineering.
+- `public-safety-tech/thepunisher-emergencyalertingipawsexpert.md` — **ThePunisher-EmergencyAlertingIPAWSExpert**: IPAWS/Wireless Emergency Alert (WEA) system integration engineering.
+- `public-safety-tech/thepunisher-firstrespondermobiledataterminalexpert.md` — **ThePunisher-FirstResponderMobileDataTerminalExpert**: first-responder mobile data terminal (MDT) software engineering.
+- `public-safety-tech/thepunisher-incidentcommandsoftwareexpert.md` — **ThePunisher-IncidentCommandSoftwareExpert**: incident command system (ICS) software engineering.
+- `public-safety-tech/thepunisher-publicsafetyrecordsmanagementexpert.md` — **ThePunisher-PublicSafetyRecordsManagementExpert**: public-safety records management system (RMS) engineering.
+- `public-safety-tech/thepunisher-emergencyoperationscentersoftwareexpert.md` — **ThePunisher-EmergencyOperationsCenterSoftwareExpert**: emergency operations center (EOC) software engineering.
+- `public-safety-tech/thepunisher-massnotificationsystemexpert.md` — **ThePunisher-MassNotificationSystemExpert**: mass-notification/emergency-alerting system engineering.
+- `public-safety-tech/thepunisher-publicsafetygisexpert.md` — **ThePunisher-PublicSafetyGISExpert**: public-safety GIS/mapping system engineering.
+- `public-safety-tech/thepunisher-call911handlingsystemexpert.md` — **ThePunisher-Call911HandlingSystemExpert**: 911 call-handling system engineering.
+- `public-safety-tech/thepunisher-firestationalertingexpert.md` — **ThePunisher-FireStationAlertingExpert**: fire-station alerting system engineering.
+- `public-safety-tech/thepunisher-ambulancedispatchoptimizationexpert.md` — **ThePunisher-AmbulanceDispatchOptimizationExpert**: ambulance dispatch/routing optimization engineering.
+- `public-safety-tech/thepunisher-publicsafetyradiointeroperabilityexpert.md` — **ThePunisher-PublicSafetyRadioInteroperabilityExpert**: P25 public-safety radio interoperability engineering.
+- `public-safety-tech/thepunisher-disasterresponsecoordinationplatformexpert.md` — **ThePunisher-DisasterResponseCoordinationPlatformExpert**: multi-agency disaster-response coordination-platform engineering.
+- `public-safety-tech/thepunisher-evacuationrouteplanningexpert.md` — **ThePunisher-EvacuationRoutePlanningExpert**: evacuation route-planning software engineering.
+- `public-safety-tech/thepunisher-publicsafetybodycameramanagementexpert.md` — **ThePunisher-PublicSafetyBodyCameraManagementExpert**: body-worn camera evidence-management system engineering.
+- `public-safety-tech/thepunisher-crimemappinganalyticsexpert.md` — **ThePunisher-CrimeMappingAnalyticsExpert**: crime-mapping/analytics platform engineering.
+- `public-safety-tech/thepunisher-publicsafetylicenseplaterecognitionexpert.md` — **ThePunisher-PublicSafetyLicensePlateRecognitionExpert**: license-plate recognition integration engineering (authorized only).
+- `public-safety-tech/thepunisher-emergencymedicaldispatchprotocolexpert.md` — **ThePunisher-EmergencyMedicalDispatchProtocolExpert**: emergency medical dispatch (EMD) protocol-software engineering.
+- `public-safety-tech/thepunisher-publicsafetydroneresponseexpert.md` — **ThePunisher-PublicSafetyDroneResponseExpert**: drone-as-first-responder program software engineering.
+- `public-safety-tech/thepunisher-wildfiredetectionmonitoringexpert.md` — **ThePunisher-WildfireDetectionMonitoringExpert**: wildfire detection/monitoring system engineering.
+- `public-safety-tech/thepunisher-floodmonitoringearlywarningexpert.md` — **ThePunisher-FloodMonitoringEarlyWarningExpert**: flood monitoring/early-warning system engineering.
+- `public-safety-tech/thepunisher-publicsafetyresourceallocationexpert.md` — **ThePunisher-PublicSafetyResourceAllocationExpert**: public-safety resource-allocation optimization engineering.
+- `public-safety-tech/thepunisher-emergencymanagementtrainingsimulationexpert.md` — **ThePunisher-EmergencyManagementTrainingSimulationExpert**: emergency-management training-simulation engineering.
+- `public-safety-tech/thepunisher-publicsafetydatasharinginteroperabilityexpert.md` — **ThePunisher-PublicSafetyDataSharingInteroperabilityExpert**: cross-agency public-safety data-sharing interoperability engineering.
+- `public-safety-tech/thepunisher-searchandrescuecoordinationexpert.md` — **ThePunisher-SearchAndRescueCoordinationExpert**: search-and-rescue coordination-platform engineering.
+- `public-safety-tech/thepunisher-publicsafetyofficerwellnesstechexpert.md` — **ThePunisher-PublicSafetyOfficerWellnessTechExpert**: first-responder wellness/fatigue-monitoring technology engineering.
+- `public-safety-tech/thepunisher-criticalinfrastructureprotectionmonitoringexpert.md` — **ThePunisher-CriticalInfrastructureProtectionMonitoringExpert**: critical-infrastructure protection-monitoring system engineering.
+- `public-safety-tech/thepunisher-publicsafetyvideoanalyticsexpert.md` — **ThePunisher-PublicSafetyVideoAnalyticsExpert**: public-safety video-analytics engineering (authorized only).
+- `public-safety-tech/thepunisher-emergencysheltermanagementexpert.md` — **ThePunisher-EmergencyShelterManagementExpert**: emergency-shelter management-system engineering.
+- `public-safety-tech/thepunisher-publicsafetyrecordsredactionexpert.md` — **ThePunisher-PublicSafetyRecordsRedactionExpert**: public-records redaction engineering for FOIA/open-records requests.
+- `public-safety-tech/thepunisher-hazmatincidentresponsesoftwareexpert.md` — **ThePunisher-HazmatIncidentResponseSoftwareExpert**: hazardous-materials incident-response software engineering.
+- `public-safety-tech/thepunisher-publicsafetymutualaidcoordinationexpert.md` — **ThePunisher-PublicSafetyMutualAidCoordinationExpert**: mutual-aid coordination-system engineering.
+- `public-safety-tech/thepunisher-trafficincidentmanagementexpert.md` — **ThePunisher-TrafficIncidentManagementExpert**: traffic incident-management system engineering.
+- `public-safety-tech/thepunisher-publicsafetycitizenreportingappexpert.md` — **ThePunisher-PublicSafetyCitizenReportingAppExpert**: citizen incident-reporting app engineering.
+- `public-safety-tech/thepunisher-emergencywarningsirennetworkexpert.md` — **ThePunisher-EmergencyWarningSirenNetworkExpert**: outdoor warning-siren network system engineering.
+- `public-safety-tech/thepunisher-publicsafetyforensicevidencemanagementexpert.md` — **ThePunisher-PublicSafetyForensicEvidenceManagementExpert**: forensic evidence chain-of-custody management engineering.
+- `public-safety-tech/thepunisher-publicsafetystaffingschedulingexpert.md` — **ThePunisher-PublicSafetyStaffingSchedulingExpert**: public-safety shift-staffing/scheduling engineering.
+- `public-safety-tech/thepunisher-publicsafetygrantmanagementexpert.md` — **ThePunisher-PublicSafetyGrantManagementExpert**: public-safety grant-funding management engineering.
+- `public-safety-tech/thepunisher-publicsafetycommunityengagementplatformexpert.md` — **ThePunisher-PublicSafetyCommunityEngagementPlatformExpert**: community-engagement platform engineering for public-safety agencies.
+- `public-safety-tech/thepunisher-realtimecrimecenterexpert.md` — **ThePunisher-RealTimeCrimeCenterExpert**: real-time crime center (RTCC) software engineering.
+- `public-safety-tech/thepunisher-publicsafetydataprivacycomplianceexpert.md` — **ThePunisher-PublicSafetyDataPrivacyComplianceExpert**: public-safety data-privacy compliance engineering (CJIS-adjacent).
+- `public-safety-tech/thepunisher-emergencymanagementafteractionreportexpert.md` — **ThePunisher-EmergencyManagementAfterActionReportExpert**: emergency-management after-action-report engineering.
+- `public-safety-tech/thepunisher-publicsafetyweatheralertintegrationexpert.md` — **ThePunisher-PublicSafetyWeatherAlertIntegrationExpert**: severe-weather alert integration engineering for dispatch systems.
+- `public-safety-tech/thepunisher-publicsafetyassetfleetmanagementexpert.md` — **ThePunisher-PublicSafetyAssetFleetManagementExpert**: public-safety vehicle/asset fleet-management engineering.
+- `public-safety-tech/thepunisher-publicsafetyvolunteercoordinationexpert.md` — **ThePunisher-PublicSafetyVolunteerCoordinationExpert**: volunteer first-responder/CERT coordination engineering.
+- `public-safety-tech/thepunisher-publicsafetycyberincidentresponseplanningexpert.md` — **ThePunisher-PublicSafetyCyberIncidentResponsePlanningExpert**: cyber-incident response planning for public-safety agencies.
+- `public-safety-tech/thepunisher-publicsafetyaccessibilitycommunicationexpert.md` — **ThePunisher-PublicSafetyAccessibilityCommunicationExpert**: accessible emergency-communication engineering (disability/language access).
+- `public-safety-tech/thepunisher-publicsafetymultiagencycommandexpert.md` — **ThePunisher-PublicSafetyMultiAgencyCommandExpert**: unified multi-agency command-system engineering.
+- `public-safety-tech/thepunisher-publicsafetyperformancemetricsdashboardexpert.md` — **ThePunisher-PublicSafetyPerformanceMetricsDashboardExpert**: public-safety response-time/performance-metrics dashboard engineering.
+
+## Team 66 — Fashion & Apparel Technology Engineering (50 agents)
+
+- `fashion-tech/thepunisher-apparelplmsoftwareexpert.md` — **ThePunisher-ApparelPLMSoftwareExpert**: apparel product lifecycle management (PLM) software engineering.
+- `fashion-tech/thepunisher-virtualtryonexpert.md` — **ThePunisher-VirtualTryOnExpert**: virtual try-on (AR/3D) engineering for apparel.
+- `fashion-tech/thepunisher-sizefitpredictionexpert.md` — **ThePunisher-SizeFitPredictionExpert**: apparel size/fit prediction-model engineering.
+- `fashion-tech/thepunisher-textilesupplychaintraceabilityexpert.md` — **ThePunisher-TextileSupplyChainTraceabilityExpert**: textile/raw-material supply-chain traceability engineering.
+- `fashion-tech/thepunisher-fashiondesigncadexpert.md` — **ThePunisher-FashionDesignCADExpert**: fashion-design CAD software engineering.
+- `fashion-tech/thepunisher-apparelpatterndigitizationexpert.md` — **ThePunisher-ApparelPatternDigitizationExpert**: apparel pattern-digitization engineering.
+- `fashion-tech/thepunisher-fashionecommercepersonalizationexpert.md` — **ThePunisher-FashionEcommercePersonalizationExpert**: fashion-e-commerce personalization-engine engineering.
+- `fashion-tech/thepunisher-fashiontrendforecastingexpert.md` — **ThePunisher-FashionTrendForecastingExpert**: fashion trend-forecasting model engineering.
+- `fashion-tech/thepunisher-apparelinventorymanagementexpert.md` — **ThePunisher-ApparelInventoryManagementExpert**: apparel-specific (size/color-matrix) inventory-management engineering.
+- `fashion-tech/thepunisher-fashionrentalplatformexpert.md` — **ThePunisher-FashionRentalPlatformExpert**: clothing-rental platform engineering.
+- `fashion-tech/thepunisher-fashionresalemarketplaceexpert.md` — **ThePunisher-FashionResaleMarketplaceExpert**: fashion resale/secondhand marketplace engineering.
+- `fashion-tech/thepunisher-sustainablefashioncertificationtrackingexpert.md` — **ThePunisher-SustainableFashionCertificationTrackingExpert**: sustainable-fashion certification tracking-engineering.
+- `fashion-tech/thepunisher-apparelmanufacturingerpexpert.md` — **ThePunisher-ApparelManufacturingERPExpert**: apparel-manufacturing ERP engineering.
+- `fashion-tech/thepunisher-fashionshowvirtualexperienceexpert.md` — **ThePunisher-FashionShowVirtualExperienceExpert**: virtual/livestreamed fashion-show experience engineering.
+- `fashion-tech/thepunisher-body3dscanningexpert.md` — **ThePunisher-Body3DScanningExpert**: body 3D-scanning technology engineering for apparel fit.
+- `fashion-tech/thepunisher-fashioncolorwaymanagementexpert.md` — **ThePunisher-FashionColorwayManagementExpert**: fashion colorway/palette-management engineering.
+- `fashion-tech/thepunisher-apparelsamplingworkflowexpert.md` — **ThePunisher-ApparelSamplingWorkflowExpert**: apparel sample-development workflow engineering.
+- `fashion-tech/thepunisher-fashioninfluencercollaborationplatformexpert.md` — **ThePunisher-FashionInfluencerCollaborationPlatformExpert**: fashion influencer-collaboration platform engineering.
+- `fashion-tech/thepunisher-textilematerialdatabaseexpert.md` — **ThePunisher-TextileMaterialDatabaseExpert**: textile material-property database engineering.
+- `fashion-tech/thepunisher-fashionsuppliercomplianceauditexpert.md` — **ThePunisher-FashionSupplierComplianceAuditExpert**: fashion-supplier compliance-audit platform engineering.
+- `fashion-tech/thepunisher-apparelsizechartstandardizationexpert.md` — **ThePunisher-ApparelSizeChartStandardizationExpert**: cross-brand apparel size-chart standardization engineering.
+- `fashion-tech/thepunisher-fashionaccessoryaroverlayexpert.md` — **ThePunisher-FashionAccessoryAROverlayExpert**: AR overlay try-on engineering for accessories (jewelry/eyewear).
+- `fashion-tech/thepunisher-fashionsubscriptionboxplatformexpert.md` — **ThePunisher-FashionSubscriptionBoxPlatformExpert**: fashion subscription-box platform engineering.
+- `fashion-tech/thepunisher-apparelreturnsexchangeworkflowexpert.md` — **ThePunisher-ApparelReturnsExchangeWorkflowExpert**: apparel returns/exchange workflow engineering.
+- `fashion-tech/thepunisher-fashioncounterfeitdetectionexpert.md` — **ThePunisher-FashionCounterfeitDetectionExpert**: fashion counterfeit-detection engineering (authorized brand-protection).
+- `fashion-tech/thepunisher-fashiondigitalwardrobeappexpert.md` — **ThePunisher-FashionDigitalWardrobeAppExpert**: digital-wardrobe/outfit-planning app engineering.
+- `fashion-tech/thepunisher-apparelproductionschedulingexpert.md` — **ThePunisher-ApparelProductionSchedulingExpert**: apparel manufacturing production-scheduling engineering.
+- `fashion-tech/thepunisher-fashionseasonalcollectionplanningexpert.md` — **ThePunisher-FashionSeasonalCollectionPlanningExpert**: seasonal collection-planning software engineering.
+- `fashion-tech/thepunisher-textiledyeingprocessoptimizationexpert.md` — **ThePunisher-TextileDyeingProcessOptimizationExpert**: textile dyeing-process optimization/monitoring engineering.
+- `fashion-tech/thepunisher-fashionretailstoreanalyticsexpert.md` — **ThePunisher-FashionRetailStoreAnalyticsExpert**: fashion-retail in-store analytics engineering.
+- `fashion-tech/thepunisher-apparelqualityassuranceinspectionexpert.md` — **ThePunisher-ApparelQualityAssuranceInspectionExpert**: apparel quality-assurance inspection-app engineering.
+- `fashion-tech/thepunisher-fashionmetaversewearablesexpert.md` — **ThePunisher-FashionMetaverseWearablesExpert**: digital fashion/metaverse-wearables engineering.
+- `fashion-tech/thepunisher-fashionsupplychaincarbonfootprintexpert.md` — **ThePunisher-FashionSupplyChainCarbonFootprintExpert**: apparel supply-chain carbon-footprint tracking engineering.
+- `fashion-tech/thepunisher-apparelpriceoptimizationexpert.md` — **ThePunisher-ApparelPriceOptimizationExpert**: apparel dynamic price-optimization engineering.
+- `fashion-tech/thepunisher-fashioncustomizationconfiguratorexpert.md` — **ThePunisher-FashionCustomizationConfiguratorExpert**: made-to-order apparel customization-configurator engineering.
+- `fashion-tech/thepunisher-textilerecyclingtrackingexpert.md` — **ThePunisher-TextileRecyclingTrackingExpert**: textile-recycling/circularity tracking engineering.
+- `fashion-tech/thepunisher-fashionmodelcastingplatformexpert.md` — **ThePunisher-FashionModelCastingPlatformExpert**: fashion model-casting platform engineering.
+- `fashion-tech/thepunisher-apparelskurationalizationexpert.md` — **ThePunisher-ApparelSKURationalizationExpert**: apparel SKU-rationalization analytics engineering.
+- `fashion-tech/thepunisher-fashionwholesaleb2bplatformexpert.md` — **ThePunisher-FashionWholesaleB2BPlatformExpert**: fashion wholesale B2B ordering-platform engineering.
+- `fashion-tech/thepunisher-fashionbrandprotectionmonitoringexpert.md` — **ThePunisher-FashionBrandProtectionMonitoringExpert**: online brand/counterfeit-monitoring engineering.
+- `fashion-tech/thepunisher-apparellaborcomplianceauditexpert.md` — **ThePunisher-ApparelLaborComplianceAuditExpert**: apparel-factory labor-compliance audit-platform engineering.
+- `fashion-tech/thepunisher-fashionstylerecommendationengineexpert.md` — **ThePunisher-FashionStyleRecommendationEngineExpert**: fashion style-recommendation engine engineering.
+- `fashion-tech/thepunisher-apparelcutandsewoptimizationexpert.md` — **ThePunisher-ApparelCutAndSewOptimizationExpert**: apparel cut-and-sew fabric-utilization optimization engineering.
+- `fashion-tech/thepunisher-fashionsupplychainvisibilityexpert.md` — **ThePunisher-FashionSupplyChainVisibilityExpert**: apparel-specific end-to-end supply-chain visibility engineering.
+- `fashion-tech/thepunisher-appareldigitalproductpassportexpert.md` — **ThePunisher-ApparelDigitalProductPassportExpert**: digital product passport engineering (EU-regulation-driven apparel traceability).
+- `fashion-tech/thepunisher-fashionlicensingroyaltymanagementexpert.md` — **ThePunisher-FashionLicensingRoyaltyManagementExpert**: fashion brand-licensing/royalty-management engineering.
+- `fashion-tech/thepunisher-apparelomnichannelfulfillmentexpert.md` — **ThePunisher-ApparelOmnichannelFulfillmentExpert**: apparel-specific omnichannel order-fulfillment engineering.
+- `fashion-tech/thepunisher-fashionpopupstoremanagementexpert.md` — **ThePunisher-FashionPopUpStoreManagementExpert**: pop-up retail store-management engineering.
+- `fashion-tech/thepunisher-apparelgradingmarkingexpert.md` — **ThePunisher-ApparelGradingMarkingExpert**: apparel pattern grading/marking engineering.
+- `fashion-tech/thepunisher-fashioncirculareconomyplatformexpert.md` — **ThePunisher-FashionCircularEconomyPlatformExpert**: fashion circular-economy (take-back/resale) platform engineering.
+
+## Team 67 — Nonprofit & Philanthropy Technology Engineering (50 agents)
+
+- `nonprofit-tech/thepunisher-donormanagementcrmexpert.md` — **ThePunisher-DonorManagementCRMExpert**: donor management CRM engineering.
+- `nonprofit-tech/thepunisher-grantsmanagementsystemexpert.md` — **ThePunisher-GrantsManagementSystemExpert**: grants management system engineering.
+- `nonprofit-tech/thepunisher-volunteercoordinationplatformexpert.md` — **ThePunisher-VolunteerCoordinationPlatformExpert**: volunteer coordination/scheduling platform engineering.
+- `nonprofit-tech/thepunisher-fundraisingcampaignplatformexpert.md` — **ThePunisher-FundraisingCampaignPlatformExpert**: fundraising campaign-platform engineering.
+- `nonprofit-tech/thepunisher-recurringgivingplatformexpert.md` — **ThePunisher-RecurringGivingPlatformExpert**: recurring/sustaining-donor giving-platform engineering.
+- `nonprofit-tech/thepunisher-peertopeerfundraisingexpert.md` — **ThePunisher-PeerToPeerFundraisingExpert**: peer-to-peer fundraising-platform engineering.
+- `nonprofit-tech/thepunisher-nonprofitimpactmeasurementexpert.md` — **ThePunisher-NonprofitImpactMeasurementExpert**: nonprofit program impact-measurement engineering.
+- `nonprofit-tech/thepunisher-giftmatchingprogramintegrationexpert.md` — **ThePunisher-GiftMatchingProgramIntegrationExpert**: corporate gift-matching program integration engineering.
+- `nonprofit-tech/thepunisher-nonprofittaxreceiptautomationexpert.md` — **ThePunisher-NonprofitTaxReceiptAutomationExpert**: nonprofit tax-receipt automation engineering.
+- `nonprofit-tech/thepunisher-grantapplicationworkflowexpert.md` — **ThePunisher-GrantApplicationWorkflowExpert**: grant-application workflow engineering.
+- `nonprofit-tech/thepunisher-nonprofiteventfundraisingexpert.md` — **ThePunisher-NonprofitEventFundraisingExpert**: nonprofit fundraising-event platform engineering.
+- `nonprofit-tech/thepunisher-plannedgivinglegacyprogramexpert.md` — **ThePunisher-PlannedGivingLegacyProgramExpert**: planned-giving/legacy-program platform engineering.
+- `nonprofit-tech/thepunisher-nonprofitboardgovernanceportalexpert.md` — **ThePunisher-NonprofitBoardGovernancePortalExpert**: nonprofit board-governance portal engineering.
+- `nonprofit-tech/thepunisher-nonprofitfinancialtransparencyreportingexpert.md` — **ThePunisher-NonprofitFinancialTransparencyReportingExpert**: nonprofit financial-transparency reporting engineering.
+- `nonprofit-tech/thepunisher-nonprofitmembershipmanagementexpert.md` — **ThePunisher-NonprofitMembershipManagementExpert**: nonprofit membership-management engineering.
+- `nonprofit-tech/thepunisher-nonprofitadvocacycampaignplatformexpert.md` — **ThePunisher-NonprofitAdvocacyCampaignPlatformExpert**: nonprofit advocacy/action-campaign platform engineering.
+- `nonprofit-tech/thepunisher-nonprofitemailmarketingautomationexpert.md` — **ThePunisher-NonprofitEmailMarketingAutomationExpert**: nonprofit email-marketing automation engineering.
+- `nonprofit-tech/thepunisher-nonprofitdonordatadeduplicationexpert.md` — **ThePunisher-NonprofitDonorDataDeduplicationExpert**: donor-record deduplication/data-hygiene engineering.
+- `nonprofit-tech/thepunisher-nonprofitcapitalcampaigntrackingexpert.md` — **ThePunisher-NonprofitCapitalCampaignTrackingExpert**: nonprofit capital-campaign tracking engineering.
+- `nonprofit-tech/thepunisher-grantcompliancereportingexpert.md` — **ThePunisher-GrantComplianceReportingExpert**: grant-compliance reporting engineering.
+- `nonprofit-tech/thepunisher-nonprofitvolunteerhourtrackingexpert.md` — **ThePunisher-NonprofitVolunteerHourTrackingExpert**: volunteer-hour tracking/reporting engineering.
+- `nonprofit-tech/thepunisher-nonprofitdisasterrelieflogisticsexpert.md` — **ThePunisher-NonprofitDisasterReliefLogisticsExpert**: disaster-relief nonprofit logistics-coordination engineering.
+- `nonprofit-tech/thepunisher-nonprofitcorporatesponsorshipplatformexpert.md` — **ThePunisher-NonprofitCorporateSponsorshipPlatformExpert**: nonprofit corporate-sponsorship platform engineering.
+- `nonprofit-tech/thepunisher-nonprofitendowmentmanagementexpert.md` — **ThePunisher-NonprofitEndowmentManagementExpert**: nonprofit endowment-fund management engineering.
+- `nonprofit-tech/thepunisher-nonprofitprogramoutcomeanalyticsexpert.md` — **ThePunisher-NonprofitProgramOutcomeAnalyticsExpert**: nonprofit program-outcome analytics engineering.
+- `nonprofit-tech/thepunisher-nonprofitgrantwriterassistexpert.md` — **ThePunisher-NonprofitGrantWriterAssistExpert**: grant-writing assistance-tooling engineering.
+- `nonprofit-tech/thepunisher-nonprofitauctionplatformexpert.md` — **ThePunisher-NonprofitAuctionPlatformExpert**: nonprofit charity-auction platform engineering.
+- `nonprofit-tech/thepunisher-nonprofittexttogiveexpert.md` — **ThePunisher-NonprofitTextToGiveExpert**: text-to-give mobile-donation engineering.
+- `nonprofit-tech/thepunisher-nonprofitcryptogivingexpert.md` — **ThePunisher-NonprofitCryptoGivingExpert**: cryptocurrency-donation acceptance/processing engineering.
+- `nonprofit-tech/thepunisher-nonprofitmultichannelcommunicationexpert.md` — **ThePunisher-NonprofitMultiChannelCommunicationExpert**: nonprofit multi-channel donor-communication engineering.
+- `nonprofit-tech/thepunisher-nonprofitaccessibilitycomplianceexpert.md` — **ThePunisher-NonprofitAccessibilityComplianceExpert**: nonprofit digital-accessibility compliance engineering.
+- `nonprofit-tech/thepunisher-nonprofitinternationalremittancecomplianceexpert.md` — **ThePunisher-NonprofitInternationalRemittanceComplianceExpert**: cross-border charitable-giving compliance engineering.
+- `nonprofit-tech/thepunisher-nonprofitvolunteerbackgroundcheckintegrationexpert.md` — **ThePunisher-NonprofitVolunteerBackgroundCheckIntegrationExpert**: volunteer background-check integration engineering.
+- `nonprofit-tech/thepunisher-nonprofitdonordataprivacycomplianceexpert.md` — **ThePunisher-NonprofitDonorDataPrivacyComplianceExpert**: donor-data privacy-compliance engineering.
+- `nonprofit-tech/thepunisher-nonprofitstrategicplanningtoolexpert.md` — **ThePunisher-NonprofitStrategicPlanningToolExpert**: nonprofit strategic-planning tooling engineering.
+- `nonprofit-tech/thepunisher-nonprofitcausemarketingplatformexpert.md` — **ThePunisher-NonprofitCauseMarketingPlatformExpert**: cause-marketing partnership-platform engineering.
+- `nonprofit-tech/thepunisher-nonprofitdisasterdonationsurgehandlingexpert.md` — **ThePunisher-NonprofitDisasterDonationSurgeHandlingExpert**: disaster-driven donation-surge infrastructure engineering.
+- `nonprofit-tech/thepunisher-nonprofitgrantmakerportalexpert.md` — **ThePunisher-NonprofitGrantmakerPortalExpert**: foundation-side grantmaker portal engineering.
+- `nonprofit-tech/thepunisher-nonprofitscholarshipmanagementexpert.md` — **ThePunisher-NonprofitScholarshipManagementExpert**: scholarship-program management engineering.
+- `nonprofit-tech/thepunisher-nonprofitfoodbankinventoryexpert.md` — **ThePunisher-NonprofitFoodBankInventoryExpert**: food-bank inventory-management engineering.
+- `nonprofit-tech/thepunisher-nonprofithousingservicescasemanagementexpert.md` — **ThePunisher-NonprofitHousingServicesCaseManagementExpert**: housing/homeless-services case-management engineering.
+- `nonprofit-tech/thepunisher-nonprofitsocialservicescasemanagementexpert.md` — **ThePunisher-NonprofitSocialServicesCaseManagementExpert**: general social-services case-management engineering.
+- `nonprofit-tech/thepunisher-nonprofitdonorsegmentationanalyticsexpert.md` — **ThePunisher-NonprofitDonorSegmentationAnalyticsExpert**: donor-segmentation analytics engineering.
+- `nonprofit-tech/thepunisher-nonprofitworkplacegivingintegrationexpert.md` — **ThePunisher-NonprofitWorkplaceGivingIntegrationExpert**: employer workplace-giving program integration engineering.
+- `nonprofit-tech/thepunisher-nonprofiteventvolunteerschedulingexpert.md` — **ThePunisher-NonprofitEventVolunteerSchedulingExpert**: event-specific volunteer-shift scheduling engineering.
+- `nonprofit-tech/thepunisher-nonprofitgrantbudgettrackingexpert.md` — **ThePunisher-NonprofitGrantBudgetTrackingExpert**: grant-budget/expenditure tracking engineering.
+- `nonprofit-tech/thepunisher-nonprofitlegacydatamigrationexpert.md` — **ThePunisher-NonprofitLegacyDataMigrationExpert**: nonprofit legacy-CRM data-migration engineering.
+- `nonprofit-tech/thepunisher-nonprofitmultichanneldonationprocessingexpert.md` — **ThePunisher-NonprofitMultiChannelDonationProcessingExpert**: multi-channel donation-processing/payment engineering.
+- `nonprofit-tech/thepunisher-nonprofitimpactstorytellingplatformexpert.md` — **ThePunisher-NonprofitImpactStorytellingPlatformExpert**: donor impact-storytelling/reporting platform engineering.
+- `nonprofit-tech/thepunisher-nonprofitsustainabilityfundingdiversificationexpert.md` — **ThePunisher-NonprofitSustainabilityFundingDiversificationExpert**: revenue-diversification analytics engineering for nonprofit sustainability.
+
+## Team 68 — Android TV & iOS TV Engineering (50 agents)
+
+- `tv-app-engineering/thepunisher-androidtvleanbackuiexpert.md` — **ThePunisher-AndroidTVLeanbackUIExpert**: Android TV Leanback UI framework engineering.
+- `tv-app-engineering/thepunisher-androidtvcomposefortvexpert.md` — **ThePunisher-AndroidTVComposeForTVExpert**: Jetpack Compose for TV implementation engineering.
+- `tv-app-engineering/thepunisher-googletvchannelintegrationexpert.md` — **ThePunisher-GoogleTVChannelIntegrationExpert**: Google TV home-screen channels/Watch Next integration.
+- `tv-app-engineering/thepunisher-androidtvremoteinputhandlingexpert.md` — **ThePunisher-AndroidTVRemoteInputHandlingExpert**: D-pad/remote-control input-handling engineering.
+- `tv-app-engineering/thepunisher-androidtvcertificationcomplianceexpert.md` — **ThePunisher-AndroidTVCertificationComplianceExpert**: Android TV app quality/certification-guideline compliance.
+- `tv-app-engineering/thepunisher-androidtvbuildsigningexpert.md` — **ThePunisher-AndroidTVBuildSigningExpert**: Android TV APK/AAB build-signing pipeline engineering.
+- `tv-app-engineering/thepunisher-androidtvsideloadingexpert.md` — **ThePunisher-AndroidTVSideloadingExpert**: ADB sideloading/authorized testing-deployment engineering.
+- `tv-app-engineering/thepunisher-androidtvperformanceoptimizationexpert.md` — **ThePunisher-AndroidTVPerformanceOptimizationExpert**: low-power TV-hardware performance optimization.
+- `tv-app-engineering/thepunisher-tvosswiftuidesignexpert.md` — **ThePunisher-tvOSSwiftUIDesignExpert**: tvOS SwiftUI design/implementation engineering.
+- `tv-app-engineering/thepunisher-tvosfocusengineexpert.md` — **ThePunisher-tvOSFocusEngineExpert**: tvOS Focus Engine navigation engineering.
+- `tv-app-engineering/thepunisher-tvostopshelfextensionexpert.md` — **ThePunisher-tvOSTopShelfExtensionExpert**: tvOS Top Shelf content-extension engineering.
+- `tv-app-engineering/thepunisher-appletvbuildsigningexpert.md` — **ThePunisher-AppleTVBuildSigningExpert**: tvOS Xcode Archive/code-signing pipeline engineering.
+- `tv-app-engineering/thepunisher-appletvsideloadingexpert.md` — **ThePunisher-AppleTVSideloadingExpert**: authorized tvOS sideload/development-provisioning engineering.
+- `tv-app-engineering/thepunisher-appletvjailbreakresearchexpert.md` — **ThePunisher-AppleTVJailbreakResearchExpert**: legacy Apple TV jailbreak/homebrew research (authorized only).
+- `tv-app-engineering/thepunisher-tvappstoresubmissionexpert.md` — **ThePunisher-TVAppStoreSubmissionExpert**: Android TV/Apple TV app-store submission engineering.
+- `tv-app-engineering/thepunisher-tvstreamingdrmanalysisexpert.md` — **ThePunisher-TVStreamingDRMAnalysisExpert**: authorized DRM (Widevine/FairPlay) analysis for TV streaming apps.
+- `tv-app-engineering/thepunisher-tvappremotecontrolprotocolreexpert.md` — **ThePunisher-TVAppRemoteControlProtocolREExpert**: HDMI-CEC/remote-control protocol reverse engineering.
+- `tv-app-engineering/thepunisher-tvappcastingprotocolreexpert.md` — **ThePunisher-TVAppCastingProtocolREExpert**: Chromecast/AirPlay casting-protocol reverse engineering.
+- `tv-app-engineering/thepunisher-tvappantipiracybypassresearchexpert.md` — **ThePunisher-TVAppAntiPiracyBypassResearchExpert**: TV-app anti-piracy/copy-protection bypass research (authorized only).
+- `tv-app-engineering/thepunisher-tvappperformanceprofilingexpert.md` — **ThePunisher-TVAppPerformanceProfilingExpert**: TV-app runtime performance profiling.
+- `tv-app-engineering/thepunisher-tvappaccessibilityexpert.md` — **ThePunisher-TVAppAccessibilityExpert**: TV-specific accessibility engineering (voice control, screen reader on TV).
+- `tv-app-engineering/thepunisher-tvapp10footuidesignexpert.md` — **ThePunisher-TVApp10FootUIDesignExpert**: 10-foot UI design-principle engineering for TV screens.
+- `tv-app-engineering/thepunisher-tvapponboardingflowexpert.md` — **ThePunisher-TVAppOnboardingFlowExpert**: TV-app onboarding-flow design engineering.
+- `tv-app-engineering/thepunisher-tvappvoicesearchintegrationexpert.md` — **ThePunisher-TVAppVoiceSearchIntegrationExpert**: Google Assistant/Siri voice-search integration for TV apps.
+- `tv-app-engineering/thepunisher-tvappadinsertionexpert.md` — **ThePunisher-TVAppAdInsertionExpert**: server-side ad-insertion engineering for TV apps.
+- `tv-app-engineering/thepunisher-tvappmultiuserprofileexpert.md` — **ThePunisher-TVAppMultiUserProfileExpert**: TV-app multi-user profile system engineering.
+- `tv-app-engineering/thepunisher-tvappofflinedownloadexpert.md` — **ThePunisher-TVAppOfflineDownloadExpert**: TV-app offline-download/playback engineering.
+- `tv-app-engineering/thepunisher-tvappcastingsenderreceiverexpert.md` — **ThePunisher-TVAppCastingSenderReceiverExpert**: Chromecast/AirPlay sender-receiver integration engineering.
+- `tv-app-engineering/thepunisher-tvapphdrcolormanagementexpert.md` — **ThePunisher-TVAppHDRColorManagementExpert**: TV-app HDR/wide-color-gamut management engineering.
+- `tv-app-engineering/thepunisher-tvappsurroundsoundexpert.md` — **ThePunisher-TVAppSurroundSoundExpert**: TV-app surround-sound audio-pipeline engineering.
+- `tv-app-engineering/thepunisher-tvapplivechannelguideexpert.md` — **ThePunisher-TVAppLiveChannelGuideExpert**: electronic program guide (EPG) engineering.
+- `tv-app-engineering/thepunisher-tvappsubtitleclosedcaptionexpert.md` — **ThePunisher-TVAppSubtitleClosedCaptionExpert**: TV-app subtitle/closed-caption engineering.
+- `tv-app-engineering/thepunisher-smarttvcrossplatformparityexpert.md` — **ThePunisher-SmartTVCrossPlatformParityExpert**: cross-platform smart-TV parity awareness (Roku/Fire TV/Tizen/webOS).
+- `tv-app-engineering/thepunisher-tvappmemoryconstraintoptimizationexpert.md` — **ThePunisher-TVAppMemoryConstraintOptimizationExpert**: TV-hardware memory-constraint optimization engineering.
+- `tv-app-engineering/thepunisher-tvapplaunchtimeoptimizationexpert.md` — **ThePunisher-TVAppLaunchTimeOptimizationExpert**: TV-app cold-start/launch-time optimization engineering.
+- `tv-app-engineering/thepunisher-tvappgamecontrollersupportexpert.md` — **ThePunisher-TVAppGameControllerSupportExpert**: game-controller support engineering for TV platforms.
+- `tv-app-engineering/thepunisher-tvappbingewatchinguxexpert.md` — **ThePunisher-TVAppBingeWatchingUXExpert**: binge-watching UX flow engineering (auto-play-next, etc.).
+- `tv-app-engineering/thepunisher-tvapprecommendationengineexpert.md` — **ThePunisher-TVAppRecommendationEngineExpert**: TV-app content-recommendation engine engineering.
+- `tv-app-engineering/thepunisher-tvappparentalcontrolsexpert.md` — **ThePunisher-TVAppParentalControlsExpert**: TV-app parental-controls engineering.
+- `tv-app-engineering/thepunisher-tvappscreensaverambientmodeexpert.md` — **ThePunisher-TVAppScreensaverAmbientModeExpert**: TV-app screensaver/ambient-mode engineering.
+- `tv-app-engineering/thepunisher-tvappfirmwarecompatibilityexpert.md` — **ThePunisher-TVAppFirmwareCompatibilityExpert**: TV-OS firmware-version compatibility engineering.
+- `tv-app-engineering/thepunisher-tvappcrashreportingexpert.md` — **ThePunisher-TVAppCrashReportingExpert**: TV-app crash-reporting/diagnostics engineering.
+- `tv-app-engineering/thepunisher-tvapplocalizationexpert.md` — **ThePunisher-TVAppLocalizationExpert**: TV-app localization engineering.
+- `tv-app-engineering/thepunisher-tvappsubscriptionbillingintegrationexpert.md` — **ThePunisher-TVAppSubscriptionBillingIntegrationExpert**: TV-app subscription/billing integration engineering.
+- `tv-app-engineering/thepunisher-tvappdeeplinkingexpert.md` — **ThePunisher-TVAppDeepLinkingExpert**: TV-app deep-linking engineering.
+- `tv-app-engineering/thepunisher-tvapprealhardwaretestingexpert.md` — **ThePunisher-TVAppRealHardwareTestingExpert**: TV-app device-farm/real-hardware testing engineering.
+- `tv-app-engineering/thepunisher-tvappanalyticsinstrumentationexpert.md` — **ThePunisher-TVAppAnalyticsInstrumentationExpert**: TV-app analytics-instrumentation engineering.
+- `tv-app-engineering/thepunisher-tvappsecurityhardeningexpert.md` — **ThePunisher-TVAppSecurityHardeningExpert**: TV-app security-hardening engineering.
+- `tv-app-engineering/thepunisher-tvapplegacyplatformsupportexpert.md` — **ThePunisher-TVAppLegacyPlatformSupportExpert**: legacy Android TV/tvOS version-support engineering.
+- `tv-app-engineering/thepunisher-tvapp10footdesignsystemexpert.md` — **ThePunisher-TVApp10FootDesignSystemExpert**: 10-foot-UI-specific design-system engineering for TV apps.
+
+## Team 69 — Game Hacking & Private Game Server Engineering (50 agents)
+
+- `game-hacking/thepunisher-gamehackingethicsauthorizationgatekeeperexpert.md` — **ThePunisher-GameHackingEthicsAuthorizationGatekeeperExpert**: verifies ownership/authorization/legal clearance before any other agent in this team proceeds -- the mandatory first checkpoint.
+- `game-hacking/thepunisher-gamememoryscanningexpert.md` — **ThePunisher-GameMemoryScanningExpert**: Cheat-Engine-style memory-scanning technique engineering.
+- `game-hacking/thepunisher-gametrainerdevelopmentexpert.md` — **ThePunisher-GameTrainerDevelopmentExpert**: personal-use game-trainer development (authorized only).
+- `game-hacking/thepunisher-gamenetworkpacketinjectionexpert.md` — **ThePunisher-GameNetworkPacketInjectionExpert**: authorized game-network packet-injection research.
+- `game-hacking/thepunisher-privateservercorearchitectureexpert.md` — **ThePunisher-PrivateServerCoreArchitectureExpert**: private-game-server emulator core-architecture design.
+- `game-hacking/thepunisher-gameserverprotocolemulationexpert.md` — **ThePunisher-GameServerProtocolEmulationExpert**: packet-for-packet game-server protocol emulation.
+- `game-hacking/thepunisher-gameserverdatabaseschemareverseexpert.md` — **ThePunisher-GameServerDatabaseSchemaReverseExpert**: reversing game database schemas for private-server reconstruction.
+- `game-hacking/thepunisher-gameclientpatchingexpert.md` — **ThePunisher-GameClientPatchingExpert**: client-side patching for private-server connectivity (authorized only).
+- `game-hacking/thepunisher-gameserverscriptingengineexpert.md` — **ThePunisher-GameServerScriptingEngineExpert**: Lua/Python private-server content-scripting engine engineering.
+- `game-hacking/thepunisher-gameanticheatbypassresearchexpert.md` — **ThePunisher-GameAntiCheatBypassResearchExpert**: anti-cheat bypass research on one's own server/testing environment only.
+- `game-hacking/thepunisher-gameserverloadbalancingexpert.md` — **ThePunisher-GameServerLoadBalancingExpert**: private-game-server infrastructure load-balancing engineering.
+- `game-hacking/thepunisher-gameeconomysimulationexpert.md` — **ThePunisher-GameEconomySimulationExpert**: in-game economy simulation/drop-table reconstruction engineering.
+- `game-hacking/thepunisher-gameservercontentdatabaseexpert.md` — **ThePunisher-GameServerContentDatabaseExpert**: item/quest/NPC content-database reconstruction engineering.
+- `game-hacking/thepunisher-gameserverauthenticationsystemexpert.md` — **ThePunisher-GameServerAuthenticationSystemExpert**: private-server login/authentication-system engineering.
+- `game-hacking/thepunisher-gameworldmapdataextractionexpert.md` — **ThePunisher-GameWorldMapDataExtractionExpert**: map/terrain data extraction for private-server world reconstruction.
+- `game-hacking/thepunisher-gameserverversioncompatibilityexpert.md` — **ThePunisher-GameServerVersionCompatibilityExpert**: multi-client-patch-version server-compatibility engineering.
+- `game-hacking/thepunisher-gamehackdetectionevasionresearchexpert.md` — **ThePunisher-GameHackDetectionEvasionResearchExpert**: understanding detection-evasion techniques to build one's own anti-cheat (authorized only).
+- `game-hacking/thepunisher-gamebotdevelopmentexpert.md` — **ThePunisher-GameBotDevelopmentExpert**: authorized bot development for own-server testing/population.
+- `game-hacking/thepunisher-gameserverguildclansystemexpert.md` — **ThePunisher-GameServerGuildClanSystemExpert**: guild/clan social-system reconstruction engineering.
+- `game-hacking/thepunisher-gameserverrankingleaderboardexpert.md` — **ThePunisher-GameServerRankingLeaderboardExpert**: private-server ranking/leaderboard system engineering.
+- `game-hacking/thepunisher-gameservereventsystemexpert.md` — **ThePunisher-GameServerEventSystemExpert**: in-game event-scripting system engineering.
+- `game-hacking/thepunisher-gameserverhousingsystemexpert.md` — **ThePunisher-GameServerHousingSystemExpert**: player-housing system reconstruction engineering.
+- `game-hacking/thepunisher-gameserverpvparenasystemexpert.md` — **ThePunisher-GameServerPvPArenaSystemExpert**: PvP/arena system reconstruction engineering.
+- `game-hacking/thepunisher-gameclientassetunpackingexpert.md` — **ThePunisher-GameClientAssetUnpackingExpert**: game-client asset unpacking for private-server asset reuse.
+- `game-hacking/thepunisher-gameserverinstancingdungeonexpert.md` — **ThePunisher-GameServerInstancingDungeonExpert**: instanced-dungeon system reconstruction engineering.
+- `game-hacking/thepunisher-gameservercraftingsystemexpert.md` — **ThePunisher-GameServerCraftingSystemExpert**: crafting-system reconstruction engineering.
+- `game-hacking/thepunisher-gameserverauctionhousemarketexpert.md` — **ThePunisher-GameServerAuctionHouseMarketExpert**: auction-house/market-system reconstruction engineering.
+- `game-hacking/thepunisher-gameserverchatsystemexpert.md` — **ThePunisher-GameServerChatSystemExpert**: in-game chat/social-messaging system engineering.
+- `game-hacking/thepunisher-gameservermigrationtoolingexpert.md` — **ThePunisher-GameServerMigrationToolingExpert**: live-data migration tooling between server versions.
+- `game-hacking/thepunisher-gameserverwebpanelexpert.md` — **ThePunisher-GameServerWebPanelExpert**: admin/GM web control-panel engineering.
+- `game-hacking/thepunisher-gameserverbackuprecoveryexpert.md` — **ThePunisher-GameServerBackupRecoveryExpert**: private-server backup/disaster-recovery engineering.
+- `game-hacking/thepunisher-gamelauncherrebuildexpert.md` — **ThePunisher-GameLauncherRebuildExpert**: game launcher/patcher rebuild for private-server distribution.
+- `game-hacking/thepunisher-gameserverloadtestingexpert.md` — **ThePunisher-GameServerLoadTestingExpert**: private-server load/stress-testing engineering.
+- `game-hacking/thepunisher-gameserverlegalcomplianceadvisorexpert.md` — **ThePunisher-GameServerLegalComplianceAdvisorExpert**: IP/legal-boundary advisory for private-server projects.
+- `game-hacking/thepunisher-gamemoddingtoolchainexpert.md` — **ThePunisher-GameModdingToolchainExpert**: mod SDK/toolchain engineering for moddable games.
+- `game-hacking/thepunisher-gameserverregionlockbypassexpert.md` — **ThePunisher-GameServerRegionLockBypassExpert**: region-lock bypass research for game preservation (authorized only).
+- `game-hacking/thepunisher-gameservercommunitytoolingexpert.md` — **ThePunisher-GameServerCommunityToolingExpert**: Discord-bot/community-tooling integration for private servers.
+- `game-hacking/thepunisher-gameserverperformanceprofilingexpert.md` — **ThePunisher-GameServerPerformanceProfilingExpert**: private-server runtime performance profiling.
+- `game-hacking/thepunisher-gameserverddosprotectionexpert.md` — **ThePunisher-GameServerDDoSProtectionExpert**: private-server infrastructure DDoS-protection engineering.
+- `game-hacking/thepunisher-gamecheatdetectionsignatureexpert.md` — **ThePunisher-GameCheatDetectionSignatureExpert**: signature-based cheat-detection engineering for one's own server.
+- `game-hacking/thepunisher-gameserverpatchdeploymentpipelineexpert.md` — **ThePunisher-GameServerPatchDeploymentPipelineExpert**: CI/CD pipeline engineering for private-server content updates.
+- `game-hacking/thepunisher-gameemulatorcoreintegrationexpert.md` — **ThePunisher-GameEmulatorCoreIntegrationExpert**: hand-off/integration point with Team 5's console-emulator-core work.
+- `game-hacking/thepunisher-gameservertestenvironmentexpert.md` — **ThePunisher-GameServerTestEnvironmentExpert**: private-server staging/test-environment management.
+- `game-hacking/thepunisher-gamenetworklatencyoptimizationexpert.md` — **ThePunisher-GameNetworkLatencyOptimizationExpert**: private-server netcode latency-optimization engineering.
+- `game-hacking/thepunisher-gameserverversioncontrolworkflowexpert.md` — **ThePunisher-GameServerVersionControlWorkflowExpert**: server-side source version-control workflow engineering.
+- `game-hacking/thepunisher-gameservermonitoringalertingexpert.md` — **ThePunisher-GameServerMonitoringAlertingExpert**: private-server monitoring/alerting engineering.
+- `game-hacking/thepunisher-gamehacktooluiexpert.md` — **ThePunisher-GameHackToolUIExpert**: trainer/tool overlay-UI engineering.
+- `game-hacking/thepunisher-gamememorystructurereverseexpert.md` — **ThePunisher-GameMemoryStructureReverseExpert**: deep pointer-chain/data-structure reverse engineering.
+- `game-hacking/thepunisher-gameserverrestapiexpert.md` — **ThePunisher-GameServerRESTAPIExpert**: REST API engineering for private-server companion apps/websites.
+- `game-hacking/thepunisher-gameserverlicensevalidationbypassresearchexpert.md` — **ThePunisher-GameServerLicenseValidationBypassResearchExpert**: license-key/DRM validation research on one's own owned copy (authorized only).
+
+## Team 70 — Cross-Platform Design Systems Engineering (50 agents)
+
+- `design-systems/thepunisher-designtokenarchitectureexpert.md` — **ThePunisher-DesignTokenArchitectureExpert**: design-token architecture engineering (Style Dictionary-style).
+- `design-systems/thepunisher-shadcnuicomponentlibraryexpert.md` — **ThePunisher-ShadcnUIComponentLibraryExpert**: shadcn/ui component-library engineering (verified: shadcn-ui/ui, 119k stars, MIT, Radix UI + Tailwind CSS).
+- `design-systems/thepunisher-magicuianimatedcomponentsexpert.md` — **ThePunisher-MagicUIAnimatedComponentsExpert**: Magic UI animated-component engineering (verified: magicuidesign/magicui, 21.6k stars, MIT).
+- `design-systems/thepunisher-cultuicomponentlibraryexpert.md` — **ThePunisher-CultUIComponentLibraryExpert**: Cult UI component-library engineering (verified: nolly-studio/cult-ui, 5.9k stars, MIT, shadcn-compatible).
+- `design-systems/thepunisher-herouicomponentlibraryexpert.md` — **ThePunisher-HeroUIComponentLibraryExpert**: HeroUI component-library engineering (verified: heroui-inc/heroui, 30k stars, Apache-2.0, React Aria + Tailwind v4).
+- `design-systems/thepunisher-shadcnblockslibraryexpert.md` — **ThePunisher-ShadcnBlocksLibraryExpert**: shadcn-ui-blocks marketing-block library engineering (verified: shadcnblocks/shadcn-ui-blocks, 366 stars).
+- `design-systems/thepunisher-mantinecomponentlibraryexpert.md` — **ThePunisher-MantineComponentLibraryExpert**: Mantine component-library engineering (verified: mantinedev/mantine, 31.5k stars, MIT, 100+ components/80+ hooks).
+- `design-systems/thepunisher-multibrandthemingexpert.md` — **ThePunisher-MultiBrandThemingExpert**: multi-brand theming-architecture engineering.
+- `design-systems/thepunisher-designsystemdocumentationexpert.md` — **ThePunisher-DesignSystemDocumentationExpert**: living design-system documentation engineering (Storybook-style).
+- `design-systems/thepunisher-designsystemversioningexpert.md` — **ThePunisher-DesignSystemVersioningExpert**: design-system semver/breaking-change management engineering.
+- `design-systems/thepunisher-figmatocodedesignhandoffexpert.md` — **ThePunisher-FigmaToCodeDesignHandoffExpert**: Figma-tokens-to-code design-handoff pipeline engineering.
+- `design-systems/thepunisher-crossplatformiconsystemexpert.md` — **ThePunisher-CrossPlatformIconSystemExpert**: unified icon-system engineering across web/mobile/TV.
+- `design-systems/thepunisher-designsystemaccessibilityauditexpert.md` — **ThePunisher-DesignSystemAccessibilityAuditExpert**: cross-platform accessibility auditing baked into the design system itself.
+- `design-systems/thepunisher-designsystemgovernanceexpert.md` — **ThePunisher-DesignSystemGovernanceExpert**: design-system contribution/review governance-process engineering.
+- `design-systems/thepunisher-componentapiconsistencyexpert.md` — **ThePunisher-ComponentAPIConsistencyExpert**: cross-platform component-API/prop-naming consistency engineering.
+- `design-systems/thepunisher-designsystemperformancebudgetexpert.md` — **ThePunisher-DesignSystemPerformanceBudgetExpert**: bundle-size/render-performance budget engineering for shared components.
+- `design-systems/thepunisher-darkmodethemingarchitectureexpert.md` — **ThePunisher-DarkModeThemingArchitectureExpert**: dark-mode theming-architecture engineering.
+- `design-systems/thepunisher-responsivegridsystemexpert.md` — **ThePunisher-ResponsiveGridSystemExpert**: responsive grid-system engineering.
+- `design-systems/thepunisher-typographysystemexpert.md` — **ThePunisher-TypographySystemExpert**: cross-platform typography-system engineering.
+- `design-systems/thepunisher-colorsystemaccessibilityexpert.md` — **ThePunisher-ColorSystemAccessibilityExpert**: contrast-safe color-system engineering.
+- `design-systems/thepunisher-motiondesignsystemexpert.md` — **ThePunisher-MotionDesignSystemExpert**: animation/motion-token design-system engineering.
+- `design-systems/thepunisher-designsystemvisualregressiontestingexpert.md` — **ThePunisher-DesignSystemVisualRegressionTestingExpert**: visual-regression testing engineering (Chromatic-style).
+- `design-systems/thepunisher-designsystemmonorepotsoolingexpert.md` — **ThePunisher-DesignSystemMonorepoTsoolingExpert**: design-system monorepo tooling engineering.
+- `design-systems/thepunisher-nativemobiledesignsystembridgeexpert.md` — **ThePunisher-NativeMobileDesignSystemBridgeExpert**: bridging web design tokens to native iOS/Android design systems.
+- `design-systems/thepunisher-designsystemadoptionmetricsexpert.md` — **ThePunisher-DesignSystemAdoptionMetricsExpert**: internal design-system adoption-metrics engineering.
+- `design-systems/thepunisher-whitelabeldesignsystemexpert.md` — **ThePunisher-WhiteLabelDesignSystemExpert**: multi-tenant/white-label theming engineering.
+- `design-systems/thepunisher-designsystemmigrationexpert.md` — **ThePunisher-DesignSystemMigrationExpert**: legacy-UI-to-new-design-system migration engineering.
+- `design-systems/thepunisher-componentlibrarypackagingexpert.md` — **ThePunisher-ComponentLibraryPackagingExpert**: component-library npm packaging/distribution engineering.
+- `design-systems/thepunisher-designsysteminternationalizationexpert.md` — **ThePunisher-DesignSystemInternationalizationExpert**: RTL-aware, locale-aware component-system engineering.
+- `design-systems/thepunisher-tailwindcssarchitectureexpert.md` — **ThePunisher-TailwindCSSArchitectureExpert**: Tailwind CSS architecture engineering.
+- `design-systems/thepunisher-radixprimitivesintegrationexpert.md` — **ThePunisher-RadixPrimitivesIntegrationExpert**: Radix UI headless-primitives integration engineering.
+- `design-systems/thepunisher-designsystemprototypingtoolingexpert.md` — **ThePunisher-DesignSystemPrototypingToolingExpert**: design-system prototyping-tooling engineering.
+- `design-systems/thepunisher-crossplatformformcomponentexpert.md` — **ThePunisher-CrossPlatformFormComponentExpert**: cross-platform form-component engineering.
+- `design-systems/thepunisher-designsystemchangelogcommunicationexpert.md` — **ThePunisher-DesignSystemChangelogCommunicationExpert**: design-system changelog/release-communication engineering.
+- `design-systems/thepunisher-componentlibrarystorybookexpert.md` — **ThePunisher-ComponentLibraryStorybookExpert**: Storybook component-library tooling engineering.
+- `design-systems/thepunisher-designsystemdesignopsexpert.md` — **ThePunisher-DesignSystemDesignOpsExpert**: DesignOps process/tooling engineering for design-system teams.
+- `design-systems/thepunisher-accessibledatavisualizationcomponentexpert.md` — **ThePunisher-AccessibleDataVisualizationComponentExpert**: accessible data-visualization component engineering.
+- `design-systems/thepunisher-designsystembrandguidelineenforcementexpert.md` — **ThePunisher-DesignSystemBrandGuidelineEnforcementExpert**: brand-guideline enforcement tooling engineering.
+- `design-systems/thepunisher-crossplatformnavigationpatternexpert.md` — **ThePunisher-CrossPlatformNavigationPatternExpert**: cross-platform navigation-pattern component engineering.
+- `design-systems/thepunisher-designsystemcontributiononboardingexpert.md` — **ThePunisher-DesignSystemContributionOnboardingExpert**: design-system contributor-onboarding engineering.
+- `design-systems/thepunisher-componentlibrarytreeshakingoptimizationexpert.md` — **ThePunisher-ComponentLibraryTreeShakingOptimizationExpert**: component-library tree-shaking/bundle-optimization engineering.
+- `design-systems/thepunisher-designsystemaigenerateduireviewexpert.md` — **ThePunisher-DesignSystemAIGeneratedUIReviewExpert**: reviewing AI-generated UI against the design system for consistency.
+- `design-systems/thepunisher-designsystemmultiframeworksupportexpert.md` — **ThePunisher-DesignSystemMultiFrameworkSupportExpert**: multi-framework (React/Vue/Svelte) design-system parity engineering.
+- `design-systems/thepunisher-designsystemusabilitytestingexpert.md` — **ThePunisher-DesignSystemUsabilityTestingExpert**: design-system component usability-testing engineering.
+- `design-systems/thepunisher-emailtemplatedesignsystemexpert.md` — **ThePunisher-EmailTemplateDesignSystemExpert**: transactional-email component design-system engineering.
+- `design-systems/thepunisher-designsystemdeprecationpolicyexpert.md` — **ThePunisher-DesignSystemDeprecationPolicyExpert**: component deprecation-policy engineering.
+- `design-systems/thepunisher-crossplatformanimationlibraryintegrationexpert.md` — **ThePunisher-CrossPlatformAnimationLibraryIntegrationExpert**: cross-platform animation-library integration engineering (Framer Motion-style).
+- `design-systems/thepunisher-designsystemqachecklistexpert.md` — **ThePunisher-DesignSystemQAChecklistExpert**: design-system QA-checklist engineering.
+- `design-systems/thepunisher-componentlibrarylicensecomplianceexpert.md` — **ThePunisher-ComponentLibraryLicenseComplianceExpert**: OSS-license-compliance tracking for vendored UI-component libraries.
+- `design-systems/thepunisher-designsystemlaunchreadinessexpert.md` — **ThePunisher-DesignSystemLaunchReadinessExpert**: design-system launch-readiness review engineering.
+
+## Team 71 — Payments & Fintech Infrastructure Engineering (50 agents)
+
+- `payments-fintech-infra/thepunisher-cardnetworkmessageformatcomplianceexpert.md` — **ThePunisher-CardNetworkMessageFormatComplianceExpert**: card-network (Visa/Mastercard/Amex) message-format compliance engineering, distinct from Team 20's own processing-integration focus.
+- `payments-fintech-infra/thepunisher-achwiretransfersystemsexpert.md` — **ThePunisher-ACHWireTransferSystemsExpert**: ACH batch processing and wire-transfer systems engineering (NACHA rules).
+- `payments-fintech-infra/thepunisher-paymentgatewayarchitectureexpert.md` — **ThePunisher-PaymentGatewayArchitectureExpert**: payment gateway architecture: routing, retries, and multi-processor failover.
+- `payments-fintech-infra/thepunisher-pcidsscomplianceengineeringexpert.md` — **ThePunisher-PCIDSSComplianceEngineeringExpert**: PCI-DSS scope reduction and compliant cardholder-data-environment engineering.
+- `payments-fintech-infra/thepunisher-tokenizationvaultingexpert.md` — **ThePunisher-TokenizationVaultingExpert**: payment tokenization and card-vaulting systems, network token provisioning.
+- `payments-fintech-infra/thepunisher-threedsecureimplementationexpert.md` — **ThePunisher-ThreeDSecureImplementationExpert**: 3-D Secure 2.x (3DS2) authentication flow implementation.
+- `payments-fintech-infra/thepunisher-frauddetectionriskscoringexpert.md` — **ThePunisher-FraudDetectionRiskScoringExpert**: real-time payment fraud detection and risk-scoring model engineering.
+- `payments-fintech-infra/thepunisher-chargebackdisputemanagementexpert.md` — **ThePunisher-ChargebackDisputeManagementExpert**: chargeback lifecycle and dispute-management systems engineering.
+- `payments-fintech-infra/thepunisher-paymentorchestrationplatformexpert.md` — **ThePunisher-PaymentOrchestrationPlatformExpert**: payment orchestration platforms: smart routing across multiple PSPs.
+- `payments-fintech-infra/thepunisher-digitalwalletintegrationexpert.md` — **ThePunisher-DigitalWalletIntegrationExpert**: Apple Pay/Google Pay/Samsung Pay wallet integration engineering.
+- `payments-fintech-infra/thepunisher-bnplsystemsexpert.md` — **ThePunisher-BNPLSystemsExpert**: Buy Now Pay Later underwriting and installment-plan systems engineering.
+- `payments-fintech-infra/thepunisher-crossborderpaymentsfxexpert.md` — **ThePunisher-CrossBorderPaymentsFXExpert**: cross-border payment rails and foreign-exchange settlement engineering.
+- `payments-fintech-infra/thepunisher-realtimepaymentsexpert.md` — **ThePunisher-RealTimePaymentsExpert**: real-time payment rails engineering (RTP, FedNow, instant-payment schemes).
+- `payments-fintech-infra/thepunisher-iso20022messagingexpert.md` — **ThePunisher-ISO20022MessagingExpert**: ISO 20022 financial messaging format implementation and migration.
+- `payments-fintech-infra/thepunisher-paymentreconciliationengineeringexpert.md` — **ThePunisher-PaymentReconciliationEngineeringExpert**: automated payment reconciliation and settlement-matching engineering.
+- `payments-fintech-infra/thepunisher-merchantonboardingkybexpert.md` — **ThePunisher-MerchantOnboardingKYBExpert**: merchant onboarding and Know-Your-Business (KYB) systems engineering.
+- `payments-fintech-infra/thepunisher-subscriptionbillingengineeringexpert.md` — **ThePunisher-SubscriptionBillingEngineeringExpert**: subscription and recurring-billing engine engineering (dunning, proration).
+- `payments-fintech-infra/thepunisher-possystemsintegrationexpert.md` — **ThePunisher-POSSystemsIntegrationExpert**: point-of-sale terminal and POS-software integration engineering.
+- `payments-fintech-infra/thepunisher-embeddedfinancebaasexpert.md` — **ThePunisher-EmbeddedFinanceBaaSExpert**: embedded finance and Banking-as-a-Service platform integration.
+- `payments-fintech-infra/thepunisher-stablecoincryptopaymentrailexpert.md` — **ThePunisher-StablecoinCryptoPaymentRailExpert**: stablecoin and crypto payment-rail integration for fiat off/on-ramps.
+- `payments-fintech-infra/thepunisher-paymentledgerdoubleentryexpert.md` — **ThePunisher-PaymentLedgerDoubleEntryExpert**: double-entry ledger systems engineering for payment platforms.
+- `payments-fintech-infra/thepunisher-idempotencypaymentretrylogicexpert.md` — **ThePunisher-IdempotencyPaymentRetryLogicExpert**: idempotency-key design and safe payment-retry logic engineering.
+- `payments-fintech-infra/thepunisher-openbankingpsd2apiexpert.md` — **ThePunisher-OpenBankingPSD2APIExpert**: Open Banking and PSD2 account-information/payment-initiation API engineering.
+- `payments-fintech-infra/thepunisher-paymentterminalfirmwareexpert.md` — **ThePunisher-PaymentTerminalFirmwareExpert**: EMV payment-terminal firmware and kernel certification engineering.
+- `payments-fintech-infra/thepunisher-amltransactionmonitoringexpert.md` — **ThePunisher-AMLTransactionMonitoringExpert**: AML transaction-monitoring systems and suspicious-activity rule engineering.
+- `payments-fintech-infra/thepunisher-paymentdataencryptionp2peexpert.md` — **ThePunisher-PaymentDataEncryptionP2PEExpert**: point-to-point encryption (P2PE) engineering for card-present payments.
+- `payments-fintech-infra/thepunisher-interchangefeeoptimizationexpert.md` — **ThePunisher-InterchangeFeeOptimizationExpert**: interchange qualification and payment-fee optimization engineering.
+- `payments-fintech-infra/thepunisher-splitpaymentsmarketplacepayoutexpert.md` — **ThePunisher-SplitPaymentsMarketplacePayoutExpert**: split-payment and marketplace payout-routing systems engineering.
+- `payments-fintech-infra/thepunisher-paymenttestingsandboxsimulationexpert.md` — **ThePunisher-PaymentTestingSandboxSimulationExpert**: payment sandbox simulation and end-to-end payment-flow test engineering.
+- `payments-fintech-infra/thepunisher-highavailabilitypaymentinfraexpert.md` — **ThePunisher-HighAvailabilityPaymentInfraExpert**: high-availability, low-latency payment infrastructure engineering.
+- `payments-fintech-infra/thepunisher-swiftmessagingintegrationexpert.md` — **ThePunisher-SWIFTMessagingIntegrationExpert**: SWIFT MT/MX messaging integration for correspondent banking.
+- `payments-fintech-infra/thepunisher-loyaltyrewardspointssystemsexpert.md` — **ThePunisher-LoyaltyRewardsPointsSystemsExpert**: loyalty and rewards-points ledger systems engineering.
+- `payments-fintech-infra/thepunisher-prepaidcardprogrammanagementexpert.md` — **ThePunisher-PrepaidCardProgramManagementExpert**: prepaid card program-management systems engineering.
+- `payments-fintech-infra/thepunisher-paymentapisdkdesignexpert.md` — **ThePunisher-PaymentAPISDKDesignExpert**: payment API and client SDK design engineering.
+- `payments-fintech-infra/thepunisher-instantpayoutsystemsexpert.md` — **ThePunisher-InstantPayoutSystemsExpert**: instant-payout and same-day settlement systems engineering.
+- `payments-fintech-infra/thepunisher-paymentcompliancereportingexpert.md` — **ThePunisher-PaymentComplianceReportingExpert**: payment regulatory compliance reporting systems engineering.
+- `payments-fintech-infra/thepunisher-multicurrencyledgerexpert.md` — **ThePunisher-MultiCurrencyLedgerExpert**: multi-currency ledger and FX-revaluation systems engineering.
+- `payments-fintech-infra/thepunisher-paymentwebhookeventarchitectureexpert.md` — **ThePunisher-PaymentWebhookEventArchitectureExpert**: payment webhook delivery and event-driven architecture engineering.
+- `payments-fintech-infra/thepunisher-virtualcardissuanceexpert.md` — **ThePunisher-VirtualCardIssuanceExpert**: virtual card issuance and just-in-time funding systems engineering.
+- `payments-fintech-infra/thepunisher-paymentriskunderwritingsystemsexpert.md` — **ThePunisher-PaymentRiskUnderwritingSystemsExpert**: payment-risk underwriting model and decisioning systems engineering.
+- `payments-fintech-infra/thepunisher-qrcodepaymentsystemsexpert.md` — **ThePunisher-QRCodePaymentSystemsExpert**: QR-code payment protocol (EMVCo QR) systems engineering.
+- `payments-fintech-infra/thepunisher-nfccontactlesspaymentexpert.md` — **ThePunisher-NFCContactlessPaymentExpert**: NFC and contactless payment protocol engineering.
+- `payments-fintech-infra/thepunisher-paymentgatewayloadtestingexpert.md` — **ThePunisher-PaymentGatewayLoadTestingExpert**: payment-gateway load and chaos testing engineering.
+- `payments-fintech-infra/thepunisher-escrowtrustaccountsystemsexpert.md` — **ThePunisher-EscrowTrustAccountSystemsExpert**: escrow and trust-account ledger systems engineering.
+- `payments-fintech-infra/thepunisher-invoicearautomationexpert.md` — **ThePunisher-InvoiceARAutomationExpert**: invoicing and accounts-receivable automation systems engineering.
+- `payments-fintech-infra/thepunisher-paymentregulatorysandboxexpert.md` — **ThePunisher-PaymentRegulatorySandboxExpert**: money-transmitter licensing and regulatory-sandbox compliance engineering.
+- `payments-fintech-infra/thepunisher-paymentdatawarehouseanalyticsexpert.md` — **ThePunisher-PaymentDataWarehouseAnalyticsExpert**: payment data-warehouse and transaction-analytics engineering.
+- `payments-fintech-infra/thepunisher-directdebitmandatemanagementexpert.md` — **ThePunisher-DirectDebitMandateManagementExpert**: direct-debit mandate management (SEPA/BACS-style) systems engineering.
+- `payments-fintech-infra/thepunisher-paymentincidentresponserunbookexpert.md` — **ThePunisher-PaymentIncidentResponseRunbookExpert**: payment-outage incident-response and runbook engineering.
+- `payments-fintech-infra/thepunisher-paymentecosystempartnerintegrationexpert.md` — **ThePunisher-PaymentEcosystemPartnerIntegrationExpert**: payment-ecosystem partner and ISV integration engineering.
+
+## Team 72 — Smart City & Urban Infrastructure Technology Engineering (50 agents)
+
+- `smart-city-urban-infra/thepunisher-intelligenttrafficsignalsystemsexpert.md` — **ThePunisher-IntelligentTrafficSignalSystemsExpert**: adaptive traffic-signal control systems engineering.
+- `smart-city-urban-infra/thepunisher-smartparkingsystemsexpert.md` — **ThePunisher-SmartParkingSystemsExpert**: smart parking sensor and guidance systems engineering.
+- `smart-city-urban-infra/thepunisher-publictransitrealtimetrackingexpert.md` — **ThePunisher-PublicTransitRealTimeTrackingExpert**: real-time public-transit vehicle tracking (GTFS-realtime) engineering.
+- `smart-city-urban-infra/thepunisher-urbansensornetworkiotexpert.md` — **ThePunisher-UrbanSensorNetworkIoTExpert**: citywide IoT sensor-network deployment and telemetry engineering.
+- `smart-city-urban-infra/thepunisher-smartstreetlightingsystemsexpert.md` — **ThePunisher-SmartStreetlightingSystemsExpert**: networked smart-streetlighting control systems engineering.
+- `smart-city-urban-infra/thepunisher-wastemanagementrouteoptimizationexpert.md` — **ThePunisher-WasteManagementRouteOptimizationExpert**: waste-collection route-optimization systems engineering.
+- `smart-city-urban-infra/thepunisher-airqualitymonitoringsystemsexpert.md` — **ThePunisher-AirQualityMonitoringSystemsExpert**: urban air-quality sensor-network and monitoring systems engineering.
+- `smart-city-urban-infra/thepunisher-smartwatermeteringexpert.md` — **ThePunisher-SmartWaterMeteringExpert**: smart water-metering (AMI) systems engineering.
+- `smart-city-urban-infra/thepunisher-citydigitaltwinengineeringexpert.md` — **ThePunisher-CityDigitalTwinEngineeringExpert**: municipal digital-twin platform engineering.
+- `smart-city-urban-infra/thepunisher-urbanmobilitydataplatformexpert.md` — **ThePunisher-UrbanMobilityDataPlatformExpert**: urban mobility-data aggregation platform engineering (MDS).
+- `smart-city-urban-infra/thepunisher-automatedlicenseplaterecognitionexpert.md` — **ThePunisher-AutomatedLicensePlateRecognitionExpert**: automated license-plate-recognition (ALPR) systems engineering.
+- `smart-city-urban-infra/thepunisher-smartgridmunicipalintegrationexpert.md` — **ThePunisher-SmartGridMunicipalIntegrationExpert**: municipal smart-grid distribution integration engineering.
+- `smart-city-urban-infra/thepunisher-emergencyvehiclepreemptionsystemsexpert.md` — **ThePunisher-EmergencyVehiclePreemptionSystemsExpert**: traffic-signal emergency-vehicle preemption systems engineering.
+- `smart-city-urban-infra/thepunisher-bikesharemicromobilitysystemsexpert.md` — **ThePunisher-BikeShareMicromobilitySystemsExpert**: bike-share and micromobility fleet-management systems engineering.
+- `smart-city-urban-infra/thepunisher-municipal311servicerequestsystemsexpert.md` — **ThePunisher-Municipal311ServiceRequestSystemsExpert**: municipal 311 service-request platform engineering.
+- `smart-city-urban-infra/thepunisher-urbanfloodmonitoringearlywarningexpert.md` — **ThePunisher-UrbanFloodMonitoringEarlyWarningExpert**: urban flood-sensor and early-warning systems engineering.
+- `smart-city-urban-infra/thepunisher-smartbuildingenergymunicipalexpert.md` — **ThePunisher-SmartBuildingEnergyMunicipalExpert**: municipal-building smart energy-management systems engineering.
+- `smart-city-urban-infra/thepunisher-gisurbanplanningsystemsexpert.md` — **ThePunisher-GISUrbanPlanningSystemsExpert**: GIS-based urban-planning and zoning systems engineering.
+- `smart-city-urban-infra/thepunisher-publicwifinetworkinfrastructureexpert.md` — **ThePunisher-PublicWiFiNetworkInfrastructureExpert**: municipal public Wi-Fi network infrastructure engineering.
+- `smart-city-urban-infra/thepunisher-noisepollutionmonitoringsystemsexpert.md` — **ThePunisher-NoisePollutionMonitoringSystemsExpert**: urban noise-pollution sensor and monitoring systems engineering.
+- `smart-city-urban-infra/thepunisher-smartcrosswalkpedestriansafetyexpert.md` — **ThePunisher-SmartCrosswalkPedestrianSafetyExpert**: smart-crosswalk and pedestrian-safety sensor systems engineering.
+- `smart-city-urban-infra/thepunisher-congestionpricingsystemsexpert.md` — **ThePunisher-CongestionPricingSystemsExpert**: congestion-pricing and cordon-toll systems engineering.
+- `smart-city-urban-infra/thepunisher-municipalassetmanagementsystemsexpert.md` — **ThePunisher-MunicipalAssetManagementSystemsExpert**: municipal infrastructure asset-management systems engineering.
+- `smart-city-urban-infra/thepunisher-smartcitydataprivacygovernanceexpert.md` — **ThePunisher-SmartCityDataPrivacyGovernanceExpert**: smart-city sensor-data privacy and governance engineering.
+- `smart-city-urban-infra/thepunisher-urbandigitalsignagesystemsexpert.md` — **ThePunisher-UrbanDigitalSignageSystemsExpert**: municipal digital-signage network systems engineering.
+- `smart-city-urban-infra/thepunisher-curbmanagementsystemsexpert.md` — **ThePunisher-CurbManagementSystemsExpert**: dynamic curb-space management systems engineering.
+- `smart-city-urban-infra/thepunisher-vehicletoinfrastructurecommexpert.md` — **ThePunisher-VehicleToInfrastructureCommExpert**: vehicle-to-infrastructure (V2I) communication systems engineering.
+- `smart-city-urban-infra/thepunisher-smartcitycybersecurityexpert.md` — **ThePunisher-SmartCityCybersecurityExpert**: smart-city OT/IoT cybersecurity engineering.
+- `smart-city-urban-infra/thepunisher-municipalpermittinginspectionsystemsexpert.md` — **ThePunisher-MunicipalPermittingInspectionSystemsExpert**: municipal permitting and inspection workflow systems engineering.
+- `smart-city-urban-infra/thepunisher-urbanheatislandmonitoringexpert.md` — **ThePunisher-UrbanHeatIslandMonitoringExpert**: urban heat-island sensor-network monitoring engineering.
+- `smart-city-urban-infra/thepunisher-publicsafetycameranetworksystemsexpert.md` — **ThePunisher-PublicSafetyCameraNetworkSystemsExpert**: public-safety camera network and video-management systems engineering.
+- `smart-city-urban-infra/thepunisher-smartcityopendataplatformexpert.md` — **ThePunisher-SmartCityOpenDataPlatformExpert**: municipal open-data portal platform engineering.
+- `smart-city-urban-infra/thepunisher-districtenergysystemsintegrationexpert.md` — **ThePunisher-DistrictEnergySystemsIntegrationExpert**: district-heating/cooling energy-systems integration engineering.
+- `smart-city-urban-infra/thepunisher-smartirrigationpublicparksexpert.md` — **ThePunisher-SmartIrrigationPublicParksExpert**: smart-irrigation control systems engineering for public parks.
+- `smart-city-urban-infra/thepunisher-autonomousshuttlepilotsystemsexpert.md` — **ThePunisher-AutonomousShuttlePilotSystemsExpert**: autonomous-shuttle pilot-program systems integration engineering.
+- `smart-city-urban-infra/thepunisher-municipalfleettelematicsexpert.md` — **ThePunisher-MunicipalFleetTelematicsExpert**: municipal vehicle-fleet telematics systems engineering.
+- `smart-city-urban-infra/thepunisher-smartcityinteroperabilitystandardsexpert.md` — **ThePunisher-SmartCityInteroperabilityStandardsExpert**: smart-city interoperability standards engineering (FIWARE/OGC SensorThings).
+- `smart-city-urban-infra/thepunisher-urbandronetrafficmanagementexpert.md` — **ThePunisher-UrbanDroneTrafficManagementExpert**: low-altitude urban drone traffic-management (UTM) systems engineering.
+- `smart-city-urban-infra/thepunisher-smartcitycitizenengagementplatformexpert.md` — **ThePunisher-SmartCityCitizenEngagementPlatformExpert**: citizen-engagement and participatory-budgeting platform engineering.
+- `smart-city-urban-infra/thepunisher-utilityundergroundinggismappingexpert.md` — **ThePunisher-UtilityUndergroundingGISMappingExpert**: utility-undergrounding GIS asset-mapping systems engineering.
+- `smart-city-urban-infra/thepunisher-smartcityresilienceplanningsystemsexpert.md` — **ThePunisher-SmartCityResiliencePlanningSystemsExpert**: climate-resilience planning and modeling systems engineering.
+- `smart-city-urban-infra/thepunisher-pedestrianflowanalyticsexpert.md` — **ThePunisher-PedestrianFlowAnalyticsExpert**: pedestrian-flow sensor analytics systems engineering.
+- `smart-city-urban-infra/thepunisher-municipalbroadbanddeploymentexpert.md` — **ThePunisher-MunicipalBroadbandDeploymentExpert**: municipal broadband network deployment engineering.
+- `smart-city-urban-infra/thepunisher-smartcityprocurementtechnologyexpert.md` — **ThePunisher-SmartCityProcurementTechnologyExpert**: municipal e-procurement platform engineering.
+- `smart-city-urban-infra/thepunisher-urbanrailsignalingintegrationexpert.md` — **ThePunisher-UrbanRailSignalingIntegrationExpert**: urban light-rail/subway signaling-system integration engineering.
+- `smart-city-urban-infra/thepunisher-smartcityaccessibilityinfrastructureexpert.md` — **ThePunisher-SmartCityAccessibilityInfrastructureExpert**: municipal accessibility-infrastructure (ADA tech) systems engineering.
+- `smart-city-urban-infra/thepunisher-municipalscadaintegrationexpert.md` — **ThePunisher-MunicipalSCADAIntegrationExpert**: municipal utility SCADA-system integration engineering.
+- `smart-city-urban-infra/thepunisher-smartcityedgecomputingexpert.md` — **ThePunisher-SmartCityEdgeComputingExpert**: smart-city edge-computing deployment engineering.
+- `smart-city-urban-infra/thepunisher-urbanairmobilitygroundinfraexpert.md` — **ThePunisher-UrbanAirMobilityGroundInfraExpert**: urban air mobility (eVTOL) ground-infrastructure systems engineering.
+- `smart-city-urban-infra/thepunisher-smartcityprogramevaluationmetricsexpert.md` — **ThePunisher-SmartCityProgramEvaluationMetricsExpert**: smart-city program-evaluation and outcome-metrics systems engineering.
+
+## Team 73 — Digital Forensics & Incident Response Engineering (50 agents)
+
+- `digital-forensics-ir/thepunisher-enterprisememoryforensicsplatformexpert.md` — **ThePunisher-EnterpriseMemoryForensicsPlatformExpert**: enterprise-scale memory-forensics platform engineering (fleet triage), distinct from Team 60's single-host Volatility-style analysis.
+- `digital-forensics-ir/thepunisher-diskforensicsimagingexpert.md` — **ThePunisher-DiskForensicsImagingExpert**: disk forensics and forensic imaging (EnCase/FTK-style).
+- `digital-forensics-ir/thepunisher-networkforensicspcapanalysisexpert.md` — **ThePunisher-NetworkForensicsPCAPAnalysisExpert**: network forensics and full-packet-capture analysis.
+- `digital-forensics-ir/thepunisher-mobiledeviceforensicsexpert.md` — **ThePunisher-MobileDeviceForensicsExpert**: mobile-device forensic acquisition and analysis.
+- `digital-forensics-ir/thepunisher-cloudforensicsexpert.md` — **ThePunisher-CloudForensicsExpert**: cloud-provider log forensics (AWS/Azure/GCP audit trails).
+- `digital-forensics-ir/thepunisher-timelinereconstructionsupertimelineexpert.md` — **ThePunisher-TimelineReconstructionSuperTimelineExpert**: forensic timeline reconstruction and super-timeline analysis.
+- `digital-forensics-ir/thepunisher-chainofcustodyevidencehandlingexpert.md` — **ThePunisher-ChainOfCustodyEvidenceHandlingExpert**: digital-evidence chain-of-custody and handling-procedure engineering.
+- `digital-forensics-ir/thepunisher-incidentresponseplaybookengineeringexpert.md` — **ThePunisher-IncidentResponsePlaybookEngineeringExpert**: incident-response playbook and runbook engineering.
+- `digital-forensics-ir/thepunisher-ransomwareincidentresponseexpert.md` — **ThePunisher-RansomwareIncidentResponseExpert**: ransomware incident-response and containment engineering.
+- `digital-forensics-ir/thepunisher-logcorrelationsiemforensicsexpert.md` — **ThePunisher-LogCorrelationSIEMForensicsExpert**: SIEM log correlation for forensic investigation.
+- `digital-forensics-ir/thepunisher-windowseventlogforensicsexpert.md` — **ThePunisher-WindowsEventLogForensicsExpert**: Windows event-log forensic analysis.
+- `digital-forensics-ir/thepunisher-linuxunixforensicsexpert.md` — **ThePunisher-LinuxUnixForensicsExpert**: Linux/Unix system forensic analysis.
+- `digital-forensics-ir/thepunisher-macosforensicsexpert.md` — **ThePunisher-MacOSForensicsExpert**: macOS system forensic analysis.
+- `digital-forensics-ir/thepunisher-emailforensicsheaderanalysisexpert.md` — **ThePunisher-EmailForensicsHeaderAnalysisExpert**: email forensics and header/routing analysis.
+- `digital-forensics-ir/thepunisher-browserartifactforensicsexpert.md` — **ThePunisher-BrowserArtifactForensicsExpert**: browser-artifact forensic analysis.
+- `digital-forensics-ir/thepunisher-filesystemforensicsexpert.md` — **ThePunisher-FileSystemForensicsExpert**: file-system forensic analysis (NTFS/APFS/ext4).
+- `digital-forensics-ir/thepunisher-registryforensicsexpert.md` — **ThePunisher-RegistryForensicsExpert**: Windows registry forensic analysis.
+- `digital-forensics-ir/thepunisher-antiforensicsdetectionexpert.md` — **ThePunisher-AntiForensicsDetectionExpert**: anti-forensics technique detection.
+- `digital-forensics-ir/thepunisher-volatiledataliveresponseexpert.md` — **ThePunisher-VolatileDataLiveResponseExpert**: volatile-data live-response collection engineering.
+- `digital-forensics-ir/thepunisher-malwaretriageforirexpert.md` — **ThePunisher-MalwareTriageForIRExpert**: rapid malware triage during incident response.
+- `digital-forensics-ir/thepunisher-threatintelintegrationforirexpert.md` — **ThePunisher-ThreatIntelIntegrationForIRExpert**: threat-intelligence integration into incident-response workflows.
+- `digital-forensics-ir/thepunisher-businessemailcompromiseinvestigationexpert.md` — **ThePunisher-BusinessEmailCompromiseInvestigationExpert**: business-email-compromise investigation engineering.
+- `digital-forensics-ir/thepunisher-insiderthreatinvestigationexpert.md` — **ThePunisher-InsiderThreatInvestigationExpert**: insider-threat investigation engineering (authorized).
+- `digital-forensics-ir/thepunisher-legalholdediscoverysystemsexpert.md` — **ThePunisher-LegalHoldEDiscoverySystemsExpert**: legal-hold and e-discovery systems engineering.
+- `digital-forensics-ir/thepunisher-forensicreportwritingexperttestimonyexpert.md` — **ThePunisher-ForensicReportWritingExpertTestimonyExpert**: forensic report-writing and expert-testimony preparation.
+- `digital-forensics-ir/thepunisher-iotdeviceforensicsexpert.md` — **ThePunisher-IoTDeviceForensicsExpert**: IoT device forensic acquisition and analysis.
+- `digital-forensics-ir/thepunisher-containerkubernetesforensicsexpert.md` — **ThePunisher-ContainerKubernetesForensicsExpert**: container and Kubernetes-cluster forensic analysis.
+- `digital-forensics-ir/thepunisher-cryptocurrencytransactiontracingexpert.md` — **ThePunisher-CryptocurrencyTransactionTracingExpert**: blockchain transaction-tracing for investigations.
+- `digital-forensics-ir/thepunisher-steganographydetectionexpert.md` — **ThePunisher-SteganographyDetectionExpert**: steganography and covert-channel detection.
+- `digital-forensics-ir/thepunisher-deleteddatarecoveryexpert.md` — **ThePunisher-DeletedDataRecoveryExpert**: deleted-data recovery and file-carving engineering.
+- `digital-forensics-ir/thepunisher-forensictoolvalidationmethodologyexpert.md` — **ThePunisher-ForensicToolValidationMethodologyExpert**: forensic-tool validation and methodology engineering.
+- `digital-forensics-ir/thepunisher-incidentcommandcrisiscommexpert.md` — **ThePunisher-IncidentCommandCrisisCommExpert**: incident-command structure and crisis-communication engineering.
+- `digital-forensics-ir/thepunisher-postincidentrootcausereportingexpert.md` — **ThePunisher-PostIncidentRootCauseReportingExpert**: post-incident root-cause-analysis reporting engineering.
+- `digital-forensics-ir/thepunisher-digitalevidencedatabasesystemsexpert.md` — **ThePunisher-DigitalEvidenceDatabaseSystemsExpert**: digital-evidence database and case-management systems engineering.
+- `digital-forensics-ir/thepunisher-networktrafficbaselineforensicsexpert.md` — **ThePunisher-NetworkTrafficBaselineForensicsExpert**: network-traffic baselining for anomaly forensics.
+- `digital-forensics-ir/thepunisher-firmwareembeddeddeviceforensicsexpert.md` — **ThePunisher-FirmwareEmbeddedDeviceForensicsExpert**: firmware and embedded-device forensic analysis.
+- `digital-forensics-ir/thepunisher-activedirectorycompromiseinvestigationexpert.md` — **ThePunisher-ActiveDirectoryCompromiseInvestigationExpert**: Active Directory compromise investigation engineering.
+- `digital-forensics-ir/thepunisher-saasapplicationforensicsexpert.md` — **ThePunisher-SaaSApplicationForensicsExpert**: SaaS application forensics (Microsoft 365/Google Workspace).
+- `digital-forensics-ir/thepunisher-forensicdatacarvingexpert.md` — **ThePunisher-ForensicDataCarvingExpert**: forensic data-carving engineering.
+- `digital-forensics-ir/thepunisher-encryptedvolumepasswordrecoveryexpert.md` — **ThePunisher-EncryptedVolumePasswordRecoveryExpert**: authorized encrypted-volume and password-recovery engineering.
+- `digital-forensics-ir/thepunisher-vehicleinfotainmentforensicsexpert.md` — **ThePunisher-VehicleInfotainmentForensicsExpert**: vehicle infotainment-system forensic analysis.
+- `digital-forensics-ir/thepunisher-printdocumentmetadataforensicsexpert.md` — **ThePunisher-PrintDocumentMetadataForensicsExpert**: print-job and document-metadata forensic analysis.
+- `digital-forensics-ir/thepunisher-irtabletopexercisedesignexpert.md` — **ThePunisher-IRTabletopExerciseDesignExpert**: incident-response tabletop-exercise design engineering.
+- `digital-forensics-ir/thepunisher-breachnotificationregulatoryreportingexpert.md` — **ThePunisher-BreachNotificationRegulatoryReportingExpert**: breach-notification regulatory-reporting engineering.
+- `digital-forensics-ir/thepunisher-forensiclabaccreditationqaexpert.md` — **ThePunisher-ForensicLabAccreditationQAExpert**: forensic-lab accreditation and quality-assurance engineering.
+- `digital-forensics-ir/thepunisher-threatactorattributionanalysisexpert.md` — **ThePunisher-ThreatActorAttributionAnalysisExpert**: threat-actor attribution analysis engineering.
+- `digital-forensics-ir/thepunisher-wirelessnetworkforensicsexpert.md` — **ThePunisher-WirelessNetworkForensicsExpert**: wireless-network forensic analysis.
+- `digital-forensics-ir/thepunisher-forensicautomationscriptingexpert.md` — **ThePunisher-ForensicAutomationScriptingExpert**: DFIR tooling automation and scripting engineering.
+- `digital-forensics-ir/thepunisher-cloudnativesaaslogretentionengineeringexpert.md` — **ThePunisher-CloudNativeSaaSLogRetentionEngineeringExpert**: cloud-native SaaS log-retention engineering for forensics.
+- `digital-forensics-ir/thepunisher-digitalforensicscasemanagementsystemsexpert.md` — **ThePunisher-DigitalForensicsCaseManagementSystemsExpert**: digital-forensics case-management systems engineering.
+
+## Team 74 — Aviation Operations Technology Engineering (50 agents)
+
+- `aviation-ops-tech/thepunisher-airlineinventorycontrolsystemsexpert.md` — **ThePunisher-AirlineInventoryControlSystemsExpert**: airline seat-inventory-control systems engineering, distinct from Team 64's passenger-facing reservation/booking-engine focus.
+- `aviation-ops-tech/thepunisher-airlinecrewtrainingrecordscomplianceexpert.md` — **ThePunisher-AirlineCrewTrainingRecordsComplianceExpert**: airline crew training-records and currency-compliance systems engineering, distinct from Team 64's crew-scheduling/rostering focus.
+- `aviation-ops-tech/thepunisher-flightplanningdispatchsystemsexpert.md` — **ThePunisher-FlightPlanningDispatchSystemsExpert**: flight-planning and dispatch systems engineering (route/fuel/flight-plan filing), distinct from Team 64's operations-control-center focus.
+- `aviation-ops-tech/thepunisher-airportoperationaldatabaseaodbexpert.md` — **ThePunisher-AirportOperationalDatabaseAODBExpert**: Airport Operational Database (AODB) central data-hub systems engineering, distinct from Team 64's broader airport-operations-software scope.
+- `aviation-ops-tech/thepunisher-baggagehandlingsystemsexpert.md` — **ThePunisher-BaggageHandlingSystemsExpert**: airport baggage-handling systems engineering.
+- `aviation-ops-tech/thepunisher-airlinerevenuemanagementsystemsexpert.md` — **ThePunisher-AirlineRevenueManagementSystemsExpert**: airline revenue-management systems engineering.
+- `aviation-ops-tech/thepunisher-aircraftmaintenancemrosystemsexpert.md` — **ThePunisher-AircraftMaintenanceMROSystemsExpert**: aircraft maintenance, repair, and overhaul (MRO) systems engineering.
+- `aviation-ops-tech/thepunisher-airportslotcoordinationsystemsexpert.md` — **ThePunisher-AirportSlotCoordinationSystemsExpert**: airport slot-coordination systems engineering.
+- `aviation-ops-tech/thepunisher-airtrafficflowmanagementexpert.md` — **ThePunisher-AirTrafficFlowManagementExpert**: air-traffic flow-management systems engineering.
+- `aviation-ops-tech/thepunisher-passengercheckinboardingsystemsexpert.md` — **ThePunisher-PassengerCheckInBoardingSystemsExpert**: passenger check-in and boarding-systems engineering.
+- `aviation-ops-tech/thepunisher-aircraftweightbalancesystemsexpert.md` — **ThePunisher-AircraftWeightBalanceSystemsExpert**: aircraft weight-and-balance systems engineering.
+- `aviation-ops-tech/thepunisher-airlineloyaltyprogramsystemsexpert.md` — **ThePunisher-AirlineLoyaltyProgramSystemsExpert**: airline frequent-flyer loyalty-program systems engineering.
+- `aviation-ops-tech/thepunisher-notamaeronauticalinfosystemsexpert.md` — **ThePunisher-NOTAMAeronauticalInfoSystemsExpert**: NOTAM and aeronautical-information systems engineering.
+- `aviation-ops-tech/thepunisher-airportgatemanagementsystemsexpert.md` — **ThePunisher-AirportGateManagementSystemsExpert**: airport gate-management and allocation systems engineering.
+- `aviation-ops-tech/thepunisher-flightdatamonitoringfdmsystemsexpert.md` — **ThePunisher-FlightDataMonitoringFDMSystemsExpert**: Flight Data Monitoring (FDM) systems engineering.
+- `aviation-ops-tech/thepunisher-aircraftturnaroundoptimizationexpert.md` — **ThePunisher-AircraftTurnaroundOptimizationExpert**: aircraft turnaround-time optimization systems engineering.
+- `aviation-ops-tech/thepunisher-airlinecodeshareinterlinesystemsexpert.md` — **ThePunisher-AirlineCodeshareInterlineSystemsExpert**: airline codeshare and interline systems engineering.
+- `aviation-ops-tech/thepunisher-cargofreightmanagementsystemsexpert.md` — **ThePunisher-CargoFreightManagementSystemsExpert**: air-cargo and freight-management systems engineering.
+- `aviation-ops-tech/thepunisher-airportcustomsbordersystemsexpert.md` — **ThePunisher-AirportCustomsBorderSystemsExpert**: airport customs, immigration, and border-processing systems engineering (APIS-style advance passenger information), distinct from Team 64's screening-technology-integration focus.
+- `aviation-ops-tech/thepunisher-aviationweatherdataintegrationexpert.md` — **ThePunisher-AviationWeatherDataIntegrationExpert**: aviation weather-data integration systems engineering.
+- `aviation-ops-tech/thepunisher-aircraftfuelmanagementsystemsexpert.md` — **ThePunisher-AircraftFuelManagementSystemsExpert**: aircraft fuel-management systems engineering.
+- `aviation-ops-tech/thepunisher-airlinestationcontrolsystemsexpert.md` — **ThePunisher-AirlineStationControlSystemsExpert**: airline station/ground-operations control-systems engineering, distinct from Team 64's own irregular-operations-management focus.
+- `aviation-ops-tech/thepunisher-groundsupportequipmenttelematicsexpert.md` — **ThePunisher-GroundSupportEquipmentTelematicsExpert**: ground-support-equipment (GSE) telematics engineering.
+- `aviation-ops-tech/thepunisher-airlinefarepricingengineexpert.md` — **ThePunisher-AirlineFarePricingEngineExpert**: airline fare and dynamic-pricing engine engineering.
+- `aviation-ops-tech/thepunisher-airportpassengerflowanalyticsexpert.md` — **ThePunisher-AirportPassengerFlowAnalyticsExpert**: airport passenger-flow analytics systems engineering.
+- `aviation-ops-tech/thepunisher-aircrafthealthmonitoringpredictiveexpert.md` — **ThePunisher-AircraftHealthMonitoringPredictiveExpert**: aircraft health-monitoring and predictive-maintenance systems engineering.
+- `aviation-ops-tech/thepunisher-aircargotracktracesystemsexpert.md` — **ThePunisher-AirCargoTrackTraceSystemsExpert**: air-cargo track-and-trace systems engineering.
+- `aviation-ops-tech/thepunisher-airlinecrewfatigueriskmanagementexpert.md` — **ThePunisher-AirlineCrewFatigueRiskManagementExpert**: airline crew fatigue risk-management systems engineering.
+- `aviation-ops-tech/thepunisher-airportcutesystemsexpert.md` — **ThePunisher-AirportCUTESystemsExpert**: airport Common Use Terminal Equipment (CUTE) systems engineering.
+- `aviation-ops-tech/thepunisher-flightsimulatortrainingrecordsexpert.md` — **ThePunisher-FlightSimulatorTrainingRecordsExpert**: flight-simulator training-records systems engineering.
+- `aviation-ops-tech/thepunisher-aviationregulatorycompliancesystemsexpert.md` — **ThePunisher-AviationRegulatoryComplianceSystemsExpert**: aviation regulatory-compliance (FAA/EASA) systems engineering.
+- `aviation-ops-tech/thepunisher-airlineancillaryrevenuesystemsexpert.md` — **ThePunisher-AirlineAncillaryRevenueSystemsExpert**: airline ancillary-revenue systems engineering.
+- `aviation-ops-tech/thepunisher-airportrunwayincursionpreventionexpert.md` — **ThePunisher-AirportRunwayIncursionPreventionExpert**: airport runway-incursion-prevention systems engineering.
+- `aviation-ops-tech/thepunisher-aircraftpartsinventorysupplychainexpert.md` — **ThePunisher-AircraftPartsInventorySupplyChainExpert**: aircraft parts inventory and supply-chain systems engineering.
+- `aviation-ops-tech/thepunisher-airlinedisruptionrebookingexpert.md` — **ThePunisher-AirlineDisruptionRebookingExpert**: airline disruption-management and automated-rebooking systems engineering.
+- `aviation-ops-tech/thepunisher-airportnoiseabatementmonitoringexpert.md` — **ThePunisher-AirportNoiseAbatementMonitoringExpert**: airport noise-abatement monitoring systems engineering.
+- `aviation-ops-tech/thepunisher-aviationfuelhedgingcostsystemsexpert.md` — **ThePunisher-AviationFuelHedgingCostSystemsExpert**: aviation fuel-hedging and cost-management systems engineering.
+- `aviation-ops-tech/thepunisher-airlineinterlinebaggagesettlementexpert.md` — **ThePunisher-AirlineInterlineBaggageSettlementExpert**: airline interline baggage-settlement systems engineering.
+- `aviation-ops-tech/thepunisher-aircraftcertificationdocsystemsexpert.md` — **ThePunisher-AircraftCertificationDocSystemsExpert**: aircraft certification and documentation systems engineering.
+- `aviation-ops-tech/thepunisher-airportwildlifehazardmanagementexpert.md` — **ThePunisher-AirportWildlifeHazardManagementExpert**: airport wildlife-hazard-management systems engineering.
+- `aviation-ops-tech/thepunisher-flightopsqualityassurancefoqaexpert.md` — **ThePunisher-FlightOpsQualityAssuranceFOQAExpert**: Flight Operations Quality Assurance (FOQA) program systems engineering.
+- `aviation-ops-tech/thepunisher-airlinedigitalboardingbiometricsexpert.md` — **ThePunisher-AirlineDigitalBoardingBiometricsExpert**: airline digital boarding-pass and biometric-boarding systems engineering.
+- `aviation-ops-tech/thepunisher-airportdeicingoperationssystemsexpert.md` — **ThePunisher-AirportDeIcingOperationsSystemsExpert**: airport de-icing operations systems engineering.
+- `aviation-ops-tech/thepunisher-aviationsafetyreportingsystemsexpert.md` — **ThePunisher-AviationSafetyReportingSystemsExpert**: aviation safety-reporting systems engineering (ASRS-style).
+- `aviation-ops-tech/thepunisher-airlinenetworkplanningrouteoptexpert.md` — **ThePunisher-AirlineNetworkPlanningRouteOptExpert**: airline network-planning and route-optimization systems engineering.
+- `aviation-ops-tech/thepunisher-airportparkinggroundtransportexpert.md` — **ThePunisher-AirportParkingGroundTransportExpert**: airport parking and ground-transportation systems engineering.
+- `aviation-ops-tech/thepunisher-aircraftleasefleetfinancialsystemsexpert.md` — **ThePunisher-AircraftLeaseFleetFinancialSystemsExpert**: aircraft lease and fleet financial-systems engineering.
+- `aviation-ops-tech/thepunisher-airlinecustomerservicerecoveryexpert.md` — **ThePunisher-AirlineCustomerServiceRecoveryExpert**: airline customer-service-recovery systems engineering.
+- `aviation-ops-tech/thepunisher-aviationdataexchangearincexpert.md` — **ThePunisher-AviationDataExchangeARINCExpert**: aviation data-exchange systems engineering (ARINC/AEEC standards).
+- `aviation-ops-tech/thepunisher-airportemergencyresponsecoordinationexpert.md` — **ThePunisher-AirportEmergencyResponseCoordinationExpert**: airport emergency-response-coordination systems engineering.
+
+## Team 75 — Water & Wastewater Utility Technology Engineering (50 agents)
+
+- `water-wastewater-utility/thepunisher-watertreatmentplantscadaexpert.md` — **ThePunisher-WaterTreatmentPlantSCADAExpert**: water-treatment-plant SCADA and process-automation engineering.
+- `water-wastewater-utility/thepunisher-wastewatertreatmentprocesscontrolexpert.md` — **ThePunisher-WastewaterTreatmentProcessControlExpert**: wastewater-treatment process-control engineering.
+- `water-wastewater-utility/thepunisher-waterqualitycompliancemonitoringexpert.md` — **ThePunisher-WaterQualityComplianceMonitoringExpert**: drinking-water quality compliance monitoring (EPA/SDWA) engineering.
+- `water-wastewater-utility/thepunisher-chemicaldosingcontrolsystemsexpert.md` — **ThePunisher-ChemicalDosingControlSystemsExpert**: chemical-dosing control-systems engineering for water treatment.
+- `water-wastewater-utility/thepunisher-membranefiltrationprocesscontrolexpert.md` — **ThePunisher-MembraneFiltrationProcessControlExpert**: membrane-filtration (RO/UF) process-control engineering.
+- `water-wastewater-utility/thepunisher-waterdistributionhydraulicmodelingexpert.md` — **ThePunisher-WaterDistributionHydraulicModelingExpert**: water-distribution-network hydraulic-modeling engineering.
+- `water-wastewater-utility/thepunisher-sewercollectionsystemmonitoringexpert.md` — **ThePunisher-SewerCollectionSystemMonitoringExpert**: sewer-collection-system monitoring engineering.
+- `water-wastewater-utility/thepunisher-waterutilitybillingsystemsexpert.md` — **ThePunisher-WaterUtilityBillingSystemsExpert**: water-utility billing-systems engineering.
+- `water-wastewater-utility/thepunisher-leakdetectionwaterlossmanagementexpert.md` — **ThePunisher-LeakDetectionWaterLossManagementExpert**: water-utility leak-detection and non-revenue-water management engineering.
+- `water-wastewater-utility/thepunisher-stormwatermanagementsystemsexpert.md` — **ThePunisher-StormwaterManagementSystemsExpert**: stormwater-management systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilityassetmanagementexpert.md` — **ThePunisher-WaterUtilityAssetManagementExpert**: water-utility infrastructure asset-management systems engineering.
+- `water-wastewater-utility/thepunisher-desalinationplantcontrolsystemsexpert.md` — **ThePunisher-DesalinationPlantControlSystemsExpert**: desalination-plant control-systems engineering.
+- `water-wastewater-utility/thepunisher-biosolidsmanagementsystemsexpert.md` — **ThePunisher-BiosolidsManagementSystemsExpert**: wastewater biosolids-management systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilitycustomerinfosystemsexpert.md` — **ThePunisher-WaterUtilityCustomerInfoSystemsExpert**: water-utility customer-information-systems engineering.
+- `water-wastewater-utility/thepunisher-combinedseweroverflowmonitoringexpert.md` — **ThePunisher-CombinedSewerOverflowMonitoringExpert**: combined-sewer-overflow (CSO) monitoring systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilityregulatoryreportingexpert.md` — **ThePunisher-WaterUtilityRegulatoryReportingExpert**: water-utility regulatory-reporting systems engineering.
+- `water-wastewater-utility/thepunisher-groundwatermonitoringsystemsexpert.md` — **ThePunisher-GroundwaterMonitoringSystemsExpert**: groundwater-monitoring systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilityemergencyresponsesystemsexpert.md` — **ThePunisher-WaterUtilityEmergencyResponseSystemsExpert**: water-utility emergency-response systems engineering.
+- `water-wastewater-utility/thepunisher-industrialpretreatmentcomplianceexpert.md` — **ThePunisher-IndustrialPretreatmentComplianceExpert**: industrial-pretreatment compliance-systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilityotcybersecurityexpert.md` — **ThePunisher-WaterUtilityOTCybersecurityExpert**: water-utility operational-technology cybersecurity engineering.
+- `water-wastewater-utility/thepunisher-reservoirdammonitoringsystemsexpert.md` — **ThePunisher-ReservoirDamMonitoringSystemsExpert**: reservoir and dam monitoring-systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilitypumpstationautomationexpert.md` — **ThePunisher-WaterUtilityPumpStationAutomationExpert**: water-utility pump-station automation engineering.
+- `water-wastewater-utility/thepunisher-drinkingwaterdistributionmodelingexpert.md` — **ThePunisher-DrinkingWaterDistributionModelingExpert**: drinking-water distribution-network modeling engineering.
+- `water-wastewater-utility/thepunisher-wastewaternutrientremovalprocessexpert.md` — **ThePunisher-WastewaterNutrientRemovalProcessExpert**: wastewater nutrient-removal process engineering.
+- `water-wastewater-utility/thepunisher-waterutilitygisassetmappingexpert.md` — **ThePunisher-WaterUtilityGISAssetMappingExpert**: water-utility GIS asset-mapping engineering.
+- `water-wastewater-utility/thepunisher-waterutilitydemandforecastingexpert.md` — **ThePunisher-WaterUtilityDemandForecastingExpert**: water-utility demand-forecasting systems engineering.
+- `water-wastewater-utility/thepunisher-crossconnectionbackflowpreventionexpert.md` — **ThePunisher-CrossConnectionBackflowPreventionExpert**: cross-connection-control and backflow-prevention systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilitymeterdatamanagementexpert.md` — **ThePunisher-WaterUtilityMeterDataManagementExpert**: water-utility meter-data-management (MDM) systems engineering.
+- `water-wastewater-utility/thepunisher-wastewaterodorcontrolsystemsexpert.md` — **ThePunisher-WastewaterOdorControlSystemsExpert**: wastewater-treatment odor-control systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilitycapitalprojectsystemsexpert.md` — **ThePunisher-WaterUtilityCapitalProjectSystemsExpert**: water-utility capital-project-management systems engineering.
+- `water-wastewater-utility/thepunisher-sludgedigestionbiogasrecoveryexpert.md` — **ThePunisher-SludgeDigestionBiogasRecoveryExpert**: sludge-digestion and biogas-recovery systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilityratecasemodelingexpert.md` — **ThePunisher-WaterUtilityRateCaseModelingExpert**: water-utility rate-case financial-modeling engineering.
+- `water-wastewater-utility/thepunisher-watermainbreakpredictionsystemsexpert.md` — **ThePunisher-WaterMainBreakPredictionSystemsExpert**: water-main-break predictive-analytics systems engineering.
+- `water-wastewater-utility/thepunisher-wastewaterliftstationtelemetryexpert.md` — **ThePunisher-WastewaterLiftStationTelemetryExpert**: wastewater lift-station telemetry engineering.
+- `water-wastewater-utility/thepunisher-waterutilityconsumerconfidencereportingexpert.md` — **ThePunisher-WaterUtilityConsumerConfidenceReportingExpert**: water-utility Consumer Confidence Report (CCR) systems engineering.
+- `water-wastewater-utility/thepunisher-waterreusereclamationsystemsexpert.md` — **ThePunisher-WaterReuseReclamationSystemsExpert**: water-reuse and reclamation systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilityhistoriantrendanalysisexpert.md` — **ThePunisher-WaterUtilityHistorianTrendAnalysisExpert**: water-utility process-historian and trend-analysis engineering.
+- `water-wastewater-utility/thepunisher-wastewaterplantenergyoptimizationexpert.md` — **ThePunisher-WastewaterPlantEnergyOptimizationExpert**: wastewater-treatment-plant energy-optimization engineering.
+- `water-wastewater-utility/thepunisher-waterutilityfieldworkordermanagementexpert.md` — **ThePunisher-WaterUtilityFieldWorkOrderManagementExpert**: water-utility field work-order-management systems engineering.
+- `water-wastewater-utility/thepunisher-sourcewaterprotectionmonitoringexpert.md` — **ThePunisher-SourceWaterProtectionMonitoringExpert**: source-water-protection monitoring systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilityfluoridationcontrolexpert.md` — **ThePunisher-WaterUtilityFluoridationControlExpert**: water-utility fluoridation control-systems engineering.
+- `water-wastewater-utility/thepunisher-wastewaterplantdigitaltwinexpert.md` — **ThePunisher-WastewaterPlantDigitalTwinExpert**: wastewater-treatment-plant digital-twin engineering.
+- `water-wastewater-utility/thepunisher-waterutilitygrantfundingcomplianceexpert.md` — **ThePunisher-WaterUtilityGrantFundingComplianceExpert**: water-utility grant and funding-compliance systems engineering.
+- `water-wastewater-utility/thepunisher-industrialwaterrecyclingsystemsexpert.md` — **ThePunisher-IndustrialWaterRecyclingSystemsExpert**: industrial water-recycling systems engineering.
+- `water-wastewater-utility/thepunisher-waterutilityinteroperabilitystandardsexpert.md` — **ThePunisher-WaterUtilityInteroperabilityStandardsExpert**: water-utility data-interoperability standards engineering.
+- `water-wastewater-utility/thepunisher-wastewaterplantalarmmanagementexpert.md` — **ThePunisher-WastewaterPlantAlarmManagementExpert**: wastewater-treatment-plant alarm-management engineering.
+- `water-wastewater-utility/thepunisher-waterutilitycustomerselfserviceportalexpert.md` — **ThePunisher-WaterUtilityCustomerSelfServicePortalExpert**: water-utility customer self-service portal engineering.
+- `water-wastewater-utility/thepunisher-waterdistributionpressurezonemanagementexpert.md` — **ThePunisher-WaterDistributionPressureZoneManagementExpert**: water-distribution pressure-zone-management engineering.
+- `water-wastewater-utility/thepunisher-wastewatercompliancesamplingautomationexpert.md` — **ThePunisher-WastewaterComplianceSamplingAutomationExpert**: wastewater compliance sampling-automation engineering.
+- `water-wastewater-utility/thepunisher-waterutilitycapitalassetconditionexpert.md` — **ThePunisher-WaterUtilityCapitalAssetConditionExpert**: water-utility capital-asset condition-assessment engineering.
+
+## Team 76 — Fitness & Wellness Technology Engineering (50 agents)
+
+- `fitness-wellness-tech/thepunisher-wearablefitnesstrackerdatapipelineexpert.md` — **ThePunisher-WearableFitnessTrackerDataPipelineExpert**: wearable fitness-tracker sensor-data pipeline engineering.
+- `fitness-wellness-tech/thepunisher-gymmembershipmanagementsystemsexpert.md` — **ThePunisher-GymMembershipManagementSystemsExpert**: gym membership-management systems engineering.
+- `fitness-wellness-tech/thepunisher-workoutprogrampersonalizationengineexpert.md` — **ThePunisher-WorkoutProgramPersonalizationEngineExpert**: personalized workout-program recommendation-engine engineering.
+- `fitness-wellness-tech/thepunisher-heartratevariabilityanalyticsexpert.md` — **ThePunisher-HeartRateVariabilityAnalyticsExpert**: heart-rate-variability (HRV) analytics engineering.
+- `fitness-wellness-tech/thepunisher-sleeptrackingalgorithmexpert.md` — **ThePunisher-SleepTrackingAlgorithmExpert**: consumer sleep-tracking algorithm engineering.
+- `fitness-wellness-tech/thepunisher-corporatewellnessplatformexpert.md` — **ThePunisher-CorporateWellnessPlatformExpert**: corporate wellness-platform engineering.
+- `fitness-wellness-tech/thepunisher-nutritionmealtrackingsystemsexpert.md` — **ThePunisher-NutritionMealTrackingSystemsExpert**: nutrition and meal-tracking systems engineering.
+- `fitness-wellness-tech/thepunisher-fitnessclassschedulingsystemsexpert.md` — **ThePunisher-FitnessClassSchedulingSystemsExpert**: fitness class-scheduling and booking systems engineering.
+- `fitness-wellness-tech/thepunisher-connectedfitnessequipmentexpert.md` — **ThePunisher-ConnectedFitnessEquipmentExpert**: connected fitness-equipment platform engineering (Peloton-style).
+- `fitness-wellness-tech/thepunisher-bodycompositionanalysissystemsexpert.md` — **ThePunisher-BodyCompositionAnalysisSystemsExpert**: body-composition analysis systems engineering.
+- `fitness-wellness-tech/thepunisher-fitnessappgamificationsystemsexpert.md` — **ThePunisher-FitnessAppGamificationSystemsExpert**: fitness-app gamification-systems engineering.
+- `fitness-wellness-tech/thepunisher-wellnessincentiverewardsplatformexpert.md` — **ThePunisher-WellnessIncentiveRewardsPlatformExpert**: wellness incentive and rewards-platform engineering.
+- `fitness-wellness-tech/thepunisher-virtualpersonaltrainingplatformexpert.md` — **ThePunisher-VirtualPersonalTrainingPlatformExpert**: virtual personal-training platform engineering.
+- `fitness-wellness-tech/thepunisher-recoveryreadinessscoringsystemsexpert.md` — **ThePunisher-RecoveryReadinessScoringSystemsExpert**: athletic-recovery and readiness-scoring systems engineering.
+- `fitness-wellness-tech/thepunisher-fitnesswearablesensorfirmwareexpert.md` — **ThePunisher-FitnessWearableSensorFirmwareExpert**: fitness-wearable sensor and battery firmware engineering.
+- `fitness-wellness-tech/thepunisher-meditationmindfulnessappengineeringexpert.md` — **ThePunisher-MeditationMindfulnessAppEngineeringExpert**: meditation and mindfulness-app engineering.
+- `fitness-wellness-tech/thepunisher-fitnesscommunitysocialfeaturesexpert.md` — **ThePunisher-FitnessCommunitySocialFeaturesExpert**: fitness-app community and social-feature engineering.
+- `fitness-wellness-tech/thepunisher-gymaccesscontrolcheckinsystemsexpert.md` — **ThePunisher-GymAccessControlCheckInSystemsExpert**: gym access-control and check-in systems engineering.
+- `fitness-wellness-tech/thepunisher-fitnessdatainteroperabilityexpert.md` — **ThePunisher-FitnessDataInteroperabilityExpert**: fitness-data interoperability engineering (Apple Health/Google Fit).
+- `fitness-wellness-tech/thepunisher-wellnessprogramroianalyticsexpert.md` — **ThePunisher-WellnessProgramROIAnalyticsExpert**: corporate wellness-program ROI analytics engineering.
+- `fitness-wellness-tech/thepunisher-fitnessequipmentpredictivemaintenanceexpert.md` — **ThePunisher-FitnessEquipmentPredictiveMaintenanceExpert**: fitness-equipment predictive-maintenance systems engineering.
+- `fitness-wellness-tech/thepunisher-reproductivehealthtrackingexpert.md` — **ThePunisher-ReproductiveHealthTrackingExpert**: menstrual and reproductive-health tracking systems engineering.
+- `fitness-wellness-tech/thepunisher-personaltrainerbusinessmanagementexpert.md` — **ThePunisher-PersonalTrainerBusinessManagementExpert**: personal-trainer business-management systems engineering.
+- `fitness-wellness-tech/thepunisher-fitnessvideoondemandstreamingexpert.md` — **ThePunisher-FitnessVideoOnDemandStreamingExpert**: fitness video-on-demand streaming-platform engineering.
+- `fitness-wellness-tech/thepunisher-stepcountingactivityrecognitionexpert.md` — **ThePunisher-StepCountingActivityRecognitionExpert**: step-counting and activity-recognition algorithm engineering.
+- `fitness-wellness-tech/thepunisher-fitnesswearableprivacycomplianceexpert.md` — **ThePunisher-FitnessWearablePrivacyComplianceExpert**: fitness-wearable data-privacy and HIPAA-adjacent compliance engineering.
+- `fitness-wellness-tech/thepunisher-boutiquefitnessstudiopossystemsexpert.md` — **ThePunisher-BoutiqueFitnessStudioPOSSystemsExpert**: boutique-fitness-studio point-of-sale systems engineering.
+- `fitness-wellness-tech/thepunisher-vo2maxcardiofitnessestimationexpert.md` — **ThePunisher-VO2MaxCardioFitnessEstimationExpert**: VO2-max and cardiorespiratory-fitness estimation algorithm engineering.
+- `fitness-wellness-tech/thepunisher-wellnesschatbotcoachingaiexpert.md` — **ThePunisher-WellnessChatbotCoachingAIExpert**: wellness chatbot and AI-coaching engineering.
+- `fitness-wellness-tech/thepunisher-fitnesschallengeleaderboardsystemsexpert.md` — **ThePunisher-FitnessChallengeLeaderboardSystemsExpert**: fitness challenge and leaderboard-systems engineering.
+- `fitness-wellness-tech/thepunisher-smartscalebodymetricsintegrationexpert.md` — **ThePunisher-SmartScaleBodyMetricsIntegrationExpert**: smart-scale and body-metrics integration engineering.
+- `fitness-wellness-tech/thepunisher-corporateergonomicsmovementtrackingexpert.md` — **ThePunisher-CorporateErgonomicsMovementTrackingExpert**: corporate ergonomics and movement-tracking systems engineering.
+- `fitness-wellness-tech/thepunisher-fitnessretailecommerceintegrationexpert.md` — **ThePunisher-FitnessRetailEcommerceIntegrationExpert**: fitness retail and e-commerce integration engineering.
+- `fitness-wellness-tech/thepunisher-recreationalinjurypreventionanalyticsexpert.md` — **ThePunisher-RecreationalInjuryPreventionAnalyticsExpert**: injury-prevention analytics engineering for recreational athletes.
+- `fitness-wellness-tech/thepunisher-fitnesswearablemultidevicesyncexpert.md` — **ThePunisher-FitnessWearableMultiDeviceSyncExpert**: fitness-wearable multi-device synchronization engineering.
+- `fitness-wellness-tech/thepunisher-wellnessplatformemployerbenefitsexpert.md` — **ThePunisher-WellnessPlatformEmployerBenefitsExpert**: wellness-platform employer-benefits-integration engineering.
+- `fitness-wellness-tech/thepunisher-fitnessappsubscriptionpaywallsystemsexpert.md` — **ThePunisher-FitnessAppSubscriptionPaywallSystemsExpert**: fitness-app subscription and paywall-systems engineering.
+- `fitness-wellness-tech/thepunisher-groupfitnesslivestreaminginfraexpert.md` — **ThePunisher-GroupFitnessLivestreamingInfraExpert**: group-fitness livestreaming-infrastructure engineering.
+- `fitness-wellness-tech/thepunisher-recoverywearablefirmwareintegrationexpert.md` — **ThePunisher-RecoveryWearableFirmwareIntegrationExpert**: recovery-wearable firmware-integration engineering (Whoop-style).
+- `fitness-wellness-tech/thepunisher-fitnessdataresearchpanelsystemsexpert.md` — **ThePunisher-FitnessDataResearchPanelSystemsExpert**: anonymized fitness-data research-panel systems engineering.
+- `fitness-wellness-tech/thepunisher-adaptivefitnessprogrammingdisabilitiesexpert.md` — **ThePunisher-AdaptiveFitnessProgrammingDisabilitiesExpert**: adaptive fitness-programming engineering for people with disabilities.
+- `fitness-wellness-tech/thepunisher-hydrationtrackingsystemsexpert.md` — **ThePunisher-HydrationTrackingSystemsExpert**: hydration-tracking systems engineering.
+- `fitness-wellness-tech/thepunisher-fitnessfranchisemultilocationsystemsexpert.md` — **ThePunisher-FitnessFranchiseMultiLocationSystemsExpert**: fitness-franchise multi-location management-systems engineering.
+- `fitness-wellness-tech/thepunisher-wellnessplatformbehavioralnudgeexpert.md` — **ThePunisher-WellnessPlatformBehavioralNudgeExpert**: wellness-platform behavioral-nudge engineering.
+- `fitness-wellness-tech/thepunisher-fitnesswearablegpsroutetrackingexpert.md` — **ThePunisher-FitnessWearableGPSRouteTrackingExpert**: fitness-wearable GPS and route-tracking engineering.
+- `fitness-wellness-tech/thepunisher-mentalwellnessmoodtrackingsystemsexpert.md` — **ThePunisher-MentalWellnessMoodTrackingSystemsExpert**: mental-wellness mood-tracking systems engineering.
+- `fitness-wellness-tech/thepunisher-fitnessequipmentiotconnectivityexpert.md` — **ThePunisher-FitnessEquipmentIoTConnectivityExpert**: fitness-equipment IoT connectivity engineering.
+- `fitness-wellness-tech/thepunisher-wellnessplatformclinicalreferralexpert.md` — **ThePunisher-WellnessPlatformClinicalReferralExpert**: wellness-platform clinical-referral integration engineering.
+- `fitness-wellness-tech/thepunisher-fitnessdataexportthirdpartyapiexpert.md` — **ThePunisher-FitnessDataExportThirdPartyAPIExpert**: fitness-data export and third-party API engineering.
+- `fitness-wellness-tech/thepunisher-wellnessplatformhabitformationexpert.md` — **ThePunisher-WellnessPlatformHabitFormationExpert**: wellness-platform habit-formation engineering.
+
+## Team 77 — Museum, Library & Cultural Heritage Technology Engineering (50 agents)
+
+- `cultural-heritage-tech/thepunisher-digitalcollectionmanagementsystemsexpert.md` — **ThePunisher-DigitalCollectionManagementSystemsExpert**: museum digital-collection-management systems engineering.
+- `cultural-heritage-tech/thepunisher-archivalmetadatastandardsexpert.md` — **ThePunisher-ArchivalMetadataStandardsExpert**: archival metadata standards engineering (Dublin Core/MODS/EAD).
+- `cultural-heritage-tech/thepunisher-museumticketingvisitormanagementexpert.md` — **ThePunisher-MuseumTicketingVisitorManagementExpert**: museum ticketing and visitor-management systems engineering.
+- `cultural-heritage-tech/thepunisher-threedartifactscanningphotogrammetryexpert.md` — **ThePunisher-ThreeDArtifactScanningPhotogrammetryExpert**: 3D artifact scanning and photogrammetry engineering.
+- `cultural-heritage-tech/thepunisher-libraryintegratedlibrarysystemexpert.md` — **ThePunisher-LibraryIntegratedLibrarySystemExpert**: Integrated Library System (ILS) engineering.
+- `cultural-heritage-tech/thepunisher-digitalpreservationformatmigrationexpert.md` — **ThePunisher-DigitalPreservationFormatMigrationExpert**: digital-preservation and file-format-migration engineering.
+- `cultural-heritage-tech/thepunisher-museumexhibitinteractivekioskexpert.md` — **ThePunisher-MuseumExhibitInteractiveKioskExpert**: museum interactive-exhibit kiosk engineering.
+- `cultural-heritage-tech/thepunisher-oralhistoryarchivesystemsexpert.md` — **ThePunisher-OralHistoryArchiveSystemsExpert**: oral-history archive systems engineering.
+- `cultural-heritage-tech/thepunisher-libraryinterlibraryloansystemsexpert.md` — **ThePunisher-LibraryInterlibraryLoanSystemsExpert**: interlibrary-loan (ILL) systems engineering.
+- `cultural-heritage-tech/thepunisher-culturalheritagedigitizationpipelineexpert.md` — **ThePunisher-CulturalHeritageDigitizationPipelineExpert**: cultural-heritage digitization-pipeline engineering.
+- `cultural-heritage-tech/thepunisher-museumcollectionsprovenancetrackingexpert.md` — **ThePunisher-MuseumCollectionsProvenanceTrackingExpert**: museum collections provenance-tracking systems engineering.
+- `cultural-heritage-tech/thepunisher-augmentedrealitymuseumguideexpert.md` — **ThePunisher-AugmentedRealityMuseumGuideExpert**: augmented-reality museum-guide application engineering.
+- `cultural-heritage-tech/thepunisher-librarycatalogsearchopacexpert.md` — **ThePunisher-LibraryCatalogSearchOPACExpert**: library online public-access catalog (OPAC) search engineering.
+- `cultural-heritage-tech/thepunisher-archiveaccessrightsrestrictionexpert.md` — **ThePunisher-ArchiveAccessRightsRestrictionExpert**: archival access-rights and restriction-management engineering.
+- `cultural-heritage-tech/thepunisher-museummembershipdonormanagementexpert.md` — **ThePunisher-MuseumMembershipDonorManagementExpert**: museum membership and donor-management systems engineering.
+- `cultural-heritage-tech/thepunisher-digitalhumanitiestextminingexpert.md` — **ThePunisher-DigitalHumanitiesTextMiningExpert**: digital-humanities text-mining and corpus-analysis engineering.
+- `cultural-heritage-tech/thepunisher-libraryrfidselfcheckoutsystemsexpert.md` — **ThePunisher-LibraryRFIDSelfCheckoutSystemsExpert**: library RFID and self-checkout systems engineering.
+- `cultural-heritage-tech/thepunisher-museumloantravelingexhibitlogisticsexpert.md` — **ThePunisher-MuseumLoanTravelingExhibitLogisticsExpert**: museum loan and traveling-exhibit logistics systems engineering.
+- `cultural-heritage-tech/thepunisher-culturalheritagereplicationexpert.md` — **ThePunisher-CulturalHeritageReplicationExpert**: cultural-heritage 3D-printing and replication engineering.
+- `cultural-heritage-tech/thepunisher-archiveocrhandwritingrecognitionexpert.md` — **ThePunisher-ArchiveOCRHandwritingRecognitionExpert**: archival OCR and handwriting-recognition engineering.
+- `cultural-heritage-tech/thepunisher-museumconservationenvironmentmonitoringexpert.md` — **ThePunisher-MuseumConservationEnvironmentMonitoringExpert**: museum climate-control and conservation-monitoring systems engineering.
+- `cultural-heritage-tech/thepunisher-librarydigitalrepositoryexpert.md` — **ThePunisher-LibraryDigitalRepositoryExpert**: library digital-repository engineering (DSpace-style).
+- `cultural-heritage-tech/thepunisher-museumdigitalassetmanagementexpert.md` — **ThePunisher-MuseumDigitalAssetManagementExpert**: museum digital-asset-management (DAM) systems engineering.
+- `cultural-heritage-tech/thepunisher-genealogyfamilyhistoryarchiveexpert.md` — **ThePunisher-GenealogyFamilyHistoryArchiveExpert**: genealogy and family-history archive systems engineering.
+- `cultural-heritage-tech/thepunisher-librarymakerspacetechnologymanagementexpert.md` — **ThePunisher-LibraryMakerspaceTechnologyManagementExpert**: library makerspace technology-management engineering.
+- `cultural-heritage-tech/thepunisher-museumvirtualtourexperienceexpert.md` — **ThePunisher-MuseumVirtualTourExperienceExpert**: museum virtual-tour and 360-degree-experience engineering.
+- `cultural-heritage-tech/thepunisher-archivelinkedopendataexpert.md` — **ThePunisher-ArchiveLinkedOpenDataExpert**: archival Linked Open Data (LOD) engineering.
+- `cultural-heritage-tech/thepunisher-librarypatronprivacydataprotectionexpert.md` — **ThePunisher-LibraryPatronPrivacyDataProtectionExpert**: library patron-privacy and data-protection engineering.
+- `cultural-heritage-tech/thepunisher-museumobjectconditionreportingexpert.md` — **ThePunisher-MuseumObjectConditionReportingExpert**: museum object condition-reporting systems engineering.
+- `cultural-heritage-tech/thepunisher-culturalheritagecrowdsourcedtranscriptionexpert.md` — **ThePunisher-CulturalHeritageCrowdsourcedTranscriptionExpert**: cultural-heritage crowdsourced-transcription platform engineering.
+- `cultural-heritage-tech/thepunisher-libraryconsortiumsharedcatalogexpert.md` — **ThePunisher-LibraryConsortiumSharedCatalogExpert**: library consortium shared-catalog systems engineering.
+- `cultural-heritage-tech/thepunisher-museumaccessibilitytechnologyexpert.md` — **ThePunisher-MuseumAccessibilityTechnologyExpert**: museum accessibility technology engineering (audio description/tactile).
+- `cultural-heritage-tech/thepunisher-archiveborndigitalrecordsmanagementexpert.md` — **ThePunisher-ArchiveBornDigitalRecordsManagementExpert**: born-digital records-management engineering.
+- `cultural-heritage-tech/thepunisher-museumretailposintegrationexpert.md` — **ThePunisher-MuseumRetailPOSIntegrationExpert**: museum retail and gift-shop POS-integration engineering.
+- `cultural-heritage-tech/thepunisher-libraryebookdigitallendingexpert.md` — **ThePunisher-LibraryEBookDigitalLendingExpert**: library e-book and digital-lending systems engineering.
+- `cultural-heritage-tech/thepunisher-historicbuildinginformationmodelingexpert.md` — **ThePunisher-HistoricBuildingInformationModelingExpert**: historic building-information-modeling (HBIM) engineering.
+- `cultural-heritage-tech/thepunisher-museumeducationprogramschedulingexpert.md` — **ThePunisher-MuseumEducationProgramSchedulingExpert**: museum education-program scheduling systems engineering.
+- `cultural-heritage-tech/thepunisher-archivedisasterrecoverypreparednessexpert.md` — **ThePunisher-ArchiveDisasterRecoveryPreparednessExpert**: archival disaster-recovery and emergency-preparedness engineering.
+- `cultural-heritage-tech/thepunisher-libraryopenaccessrepositorycomplianceexpert.md` — **ThePunisher-LibraryOpenAccessRepositoryComplianceExpert**: library open-access repository compliance engineering.
+- `cultural-heritage-tech/thepunisher-museumwayfindingindoornavigationexpert.md` — **ThePunisher-MuseumWayfindingIndoorNavigationExpert**: museum wayfinding and indoor-navigation systems engineering.
+- `cultural-heritage-tech/thepunisher-culturalheritagesitegismappingexpert.md` — **ThePunisher-CulturalHeritageSiteGISMappingExpert**: cultural-heritage site GIS-mapping engineering.
+- `cultural-heritage-tech/thepunisher-libraryreferencechatbotvirtualassistantexpert.md` — **ThePunisher-LibraryReferenceChatbotVirtualAssistantExpert**: library reference chatbot and virtual-assistant engineering.
+- `cultural-heritage-tech/thepunisher-museumloaninsurancevaluationexpert.md` — **ThePunisher-MuseumLoanInsuranceValuationExpert**: museum loan insurance and valuation systems engineering.
+- `cultural-heritage-tech/thepunisher-archiveaudiovideodigitizationexpert.md` — **ThePunisher-ArchiveAudioVideoDigitizationExpert**: archival audio/video digitization engineering.
+- `cultural-heritage-tech/thepunisher-librarycirculationanalyticsexpert.md` — **ThePunisher-LibraryCirculationAnalyticsExpert**: library circulation-analytics engineering.
+- `cultural-heritage-tech/thepunisher-museumcrowdflowcapacitymanagementexpert.md` — **ThePunisher-MuseumCrowdFlowCapacityManagementExpert**: museum crowd-flow and capacity-management systems engineering.
+- `cultural-heritage-tech/thepunisher-culturalheritagedigitalprovenanceresearchexpert.md` — **ThePunisher-CulturalHeritageDigitalProvenanceResearchExpert**: cultural-heritage digital-provenance research engineering.
+- `cultural-heritage-tech/thepunisher-libraryspecialcollectionsdigitizationexpert.md` — **ThePunisher-LibrarySpecialCollectionsDigitizationExpert**: library special-collections digitization engineering.
+- `cultural-heritage-tech/thepunisher-museumdocentvolunteermanagementexpert.md` — **ThePunisher-MuseumDocentVolunteerManagementExpert**: museum docent and volunteer-management systems engineering.
+- `cultural-heritage-tech/thepunisher-archivemetadataharvestingoaipmhexpert.md` — **ThePunisher-ArchiveMetadataHarvestingOAIPMHExpert**: archival metadata-harvesting engineering (OAI-PMH).
+
+## Team 78 — Restaurant & Food Service Technology Engineering (50 agents)
+
+- `restaurant-foodservice-tech/thepunisher-restaurantpossystemsexpert.md` — **ThePunisher-RestaurantPOSSystemsExpert**: restaurant point-of-sale systems engineering.
+- `restaurant-foodservice-tech/thepunisher-kitchendisplaysystemkdsexpert.md` — **ThePunisher-KitchenDisplaySystemKDSExpert**: Kitchen Display System (KDS) engineering.
+- `restaurant-foodservice-tech/thepunisher-onlinefoodorderingplatformexpert.md` — **ThePunisher-OnlineFoodOrderingPlatformExpert**: online food-ordering platform engineering.
+- `restaurant-foodservice-tech/thepunisher-fooddeliverydispatchroutingexpert.md` — **ThePunisher-FoodDeliveryDispatchRoutingExpert**: food-delivery dispatch and routing-optimization engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantwaittimecapacityforecastingexpert.md` — **ThePunisher-RestaurantWaitTimeCapacityForecastingExpert**: restaurant wait-time and seating-capacity forecasting engineering, distinct from Team 64's reservation-booking-system focus.
+- `restaurant-foodservice-tech/thepunisher-menuengineeringpricinganalyticsexpert.md` — **ThePunisher-MenuEngineeringPricingAnalyticsExpert**: menu-engineering and pricing-analytics systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantinventoryfoodcostmanagementexpert.md` — **ThePunisher-RestaurantInventoryFoodCostManagementExpert**: restaurant inventory and food-cost-management systems engineering.
+- `restaurant-foodservice-tech/thepunisher-thirdpartydeliverymarketplaceintegrationexpert.md` — **ThePunisher-ThirdPartyDeliveryMarketplaceIntegrationExpert**: third-party delivery-marketplace integration engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantloyaltyrewardssystemsexpert.md` — **ThePunisher-RestaurantLoyaltyRewardsSystemsExpert**: restaurant loyalty and rewards-systems engineering.
+- `restaurant-foodservice-tech/thepunisher-ghostkitchenvirtualrestaurantsystemsexpert.md` — **ThePunisher-GhostKitchenVirtualRestaurantSystemsExpert**: ghost-kitchen / virtual-restaurant systems engineering.
+- `restaurant-foodservice-tech/thepunisher-foodsafetyhaccpcompliancesystemsexpert.md` — **ThePunisher-FoodSafetyHACCPComplianceSystemsExpert**: food-safety and HACCP compliance-systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantlaborschedulingtipmanagementexpert.md` — **ThePunisher-RestaurantLaborSchedulingTipManagementExpert**: restaurant labor-scheduling and tip-management systems engineering.
+- `restaurant-foodservice-tech/thepunisher-drivethruorderaccuracysystemsexpert.md` — **ThePunisher-DriveThruOrderAccuracySystemsExpert**: drive-thru order-accuracy systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantselforderingkioskexpert.md` — **ThePunisher-RestaurantSelfOrderingKioskExpert**: restaurant self-ordering-kiosk engineering.
+- `restaurant-foodservice-tech/thepunisher-recipecostingnutritionalanalysisexpert.md` — **ThePunisher-RecipeCostingNutritionalAnalysisExpert**: recipe-costing and nutritional-analysis systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantsupplychainvendororderingexpert.md` — **ThePunisher-RestaurantSupplyChainVendorOrderingExpert**: restaurant supply-chain and vendor-ordering systems engineering.
+- `restaurant-foodservice-tech/thepunisher-foodwastetrackingreductionsystemsexpert.md` — **ThePunisher-FoodWasteTrackingReductionSystemsExpert**: food-waste tracking and reduction-systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantfranchisemanagementsystemsexpert.md` — **ThePunisher-RestaurantFranchiseManagementSystemsExpert**: restaurant multi-location franchise-management systems engineering.
+- `restaurant-foodservice-tech/thepunisher-voiceorderingaidrivethruexpert.md` — **ThePunisher-VoiceOrderingAIDriveThruExpert**: voice-ordering and AI drive-thru systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantgiftcardstoredvalueexpert.md` — **ThePunisher-RestaurantGiftCardStoredValueExpert**: restaurant gift-card and stored-value systems engineering.
+- `restaurant-foodservice-tech/thepunisher-cateringordermanagementsystemsexpert.md` — **ThePunisher-CateringOrderManagementSystemsExpert**: catering order-management systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantonlinereviewaggregationexpert.md` — **ThePunisher-RestaurantOnlineReviewAggregationExpert**: restaurant online-review-aggregation systems engineering.
+- `restaurant-foodservice-tech/thepunisher-foodtraceabilityrecallsystemsexpert.md` — **ThePunisher-FoodTraceabilityRecallSystemsExpert**: food traceability and recall-management systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantpayrolltippoolingcomplianceexpert.md` — **ThePunisher-RestaurantPayrollTipPoolingComplianceExpert**: restaurant payroll and tip-pooling compliance engineering.
+- `restaurant-foodservice-tech/thepunisher-cloudkitchenmultibrandorderroutingexpert.md` — **ThePunisher-CloudKitchenMultiBrandOrderRoutingExpert**: cloud-kitchen multi-brand order-routing engineering.
+- `restaurant-foodservice-tech/thepunisher-restauranttablesideorderingtabletexpert.md` — **ThePunisher-RestaurantTableSideOrderingTabletExpert**: restaurant table-side ordering-tablet engineering.
+- `restaurant-foodservice-tech/thepunisher-foodallergentrackingdisclosureexpert.md` — **ThePunisher-FoodAllergenTrackingDisclosureExpert**: food allergen-tracking and disclosure-systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantcurbsidepickupcoordinationexpert.md` — **ThePunisher-RestaurantCurbsidePickupCoordinationExpert**: restaurant curbside-pickup coordination-systems engineering.
+- `restaurant-foodservice-tech/thepunisher-barbeverageinventorymanagementexpert.md` — **ThePunisher-BarBeverageInventoryManagementExpert**: bar and beverage inventory-management systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantfranchiseroyaltyreportingexpert.md` — **ThePunisher-RestaurantFranchiseRoyaltyReportingExpert**: restaurant franchise royalty-reporting systems engineering.
+- `restaurant-foodservice-tech/thepunisher-foodservicecoldchainmonitoringexpert.md` — **ThePunisher-FoodServiceColdChainMonitoringExpert**: food-service temperature/cold-chain monitoring engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantwaitlistguestnotificationexpert.md` — **ThePunisher-RestaurantWaitlistGuestNotificationExpert**: restaurant waitlist and guest-notification systems engineering.
+- `restaurant-foodservice-tech/thepunisher-commissarykitchenproductionplanningexpert.md` — **ThePunisher-CommissaryKitchenProductionPlanningExpert**: commissary-kitchen production-planning systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantdigitalmenuboardexpert.md` — **ThePunisher-RestaurantDigitalMenuBoardExpert**: restaurant digital-menu-board engineering.
+- `restaurant-foodservice-tech/thepunisher-fooddeliveryrobotdroneintegrationexpert.md` — **ThePunisher-FoodDeliveryRobotDroneIntegrationExpert**: food-delivery robot/drone integration engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantemployeeonboardingtrainingexpert.md` — **ThePunisher-RestaurantEmployeeOnboardingTrainingExpert**: restaurant employee onboarding and training-systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantposaccountingintegrationexpert.md` — **ThePunisher-RestaurantPOSAccountingIntegrationExpert**: restaurant POS-to-accounting-system integration engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantdynamicpricingsurgeoffpeakexpert.md` — **ThePunisher-RestaurantDynamicPricingSurgeOffPeakExpert**: restaurant dynamic-pricing (surge/off-peak) systems engineering.
+- `restaurant-foodservice-tech/thepunisher-foodserviceequipmentiotmonitoringexpert.md` — **ThePunisher-FoodServiceEquipmentIoTMonitoringExpert**: food-service equipment IoT-monitoring engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantguestfeedbacksentimentanalysisexpert.md` — **ThePunisher-RestaurantGuestFeedbackSentimentAnalysisExpert**: restaurant guest-feedback and sentiment-analysis engineering.
+- `restaurant-foodservice-tech/thepunisher-mealkitsubscriptionfulfillmentexpert.md` — **ThePunisher-MealKitSubscriptionFulfillmentExpert**: meal-kit subscription fulfillment-systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantmultijurisdictiontaxcomplianceexpert.md` — **ThePunisher-RestaurantMultiJurisdictionTaxComplianceExpert**: restaurant multi-jurisdiction tax-compliance systems engineering.
+- `restaurant-foodservice-tech/thepunisher-foodservicesustainabilityreportingexpert.md` — **ThePunisher-FoodServiceSustainabilityReportingExpert**: food-service sustainability-reporting systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantgroupordersplitbillexpert.md` — **ThePunisher-RestaurantGroupOrderSplitBillExpert**: restaurant group-order and split-bill systems engineering.
+- `restaurant-foodservice-tech/thepunisher-concessionstandstadiumfoodserviceexpert.md` — **ThePunisher-ConcessionStandStadiumFoodServiceExpert**: concession-stand and stadium food-service systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantmenulocalizationtranslationexpert.md` — **ThePunisher-RestaurantMenuLocalizationTranslationExpert**: restaurant menu localization and translation engineering.
+- `restaurant-foodservice-tech/thepunisher-fooddeliverydriverpayoutsystemsexpert.md` — **ThePunisher-FoodDeliveryDriverPayoutSystemsExpert**: food-delivery driver-management and payout-systems engineering.
+- `restaurant-foodservice-tech/thepunisher-restauranthealthinspectioncomplianceexpert.md` — **ThePunisher-RestaurantHealthInspectionComplianceExpert**: restaurant health-inspection compliance-tracking systems engineering.
+- `restaurant-foodservice-tech/thepunisher-buffetselfserviceportionanalyticsexpert.md` — **ThePunisher-BuffetSelfServicePortionAnalyticsExpert**: buffet and self-service portion-analytics engineering.
+- `restaurant-foodservice-tech/thepunisher-restaurantonlineorderingseoexpert.md` — **ThePunisher-RestaurantOnlineOrderingSEOExpert**: restaurant website and online-ordering SEO engineering.
+
+## Team 79 — Elder Care & Assisted Living Technology Engineering (50 agents)
+
+- `eldercare-assisted-living-tech/thepunisher-remotepatientmonitoringseniorsexpert.md` — **ThePunisher-RemotePatientMonitoringSeniorsExpert**: remote patient-monitoring systems engineering for seniors.
+- `eldercare-assisted-living-tech/thepunisher-falldetectionsensorsystemsexpert.md` — **ThePunisher-FallDetectionSensorSystemsExpert**: fall-detection sensor-systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-medicationmanagementadherenceexpert.md` — **ThePunisher-MedicationManagementAdherenceExpert**: medication-management and adherence-tracking systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingfacilitymanagementsoftwareexpert.md` — **ThePunisher-AssistedLivingFacilityManagementSoftwareExpert**: assisted-living facility-management software engineering.
+- `eldercare-assisted-living-tech/thepunisher-emergencyresponsependantpersexpert.md` — **ThePunisher-EmergencyResponsePendantPERSExpert**: personal emergency-response system (PERS) pendant engineering.
+- `eldercare-assisted-living-tech/thepunisher-cognitivedeclinemonitoringsystemsexpert.md` — **ThePunisher-CognitiveDeclineMonitoringSystemsExpert**: cognitive-decline monitoring systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorwellnesscheckinautomationexpert.md` — **ThePunisher-SeniorWellnessCheckInAutomationExpert**: senior wellness check-in automation engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingstaffcarecoordinationexpert.md` — **ThePunisher-AssistedLivingStaffCareCoordinationExpert**: assisted-living staff-scheduling and care-coordination systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-telehealthgeriatriccareexpert.md` — **ThePunisher-TelehealthGeriatricCareExpert**: telehealth systems engineering for geriatric care.
+- `eldercare-assisted-living-tech/thepunisher-homecarevisitverificationevvexpert.md` — **ThePunisher-HomeCareVisitVerificationEVVExpert**: home-care Electronic Visit Verification (EVV) systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorsocialisolationdetectionexpert.md` — **ThePunisher-SeniorSocialIsolationDetectionExpert**: senior social-isolation detection-systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingbillingmedicaremedicaidexpert.md` — **ThePunisher-AssistedLivingBillingMedicareMedicaidExpert**: assisted-living billing and Medicare/Medicaid-compliance systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-wandermanagementgpstrackingexpert.md` — **ThePunisher-WanderManagementGPSTrackingExpert**: dementia-care wander-management and GPS-tracking systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorfriendlyaccessibilityuxexpert.md` — **ThePunisher-SeniorFriendlyAccessibilityUXExpert**: senior-friendly UI/UX accessibility engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingnursecallsystemsexpert.md` — **ThePunisher-AssistedLivingNurseCallSystemsExpert**: assisted-living nurse-call systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-caregivercommunicationplatformexpert.md` — **ThePunisher-CaregiverCommunicationPlatformExpert**: caregiver-communication platform engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniornutritionmealplanningexpert.md` — **ThePunisher-SeniorNutritionMealPlanningExpert**: senior nutrition and meal-planning systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingincidentreportingexpert.md` — **ThePunisher-AssistedLivingIncidentReportingExpert**: assisted-living incident-reporting systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-aginginplacesmarthomeintegrationexpert.md` — **ThePunisher-AgingInPlaceSmartHomeIntegrationExpert**: aging-in-place smart-home integration engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcarefamilyportalexpert.md` — **ThePunisher-SeniorCareFamilyPortalExpert**: senior-care family-portal and update-notification systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingstatelicensingcomplianceexpert.md` — **ThePunisher-AssistedLivingStateLicensingComplianceExpert**: assisted-living regulatory (state-licensing) compliance engineering.
+- `eldercare-assisted-living-tech/thepunisher-voiceactivatedassistantseniorsexpert.md` — **ThePunisher-VoiceActivatedAssistantSeniorsExpert**: voice-activated assistant engineering for seniors.
+- `eldercare-assisted-living-tech/thepunisher-seniorfitnessmobilitytrackingexpert.md` — **ThePunisher-SeniorFitnessMobilityTrackingExpert**: senior fitness and mobility-tracking systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingelectronichealthrecordsexpert.md` — **ThePunisher-AssistedLivingElectronicHealthRecordsExpert**: assisted-living electronic-health-records (EHR) systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-hospicecarecoordinationsystemsexpert.md` — **ThePunisher-HospiceCareCoordinationSystemsExpert**: hospice-care coordination systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorfinancialexploitationdetectionexpert.md` — **ThePunisher-SeniorFinancialExploitationDetectionExpert**: senior financial-exploitation detection-systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingoccupancymanagementexpert.md` — **ThePunisher-AssistedLivingOccupancyManagementExpert**: assisted-living facility occupancy-management systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-memorycarewayfindingsystemsexpert.md` — **ThePunisher-MemoryCareWayfindingSystemsExpert**: memory-care wayfinding systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcarepredictivehealthriskscoringexpert.md` — **ThePunisher-SeniorCarePredictiveHealthRiskScoringExpert**: senior-care predictive health-risk-scoring systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingdiningservicemanagementexpert.md` — **ThePunisher-AssistedLivingDiningServiceManagementExpert**: assisted-living dining-service-management systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-remotecaregiverrespitecoordinationexpert.md` — **ThePunisher-RemoteCaregiverRespiteCoordinationExpert**: remote caregiver respite-coordination systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcaretransportationschedulingexpert.md` — **ThePunisher-SeniorCareTransportationSchedulingExpert**: senior-care transportation-scheduling systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingactivityprogramschedulingexpert.md` — **ThePunisher-AssistedLivingActivityProgramSchedulingExpert**: assisted-living activity-program scheduling engineering.
+- `eldercare-assisted-living-tech/thepunisher-eldercarelegaladvancedirectivesystemsexpert.md` — **ThePunisher-ElderCareLegalAdvanceDirectiveSystemsExpert**: elder-care legal and advance-directive documentation systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcarevitalsignswearableintegrationexpert.md` — **ThePunisher-SeniorCareVitalSignsWearableIntegrationExpert**: senior-care vital-signs wearable-integration engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivinginfectioncontroltrackingexpert.md` — **ThePunisher-AssistedLivingInfectionControlTrackingExpert**: assisted-living infection-control tracking systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-homehealthaideskillscertificationtrackingexpert.md` — **ThePunisher-HomeHealthAideSkillsCertificationTrackingExpert**: home-health-aide skills-certification tracking systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcaregeriatricinteroperabilityexpert.md` — **ThePunisher-SeniorCareGeriatricInteroperabilityExpert**: senior-care interoperability engineering (HL7/FHIR for geriatric care).
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingfamilybillingportalexpert.md` — **ThePunisher-AssistedLivingFamilyBillingPortalExpert**: assisted-living family billing-portal engineering.
+- `eldercare-assisted-living-tech/thepunisher-elderabusereportingsafeguardingexpert.md` — **ThePunisher-ElderAbuseReportingSafeguardingExpert**: elder-abuse reporting and safeguarding-systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcaresleeppatternmonitoringexpert.md` — **ThePunisher-SeniorCareSleepPatternMonitoringExpert**: senior-care sleep-pattern monitoring-systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingfacilitymaintenancemanagementexpert.md` — **ThePunisher-AssistedLivingFacilityMaintenanceManagementExpert**: assisted-living facility maintenance-management systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-aginginplacefallriskhomeassessmentexpert.md` — **ThePunisher-AgingInPlaceFallRiskHomeAssessmentExpert**: aging-in-place fall-risk home-assessment systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcarevolunteercoordinationexpert.md` — **ThePunisher-SeniorCareVolunteerCoordinationExpert**: senior-care volunteer-coordination systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingpharmacyintegrationexpert.md` — **ThePunisher-AssistedLivingPharmacyIntegrationExpert**: assisted-living pharmacy-integration systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-eldercareadvancecareplanningdocumentationexpert.md` — **ThePunisher-ElderCareAdvanceCarePlanningDocumentationExpert**: elder-care advance-care-planning documentation-systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcaremultifacilityanalyticsdashboardexpert.md` — **ThePunisher-SeniorCareMultiFacilityAnalyticsDashboardExpert**: senior-care multi-facility analytics-dashboard engineering.
+- `eldercare-assisted-living-tech/thepunisher-assistedlivingvisitormanagementsystemsexpert.md` — **ThePunisher-AssistedLivingVisitorManagementSystemsExpert**: assisted-living visitor-management systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-eldercarechronicconditionmonitoringexpert.md` — **ThePunisher-ElderCareChronicConditionMonitoringExpert**: elder-care respiratory/chronic-condition monitoring-systems engineering.
+- `eldercare-assisted-living-tech/thepunisher-seniorcaredischargecaretransitionexpert.md` — **ThePunisher-SeniorCareDischargeCareTransitionExpert**: senior-care discharge-planning and care-transition systems engineering.
+
+## Team 80 — Event & Experience Technology Engineering (50 agents)
+
+- `event-experience-tech/thepunisher-weddingplanningplatformexpert.md` — **ThePunisher-WeddingPlanningPlatformExpert**: wedding-planning platform engineering.
+- `event-experience-tech/thepunisher-eventvendormarketplaceexpert.md` — **ThePunisher-EventVendorMarketplaceExpert**: event vendor-marketplace platform engineering.
+- `event-experience-tech/thepunisher-guestlistrsvpmanagementexpert.md` — **ThePunisher-GuestListRSVPManagementExpert**: guest-list and RSVP-management systems engineering.
+- `event-experience-tech/thepunisher-seatingchartoptimizationexpert.md` — **ThePunisher-SeatingChartOptimizationExpert**: event seating-chart optimization engineering.
+- `event-experience-tech/thepunisher-eventbudgetexpensetrackingexpert.md` — **ThePunisher-EventBudgetExpenseTrackingExpert**: event budget and expense-tracking systems engineering.
+- `event-experience-tech/thepunisher-conferenceregistrationbadgeprintingexpert.md` — **ThePunisher-ConferenceRegistrationBadgePrintingExpert**: conference registration and badge-printing systems engineering.
+- `event-experience-tech/thepunisher-eventagendasessionbuilderexpert.md` — **ThePunisher-EventAgendaSessionBuilderExpert**: event agenda and session-builder systems engineering.
+- `event-experience-tech/thepunisher-exhibitorboothmanagementexpert.md` — **ThePunisher-ExhibitorBoothManagementExpert**: exhibitor and booth-management systems engineering.
+- `event-experience-tech/thepunisher-sponsoractivationroitrackingexpert.md` — **ThePunisher-SponsorActivationROITrackingExpert**: event sponsor-activation and ROI-tracking systems engineering.
+- `event-experience-tech/thepunisher-virtualhybrideventstreamingexpert.md` — **ThePunisher-VirtualHybridEventStreamingExpert**: virtual and hybrid event-streaming systems engineering.
+- `event-experience-tech/thepunisher-eventmobileappengineeringexpert.md` — **ThePunisher-EventMobileAppEngineeringExpert**: event mobile-app engineering.
+- `event-experience-tech/thepunisher-livepollingaudienceqaexpert.md` — **ThePunisher-LivePollingAudienceQAExpert**: live-polling and audience Q&A systems engineering.
+- `event-experience-tech/thepunisher-eventdayofrunofshowsystemsexpert.md` — **ThePunisher-EventDayOfRunOfShowSystemsExpert**: event day-of run-of-show coordination systems engineering.
+- `event-experience-tech/thepunisher-eventcontractesignatureintegrationexpert.md` — **ThePunisher-EventContractESignatureIntegrationExpert**: event contract and e-signature integration engineering.
+- `event-experience-tech/thepunisher-corporateeventmanagementplatformexpert.md` — **ThePunisher-CorporateEventManagementPlatformExpert**: corporate event-management platform engineering.
+- `event-experience-tech/thepunisher-weddingvendorbookingschedulingexpert.md` — **ThePunisher-WeddingVendorBookingSchedulingExpert**: wedding vendor booking and scheduling systems engineering.
+- `event-experience-tech/thepunisher-eventnetworkingmatchmakingsystemsexpert.md` — **ThePunisher-EventNetworkingMatchmakingSystemsExpert**: event networking and attendee-matchmaking systems engineering.
+- `event-experience-tech/thepunisher-eventcheckinaccesscontrolsystemsexpert.md` — **ThePunisher-EventCheckInAccessControlSystemsExpert**: event check-in and access-control systems engineering.
+- `event-experience-tech/thepunisher-eventcateringcoordinationsystemsexpert.md` — **ThePunisher-EventCateringCoordinationSystemsExpert**: event catering-coordination systems engineering.
+- `event-experience-tech/thepunisher-eventfloorplanvenuelayoutexpert.md` — **ThePunisher-EventFloorPlanVenueLayoutExpert**: event floor-plan and venue-layout systems engineering.
+- `event-experience-tech/thepunisher-eventgiftregistrysystemsexpert.md` — **ThePunisher-EventGiftRegistrySystemsExpert**: event gift-registry systems engineering.
+- `event-experience-tech/thepunisher-eventphotographyvideographyworkflowexpert.md` — **ThePunisher-EventPhotographyVideographyWorkflowExpert**: event photography/videography workflow systems engineering.
+- `event-experience-tech/thepunisher-eventinvitationdigitalsavethedateexpert.md` — **ThePunisher-EventInvitationDigitalSaveTheDateExpert**: event invitation design and digital save-the-date engineering.
+- `event-experience-tech/thepunisher-eventposteventsurveyfeedbackexpert.md` — **ThePunisher-EventPostEventSurveyFeedbackExpert**: event post-event survey and feedback-systems engineering.
+- `event-experience-tech/thepunisher-eventmultidayitinerarybuilderexpert.md` — **ThePunisher-EventMultiDayItineraryBuilderExpert**: multi-day event itinerary-builder engineering.
+- `event-experience-tech/thepunisher-eventvolunteercoordinationsystemsexpert.md` — **ThePunisher-EventVolunteerCoordinationSystemsExpert**: event volunteer-coordination systems engineering.
+- `event-experience-tech/thepunisher-eventspeakermanagementsystemsexpert.md` — **ThePunisher-EventSpeakerManagementSystemsExpert**: event speaker-management systems engineering.
+- `event-experience-tech/thepunisher-eventsponsorshippackageconfiguratorexpert.md` — **ThePunisher-EventSponsorshipPackageConfiguratorExpert**: event sponsorship-package configurator engineering.
+- `event-experience-tech/thepunisher-eventbadgeleadretrievalscanningexpert.md` — **ThePunisher-EventBadgeLeadRetrievalScanningExpert**: event badge lead-retrieval scanning engineering.
+- `event-experience-tech/thepunisher-eventonsitewayfindingsystemsexpert.md` — **ThePunisher-EventOnsiteWayfindingSystemsExpert**: event onsite-wayfinding systems engineering.
+- `event-experience-tech/thepunisher-eventgrouptravelcoordinationexpert.md` — **ThePunisher-EventGroupTravelCoordinationExpert**: event group-travel coordination systems engineering.
+- `event-experience-tech/thepunisher-weddingwebsitebuilderexpert.md` — **ThePunisher-WeddingWebsiteBuilderExpert**: wedding-website builder engineering.
+- `event-experience-tech/thepunisher-eventpaymentdepositcollectionexpert.md` — **ThePunisher-EventPaymentDepositCollectionExpert**: event payment and deposit-collection systems engineering.
+- `event-experience-tech/thepunisher-eventcancellationreschedulingpolicyexpert.md` — **ThePunisher-EventCancellationReschedulingPolicyExpert**: event cancellation and rescheduling-policy systems engineering.
+- `event-experience-tech/thepunisher-eventattendanceforecastinganalyticsexpert.md` — **ThePunisher-EventAttendanceForecastingAnalyticsExpert**: event attendance-forecasting analytics engineering.
+- `event-experience-tech/thepunisher-eventaccessibilityaccommodationtrackingexpert.md` — **ThePunisher-EventAccessibilityAccommodationTrackingExpert**: event accessibility-accommodation tracking systems engineering.
+- `event-experience-tech/thepunisher-eventmultitracksessionconflictresolutionexpert.md` — **ThePunisher-EventMultiTrackSessionConflictResolutionExpert**: event multi-track session-conflict-resolution engineering.
+- `event-experience-tech/thepunisher-eventsustainabilitycarbonoffsettrackingexpert.md` — **ThePunisher-EventSustainabilityCarbonOffsetTrackingExpert**: event sustainability and carbon-offset tracking systems engineering.
+- `event-experience-tech/thepunisher-eventinsuranceliabilitywaiversystemsexpert.md` — **ThePunisher-EventInsuranceLiabilityWaiverSystemsExpert**: event insurance and liability-waiver systems engineering.
+- `event-experience-tech/thepunisher-eventlivetranslationinterpretationexpert.md` — **ThePunisher-EventLiveTranslationInterpretationExpert**: event live-translation and interpretation-systems engineering.
+- `event-experience-tech/thepunisher-eventsponsorleadcaptureintegrationexpert.md` — **ThePunisher-EventSponsorLeadCaptureIntegrationExpert**: event sponsor lead-capture integration engineering.
+- `event-experience-tech/thepunisher-eventvenuesourcingrfpsystemsexpert.md` — **ThePunisher-EventVenueSourcingRFPSystemsExpert**: event venue-sourcing and RFP-systems engineering.
+- `event-experience-tech/thepunisher-eventrecurringseriesmanagementexpert.md` — **ThePunisher-EventRecurringSeriesManagementExpert**: recurring event-series management systems engineering.
+- `event-experience-tech/thepunisher-eventcommunitymeetupplatformexpert.md` — **ThePunisher-EventCommunityMeetupPlatformExpert**: event community/meetup platform engineering.
+- `event-experience-tech/thepunisher-eventcrosspromotionaffiliatesystemsexpert.md` — **ThePunisher-EventCrossPromotionAffiliateSystemsExpert**: event cross-promotion and affiliate-systems engineering.
+- `event-experience-tech/thepunisher-eventpostproductioncontentdistributionexpert.md` — **ThePunisher-EventPostProductionContentDistributionExpert**: event post-production content-distribution engineering.
+- `event-experience-tech/thepunisher-eventrealtimecapacitymonitoringexpert.md` — **ThePunisher-EventRealTimeCapacityMonitoringExpert**: event real-time capacity-monitoring systems engineering.
+- `event-experience-tech/thepunisher-eventgamificationengagementsystemsexpert.md` — **ThePunisher-EventGamificationEngagementSystemsExpert**: event gamification and engagement-systems engineering.
+- `event-experience-tech/thepunisher-eventmulticurrencyinternationalregistrationexpert.md` — **ThePunisher-EventMultiCurrencyInternationalRegistrationExpert**: event multi-currency international-registration systems engineering.
+- `event-experience-tech/thepunisher-eventdataprivacyconsentsystemsexpert.md` — **ThePunisher-EventDataPrivacyConsentSystemsExpert**: event data-privacy and consent-management systems engineering.
+
+## Team 81 — Automotive Aftermarket & Repair Shop Technology Engineering (50 agents)
+
+- `auto-aftermarket-repair-tech/thepunisher-repairshopmanagementsoftwareexpert.md` — **ThePunisher-RepairShopManagementSoftwareExpert**: auto-repair-shop management software engineering.
+- `auto-aftermarket-repair-tech/thepunisher-vindecodingvehicledatalookupexpert.md` — **ThePunisher-VINDecodingVehicleDataLookupExpert**: VIN-decoding and vehicle-data-lookup systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartsecommerceplatformexpert.md` — **ThePunisher-AutoPartsEcommercePlatformExpert**: auto-parts e-commerce platform engineering.
+- `auto-aftermarket-repair-tech/thepunisher-digitalvehicleinspectiondviexpert.md` — **ThePunisher-DigitalVehicleInspectionDVIExpert**: Digital Vehicle Inspection (DVI) systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autorepairestimatequotingsystemsexpert.md` — **ThePunisher-AutoRepairEstimateQuotingSystemsExpert**: auto-repair estimate and quoting-systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-warrantyclaimsprocessingexpert.md` — **ThePunisher-WarrantyClaimsProcessingExpert**: automotive warranty-claims-processing systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartscatalogfitmentdataexpert.md` — **ThePunisher-AutoPartsCatalogFitmentDataExpert**: auto-parts catalog and fitment-data engineering.
+- `auto-aftermarket-repair-tech/thepunisher-repairshopschedulingbaymanagementexpert.md` — **ThePunisher-RepairShopSchedulingBayManagementExpert**: repair-shop scheduling and bay-management systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-aftermarketpartsinventorymanagementexpert.md` — **ThePunisher-AftermarketPartsInventoryManagementExpert**: aftermarket parts inventory-management systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autodiagnostictroublecodelookupexpert.md` — **ThePunisher-AutoDiagnosticTroubleCodeLookupExpert**: automotive diagnostic-trouble-code (DTC) lookup systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-tireshopmanagementsystemsexpert.md` — **ThePunisher-TireShopManagementSystemsExpert**: tire-shop management systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autorepaircustomercommunicationexpert.md` — **ThePunisher-AutoRepairCustomerCommunicationExpert**: auto-repair customer-communication systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-extendedvehicleservicecontractsystemsexpert.md` — **ThePunisher-ExtendedVehicleServiceContractSystemsExpert**: extended vehicle-service-contract systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartscorereturnrecyclingexpert.md` — **ThePunisher-AutoPartsCoreReturnRecyclingExpert**: auto-parts core-return and recycling-systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-mobilemechanicdispatchplatformexpert.md` — **ThePunisher-MobileMechanicDispatchPlatformExpert**: mobile-mechanic dispatch-platform engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autobodyshopestimatingexpert.md` — **ThePunisher-AutoBodyShopEstimatingExpert**: auto-body-shop estimating-systems engineering (CCC/Mitchell-style).
+- `auto-aftermarket-repair-tech/thepunisher-aftermarketecutuningsoftwareexpert.md` — **ThePunisher-AftermarketECUTuningSoftwareExpert**: aftermarket ECU-tuning software engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartssupplierediintegrationexpert.md` — **ThePunisher-AutoPartsSupplierEDIIntegrationExpert**: auto-parts supplier EDI-integration engineering.
+- `auto-aftermarket-repair-tech/thepunisher-vehiclerecalllookupintegrationexpert.md` — **ThePunisher-VehicleRecallLookupIntegrationExpert**: vehicle-recall lookup-integration systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-repairshoppointofsalesystemsexpert.md` — **ThePunisher-RepairShopPointOfSaleSystemsExpert**: repair-shop point-of-sale systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autorepairtechniciancertificationtrackingexpert.md` — **ThePunisher-AutoRepairTechnicianCertificationTrackingExpert**: auto-repair-technician certification-tracking systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-salvageusedautopartsmarketplaceexpert.md` — **ThePunisher-SalvageUsedAutoPartsMarketplaceExpert**: salvage and used auto-parts marketplace engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autorepairshopfranchisemanagementexpert.md` — **ThePunisher-AutoRepairShopFranchiseManagementExpert**: auto-repair-shop franchise-management systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-vehiclehistoryreportintegrationexpert.md` — **ThePunisher-VehicleHistoryReportIntegrationExpert**: vehicle-history-report integration engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartscrossreferenceinterchangeexpert.md` — **ThePunisher-AutoPartsCrossReferenceInterchangeExpert**: auto-parts cross-reference and interchange-systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-repairshoplabortimeguideintegrationexpert.md` — **ThePunisher-RepairShopLaborTimeGuideIntegrationExpert**: repair-shop labor-time-guide integration engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autodetailingservicebookingplatformexpert.md` — **ThePunisher-AutoDetailingServiceBookingPlatformExpert**: auto-detailing service-booking platform engineering.
+- `auto-aftermarket-repair-tech/thepunisher-fleetaftermarketservicenetworkexpert.md` — **ThePunisher-FleetAftermarketServiceNetworkExpert**: fleet aftermarket-service-network systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autoglassrepairdispatchsystemsexpert.md` — **ThePunisher-AutoGlassRepairDispatchSystemsExpert**: auto-glass-repair dispatch-systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-aftermarketperformancepartsconfiguratorexpert.md` — **ThePunisher-AftermarketPerformancePartsConfiguratorExpert**: aftermarket performance-parts configurator engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autorepairshopreputationmanagementexpert.md` — **ThePunisher-AutoRepairShopReputationManagementExpert**: auto-repair-shop review and reputation-management systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-vehicleemissionstestingsystemsexpert.md` — **ThePunisher-VehicleEmissionsTestingSystemsExpert**: vehicle emissions-testing systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartswarehousedistributionsystemsexpert.md` — **ThePunisher-AutoPartsWarehouseDistributionSystemsExpert**: auto-parts warehouse distribution-systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-repairshopequipmentcalibrationtrackingexpert.md` — **ThePunisher-RepairShopEquipmentCalibrationTrackingExpert**: repair-shop equipment calibration-tracking systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autoinsurancerepairnetworkintegrationexpert.md` — **ThePunisher-AutoInsuranceRepairNetworkIntegrationExpert**: auto-insurance direct-repair-network (DRP) integration engineering.
+- `auto-aftermarket-repair-tech/thepunisher-vehicletradeinvaluationsystemsexpert.md` — **ThePunisher-VehicleTradeInValuationSystemsExpert**: vehicle trade-in valuation-systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartsthreedfitmentvisualizationexpert.md` — **ThePunisher-AutoPartsThreeDFitmentVisualizationExpert**: auto-parts 3D fitment-visualization engineering.
+- `auto-aftermarket-repair-tech/thepunisher-roadsideassistancedispatchsystemsexpert.md` — **ThePunisher-RoadsideAssistanceDispatchSystemsExpert**: roadside-assistance dispatch-systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autorepairshopfinancingpaymentplansexpert.md` — **ThePunisher-AutoRepairShopFinancingPaymentPlansExpert**: auto-repair-shop financing and payment-plan systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-aftermarketaccessoryinstallationschedulingexpert.md` — **ThePunisher-AftermarketAccessoryInstallationSchedulingExpert**: aftermarket accessory-installation scheduling engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartscounterfeitdetectionsystemsexpert.md` — **ThePunisher-AutoPartsCounterfeitDetectionSystemsExpert**: auto-parts counterfeit-detection systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-repairshopfranchiseanalyticsexpert.md` — **ThePunisher-RepairShopFranchiseAnalyticsExpert**: repair-shop multi-location franchise-analytics engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autobodypaintmatchingsystemsexpert.md` — **ThePunisher-AutoBodyPaintMatchingSystemsExpert**: auto-body paint-matching systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-vehiclelientitleverificationsystemsexpert.md` — **ThePunisher-VehicleLienTitleVerificationSystemsExpert**: vehicle lien and title-verification systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartsreturnmerchandiseauthorizationexpert.md` — **ThePunisher-AutoPartsReturnMerchandiseAuthorizationExpert**: auto-parts return-merchandise-authorization (RMA) systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-repairshopcustomerloyaltyprogramexpert.md` — **ThePunisher-RepairShopCustomerLoyaltyProgramExpert**: repair-shop customer-loyalty-program engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autorepairshopepaoshacompliancetrackingexpert.md` — **ThePunisher-AutoRepairShopEPAOSHAComplianceTrackingExpert**: auto-repair-shop EPA/OSHA compliance-tracking systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-aftermarkettelematicsretrofitsystemsexpert.md` — **ThePunisher-AftermarketTelematicsRetrofitSystemsExpert**: aftermarket telematics-retrofit systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-autopartsmarketplacefraudpreventionexpert.md` — **ThePunisher-AutoPartsMarketplaceFraudPreventionExpert**: auto-parts marketplace fraud-prevention systems engineering.
+- `auto-aftermarket-repair-tech/thepunisher-repairshoptechnicianproductivityanalyticsexpert.md` — **ThePunisher-RepairShopTechnicianProductivityAnalyticsExpert**: repair-shop technician-productivity analytics engineering.
+
+## Team 82 — Chemical Process & Petrochemical Engineering Technology (50 agents)
+
+- `chemical-process-eng-tech/thepunisher-chemicalprocesscontrolsystemsexpert.md` — **ThePunisher-ChemicalProcessControlSystemsExpert**: chemical-plant process-control systems engineering.
+- `chemical-process-eng-tech/thepunisher-batchprocessautomations88expert.md` — **ThePunisher-BatchProcessAutomationS88Expert**: batch-process automation engineering (ISA-88/S88).
+- `chemical-process-eng-tech/thepunisher-distributedcontrolsystemdcsengineeringexpert.md` — **ThePunisher-DistributedControlSystemDCSEngineeringExpert**: Distributed Control System (DCS) engineering.
+- `chemical-process-eng-tech/thepunisher-processsafetymanagementpsmsystemsexpert.md` — **ThePunisher-ProcessSafetyManagementPSMSystemsExpert**: Process Safety Management (PSM) systems engineering.
+- `chemical-process-eng-tech/thepunisher-hazmatcompliancetrackingexpert.md` — **ThePunisher-HazMatComplianceTrackingExpert**: hazardous-material (HazMat) compliance-tracking systems engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantalarmrationalizationexpert.md` — **ThePunisher-ChemicalPlantAlarmRationalizationExpert**: chemical-plant alarm-rationalization engineering.
+- `chemical-process-eng-tech/thepunisher-processhistoriantrendanalysisexpert.md` — **ThePunisher-ProcessHistorianTrendAnalysisExpert**: process-historian and trend-analysis engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalreactionkineticsmodelingexpert.md` — **ThePunisher-ChemicalReactionKineticsModelingExpert**: chemical reaction-kinetics modeling engineering.
+- `chemical-process-eng-tech/thepunisher-petrochemicalrefineryprocessoptimizationexpert.md` — **ThePunisher-PetrochemicalRefineryProcessOptimizationExpert**: petrochemical-refinery process-optimization engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantsafetyinstrumentedsystemsexpert.md` — **ThePunisher-ChemicalPlantSafetyInstrumentedSystemsExpert**: chemical-plant Safety Instrumented Systems (SIS) engineering.
+- `chemical-process-eng-tech/thepunisher-processsimulationexpert.md` — **ThePunisher-ProcessSimulationExpert**: chemical-process simulation engineering (Aspen-style).
+- `chemical-process-eng-tech/thepunisher-chemicalinventoryhazcomlabelingexpert.md` — **ThePunisher-ChemicalInventoryHazcomLabelingExpert**: chemical-inventory and HazCom labeling-systems engineering.
+- `chemical-process-eng-tech/thepunisher-pipelineintegritymonitoringexpert.md` — **ThePunisher-PipelineIntegrityMonitoringExpert**: oil/gas pipeline integrity-monitoring engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantemissionsmonitoringexpert.md` — **ThePunisher-ChemicalPlantEmissionsMonitoringExpert**: chemical-plant emissions-monitoring systems engineering.
+- `chemical-process-eng-tech/thepunisher-batchrecipemanagementsystemsexpert.md` — **ThePunisher-BatchRecipeManagementSystemsExpert**: batch-recipe-management systems engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalsupplychaintracktraceexpert.md` — **ThePunisher-ChemicalSupplyChainTrackTraceExpert**: chemical supply-chain track-and-trace systems engineering.
+- `chemical-process-eng-tech/thepunisher-processplantdigitaltwinexpert.md` — **ThePunisher-ProcessPlantDigitalTwinExpert**: process-plant digital-twin engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalreactorcontroloptimizationexpert.md` — **ThePunisher-ChemicalReactorControlOptimizationExpert**: chemical-reactor control-optimization engineering.
+- `chemical-process-eng-tech/thepunisher-refineryadvancedprocesscontrolexpert.md` — **ThePunisher-RefineryAdvancedProcessControlExpert**: refinery Advanced Process Control (APC) engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantmaintenancereliabilityexpert.md` — **ThePunisher-ChemicalPlantMaintenanceReliabilityExpert**: chemical-plant maintenance-reliability systems engineering.
+- `chemical-process-eng-tech/thepunisher-hazopprocesshazardanalysissystemsexpert.md` — **ThePunisher-HazopProcessHazardAnalysisSystemsExpert**: HAZOP and process-hazard-analysis systems engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantenergyoptimizationexpert.md` — **ThePunisher-ChemicalPlantEnergyOptimizationExpert**: chemical-plant energy-optimization engineering.
+- `chemical-process-eng-tech/thepunisher-petrochemicalfeedstockoptimizationexpert.md` — **ThePunisher-PetrochemicalFeedstockOptimizationExpert**: petrochemical feedstock-optimization engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantenvironmentalcompliancereportingexpert.md` — **ThePunisher-ChemicalPlantEnvironmentalComplianceReportingExpert**: chemical-plant environmental compliance-reporting systems engineering.
+- `chemical-process-eng-tech/thepunisher-processplantscadadcsintegrationexpert.md` — **ThePunisher-ProcessPlantSCADADCSIntegrationExpert**: process-plant SCADA-DCS integration engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalmanufacturingqualitycontrolsystemsexpert.md` — **ThePunisher-ChemicalManufacturingQualityControlSystemsExpert**: chemical-manufacturing quality-control systems engineering.
+- `chemical-process-eng-tech/thepunisher-bulkchemicalstoragetankmonitoringexpert.md` — **ThePunisher-BulkChemicalStorageTankMonitoringExpert**: bulk chemical storage-tank monitoring engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantturnaroundplanningsystemsexpert.md` — **ThePunisher-ChemicalPlantTurnaroundPlanningSystemsExpert**: chemical-plant turnaround-planning systems engineering.
+- `chemical-process-eng-tech/thepunisher-processplantotcybersecurityexpert.md` — **ThePunisher-ProcessPlantOTCybersecurityExpert**: process-plant operational-technology cybersecurity engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantutilitiesmanagementsystemsexpert.md` — **ThePunisher-ChemicalPlantUtilitiesManagementSystemsExpert**: chemical-plant utilities-management systems engineering.
+- `chemical-process-eng-tech/thepunisher-refineryblendingoptimizationexpert.md` — **ThePunisher-RefineryBlendingOptimizationExpert**: refinery product-blending optimization engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantsolventrecoverysystemsexpert.md` — **ThePunisher-ChemicalPlantSolventRecoverySystemsExpert**: chemical-plant solvent-recovery systems engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantfugitiveemissionsdetectionexpert.md` — **ThePunisher-ChemicalPlantFugitiveEmissionsDetectionExpert**: chemical-plant fugitive-emissions detection engineering.
+- `chemical-process-eng-tech/thepunisher-processplantchangemanagementsystemsexpert.md` — **ThePunisher-ProcessPlantChangeManagementSystemsExpert**: process-plant management-of-change (MOC) systems engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalreactorrunawaypreventionsystemsexpert.md` — **ThePunisher-ChemicalReactorRunawayPreventionSystemsExpert**: chemical-reactor runaway-prevention systems engineering.
+- `chemical-process-eng-tech/thepunisher-petrochemicalproductblendingcertificationexpert.md` — **ThePunisher-PetrochemicalProductBlendingCertificationExpert**: petrochemical product-blending certification engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantvaporrecoverysystemsexpert.md` — **ThePunisher-ChemicalPlantVaporRecoverySystemsExpert**: chemical-plant vapor-recovery systems engineering.
+- `chemical-process-eng-tech/thepunisher-processplantoperatortrainingsimulatorexpert.md` — **ThePunisher-ProcessPlantOperatorTrainingSimulatorExpert**: process-plant operator-training-simulator engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantcorrosionmonitoringsystemsexpert.md` — **ThePunisher-ChemicalPlantCorrosionMonitoringSystemsExpert**: chemical-plant corrosion-monitoring systems engineering.
+- `chemical-process-eng-tech/thepunisher-bulkliquidterminalmanagementsystemsexpert.md` — **ThePunisher-BulkLiquidTerminalManagementSystemsExpert**: bulk-liquid-terminal management-systems engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantflaresystemmonitoringexpert.md` — **ThePunisher-ChemicalPlantFlareSystemMonitoringExpert**: chemical-plant flare-system monitoring engineering.
+- `chemical-process-eng-tech/thepunisher-processplantbatchgenealogytrackingexpert.md` — **ThePunisher-ProcessPlantBatchGenealogyTrackingExpert**: process-plant batch-genealogy tracking engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantloadingrackautomationexpert.md` — **ThePunisher-ChemicalPlantLoadingRackAutomationExpert**: chemical-plant loading-rack automation engineering.
+- `chemical-process-eng-tech/thepunisher-petrochemicalpipelineleakdetectionexpert.md` — **ThePunisher-PetrochemicalPipelineLeakDetectionExpert**: petrochemical-pipeline leak-detection engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantstatutoryreportingexpert.md` — **ThePunisher-ChemicalPlantStatutoryReportingExpert**: chemical-plant statutory-reporting engineering (Tier II/RMP).
+- `chemical-process-eng-tech/thepunisher-processplantinstrumentationcalibrationmanagementexpert.md` — **ThePunisher-ProcessPlantInstrumentationCalibrationManagementExpert**: process-plant instrumentation calibration-management engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantcontractorsafetymanagementexpert.md` — **ThePunisher-ChemicalPlantContractorSafetyManagementExpert**: chemical-plant contractor safety-management systems engineering.
+- `chemical-process-eng-tech/thepunisher-refineryyieldaccountingsystemsexpert.md` — **ThePunisher-RefineryYieldAccountingSystemsExpert**: refinery yield-accounting systems engineering.
+- `chemical-process-eng-tech/thepunisher-chemicalplantprocessdatareconciliationexpert.md` — **ThePunisher-ChemicalPlantProcessDataReconciliationExpert**: chemical-plant process-data reconciliation engineering.
+- `chemical-process-eng-tech/thepunisher-processplantshutdownstartupsequencingexpert.md` — **ThePunisher-ProcessPlantShutdownStartupSequencingExpert**: process-plant shutdown/startup sequencing engineering.
+
+## Team 83 — Customer Support & Helpdesk Technology Engineering (50 agents)
+
+- `customer-support-helpdesk-tech/thepunisher-supportticketingsystemexpert.md` — **ThePunisher-SupportTicketingSystemExpert**: customer-support ticketing-system engineering.
+- `customer-support-helpdesk-tech/thepunisher-livechatwidgetengineeringexpert.md` — **ThePunisher-LiveChatWidgetEngineeringExpert**: live-chat widget engineering.
+- `customer-support-helpdesk-tech/thepunisher-knowledgebasehelpcenterplatformexpert.md` — **ThePunisher-KnowledgeBaseHelpCenterPlatformExpert**: knowledge-base and help-center platform engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportslamanagementexpert.md` — **ThePunisher-SupportSLAManagementExpert**: customer-support SLA-management systems engineering.
+- `customer-support-helpdesk-tech/thepunisher-omnichannelsupportroutingexpert.md` — **ThePunisher-OmnichannelSupportRoutingExpert**: omnichannel support-routing engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportmacrocannedresponsesystemsexpert.md` — **ThePunisher-SupportMacroCannedResponseSystemsExpert**: support macro and canned-response systems engineering.
+- `customer-support-helpdesk-tech/thepunisher-customersupportchatbotengineeringexpert.md` — **ThePunisher-CustomerSupportChatbotEngineeringExpert**: customer-support chatbot engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketdeflectionanalyticsexpert.md` — **ThePunisher-SupportTicketDeflectionAnalyticsExpert**: support ticket-deflection analytics engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportagentperformancedashboardexpert.md` — **ThePunisher-SupportAgentPerformanceDashboardExpert**: support-agent performance-dashboard engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportescalationworkflowengineeringexpert.md` — **ThePunisher-SupportEscalationWorkflowEngineeringExpert**: support escalation-workflow engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportcsatnpssurveysystemsexpert.md` — **ThePunisher-SupportCSATNPSSurveySystemsExpert**: support CSAT/NPS survey-systems engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportemailtoticketparsingexpert.md` — **ThePunisher-SupportEmailToTicketParsingExpert**: support email-to-ticket parsing engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportcommunityforumplatformexpert.md` — **ThePunisher-SupportCommunityForumPlatformExpert**: support community-forum platform engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportcobrowsingscreenshareexpert.md` — **ThePunisher-SupportCoBrowsingScreenShareExpert**: support co-browsing and screen-share engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketpriorityscoringexpert.md` — **ThePunisher-SupportTicketPriorityScoringExpert**: support ticket priority-scoring engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportagentassistaisystemsexpert.md` — **ThePunisher-SupportAgentAssistAISystemsExpert**: support agent-assist AI systems engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportmultilanguagetranslationintegrationexpert.md` — **ThePunisher-SupportMultiLanguageTranslationIntegrationExpert**: support multi-language translation-integration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportvideocallintegrationexpert.md` — **ThePunisher-SupportVideoCallIntegrationExpert**: support video-call integration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportmacrosuggestionengineexpert.md` — **ThePunisher-SupportMacroSuggestionEngineExpert**: support macro-suggestion engine engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketmergededuplicationexpert.md` — **ThePunisher-SupportTicketMergeDeduplicationExpert**: support ticket merge and deduplication engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportselfserviceportalexpert.md` — **ThePunisher-SupportSelfServicePortalExpert**: support self-service-portal engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportphoneivrintegrationexpert.md` — **ThePunisher-SupportPhoneIVRIntegrationExpert**: support phone/IVR integration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportsocialmediainboxintegrationexpert.md` — **ThePunisher-SupportSocialMediaInboxIntegrationExpert**: support social-media inbox-integration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supporttickettaggingcategorizationexpert.md` — **ThePunisher-SupportTicketTaggingCategorizationExpert**: support ticket tagging and categorization engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportagentworkforceschedulingexpert.md` — **ThePunisher-SupportAgentWorkforceSchedulingExpert**: support-agent workforce-scheduling engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketsentimentanalysisexpert.md` — **ThePunisher-SupportTicketSentimentAnalysisExpert**: support ticket sentiment-analysis engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportproductfeedbackloopintegrationexpert.md` — **ThePunisher-SupportProductFeedbackLoopIntegrationExpert**: support-to-product feedback-loop integration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportonboardingwalkthroughsystemsexpert.md` — **ThePunisher-SupportOnboardingWalkthroughSystemsExpert**: support onboarding-walkthrough systems engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketautoassignmentexpert.md` — **ThePunisher-SupportTicketAutoAssignmentExpert**: support ticket auto-assignment engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportinternalnotescollaborationexpert.md` — **ThePunisher-SupportInternalNotesCollaborationExpert**: support internal-notes and agent-collaboration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportmacrolocalizationexpert.md` — **ThePunisher-SupportMacroLocalizationExpert**: support macro/response-template localization engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportwarrantyrmaticketintegrationexpert.md` — **ThePunisher-SupportWarrantyRMATicketIntegrationExpert**: support warranty and RMA ticket-integration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportchatbothandofftohumanexpert.md` — **ThePunisher-SupportChatbotHandoffToHumanExpert**: support chatbot handoff-to-human engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketbackloganalyticsexpert.md` — **ThePunisher-SupportTicketBacklogAnalyticsExpert**: support ticket-backlog analytics engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportcustomer360viewintegrationexpert.md` — **ThePunisher-SupportCustomer360ViewIntegrationExpert**: support customer-360-view integration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportscreenshotattachmenthandlingexpert.md` — **ThePunisher-SupportScreenshotAttachmentHandlingExpert**: support screenshot and attachment-handling engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketfieldcustomizationexpert.md` — **ThePunisher-SupportTicketFieldCustomizationExpert**: support ticket custom-field engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportproactiveoutreachsystemsexpert.md` — **ThePunisher-SupportProactiveOutreachSystemsExpert**: support proactive-outreach systems engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportagentcertificationtrainingsystemsexpert.md` — **ThePunisher-SupportAgentCertificationTrainingSystemsExpert**: support-agent certification and training-systems engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportmultibrandhelpdeskmanagementexpert.md` — **ThePunisher-SupportMultiBrandHelpdeskManagementExpert**: multi-brand helpdesk-instance management engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportstatuspageincidentcommunicationexpert.md` — **ThePunisher-SupportStatusPageIncidentCommunicationExpert**: support status-page and incident-communication engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketaudittrailexpert.md` — **ThePunisher-SupportTicketAuditTrailExpert**: support ticket audit-trail engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportthirdpartyappmarketplaceintegrationexpert.md` — **ThePunisher-SupportThirdPartyAppMarketplaceIntegrationExpert**: support third-party app-marketplace integration engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportticketresolutionanalyticsexpert.md` — **ThePunisher-SupportTicketResolutionAnalyticsExpert**: support ticket time-to-resolution analytics engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportaccessibilitycomplianceexpert.md` — **ThePunisher-SupportAccessibilityComplianceExpert**: support-tooling accessibility (screen-reader) compliance engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportchatbotintentfallbackhandlingexpert.md` — **ThePunisher-SupportChatbotIntentFallbackHandlingExpert**: support chatbot intent fallback-handling engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportembeddedhelpwidgetapiexpert.md` — **ThePunisher-SupportEmbeddedHelpWidgetAPIExpert**: support API engineering for embedded help widgets.
+- `customer-support-helpdesk-tech/thepunisher-supportticketspamfilteringexpert.md` — **ThePunisher-SupportTicketSpamFilteringExpert**: support ticket spam-filtering engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportcustomereffortscoretrackingexpert.md` — **ThePunisher-SupportCustomerEffortScoreTrackingExpert**: support customer-effort-score tracking engineering.
+- `customer-support-helpdesk-tech/thepunisher-supportknowledgebasesearchrelevanceexpert.md` — **ThePunisher-SupportKnowledgeBaseSearchRelevanceExpert**: support knowledge-base search-relevance engineering.
+
+## Team 84 — Dating & Social Connection Technology Engineering (50 agents)
+
+- `dating-social-connection-tech/thepunisher-matchingalgorithmengineeringexpert.md` — **ThePunisher-MatchingAlgorithmEngineeringExpert**: dating-app matching-algorithm engineering.
+- `dating-social-connection-tech/thepunisher-datingprofileverificationsystemsexpert.md` — **ThePunisher-DatingProfileVerificationSystemsExpert**: dating-app profile-verification (liveness/photo-match) systems engineering.
+- `dating-social-connection-tech/thepunisher-datingappmessagingplatformexpert.md` — **ThePunisher-DatingAppMessagingPlatformExpert**: dating-app in-app messaging-platform engineering.
+- `dating-social-connection-tech/thepunisher-datingicebreakerpromptsystemsexpert.md` — **ThePunisher-DatingIcebreakerPromptSystemsExpert**: dating-app icebreaker and conversation-prompt systems engineering.
+- `dating-social-connection-tech/thepunisher-datingappgeolocationmatchingexpert.md` — **ThePunisher-DatingAppGeolocationMatchingExpert**: dating-app geolocation-based matching engineering.
+- `dating-social-connection-tech/thepunisher-datingsubscriptionpremiumtiersystemsexpert.md` — **ThePunisher-DatingSubscriptionPremiumTierSystemsExpert**: dating-app subscription and premium-tier systems engineering.
+- `dating-social-connection-tech/thepunisher-datingappphotomoderationintegrationexpert.md` — **ThePunisher-DatingAppPhotoModerationIntegrationExpert**: dating-app photo-moderation pipeline integration engineering, consuming Team 39's underlying detection models rather than rebuilding them.
+- `dating-social-connection-tech/thepunisher-datingvideodatefeatureengineeringexpert.md` — **ThePunisher-DatingVideoDateFeatureEngineeringExpert**: dating-app in-app video-date feature engineering.
+- `dating-social-connection-tech/thepunisher-datingappcompatibilityscoringexpert.md` — **ThePunisher-DatingAppCompatibilityScoringExpert**: dating-app compatibility-scoring algorithm engineering.
+- `dating-social-connection-tech/thepunisher-datingsafetycheckinsystemsexpert.md` — **ThePunisher-DatingSafetyCheckInSystemsExpert**: dating-app in-person-date safety check-in systems engineering.
+- `dating-social-connection-tech/thepunisher-datingbackgroundcheckintegrationexpert.md` — **ThePunisher-DatingBackgroundCheckIntegrationExpert**: dating-app third-party background-check integration engineering.
+- `dating-social-connection-tech/thepunisher-datingappswipediscoveryfeedengineeringexpert.md` — **ThePunisher-DatingAppSwipeDiscoveryFeedEngineeringExpert**: dating-app swipe/discovery-feed engineering.
+- `dating-social-connection-tech/thepunisher-datingapppreferencefilterengineeringexpert.md` — **ThePunisher-DatingAppPreferenceFilterEngineeringExpert**: dating-app preference and filter engineering.
+- `dating-social-connection-tech/thepunisher-datingappboostmonetizationsystemsexpert.md` — **ThePunisher-DatingAppBoostMonetizationSystemsExpert**: dating-app superlike/boost monetization-systems engineering.
+- `dating-social-connection-tech/thepunisher-datingappconsentreportingworkflowexpert.md` — **ThePunisher-DatingAppConsentReportingWorkflowExpert**: dating-app-specific consent and in-context reporting-workflow engineering, feeding into Team 39's platform-wide moderation queue rather than duplicating it.
+- `dating-social-connection-tech/thepunisher-datingappspeeddatingeventplatformexpert.md` — **ThePunisher-DatingAppSpeedDatingEventPlatformExpert**: dating-app speed-dating event-platform engineering.
+- `dating-social-connection-tech/thepunisher-datingappgroupsocialeventmatchingexpert.md` — **ThePunisher-DatingAppGroupSocialEventMatchingExpert**: dating-app group/social-event matching engineering.
+- `dating-social-connection-tech/thepunisher-datingaiconversationstarterexpert.md` — **ThePunisher-DatingAIConversationStarterExpert**: dating-app AI conversation-starter engineering.
+- `dating-social-connection-tech/thepunisher-datingappprofilepromptpersonalizationexpert.md` — **ThePunisher-DatingAppProfilePromptPersonalizationExpert**: dating-app profile-prompt personalization engineering.
+- `dating-social-connection-tech/thepunisher-datingappidentityverificationuxexpert.md` — **ThePunisher-DatingAppIdentityVerificationUXExpert**: dating-app identity-verification UX and liveness-check integration, distinct from Team 39's platform-wide age/identity-verification policy engine.
+- `dating-social-connection-tech/thepunisher-datingapprewindundofeaturesystemsexpert.md` — **ThePunisher-DatingAppRewindUndoFeatureSystemsExpert**: dating-app rewind/undo-swipe feature engineering.
+- `dating-social-connection-tech/thepunisher-datingapppushnotificationengagementexpert.md` — **ThePunisher-DatingAppPushNotificationEngagementExpert**: dating-app push-notification engagement engineering.
+- `dating-social-connection-tech/thepunisher-datingappmatchqualityabtestingexpert.md` — **ThePunisher-DatingAppMatchQualityABTestingExpert**: dating-app A/B testing engineering for match quality.
+- `dating-social-connection-tech/thepunisher-datingappmatchqueuethrottlingexpert.md` — **ThePunisher-DatingAppMatchQueueThrottlingExpert**: dating-app match-delivery queue-throttling and rate-limiting engineering.
+- `dating-social-connection-tech/thepunisher-datingappvoiceaudioprofilefeatureexpert.md` — **ThePunisher-DatingAppVoiceAudioProfileFeatureExpert**: dating-app voice/audio-profile feature engineering.
+- `dating-social-connection-tech/thepunisher-datingapprelationshipgoalsegmentationexpert.md` — **ThePunisher-DatingAppRelationshipGoalSegmentationExpert**: dating-app relationship-goal segmentation engineering.
+- `dating-social-connection-tech/thepunisher-datingappnichecommunityplatformexpert.md` — **ThePunisher-DatingAppNicheCommunityPlatformExpert**: dating-app niche-community platform engineering.
+- `dating-social-connection-tech/thepunisher-datingappinternationallocalizationexpert.md` — **ThePunisher-DatingAppInternationalLocalizationExpert**: dating-app international localization engineering.
+- `dating-social-connection-tech/thepunisher-datingapppaymentrefundsystemsexpert.md` — **ThePunisher-DatingAppPaymentRefundSystemsExpert**: dating-app payment and refund-systems engineering.
+- `dating-social-connection-tech/thepunisher-datingappretentionchurnanalyticsexpert.md` — **ThePunisher-DatingAppRetentionChurnAnalyticsExpert**: dating-app retention and churn-analytics engineering.
+- `dating-social-connection-tech/thepunisher-datingapprealtimepresencestatusexpert.md` — **ThePunisher-DatingAppRealTimePresenceStatusExpert**: dating-app real-time presence/online-status engineering.
+- `dating-social-connection-tech/thepunisher-datingappvirtualgiftitemsystemsexpert.md` — **ThePunisher-DatingAppVirtualGiftItemSystemsExpert**: dating-app in-app virtual-gift/item systems engineering.
+- `dating-social-connection-tech/thepunisher-socialconnectionfriendfindingplatformexpert.md` — **ThePunisher-SocialConnectionFriendFindingPlatformExpert**: friend-finding (non-romantic) social-connection platform engineering.
+- `dating-social-connection-tech/thepunisher-socialconnectioninterestbasedmatchingexpert.md` — **ThePunisher-SocialConnectionInterestBasedMatchingExpert**: interest-based social-connection matching engineering.
+- `dating-social-connection-tech/thepunisher-datingappverifiedbadgeuxexpert.md` — **ThePunisher-DatingAppVerifiedBadgeUXExpert**: dating-app verified-badge UX and trust-signal display engineering.
+- `dating-social-connection-tech/thepunisher-datingapponboardingquizengineeringexpert.md` — **ThePunisher-DatingAppOnboardingQuizEngineeringExpert**: dating-app onboarding-quiz engineering.
+- `dating-social-connection-tech/thepunisher-datingappmatchexpiryreengagementexpert.md` — **ThePunisher-DatingAppMatchExpiryReEngagementExpert**: dating-app match-expiry and re-engagement systems engineering.
+- `dating-social-connection-tech/thepunisher-datingappreadreceipttypingindicatorexpert.md` — **ThePunisher-DatingAppReadReceiptTypingIndicatorExpert**: dating-app read-receipt and typing-indicator engineering.
+- `dating-social-connection-tech/thepunisher-datingappsocialloginintegrationexpert.md` — **ThePunisher-DatingAppSocialLoginIntegrationExpert**: dating-app third-party social-login integration engineering.
+- `dating-social-connection-tech/thepunisher-datingappfunneloptimizationanalyticsexpert.md` — **ThePunisher-DatingAppFunnelOptimizationAnalyticsExpert**: dating-app analytics and conversion-funnel optimization engineering.
+- `dating-social-connection-tech/thepunisher-datingappaccessibilityexpert.md` — **ThePunisher-DatingAppAccessibilityExpert**: dating-app accessibility engineering for users with disabilities.
+- `dating-social-connection-tech/thepunisher-datingappmultidevicesyncexpert.md` — **ThePunisher-DatingAppMultiDeviceSyncExpert**: dating-app multi-device state-synchronization engineering.
+- `dating-social-connection-tech/thepunisher-datingapppromptbankcurationsystemsexpert.md` — **ThePunisher-DatingAppPromptBankCurationSystemsExpert**: dating-app profile-prompt-bank curation systems engineering.
+- `dating-social-connection-tech/thepunisher-datingappvirtualspeeddatingeventsystemsexpert.md` — **ThePunisher-DatingAppVirtualSpeedDatingEventSystemsExpert**: dating-app virtual speed-dating event-systems engineering.
+- `dating-social-connection-tech/thepunisher-datingappcompatibilityquizalgorithmexpert.md` — **ThePunisher-DatingAppCompatibilityQuizAlgorithmExpert**: dating-app compatibility-quiz algorithm engineering.
+- `dating-social-connection-tech/thepunisher-datingappemergencysosintegrationexpert.md` — **ThePunisher-DatingAppEmergencySOSIntegrationExpert**: dating-app in-date emergency-SOS integration engineering.
+- `dating-social-connection-tech/thepunisher-datingappdataexportportabilityexpert.md` — **ThePunisher-DatingAppDataExportPortabilityExpert**: dating-app user data-export and portability engineering.
+- `dating-social-connection-tech/thepunisher-datingappcommunityguidelinesonboardingexpert.md` — **ThePunisher-DatingAppCommunityGuidelinesOnboardingExpert**: dating-app community-guidelines onboarding-flow engineering.
+- `dating-social-connection-tech/thepunisher-datingappreferralprogramsystemsexpert.md` — **ThePunisher-DatingAppReferralProgramSystemsExpert**: dating-app referral-program systems engineering.
+- `dating-social-connection-tech/thepunisher-datingapppostdatefeedbacksystemsexpert.md` — **ThePunisher-DatingAppPostDateFeedbackSystemsExpert**: dating-app post-date feedback-systems engineering.
+
+## Team 85 — Mining & Extractive Industries Technology Engineering (50 agents)
+
+- `mining-extractive-tech/thepunisher-mineplanningpitdesignsoftwareexpert.md` — **ThePunisher-MinePlanningPitDesignSoftwareExpert**: mine-planning and open-pit design software engineering.
+- `mining-extractive-tech/thepunisher-oregradecontrolgeostatisticsexpert.md` — **ThePunisher-OreGradeControlGeostatisticsExpert**: ore grade-control and geostatistics engineering.
+- `mining-extractive-tech/thepunisher-minefleethaultruckdispatchexpert.md` — **ThePunisher-MineFleetHaulTruckDispatchExpert**: mine haul-truck fleet-dispatch systems engineering.
+- `mining-extractive-tech/thepunisher-undergroundmineventilationmonitoringexpert.md` — **ThePunisher-UndergroundMineVentilationMonitoringExpert**: underground mine ventilation-monitoring systems engineering.
+- `mining-extractive-tech/thepunisher-blastdesignvibrationmonitoringexpert.md` — **ThePunisher-BlastDesignVibrationMonitoringExpert**: blast-design and vibration-monitoring systems engineering.
+- `mining-extractive-tech/thepunisher-minesafetygasdetectionsystemsexpert.md` — **ThePunisher-MineSafetyGasDetectionSystemsExpert**: mine safety gas-detection systems engineering.
+- `mining-extractive-tech/thepunisher-mineralprocessingplantcontrolsystemsexpert.md` — **ThePunisher-MineralProcessingPlantControlSystemsExpert**: mineral-processing plant control-systems engineering.
+- `mining-extractive-tech/thepunisher-minegeotechnicalslopestabilitymonitoringexpert.md` — **ThePunisher-MineGeotechnicalSlopeStabilityMonitoringExpert**: mine geotechnical slope-stability monitoring engineering.
+- `mining-extractive-tech/thepunisher-drillblastautomationexpert.md` — **ThePunisher-DrillBlastAutomationExpert**: mine drill-and-blast automation engineering.
+- `mining-extractive-tech/thepunisher-minetailingsdammonitoringexpert.md` — **ThePunisher-MineTailingsDamMonitoringExpert**: mine tailings-dam monitoring systems engineering.
+- `mining-extractive-tech/thepunisher-autonomoushaulagesystemexpert.md` — **ThePunisher-AutonomousHaulageSystemExpert**: autonomous mine-haulage system engineering.
+- `mining-extractive-tech/thepunisher-mineproductionreconciliationsystemsexpert.md` — **ThePunisher-MineProductionReconciliationSystemsExpert**: mine production-reconciliation systems engineering.
+- `mining-extractive-tech/thepunisher-oretrackingtraceabilitysystemsexpert.md` — **ThePunisher-OreTrackingTraceabilitySystemsExpert**: ore tracking and traceability systems engineering.
+- `mining-extractive-tech/thepunisher-mineequipmentpredictivemaintenanceexpert.md` — **ThePunisher-MineEquipmentPredictiveMaintenanceExpert**: mine heavy-equipment predictive-maintenance engineering.
+- `mining-extractive-tech/thepunisher-mineworkerproximitydetectionsystemsexpert.md` — **ThePunisher-MineWorkerProximityDetectionSystemsExpert**: mine worker proximity-detection safety-systems engineering.
+- `mining-extractive-tech/thepunisher-mineventilationondemandcontrolexpert.md` — **ThePunisher-MineVentilationOnDemandControlExpert**: mine ventilation-on-demand control-systems engineering.
+- `mining-extractive-tech/thepunisher-mineralexplorationdatamanagementexpert.md` — **ThePunisher-MineralExplorationDataManagementExpert**: mineral-exploration data-management systems engineering.
+- `mining-extractive-tech/thepunisher-minesiteenvironmentalmonitoringsystemsexpert.md` — **ThePunisher-MineSiteEnvironmentalMonitoringSystemsExpert**: mine-site environmental-monitoring systems engineering.
+- `mining-extractive-tech/thepunisher-minerehabilitationclosureplanningsystemsexpert.md` — **ThePunisher-MineRehabilitationClosurePlanningSystemsExpert**: mine rehabilitation and closure-planning systems engineering.
+- `mining-extractive-tech/thepunisher-minedispatchfleetoptimizationexpert.md` — **ThePunisher-MineDispatchFleetOptimizationExpert**: mine dispatch and fleet-optimization engineering.
+- `mining-extractive-tech/thepunisher-undergroundminepositioningtrackingexpert.md` — **ThePunisher-UndergroundMinePositioningTrackingExpert**: underground mine positioning and personnel-tracking systems engineering.
+- `mining-extractive-tech/thepunisher-mineoresortingsensorsystemsexpert.md` — **ThePunisher-MineOreSortingSensorSystemsExpert**: mine ore-sorting sensor-systems engineering.
+- `mining-extractive-tech/thepunisher-minewatermanagementsystemsexpert.md` — **ThePunisher-MineWaterManagementSystemsExpert**: mine-site water-management systems engineering.
+- `mining-extractive-tech/thepunisher-mineregulatorycompliancereportingexpert.md` — **ThePunisher-MineRegulatoryComplianceReportingExpert**: mine regulatory compliance-reporting systems engineering.
+- `mining-extractive-tech/thepunisher-minedigitaltwinengineeringexpert.md` — **ThePunisher-MineDigitalTwinEngineeringExpert**: mine-site digital-twin engineering.
+- `mining-extractive-tech/thepunisher-mineralresourceestimationsoftwareexpert.md` — **ThePunisher-MineralResourceEstimationSoftwareExpert**: mineral-resource estimation software engineering.
+- `mining-extractive-tech/thepunisher-mineemergencyresponseevacuationsystemsexpert.md` — **ThePunisher-MineEmergencyResponseEvacuationSystemsExpert**: mine emergency-response and evacuation systems engineering.
+- `mining-extractive-tech/thepunisher-mineconveyorsystemmonitoringexpert.md` — **ThePunisher-MineConveyorSystemMonitoringExpert**: mine conveyor-system monitoring engineering.
+- `mining-extractive-tech/thepunisher-minedronesurveyphotogrammetryexpert.md` — **ThePunisher-MineDroneSurveyPhotogrammetryExpert**: mine drone-survey and photogrammetry engineering.
+- `mining-extractive-tech/thepunisher-minestockpileinventorymanagementexpert.md` — **ThePunisher-MineStockpileInventoryManagementExpert**: mine stockpile inventory-management systems engineering.
+- `mining-extractive-tech/thepunisher-mineexplosivesinventorytrackingexpert.md` — **ThePunisher-MineExplosivesInventoryTrackingExpert**: mine explosives inventory-and-tracking systems engineering.
+- `mining-extractive-tech/thepunisher-minesiteaccesscontrolsystemsexpert.md` — **ThePunisher-MineSiteAccessControlSystemsExpert**: mine-site access-control systems engineering.
+- `mining-extractive-tech/thepunisher-minecrushercomminutionprocesscontrolexpert.md` — **ThePunisher-MineCrusherComminutionProcessControlExpert**: mine crusher and comminution process-control engineering.
+- `mining-extractive-tech/thepunisher-mineroyaltyproductionaccountingsystemsexpert.md` — **ThePunisher-MineRoyaltyProductionAccountingSystemsExpert**: mine royalty and production-accounting systems engineering.
+- `mining-extractive-tech/thepunisher-minecontractormanagementsystemsexpert.md` — **ThePunisher-MineContractorManagementSystemsExpert**: mine-site contractor-management systems engineering.
+- `mining-extractive-tech/thepunisher-minefatiguemanagementsystemsexpert.md` — **ThePunisher-MineFatigueManagementSystemsExpert**: mine-worker fatigue-management systems engineering.
+- `mining-extractive-tech/thepunisher-minesitefuelmanagementsystemsexpert.md` — **ThePunisher-MineSiteFuelManagementSystemsExpert**: mine-site fuel-management systems engineering.
+- `mining-extractive-tech/thepunisher-undergroundminecommunicationsystemsexpert.md` — **ThePunisher-UndergroundMineCommunicationSystemsExpert**: underground mine communication-systems engineering.
+- `mining-extractive-tech/thepunisher-minesiteweighbridgeloadoutsystemsexpert.md` — **ThePunisher-MineSiteWeighbridgeLoadOutSystemsExpert**: mine-site weighbridge and load-out systems engineering.
+- `mining-extractive-tech/thepunisher-minesiteassetutilizationanalyticsexpert.md` — **ThePunisher-MineSiteAssetUtilizationAnalyticsExpert**: mine-site asset-utilization analytics engineering.
+- `mining-extractive-tech/thepunisher-minerockfragmentationanalysisexpert.md` — **ThePunisher-MineRockFragmentationAnalysisExpert**: mine blast rock-fragmentation analysis engineering.
+- `mining-extractive-tech/thepunisher-minesitecarbonemissionstrackingexpert.md` — **ThePunisher-MineSiteCarbonEmissionsTrackingExpert**: mine-site carbon-emissions tracking systems engineering.
+- `mining-extractive-tech/thepunisher-minegeologicalmodelingsoftwareexpert.md` — **ThePunisher-MineGeologicalModelingSoftwareExpert**: mine geological-modeling software engineering.
+- `mining-extractive-tech/thepunisher-minesiteincidentreportingsystemsexpert.md` — **ThePunisher-MineSiteIncidentReportingSystemsExpert**: mine-site safety incident-reporting systems engineering.
+- `mining-extractive-tech/thepunisher-minesitetrainingcompetencymanagementexpert.md` — **ThePunisher-MineSiteTrainingCompetencyManagementExpert**: mine-site worker training and competency-management systems engineering.
+- `mining-extractive-tech/thepunisher-minesiteremoteoperationscentersystemsexpert.md` — **ThePunisher-MineSiteRemoteOperationsCenterSystemsExpert**: mine-site remote-operations-center systems engineering.
+- `mining-extractive-tech/thepunisher-minetailingsreprocessingsystemsexpert.md` — **ThePunisher-MineTailingsReprocessingSystemsExpert**: mine tailings-reprocessing systems engineering.
+- `mining-extractive-tech/thepunisher-minesitesupplychainlogisticsexpert.md` — **ThePunisher-MineSiteSupplyChainLogisticsExpert**: mine-site inbound-supply logistics engineering, distinct from Team 62's general multi-industry supply-chain scope.
+- `mining-extractive-tech/thepunisher-minesiteradiationmonitoringsystemsexpert.md` — **ThePunisher-MineSiteRadiationMonitoringSystemsExpert**: mine-site radiation-monitoring systems engineering.
+- `mining-extractive-tech/thepunisher-minesitemultipitschedulingoptimizationexpert.md` — **ThePunisher-MineSiteMultiPitSchedulingOptimizationExpert**: mine-site multi-pit scheduling-optimization engineering.
+
+## Team 86 — Pet & Veterinary Technology Engineering (50 agents)
+
+- `pet-veterinary-tech/thepunisher-veterinarypracticemanagementsoftwareexpert.md` — **ThePunisher-VeterinaryPracticeManagementSoftwareExpert**: veterinary practice-management software engineering.
+- `pet-veterinary-tech/thepunisher-petelectronichealthrecordsexpert.md` — **ThePunisher-PetElectronicHealthRecordsExpert**: pet electronic-health-records (EHR) systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinarytelehealthplatformexpert.md` — **ThePunisher-VeterinaryTelehealthPlatformExpert**: veterinary telehealth-platform engineering.
+- `pet-veterinary-tech/thepunisher-petinsuranceclaimsprocessingexpert.md` — **ThePunisher-PetInsuranceClaimsProcessingExpert**: pet-insurance claims-processing systems engineering, distinct from Team 55's general P&C claims-pipeline focus.
+- `pet-veterinary-tech/thepunisher-petmicrochipregistrysystemsexpert.md` — **ThePunisher-PetMicrochipRegistrySystemsExpert**: pet microchip-registry systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinarydiagnosticlabintegrationexpert.md` — **ThePunisher-VeterinaryDiagnosticLabIntegrationExpert**: veterinary diagnostic-lab integration engineering.
+- `pet-veterinary-tech/thepunisher-petboardingdaycaremanagementsystemsexpert.md` — **ThePunisher-PetBoardingDaycareManagementSystemsExpert**: pet boarding and daycare management-systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryappointmentschedulingexpert.md` — **ThePunisher-VeterinaryAppointmentSchedulingExpert**: veterinary appointment-scheduling systems engineering.
+- `pet-veterinary-tech/thepunisher-petmedicationremindercomplianceexpert.md` — **ThePunisher-PetMedicationReminderComplianceExpert**: pet medication reminder and compliance-tracking systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryimagingpacssystemsexpert.md` — **ThePunisher-VeterinaryImagingPACSSystemsExpert**: veterinary imaging (PACS) systems engineering.
+- `pet-veterinary-tech/thepunisher-petadoptionplatformexpert.md` — **ThePunisher-PetAdoptionPlatformExpert**: pet-adoption platform engineering.
+- `pet-veterinary-tech/thepunisher-veterinarypracticemultilocationmanagementexpert.md` — **ThePunisher-VeterinaryPracticeMultiLocationManagementExpert**: veterinary multi-location practice-management systems engineering.
+- `pet-veterinary-tech/thepunisher-petwearablehealthtrackingexpert.md` — **ThePunisher-PetWearableHealthTrackingExpert**: pet wearable health-tracking engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryclientcommunicationplatformexpert.md` — **ThePunisher-VeterinaryClientCommunicationPlatformExpert**: veterinary client-communication platform engineering.
+- `pet-veterinary-tech/thepunisher-petfoodnutritionsubscriptionsystemsexpert.md` — **ThePunisher-PetFoodNutritionSubscriptionSystemsExpert**: pet food and nutrition subscription-systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryinventorypharmacymanagementexpert.md` — **ThePunisher-VeterinaryInventoryPharmacyManagementExpert**: veterinary inventory and pharmacy-management systems engineering.
+- `pet-veterinary-tech/thepunisher-petbreedgenetictestingdatasystemsexpert.md` — **ThePunisher-PetBreedGeneticTestingDataSystemsExpert**: pet breed and genetic-testing data-systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryemergencytriagesystemsexpert.md` — **ThePunisher-VeterinaryEmergencyTriageSystemsExpert**: veterinary emergency-triage systems engineering.
+- `pet-veterinary-tech/thepunisher-petgroomingservicebookingplatformexpert.md` — **ThePunisher-PetGroomingServiceBookingPlatformExpert**: pet grooming-service booking-platform engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryreferralnetworksystemsexpert.md` — **ThePunisher-VeterinaryReferralNetworkSystemsExpert**: veterinary referral-network systems engineering.
+- `pet-veterinary-tech/thepunisher-petlostfoundrecoverysystemsexpert.md` — **ThePunisher-PetLostFoundRecoverySystemsExpert**: pet lost-and-found recovery-systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryanesthesiamonitoringsystemsexpert.md` — **ThePunisher-VeterinaryAnesthesiaMonitoringSystemsExpert**: veterinary anesthesia-monitoring systems engineering.
+- `pet-veterinary-tech/thepunisher-petvaccinationtrackingsystemsexpert.md` — **ThePunisher-PetVaccinationTrackingSystemsExpert**: pet vaccination-tracking systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinarypracticefinancialreportingexpert.md` — **ThePunisher-VeterinaryPracticeFinancialReportingExpert**: veterinary-practice financial-reporting systems engineering.
+- `pet-veterinary-tech/thepunisher-petsitterwalkermarketplaceplatformexpert.md` — **ThePunisher-PetSitterWalkerMarketplacePlatformExpert**: pet sitter/walker marketplace-platform engineering.
+- `pet-veterinary-tech/thepunisher-veterinarycontinuingeducationtrackingexpert.md` — **ThePunisher-VeterinaryContinuingEducationTrackingExpert**: veterinary continuing-education tracking-systems engineering.
+- `pet-veterinary-tech/thepunisher-petbehavioraltrainingappexpert.md` — **ThePunisher-PetBehavioralTrainingAppExpert**: pet behavioral-training app engineering.
+- `pet-veterinary-tech/thepunisher-veterinarycontrolledsubstancecomplianceexpert.md` — **ThePunisher-VeterinaryControlledSubstanceComplianceExpert**: veterinary controlled-substance compliance-systems engineering.
+- `pet-veterinary-tech/thepunisher-pettravelairlinedocumentationsystemsexpert.md` — **ThePunisher-PetTravelAirlineDocumentationSystemsExpert**: pet travel and airline-documentation systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryspecialtyreferralportalexpert.md` — **ThePunisher-VeterinarySpecialtyReferralPortalExpert**: veterinary specialty-referral portal engineering.
+- `pet-veterinary-tech/thepunisher-petcremationendoflifeservicesystemsexpert.md` — **ThePunisher-PetCremationEndOfLifeServiceSystemsExpert**: pet cremation and end-of-life service-systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinarypracticeclientloyaltyprogramsexpert.md` — **ThePunisher-VeterinaryPracticeClientLoyaltyProgramsExpert**: veterinary-practice client-loyalty-program engineering.
+- `pet-veterinary-tech/thepunisher-petactivityfitnessmonitoringexpert.md` — **ThePunisher-PetActivityFitnessMonitoringExpert**: pet activity and fitness-monitoring engineering.
+- `pet-veterinary-tech/thepunisher-veterinarytelemedicineprescriptionsystemsexpert.md` — **ThePunisher-VeterinaryTelemedicinePrescriptionSystemsExpert**: veterinary telemedicine prescription-systems engineering.
+- `pet-veterinary-tech/thepunisher-petshelterrescuemanagementsystemsexpert.md` — **ThePunisher-PetShelterRescueManagementSystemsExpert**: pet shelter and rescue-organization management-systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinarydiagnosticaiimageanalysisexpert.md` — **ThePunisher-VeterinaryDiagnosticAIImageAnalysisExpert**: veterinary diagnostic AI image-analysis engineering.
+- `pet-veterinary-tech/thepunisher-petownermobileappengineeringexpert.md` — **ThePunisher-PetOwnerMobileAppEngineeringExpert**: pet-owner mobile-app engineering.
+- `pet-veterinary-tech/thepunisher-veterinarypracticestaffschedulingexpert.md` — **ThePunisher-VeterinaryPracticeStaffSchedulingExpert**: veterinary-practice staff-scheduling systems engineering.
+- `pet-veterinary-tech/thepunisher-petproductecommerceplatformexpert.md` — **ThePunisher-PetProductEcommercePlatformExpert**: pet-product e-commerce platform engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryspeciesspecificcareprotocolsystemsexpert.md` — **ThePunisher-VeterinarySpeciesSpecificCareProtocolSystemsExpert**: veterinary species-specific care-protocol systems engineering.
+- `pet-veterinary-tech/thepunisher-petdnaancestrytestingplatformexpert.md` — **ThePunisher-PetDNAAncestryTestingPlatformExpert**: pet DNA and ancestry-testing platform engineering.
+- `pet-veterinary-tech/thepunisher-veterinarypracticecompliancelicensingsystemsexpert.md` — **ThePunisher-VeterinaryPracticeComplianceLicensingSystemsExpert**: veterinary-practice compliance and licensing-tracking systems engineering.
+- `pet-veterinary-tech/thepunisher-pethealthmonitoringcollarfirmwareexpert.md` — **ThePunisher-PetHealthMonitoringCollarFirmwareExpert**: pet health-monitoring smart-collar firmware engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryradiologyreportingsystemsexpert.md` — **ThePunisher-VeterinaryRadiologyReportingSystemsExpert**: veterinary radiology-reporting systems engineering.
+- `pet-veterinary-tech/thepunisher-petcemeterymemorialplatformexpert.md` — **ThePunisher-PetCemeteryMemorialPlatformExpert**: pet cemetery and memorial-platform engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryanesthesiadrugdosagecalculationexpert.md` — **ThePunisher-VeterinaryAnesthesiaDrugDosageCalculationExpert**: veterinary anesthesia drug-dosage calculation-systems engineering.
+- `pet-veterinary-tech/thepunisher-petmultipethouseholdmanagementsystemsexpert.md` — **ThePunisher-PetMultiPetHouseholdManagementSystemsExpert**: multi-pet household management-systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinarypracticebenchmarkanalyticsexpert.md` — **ThePunisher-VeterinaryPracticeBenchmarkAnalyticsExpert**: veterinary-practice benchmark-analytics engineering.
+- `pet-veterinary-tech/thepunisher-petwellnessplansubscriptionsystemsexpert.md` — **ThePunisher-PetWellnessPlanSubscriptionSystemsExpert**: pet wellness-plan subscription-systems engineering.
+- `pet-veterinary-tech/thepunisher-veterinaryzoonoticdiseasereportingsystemsexpert.md` — **ThePunisher-VeterinaryZoonoticDiseaseReportingSystemsExpert**: veterinary zoonotic-disease reporting-systems engineering.
+
+## Team 87 — Waste & Recycling Management Technology Engineering (50 agents)
+
+- `waste-recycling-tech/thepunisher-materialsrecoveryfacilitysortingsystemsexpert.md` — **ThePunisher-MaterialsRecoveryFacilitySortingSystemsExpert**: Materials Recovery Facility (MRF) sorting-systems engineering.
+- `waste-recycling-tech/thepunisher-wastetoenergyplantcontrolsystemsexpert.md` — **ThePunisher-WasteToEnergyPlantControlSystemsExpert**: waste-to-energy plant control-systems engineering.
+- `waste-recycling-tech/thepunisher-landfillgasmonitoringsystemsexpert.md` — **ThePunisher-LandfillGasMonitoringSystemsExpert**: landfill-gas monitoring systems engineering.
+- `waste-recycling-tech/thepunisher-wastehaulerfleetmanagementsystemsexpert.md` — **ThePunisher-WasteHaulerFleetManagementSystemsExpert**: waste-hauler fleet-management systems engineering.
+- `waste-recycling-tech/thepunisher-recyclingcontaminationdetectionsystemsexpert.md` — **ThePunisher-RecyclingContaminationDetectionSystemsExpert**: recycling-stream contamination-detection systems engineering.
+- `waste-recycling-tech/thepunisher-municipalsolidwastebillingsystemsexpert.md` — **ThePunisher-MunicipalSolidWasteBillingSystemsExpert**: municipal solid-waste billing-systems engineering.
+- `waste-recycling-tech/thepunisher-wasteweighbridgescalesystemsexpert.md` — **ThePunisher-WasteWeighbridgeScaleSystemsExpert**: waste-facility weighbridge and scale-systems engineering.
+- `waste-recycling-tech/thepunisher-landfillcapacityforecastingsystemsexpert.md` — **ThePunisher-LandfillCapacityForecastingSystemsExpert**: landfill capacity-forecasting systems engineering.
+- `waste-recycling-tech/thepunisher-recyclablecommoditymarketpricingsystemsexpert.md` — **ThePunisher-RecyclableCommodityMarketPricingSystemsExpert**: recyclable-commodity market-pricing systems engineering.
+- `waste-recycling-tech/thepunisher-hazardouswastemanifesttrackingexpert.md` — **ThePunisher-HazardousWasteManifestTrackingExpert**: hazardous-waste manifest-tracking systems engineering.
+- `waste-recycling-tech/thepunisher-commercialwastehaulerrouteoptimizationexpert.md` — **ThePunisher-CommercialWasteHaulerRouteOptimizationExpert**: commercial waste-hauler facility-side route-optimization engineering, distinct from Team 72's civic/municipal collection-route planning.
+- `waste-recycling-tech/thepunisher-recyclingsortingroboticsintegrationexpert.md` — **ThePunisher-RecyclingSortingRoboticsIntegrationExpert**: recycling-sorting robotics integration engineering.
+- `waste-recycling-tech/thepunisher-wastediversionrateanalyticsexpert.md` — **ThePunisher-WasteDiversionRateAnalyticsExpert**: waste-diversion-rate analytics engineering.
+- `waste-recycling-tech/thepunisher-ewasterecyclingtrackingsystemsexpert.md` — **ThePunisher-EWasteRecyclingTrackingSystemsExpert**: e-waste recycling tracking-systems engineering.
+- `waste-recycling-tech/thepunisher-compostingfacilityprocesscontrolexpert.md` — **ThePunisher-CompostingFacilityProcessControlExpert**: composting-facility process-control engineering.
+- `waste-recycling-tech/thepunisher-wastetransferstationoperationssystemsexpert.md` — **ThePunisher-WasteTransferStationOperationsSystemsExpert**: waste transfer-station operations-systems engineering.
+- `waste-recycling-tech/thepunisher-recyclingmaterialbalingpackagingsystemsexpert.md` — **ThePunisher-RecyclingMaterialBalingPackagingSystemsExpert**: recycling material baling and packaging-systems engineering.
+- `waste-recycling-tech/thepunisher-wasteauditcharacterizationsystemsexpert.md` — **ThePunisher-WasteAuditCharacterizationSystemsExpert**: waste audit and characterization-systems engineering.
+- `waste-recycling-tech/thepunisher-landfillleachatemonitoringsystemsexpert.md` — **ThePunisher-LandfillLeachateMonitoringSystemsExpert**: landfill leachate-monitoring systems engineering.
+- `waste-recycling-tech/thepunisher-constructiondemolitiondebristrackingexpert.md` — **ThePunisher-ConstructionDemolitionDebrisTrackingExpert**: construction and demolition (C&D) debris-tracking systems engineering.
+- `waste-recycling-tech/thepunisher-wastecontainerfilllevelmonitoringexpert.md` — **ThePunisher-WasteContainerFillLevelMonitoringExpert**: waste container/bin sensor fill-level monitoring engineering.
+- `waste-recycling-tech/thepunisher-recyclingeducationoutreachplatformexpert.md` — **ThePunisher-RecyclingEducationOutreachPlatformExpert**: recycling education and outreach-platform engineering.
+- `waste-recycling-tech/thepunisher-wastefacilityenvironmentalcompliancereportingexpert.md` — **ThePunisher-WasteFacilityEnvironmentalComplianceReportingExpert**: waste-facility environmental compliance-reporting systems engineering.
+- `waste-recycling-tech/thepunisher-scrapmetalrecyclingyardmanagementsystemsexpert.md` — **ThePunisher-ScrapMetalRecyclingYardManagementSystemsExpert**: scrap-metal recycling-yard management-systems engineering.
+- `waste-recycling-tech/thepunisher-wasteincineratoremissionsmonitoringexpert.md` — **ThePunisher-WasteIncineratorEmissionsMonitoringExpert**: waste-incinerator emissions-monitoring systems engineering.
+- `waste-recycling-tech/thepunisher-plasticrecyclingnirsortingsystemsexpert.md` — **ThePunisher-PlasticRecyclingNIRSortingSystemsExpert**: plastic-recycling near-infrared (NIR) sorting-systems engineering.
+- `waste-recycling-tech/thepunisher-wastemanagementcustomerportalexpert.md` — **ThePunisher-WasteManagementCustomerPortalExpert**: waste-management customer-portal engineering.
+- `waste-recycling-tech/thepunisher-landfillcovercellmanagementsystemsexpert.md` — **ThePunisher-LandfillCoverCellManagementSystemsExpert**: landfill cover and cell-management systems engineering.
+- `waste-recycling-tech/thepunisher-recyclingfacilitysafetycompliancesystemsexpert.md` — **ThePunisher-RecyclingFacilitySafetyComplianceSystemsExpert**: recycling-facility safety compliance-systems engineering.
+- `waste-recycling-tech/thepunisher-wastetofuelconversionprocesscontrolexpert.md` — **ThePunisher-WasteToFuelConversionProcessControlExpert**: waste-to-fuel conversion process-control engineering.
+- `waste-recycling-tech/thepunisher-bulkywastepickupschedulingsystemsexpert.md` — **ThePunisher-BulkyWastePickupSchedulingSystemsExpert**: bulky-waste pickup-scheduling systems engineering.
+- `waste-recycling-tech/thepunisher-recyclingstreampuritycertificationsystemsexpert.md` — **ThePunisher-RecyclingStreamPurityCertificationSystemsExpert**: recycling-stream purity certification-systems engineering.
+- `waste-recycling-tech/thepunisher-wastefacilityodorcontrolmonitoringexpert.md` — **ThePunisher-WasteFacilityOdorControlMonitoringExpert**: waste-facility odor-control monitoring engineering.
+- `waste-recycling-tech/thepunisher-organicwastediversiontrackingsystemsexpert.md` — **ThePunisher-OrganicWasteDiversionTrackingSystemsExpert**: organic-waste diversion tracking-systems engineering.
+- `waste-recycling-tech/thepunisher-wastemanagementcontractfranchisebillingexpert.md` — **ThePunisher-WasteManagementContractFranchiseBillingExpert**: waste-management contract and franchise-billing systems engineering.
+- `waste-recycling-tech/thepunisher-recyclingfacilitydigitaltwinexpert.md` — **ThePunisher-RecyclingFacilityDigitalTwinExpert**: recycling-facility digital-twin engineering.
+- `waste-recycling-tech/thepunisher-wastetruckonboardtelematicsexpert.md` — **ThePunisher-WasteTruckOnboardTelematicsExpert**: waste-collection-truck onboard telematics engineering.
+- `waste-recycling-tech/thepunisher-hazardouswastedisposalcompliancereportingexpert.md` — **ThePunisher-HazardousWasteDisposalComplianceReportingExpert**: hazardous-waste disposal compliance-reporting systems engineering.
+- `waste-recycling-tech/thepunisher-recyclingmarketbuyersellermatchingplatformexpert.md` — **ThePunisher-RecyclingMarketBuyerSellerMatchingPlatformExpert**: recycling-market buyer-seller matching platform engineering.
+- `waste-recycling-tech/thepunisher-wastefacilityfiredetectionpreventionsystemsexpert.md` — **ThePunisher-WasteFacilityFireDetectionPreventionSystemsExpert**: waste-facility fire detection and prevention-systems engineering.
+- `waste-recycling-tech/thepunisher-textilerecyclingfacilitysortingsystemsexpert.md` — **ThePunisher-TextileRecyclingFacilitySortingSystemsExpert**: textile-recycling facility sorting-operations engineering, distinct from Team 66's brand-level supply-chain tracking focus.
+- `waste-recycling-tech/thepunisher-wastemanagementillegaldumpingdetectionexpert.md` — **ThePunisher-WasteManagementIllegalDumpingDetectionExpert**: illegal-dumping detection-systems engineering.
+- `waste-recycling-tech/thepunisher-recyclingfacilitythroughputoptimizationexpert.md` — **ThePunisher-RecyclingFacilityThroughputOptimizationExpert**: recycling-facility throughput-optimization engineering.
+- `waste-recycling-tech/thepunisher-wastecollectionvehicleroutesimulationexpert.md` — **ThePunisher-WasteCollectionVehicleRouteSimulationExpert**: waste-collection-vehicle route-simulation engineering.
+- `waste-recycling-tech/thepunisher-batteryelectronicshazmatrecyclingsystemsexpert.md` — **ThePunisher-BatteryElectronicsHazmatRecyclingSystemsExpert**: battery and electronics hazmat-recycling systems engineering.
+- `waste-recycling-tech/thepunisher-wastemanagementeparegulatoryreportingsystemsexpert.md` — **ThePunisher-WasteManagementEPARegulatoryReportingSystemsExpert**: waste-management EPA regulatory-reporting systems engineering.
+- `waste-recycling-tech/thepunisher-compostqualitytestingcertificationsystemsexpert.md` — **ThePunisher-CompostQualityTestingCertificationSystemsExpert**: compost quality-testing and certification-systems engineering.
+- `waste-recycling-tech/thepunisher-recyclingfacilityworkforcesafetytrainingsystemsexpert.md` — **ThePunisher-RecyclingFacilityWorkforceSafetyTrainingSystemsExpert**: recycling-facility workforce safety-training systems engineering.
+- `waste-recycling-tech/thepunisher-wastereductioncorporatesustainabilityreportingexpert.md` — **ThePunisher-WasteReductionCorporateSustainabilityReportingExpert**: corporate waste-reduction sustainability-reporting systems engineering.
+- `waste-recycling-tech/thepunisher-landfillpostclosuremonitoringsystemsexpert.md` — **ThePunisher-LandfillPostClosureMonitoringSystemsExpert**: landfill post-closure monitoring-systems engineering.
+
+## Team 88 — Oil & Gas Upstream & Drilling Technology Engineering (50 agents)
+
+- `oil-gas-upstream-tech/thepunisher-drillingrigdataacquisitionsystemsexpert.md` — **ThePunisher-DrillingRigDataAcquisitionSystemsExpert**: drilling-rig data-acquisition systems engineering.
+- `oil-gas-upstream-tech/thepunisher-wellboretrajectoryplanningsoftwareexpert.md` — **ThePunisher-WellboreTrajectoryPlanningSoftwareExpert**: wellbore-trajectory planning software engineering.
+- `oil-gas-upstream-tech/thepunisher-mudloggingformationevaluationsystemsexpert.md` — **ThePunisher-MudLoggingFormationEvaluationSystemsExpert**: mud-logging and formation-evaluation systems engineering.
+- `oil-gas-upstream-tech/thepunisher-wellproductionmonitoringsystemsexpert.md` — **ThePunisher-WellProductionMonitoringSystemsExpert**: well production-monitoring systems engineering.
+- `oil-gas-upstream-tech/thepunisher-reservoirsimulationsoftwareexpert.md` — **ThePunisher-ReservoirSimulationSoftwareExpert**: oil/gas reservoir-simulation software engineering.
+- `oil-gas-upstream-tech/thepunisher-drillingfluidmanagementsystemsexpert.md` — **ThePunisher-DrillingFluidManagementSystemsExpert**: drilling-fluid (mud) management-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-wellheadscadaintegrationexpert.md` — **ThePunisher-WellheadSCADAIntegrationExpert**: wellhead SCADA-integration engineering.
+- `oil-gas-upstream-tech/thepunisher-hydraulicfracturingdatasystemsexpert.md` — **ThePunisher-HydraulicFracturingDataSystemsExpert**: hydraulic-fracturing data-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldequipmentpredictivemaintenanceexpert.md` — **ThePunisher-OilfieldEquipmentPredictiveMaintenanceExpert**: oilfield-equipment predictive-maintenance engineering.
+- `oil-gas-upstream-tech/thepunisher-wellcompletiondesignsoftwareexpert.md` — **ThePunisher-WellCompletionDesignSoftwareExpert**: well-completion design software engineering.
+- `oil-gas-upstream-tech/thepunisher-seismicdataprocessinginterpretationexpert.md` — **ThePunisher-SeismicDataProcessingInterpretationExpert**: seismic-data processing and interpretation engineering.
+- `oil-gas-upstream-tech/thepunisher-drillingrigautomationcontrolsystemsexpert.md` — **ThePunisher-DrillingRigAutomationControlSystemsExpert**: drilling-rig automation control-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldlogisticssupplychainsystemsexpert.md` — **ThePunisher-OilfieldLogisticsSupplyChainSystemsExpert**: oilfield logistics and supply-chain systems engineering.
+- `oil-gas-upstream-tech/thepunisher-welltestingflowmeasurementsystemsexpert.md` — **ThePunisher-WellTestingFlowMeasurementSystemsExpert**: well-testing and flow-measurement systems engineering.
+- `oil-gas-upstream-tech/thepunisher-directionaldrillingsteeringsystemsexpert.md` — **ThePunisher-DirectionalDrillingSteeringSystemsExpert**: directional-drilling steering-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldsafetycasemanagementsystemsexpert.md` — **ThePunisher-OilfieldSafetyCaseManagementSystemsExpert**: oilfield safety-case management-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-productionallocationaccountingsystemsexpert.md` — **ThePunisher-ProductionAllocationAccountingSystemsExpert**: oil/gas production allocation and accounting-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-artificialliftoptimizationsystemsexpert.md` — **ThePunisher-ArtificialLiftOptimizationSystemsExpert**: artificial-lift optimization-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldenvironmentalcompliancereportingexpert.md` — **ThePunisher-OilfieldEnvironmentalComplianceReportingExpert**: oilfield environmental compliance-reporting systems engineering.
+- `oil-gas-upstream-tech/thepunisher-wellintegritymonitoringsystemsexpert.md` — **ThePunisher-WellIntegrityMonitoringSystemsExpert**: well-integrity monitoring systems engineering.
+- `oil-gas-upstream-tech/thepunisher-drillingrigrealtimeoperationscentersystemsexpert.md` — **ThePunisher-DrillingRigRealTimeOperationsCenterSystemsExpert**: drilling-rig real-time operations-center systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldwatermanagementsystemsexpert.md` — **ThePunisher-OilfieldWaterManagementSystemsExpert**: oilfield produced-water management-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-blowoutpreventercontrolsystemsexpert.md` — **ThePunisher-BlowoutPreventerControlSystemsExpert**: blowout-preventer (BOP) control-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-reservesestimationsoftwareexpert.md` — **ThePunisher-ReservesEstimationSoftwareExpert**: oil/gas reserves-estimation software engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldchemicalinjectionmanagementsystemsexpert.md` — **ThePunisher-OilfieldChemicalInjectionManagementSystemsExpert**: oilfield chemical-injection management-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-welllogdatamanagementsystemsexpert.md` — **ThePunisher-WellLogDataManagementSystemsExpert**: well-log data-management systems engineering.
+- `oil-gas-upstream-tech/thepunisher-drillingrigcrewfatiguemanagementexpert.md` — **ThePunisher-DrillingRigCrewFatigueManagementExpert**: drilling-rig crew scheduling and fatigue-management engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldmethaneleakdetectionsystemsexpert.md` — **ThePunisher-OilfieldMethaneLeakDetectionSystemsExpert**: oilfield wellsite methane-leak detection-systems engineering, distinct from Team 82's midstream-pipeline leak-detection focus.
+- `oil-gas-upstream-tech/thepunisher-productionoptimizationsoftwareexpert.md` — **ThePunisher-ProductionOptimizationSoftwareExpert**: well-production optimization software engineering.
+- `oil-gas-upstream-tech/thepunisher-offshoreplatformoperationssystemsexpert.md` — **ThePunisher-OffshorePlatformOperationsSystemsExpert**: offshore-platform operations-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldassetintegritymanagementsystemsexpert.md` — **ThePunisher-OilfieldAssetIntegrityManagementSystemsExpert**: oilfield asset-integrity management-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-drillingcontractdayratebillingsystemsexpert.md` — **ThePunisher-DrillingContractDayRateBillingSystemsExpert**: drilling-contract day-rate billing-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfielddigitaltwinengineeringexpert.md` — **ThePunisher-OilfieldDigitalTwinEngineeringExpert**: oilfield digital-twin engineering.
+- `oil-gas-upstream-tech/thepunisher-wellabandonmentpluggingsystemsexpert.md` — **ThePunisher-WellAbandonmentPluggingSystemsExpert**: well abandonment and plugging-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldregulatorypermittrackingsystemsexpert.md` — **ThePunisher-OilfieldRegulatoryPermitTrackingSystemsExpert**: oilfield regulatory permit-tracking systems engineering.
+- `oil-gas-upstream-tech/thepunisher-casingcementingdesignsoftwareexpert.md` — **ThePunisher-CasingCementingDesignSoftwareExpert**: well casing-and-cementing design software engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldremotemonitoringtelemetrysystemsexpert.md` — **ThePunisher-OilfieldRemoteMonitoringTelemetrySystemsExpert**: oilfield remote-monitoring and telemetry systems engineering.
+- `oil-gas-upstream-tech/thepunisher-landleasemanagementsystemsexpert.md` — **ThePunisher-LandLeaseManagementSystemsExpert**: oil/gas land and lease management-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfielddroneinspectionsystemsexpert.md` — **ThePunisher-OilfieldDroneInspectionSystemsExpert**: oilfield drone-inspection systems engineering.
+- `oil-gas-upstream-tech/thepunisher-drillingrigdowntimeanalyticsexpert.md` — **ThePunisher-DrillingRigDowntimeAnalyticsExpert**: drilling-rig downtime analytics engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldemergencyshutdownsystemsexpert.md` — **ThePunisher-OilfieldEmergencyShutdownSystemsExpert**: oilfield emergency-shutdown (ESD) systems engineering.
+- `oil-gas-upstream-tech/thepunisher-productiondeclinecurveanalysissoftwareexpert.md` — **ThePunisher-ProductionDeclineCurveAnalysisSoftwareExpert**: production decline-curve analysis software engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldvendorservicecompanymanagementsystemsexpert.md` — **ThePunisher-OilfieldVendorServiceCompanyManagementSystemsExpert**: oilfield vendor and service-company management-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-wellsitegeosteeringsoftwareexpert.md` — **ThePunisher-WellsiteGeosteeringSoftwareExpert**: wellsite geosteering software engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldroyaltypaymentsystemsexpert.md` — **ThePunisher-OilfieldRoyaltyPaymentSystemsExpert**: oilfield royalty-payment systems engineering.
+- `oil-gas-upstream-tech/thepunisher-drillingrigfuelconsumptiontrackingexpert.md` — **ThePunisher-DrillingRigFuelConsumptionTrackingExpert**: drilling-rig fuel-consumption tracking engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldcarboncaptureintegrationsystemsexpert.md` — **ThePunisher-OilfieldCarbonCaptureIntegrationSystemsExpert**: oilfield carbon-capture integration-systems engineering.
+- `oil-gas-upstream-tech/thepunisher-wellinterventionplanningsoftwareexpert.md` — **ThePunisher-WellInterventionPlanningSoftwareExpert**: well-intervention planning software engineering.
+- `oil-gas-upstream-tech/thepunisher-oilfieldworkforcecompetencytrackingsystemsexpert.md` — **ThePunisher-OilfieldWorkforceCompetencyTrackingSystemsExpert**: oilfield workforce competency-tracking systems engineering.
+- `oil-gas-upstream-tech/thepunisher-productionfacilityscadahistorianexpert.md` — **ThePunisher-ProductionFacilitySCADAHistorianExpert**: oil/gas production-facility SCADA historian engineering.
+
+## Team 89 — Rail Transportation Technology Engineering (50 agents)
+
+- `rail-transportation-tech/thepunisher-freightrailschedulingdispatchsystemsexpert.md` — **ThePunisher-FreightRailSchedulingDispatchSystemsExpert**: freight-rail scheduling and dispatch-systems engineering.
+- `rail-transportation-tech/thepunisher-passengerrailreservationsystemsexpert.md` — **ThePunisher-PassengerRailReservationSystemsExpert**: passenger-rail reservation-systems engineering.
+- `rail-transportation-tech/thepunisher-railpositivetraincontrolptcsystemsexpert.md` — **ThePunisher-RailPositiveTrainControlPTCSystemsExpert**: Positive Train Control (PTC) systems engineering.
+- `rail-transportation-tech/thepunisher-railyardmanagementsystemsexpert.md` — **ThePunisher-RailYardManagementSystemsExpert**: rail-yard management-systems engineering.
+- `rail-transportation-tech/thepunisher-railrollingstockmaintenancesystemsexpert.md` — **ThePunisher-RailRollingStockMaintenanceSystemsExpert**: rail rolling-stock maintenance-systems engineering.
+- `rail-transportation-tech/thepunisher-railsignalinginterlockingsystemsexpert.md` — **ThePunisher-RailSignalingInterlockingSystemsExpert**: rail signaling and interlocking-systems engineering.
+- `rail-transportation-tech/thepunisher-railfreightcartrackingtracingexpert.md` — **ThePunisher-RailFreightCarTrackingTracingExpert**: rail freight-car tracking-and-tracing systems engineering.
+- `rail-transportation-tech/thepunisher-railcrewschedulinghoursofservicecomplianceexpert.md` — **ThePunisher-RailCrewSchedulingHoursOfServiceComplianceExpert**: rail crew scheduling and hours-of-service compliance engineering.
+- `rail-transportation-tech/thepunisher-railnetworkcapacityplanningsoftwareexpert.md` — **ThePunisher-RailNetworkCapacityPlanningSoftwareExpert**: rail network capacity-planning software engineering.
+- `rail-transportation-tech/thepunisher-railticketingfarecollectionsystemsexpert.md` — **ThePunisher-RailTicketingFareCollectionSystemsExpert**: rail ticketing and fare-collection systems engineering.
+- `rail-transportation-tech/thepunisher-railtrackinspectionconditionmonitoringexpert.md` — **ThePunisher-RailTrackInspectionConditionMonitoringExpert**: rail track inspection and condition-monitoring systems engineering.
+- `rail-transportation-tech/thepunisher-railintermodalterminaloperationssystemsexpert.md` — **ThePunisher-RailIntermodalTerminalOperationsSystemsExpert**: rail intermodal-terminal operations-systems engineering.
+- `rail-transportation-tech/thepunisher-raillocomotivetelemetrydiagnosticsexpert.md` — **ThePunisher-RailLocomotiveTelemetryDiagnosticsExpert**: rail locomotive telemetry and diagnostics engineering.
+- `rail-transportation-tech/thepunisher-railtimetablescheduleoptimizationexpert.md` — **ThePunisher-RailTimetableScheduleOptimizationExpert**: rail timetable and schedule-optimization engineering.
+- `rail-transportation-tech/thepunisher-railwagoncarloadplanningsystemsexpert.md` — **ThePunisher-RailWagonCarLoadPlanningSystemsExpert**: rail wagon/car load-planning systems engineering.
+- `rail-transportation-tech/thepunisher-railgradecrossingsafetysystemsexpert.md` — **ThePunisher-RailGradeCrossingSafetySystemsExpert**: rail grade-crossing safety-systems engineering.
+- `rail-transportation-tech/thepunisher-railpassengerinformationdisplaysystemsexpert.md` — **ThePunisher-RailPassengerInformationDisplaySystemsExpert**: rail passenger-information display-systems engineering.
+- `rail-transportation-tech/thepunisher-railfreightbillingrevenuemanagementexpert.md` — **ThePunisher-RailFreightBillingRevenueManagementExpert**: rail freight billing and revenue-management systems engineering.
+- `rail-transportation-tech/thepunisher-railenergyconsumptionoptimizationexpert.md` — **ThePunisher-RailEnergyConsumptionOptimizationExpert**: rail traction-energy consumption-optimization engineering.
+- `rail-transportation-tech/thepunisher-railassetmanagementsystemsexpert.md` — **ThePunisher-RailAssetManagementSystemsExpert**: rail asset-management systems engineering (track/signal/rolling stock).
+- `rail-transportation-tech/thepunisher-railautomatictrainoperationatosystemsexpert.md` — **ThePunisher-RailAutomaticTrainOperationATOSystemsExpert**: rail Automatic Train Operation (ATO) systems engineering.
+- `rail-transportation-tech/thepunisher-railhazmatfreightcompliancetrackingexpert.md` — **ThePunisher-RailHazmatFreightComplianceTrackingExpert**: rail hazmat-freight compliance-tracking systems engineering.
+- `rail-transportation-tech/thepunisher-railstationoperationsmanagementsystemsexpert.md` — **ThePunisher-RailStationOperationsManagementSystemsExpert**: rail station operations-management systems engineering.
+- `rail-transportation-tech/thepunisher-railpredictivemaintenancewheelbearingexpert.md` — **ThePunisher-RailPredictiveMaintenanceWheelBearingExpert**: rail wheel/bearing predictive-maintenance engineering.
+- `rail-transportation-tech/thepunisher-railnetworkinteroperabilitystandardsexpert.md` — **ThePunisher-RailNetworkInteroperabilityStandardsExpert**: rail network interoperability-standards engineering.
+- `rail-transportation-tech/thepunisher-raildisruptiondelaymanagementsystemsexpert.md` — **ThePunisher-RailDisruptionDelayManagementSystemsExpert**: rail disruption and delay-management systems engineering.
+- `rail-transportation-tech/thepunisher-railfreightcustomerportalexpert.md` — **ThePunisher-RailFreightCustomerPortalExpert**: rail freight customer-portal engineering.
+- `rail-transportation-tech/thepunisher-railsimulationdigitaltwinexpert.md` — **ThePunisher-RailSimulationDigitalTwinExpert**: rail-network simulation and digital-twin engineering.
+- `rail-transportation-tech/thepunisher-railcommunicationsbasedtraincontrolcbtcexpert.md` — **ThePunisher-RailCommunicationsBasedTrainControlCBTCExpert**: Communications-Based Train Control (CBTC) engineering.
+- `rail-transportation-tech/thepunisher-railyardswitchingautomationexpert.md` — **ThePunisher-RailYardSwitchingAutomationExpert**: rail-yard switching-automation engineering.
+- `rail-transportation-tech/thepunisher-railpassengerloadforecastingexpert.md` — **ThePunisher-RailPassengerLoadForecastingExpert**: rail passenger-load forecasting engineering.
+- `rail-transportation-tech/thepunisher-railfreightinterchangeagreementsystemsexpert.md` — **ThePunisher-RailFreightInterchangeAgreementSystemsExpert**: rail freight-interchange agreement-systems engineering.
+- `rail-transportation-tech/thepunisher-railtrackgeometrymeasurementsystemsexpert.md` — **ThePunisher-RailTrackGeometryMeasurementSystemsExpert**: rail track-geometry measurement-systems engineering.
+- `rail-transportation-tech/thepunisher-railonboardpassengerconnectivityexpert.md` — **ThePunisher-RailOnboardPassengerConnectivityExpert**: rail onboard passenger Wi-Fi and connectivity engineering.
+- `rail-transportation-tech/thepunisher-railaccessibilitycompliancesystemsexpert.md` — **ThePunisher-RailAccessibilityComplianceSystemsExpert**: rail accessibility compliance-systems engineering.
+- `rail-transportation-tech/thepunisher-railfleetutilizationanalyticsexpert.md` — **ThePunisher-RailFleetUtilizationAnalyticsExpert**: rail fleet-utilization analytics engineering.
+- `rail-transportation-tech/thepunisher-railsafetyincidentreportingsystemsexpert.md` — **ThePunisher-RailSafetyIncidentReportingSystemsExpert**: rail safety incident-reporting systems engineering.
+- `rail-transportation-tech/thepunisher-railfreightratequotingsystemsexpert.md` — **ThePunisher-RailFreightRateQuotingSystemsExpert**: rail freight rate-quoting systems engineering.
+- `rail-transportation-tech/thepunisher-railcatenaryelectrificationmonitoringexpert.md` — **ThePunisher-RailCatenaryElectrificationMonitoringExpert**: rail overhead-catenary/electrification monitoring engineering.
+- `rail-transportation-tech/thepunisher-railcrewmanagementmobileappexpert.md` — **ThePunisher-RailCrewManagementMobileAppExpert**: rail crew-management mobile-app engineering.
+- `rail-transportation-tech/thepunisher-railcrossborderfreightcustomsintegrationexpert.md` — **ThePunisher-RailCrossBorderFreightCustomsIntegrationExpert**: rail cross-border freight customs-integration engineering.
+- `rail-transportation-tech/thepunisher-railstationretailconcessionmanagementexpert.md` — **ThePunisher-RailStationRetailConcessionManagementExpert**: rail-station retail and concession-management systems engineering.
+- `rail-transportation-tech/thepunisher-railnetworktrafficsimulationexpert.md` — **ThePunisher-RailNetworkTrafficSimulationExpert**: rail-network traffic simulation engineering.
+- `rail-transportation-tech/thepunisher-raillocomotivefuelmanagementexpert.md` — **ThePunisher-RailLocomotiveFuelManagementExpert**: rail locomotive fuel-management systems engineering.
+- `rail-transportation-tech/thepunisher-railfreightdemurragedetentionbillingexpert.md` — **ThePunisher-RailFreightDemurrageDetentionBillingExpert**: rail freight demurrage and detention billing-systems engineering.
+- `rail-transportation-tech/thepunisher-railtrackmaintenanceworkordersystemsexpert.md` — **ThePunisher-RailTrackMaintenanceWorkOrderSystemsExpert**: rail track-maintenance work-order systems engineering.
+- `rail-transportation-tech/thepunisher-railpassengerloyaltyprogramsystemsexpert.md` — **ThePunisher-RailPassengerLoyaltyProgramSystemsExpert**: rail passenger loyalty-program systems engineering.
+- `rail-transportation-tech/thepunisher-railyardinventorycarhiresystemsexpert.md` — **ThePunisher-RailYardInventoryCarHireSystemsExpert**: rail-yard inventory and car-hire systems engineering.
+- `rail-transportation-tech/thepunisher-railfraregulatorycompliancereportingexpert.md` — **ThePunisher-RailFRARegulatoryComplianceReportingExpert**: rail Federal Railroad Administration (FRA) regulatory compliance-reporting engineering.
+- `rail-transportation-tech/thepunisher-railnetworkresilienceplanningsystemsexpert.md` — **ThePunisher-RailNetworkResiliencePlanningSystemsExpert**: rail network resilience-planning systems engineering.
+
+## Team 90 — Beauty & Personal Care Technology Engineering (50 agents)
+
+- `beauty-personal-care-tech/thepunisher-salonbookingschedulingplatformexpert.md` — **ThePunisher-SalonBookingSchedulingPlatformExpert**: salon booking and scheduling-platform engineering.
+- `beauty-personal-care-tech/thepunisher-spaappointmentmanagementsystemsexpert.md` — **ThePunisher-SpaAppointmentManagementSystemsExpert**: spa appointment-management systems engineering.
+- `beauty-personal-care-tech/thepunisher-virtualmakeuptryonarexpert.md` — **ThePunisher-VirtualMakeupTryOnARExpert**: AR-based virtual makeup try-on engineering.
+- `beauty-personal-care-tech/thepunisher-skinanalysisdiagnosticappexpert.md` — **ThePunisher-SkinAnalysisDiagnosticAppExpert**: skin-analysis diagnostic-app engineering.
+- `beauty-personal-care-tech/thepunisher-cosmeticsecommerceplatformexpert.md` — **ThePunisher-CosmeticsEcommercePlatformExpert**: cosmetics e-commerce platform engineering.
+- `beauty-personal-care-tech/thepunisher-salonpointofsalesystemsexpert.md` — **ThePunisher-SalonPointOfSaleSystemsExpert**: salon point-of-sale systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautysubscriptionboxfulfillmentsystemsexpert.md` — **ThePunisher-BeautySubscriptionBoxFulfillmentSystemsExpert**: beauty subscription-box fulfillment-systems engineering.
+- `beauty-personal-care-tech/thepunisher-salonstaffcommissionboothrentalsystemsexpert.md` — **ThePunisher-SalonStaffCommissionBoothRentalSystemsExpert**: salon staff-commission and booth-rental systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductingredientdatabaseexpert.md` — **ThePunisher-BeautyProductIngredientDatabaseExpert**: beauty-product ingredient-database engineering.
+- `beauty-personal-care-tech/thepunisher-personalcareloyaltyrewardsprogramexpert.md` — **ThePunisher-PersonalCareLoyaltyRewardsProgramExpert**: personal-care loyalty and rewards-program engineering.
+- `beauty-personal-care-tech/thepunisher-saloninventoryretailmanagementexpert.md` — **ThePunisher-SalonInventoryRetailManagementExpert**: salon inventory and retail-management systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyinfluencercollaborationplatformexpert.md` — **ThePunisher-BeautyInfluencerCollaborationPlatformExpert**: beauty influencer-collaboration platform engineering.
+- `beauty-personal-care-tech/thepunisher-haircolorformulationsoftwareexpert.md` — **ThePunisher-HairColorFormulationSoftwareExpert**: hair-color formulation software engineering.
+- `beauty-personal-care-tech/thepunisher-cosmeticspersonalizationcustomformulationexpert.md` — **ThePunisher-CosmeticsPersonalizationCustomFormulationExpert**: cosmetics personalization and custom-formulation engineering.
+- `beauty-personal-care-tech/thepunisher-salonmultilocationfranchisemanagementexpert.md` — **ThePunisher-SalonMultiLocationFranchiseManagementExpert**: salon multi-location franchise-management systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductreviewugcplatformexpert.md` — **ThePunisher-BeautyProductReviewUGCPlatformExpert**: beauty-product review and user-generated-content platform engineering.
+- `beauty-personal-care-tech/thepunisher-nailsalondesignvisualizationappexpert.md` — **ThePunisher-NailSalonDesignVisualizationAppExpert**: nail-salon design-visualization app engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductrecommendationengineexpert.md` — **ThePunisher-BeautyProductRecommendationEngineExpert**: beauty-product recommendation-engine engineering.
+- `beauty-personal-care-tech/thepunisher-salonclientconsultationformsystemsexpert.md` — **ThePunisher-SalonClientConsultationFormSystemsExpert**: salon client-consultation form-systems engineering.
+- `beauty-personal-care-tech/thepunisher-cosmeticsregulatorycompliancetrackingexpert.md` — **ThePunisher-CosmeticsRegulatoryComplianceTrackingExpert**: cosmetics regulatory-compliance tracking engineering (FDA/EU).
+- `beauty-personal-care-tech/thepunisher-beautyappskintonematchingalgorithmexpert.md` — **ThePunisher-BeautyAppSkinToneMatchingAlgorithmExpert**: beauty-app skin-tone matching algorithm engineering.
+- `beauty-personal-care-tech/thepunisher-spawellnesspackageconfiguratorexpert.md` — **ThePunisher-SpaWellnessPackageConfiguratorExpert**: spa wellness-package configurator engineering.
+- `beauty-personal-care-tech/thepunisher-salonwaitlistnoshowmanagementexpert.md` — **ThePunisher-SalonWaitlistNoShowManagementExpert**: salon waitlist and no-show management-systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductcounterfeitdetectionsystemsexpert.md` — **ThePunisher-BeautyProductCounterfeitDetectionSystemsExpert**: beauty-product counterfeit-detection systems engineering.
+- `beauty-personal-care-tech/thepunisher-cosmeticssupplychaintraceabilityexpert.md` — **ThePunisher-CosmeticsSupplyChainTraceabilityExpert**: cosmetics supply-chain traceability engineering.
+- `beauty-personal-care-tech/thepunisher-salononlinemarketplaceaggregatorexpert.md` — **ThePunisher-SalonOnlineMarketplaceAggregatorExpert**: salon online-marketplace aggregator engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductsampledistributionsystemsexpert.md` — **ThePunisher-BeautyProductSampleDistributionSystemsExpert**: beauty-product sample-distribution systems engineering.
+- `beauty-personal-care-tech/thepunisher-personalcaresmartmirrorintegrationexpert.md` — **ThePunisher-PersonalCareSmartMirrorIntegrationExpert**: personal-care smart-mirror device integration engineering.
+- `beauty-personal-care-tech/thepunisher-salonmembershippackagepricingsystemsexpert.md` — **ThePunisher-SalonMembershipPackagePricingSystemsExpert**: salon membership and package-pricing systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductcleanvegancertificationtrackingexpert.md` — **ThePunisher-BeautyProductCleanVeganCertificationTrackingExpert**: beauty-product clean/vegan certification-tracking engineering.
+- `beauty-personal-care-tech/thepunisher-hairbeautyeducationplatformexpert.md` — **ThePunisher-HairBeautyEducationPlatformExpert**: hair-and-beauty education-platform engineering.
+- `beauty-personal-care-tech/thepunisher-cosmeticsbrandvirtualtryonsdkexpert.md` — **ThePunisher-CosmeticsBrandVirtualTryOnSDKExpert**: cosmetics-brand virtual-try-on SDK engineering.
+- `beauty-personal-care-tech/thepunisher-salonemployeeschedulingpayrollexpert.md` — **ThePunisher-SalonEmployeeSchedulingPayrollExpert**: salon employee scheduling and payroll-systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductreturnexchangesystemsexpert.md` — **ThePunisher-BeautyProductReturnExchangeSystemsExpert**: beauty-product return and exchange-systems engineering.
+- `beauty-personal-care-tech/thepunisher-skincareroutinetrackingappexpert.md` — **ThePunisher-SkincareRoutineTrackingAppExpert**: skincare-routine tracking-app engineering.
+- `beauty-personal-care-tech/thepunisher-saloncustomerphotogalleryexpert.md` — **ThePunisher-SalonCustomerPhotoGalleryExpert**: salon customer before/after photo-gallery engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductbarcodeskumanagementexpert.md` — **ThePunisher-BeautyProductBarcodeSKUManagementExpert**: beauty-product barcode/SKU management-systems engineering.
+- `beauty-personal-care-tech/thepunisher-personalcaresubscriptionchurnanalyticsexpert.md` — **ThePunisher-PersonalCareSubscriptionChurnAnalyticsExpert**: personal-care subscription churn-analytics engineering.
+- `beauty-personal-care-tech/thepunisher-salonfranchiseroyaltyreportingexpert.md` — **ThePunisher-SalonFranchiseRoyaltyReportingExpert**: salon franchise royalty-reporting systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductallergysensitivitywarningsystemsexpert.md` — **ThePunisher-BeautyProductAllergySensitivityWarningSystemsExpert**: beauty-product allergy and sensitivity-warning systems engineering.
+- `beauty-personal-care-tech/thepunisher-cosmeticsmanufacturingbatchtrackingexpert.md` — **ThePunisher-CosmeticsManufacturingBatchTrackingExpert**: cosmetics manufacturing batch-tracking systems engineering.
+- `beauty-personal-care-tech/thepunisher-salongiftcardvouchersystemsexpert.md` — **ThePunisher-SalonGiftCardVoucherSystemsExpert**: salon gift-card and voucher-systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductsustainabilitypackagingtrackingexpert.md` — **ThePunisher-BeautyProductSustainabilityPackagingTrackingExpert**: beauty-product sustainability packaging-tracking engineering.
+- `beauty-personal-care-tech/thepunisher-personalcareappmultilanguagelocalizationexpert.md` — **ThePunisher-PersonalCareAppMultiLanguageLocalizationExpert**: personal-care app multi-language localization engineering.
+- `beauty-personal-care-tech/thepunisher-salonreviewreputationmanagementexpert.md` — **ThePunisher-SalonReviewReputationManagementExpert**: salon review and reputation-management systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductdynamicpricingsystemsexpert.md` — **ThePunisher-BeautyProductDynamicPricingSystemsExpert**: beauty-product dynamic-pricing systems engineering.
+- `beauty-personal-care-tech/thepunisher-cosmeticstestinglabdatamanagementexpert.md` — **ThePunisher-CosmeticsTestingLabDataManagementExpert**: cosmetics testing-lab data-management systems engineering.
+- `beauty-personal-care-tech/thepunisher-salongroupbookingeventsystemsexpert.md` — **ThePunisher-SalonGroupBookingEventSystemsExpert**: salon group-booking and event-systems engineering.
+- `beauty-personal-care-tech/thepunisher-beautyproductcrosssellbundleengineexpert.md` — **ThePunisher-BeautyProductCrossSellBundleEngineExpert**: beauty-product cross-sell/bundle engine engineering.
+- `beauty-personal-care-tech/thepunisher-personalcareproductrecallmanagementexpert.md` — **ThePunisher-PersonalCareProductRecallManagementExpert**: personal-care product recall-management systems engineering.
+
+## Team 91 — Funeral & Death Care Technology Engineering (50 agents)
+
+- `funeral-deathcare-tech/thepunisher-funeralhomecasemanagementsoftwareexpert.md` — **ThePunisher-FuneralHomeCaseManagementSoftwareExpert**: funeral-home case-management software engineering.
+- `funeral-deathcare-tech/thepunisher-preneedfuneralplanningsystemsexpert.md` — **ThePunisher-PreNeedFuneralPlanningSystemsExpert**: pre-need funeral-planning systems engineering.
+- `funeral-deathcare-tech/thepunisher-digitalmemorialobituaryplatformexpert.md` — **ThePunisher-DigitalMemorialObituaryPlatformExpert**: digital memorial and obituary-platform engineering.
+- `funeral-deathcare-tech/thepunisher-cemeteryplotmanagementgissystemsexpert.md` — **ThePunisher-CemeteryPlotManagementGISSystemsExpert**: cemetery plot-management and GIS systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomepointofsalesystemsexpert.md` — **ThePunisher-FuneralHomePointOfSaleSystemsExpert**: funeral-home point-of-sale systems engineering.
+- `funeral-deathcare-tech/thepunisher-cremationtrackingchainofcustodysystemsexpert.md` — **ThePunisher-CremationTrackingChainOfCustodySystemsExpert**: cremation tracking and chain-of-custody systems engineering.
+- `funeral-deathcare-tech/thepunisher-funerallivestreamingplatformexpert.md` — **ThePunisher-FuneralLivestreamingPlatformExpert**: funeral livestreaming-platform engineering.
+- `funeral-deathcare-tech/thepunisher-deathcertificatefilingintegrationexpert.md` — **ThePunisher-DeathCertificateFilingIntegrationExpert**: death-certificate filing-integration engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomemerchandisecatalogsystemsexpert.md` — **ThePunisher-FuneralHomeMerchandiseCatalogSystemsExpert**: funeral-home casket and merchandise catalog-systems engineering.
+- `funeral-deathcare-tech/thepunisher-griefsupportcommunityplatformexpert.md` — **ThePunisher-GriefSupportCommunityPlatformExpert**: grief-support community-platform engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomemultilocationmanagementexpert.md` — **ThePunisher-FuneralHomeMultiLocationManagementExpert**: funeral-home multi-location management-systems engineering.
+- `funeral-deathcare-tech/thepunisher-cemeteryrecordsdigitizationsystemsexpert.md` — **ThePunisher-CemeteryRecordsDigitizationSystemsExpert**: cemetery records-digitization systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeraltrustprepaymentescrowsystemsexpert.md` — **ThePunisher-FuneralTrustPrepaymentEscrowSystemsExpert**: funeral trust and prepayment-escrow systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomevendorsuppliermanagementexpert.md` — **ThePunisher-FuneralHomeVendorSupplierManagementExpert**: funeral-home vendor and supplier-management systems engineering.
+- `funeral-deathcare-tech/thepunisher-bodytransportationlogisticscoordinationsystemsexpert.md` — **ThePunisher-BodyTransportationLogisticsCoordinationSystemsExpert**: body-transportation logistics-coordination systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomeinsuranceassignmentprocessingexpert.md` — **ThePunisher-FuneralHomeInsuranceAssignmentProcessingExpert**: funeral-home insurance-assignment processing engineering.
+- `funeral-deathcare-tech/thepunisher-memorialwebsitebuilderexpert.md` — **ThePunisher-MemorialWebsiteBuilderExpert**: memorial-website builder engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomestaffschedulingsystemsexpert.md` — **ThePunisher-FuneralHomeStaffSchedulingSystemsExpert**: funeral-home staff-scheduling systems engineering.
+- `funeral-deathcare-tech/thepunisher-cemeteryperpetualcarefundmanagementexpert.md` — **ThePunisher-CemeteryPerpetualCareFundManagementExpert**: cemetery perpetual-care fund-management systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomefamilycommunicationportalexpert.md` — **ThePunisher-FuneralHomeFamilyCommunicationPortalExpert**: funeral-home family-communication portal engineering.
+- `funeral-deathcare-tech/thepunisher-funeralserviceorderofservicedesignexpert.md` — **ThePunisher-FuneralServiceOrderOfServiceDesignExpert**: funeral order-of-service program-design engineering.
+- `funeral-deathcare-tech/thepunisher-cremationfacilityequipmentmonitoringexpert.md` — **ThePunisher-CremationFacilityEquipmentMonitoringExpert**: cremation-facility equipment-monitoring systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomeftcfuneralrulecomplianceexpert.md` — **ThePunisher-FuneralHomeFTCFuneralRuleComplianceExpert**: funeral-home FTC Funeral Rule regulatory-compliance engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomeaccountingtrustreportingexpert.md` — **ThePunisher-FuneralHomeAccountingTrustReportingExpert**: funeral-home accounting and trust-reporting systems engineering.
+- `funeral-deathcare-tech/thepunisher-digitalestateplanningintegrationexpert.md` — **ThePunisher-DigitalEstatePlanningIntegrationExpert**: digital estate-planning integration engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomefloralorderintegrationexpert.md` — **ThePunisher-FuneralHomeFloralOrderIntegrationExpert**: funeral-home floral order-integration engineering.
+- `funeral-deathcare-tech/thepunisher-cemeterymappingwayfindingappexpert.md` — **ThePunisher-CemeteryMappingWayfindingAppExpert**: cemetery mapping and wayfinding-app engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomeembalmingrecordsystemsexpert.md` — **ThePunisher-FuneralHomeEmbalmingRecordSystemsExpert**: funeral-home embalming record-systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralpreneedsalescrmexpert.md` — **ThePunisher-FuneralPreNeedSalesCRMExpert**: funeral pre-need sales-CRM engineering.
+- `funeral-deathcare-tech/thepunisher-memorialproductpersonalizationexpert.md` — **ThePunisher-MemorialProductPersonalizationExpert**: memorial-product personalization engineering (urns/markers).
+- `funeral-deathcare-tech/thepunisher-funeralhomecasecostestimationsystemsexpert.md` — **ThePunisher-FuneralHomeCaseCostEstimationSystemsExpert**: funeral-home case cost-estimation systems engineering.
+- `funeral-deathcare-tech/thepunisher-greennaturalburialtrackingsystemsexpert.md` — **ThePunisher-GreenNaturalBurialTrackingSystemsExpert**: green/natural-burial tracking systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomedocumentgenerationesignatureexpert.md` — **ThePunisher-FuneralHomeDocumentGenerationESignatureExpert**: funeral-home document-generation and e-signature engineering.
+- `funeral-deathcare-tech/thepunisher-cemeteryheadstoneinscriptionorderingsystemsexpert.md` — **ThePunisher-CemeteryHeadstoneInscriptionOrderingSystemsExpert**: cemetery headstone-inscription ordering systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomeaftercarefollowupsystemsexpert.md` — **ThePunisher-FuneralHomeAftercareFollowUpSystemsExpert**: funeral-home aftercare follow-up systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeraldirectorlicensingcompliancetrackingexpert.md` — **ThePunisher-FuneralDirectorLicensingComplianceTrackingExpert**: funeral-director licensing compliance-tracking engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomecallcenterdispatchsystemsexpert.md` — **ThePunisher-FuneralHomeCallCenterDispatchSystemsExpert**: funeral-home call-center and dispatch-systems engineering.
+- `funeral-deathcare-tech/thepunisher-deathnotificationnextofkinsystemsexpert.md` — **ThePunisher-DeathNotificationNextOfKinSystemsExpert**: death-notification and next-of-kin systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomemultifaithservicecustomizationexpert.md` — **ThePunisher-FuneralHomeMultiFaithServiceCustomizationExpert**: funeral-home multi-faith service-customization engineering.
+- `funeral-deathcare-tech/thepunisher-cemeterygenealogyrecordsintegrationexpert.md` — **ThePunisher-CemeteryGenealogyRecordsIntegrationExpert**: cemetery genealogy-records integration engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomeinventorymanagementexpert.md` — **ThePunisher-FuneralHomeInventoryManagementExpert**: funeral-home inventory-management systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomewebsiteseomarketingexpert.md` — **ThePunisher-FuneralHomeWebsiteSEOMarketingExpert**: funeral-home website and SEO marketing-systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomeclientreviewreputationmanagementexpert.md` — **ThePunisher-FuneralHomeClientReviewReputationManagementExpert**: funeral-home review and reputation-management systems engineering.
+- `funeral-deathcare-tech/thepunisher-bodydonationprogrammanagementsystemsexpert.md` — **ThePunisher-BodyDonationProgramManagementSystemsExpert**: body-donation program management-systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomefranchiseconsolidationsystemsexpert.md` — **ThePunisher-FuneralHomeFranchiseConsolidationSystemsExpert**: funeral-home franchise-consolidation systems engineering.
+- `funeral-deathcare-tech/thepunisher-memorialvideotributeproductionsoftwareexpert.md` — **ThePunisher-MemorialVideoTributeProductionSoftwareExpert**: memorial video-tribute production-software engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomepaymentplanfinancingsystemsexpert.md` — **ThePunisher-FuneralHomePaymentPlanFinancingSystemsExpert**: funeral-home payment-plan and financing systems engineering.
+- `funeral-deathcare-tech/thepunisher-cemeteryendowmentcarecompliancereportingexpert.md` — **ThePunisher-CemeteryEndowmentCareComplianceReportingExpert**: cemetery endowment-care compliance-reporting engineering.
+- `funeral-deathcare-tech/thepunisher-funeralhomecrisismasscasualtyresponsesystemsexpert.md` — **ThePunisher-FuneralHomeCrisisMassCasualtyResponseSystemsExpert**: funeral-home crisis and mass-casualty response-coordination systems engineering.
+- `funeral-deathcare-tech/thepunisher-funeralindustrymarketanalyticsplatformexpert.md` — **ThePunisher-FuneralIndustryMarketAnalyticsPlatformExpert**: funeral-industry market-analytics platform engineering.
+
+## Team 92 — Home Services & Field Service Management Technology Engineering (50 agents)
+
+- `home-services-field-tech/thepunisher-fieldservicedispatchschedulingsystemsexpert.md` — **ThePunisher-FieldServiceDispatchSchedulingSystemsExpert**: field-service dispatch and scheduling systems engineering.
+- `home-services-field-tech/thepunisher-homeservicesquotingestimatingsystemsexpert.md` — **ThePunisher-HomeServicesQuotingEstimatingSystemsExpert**: home-services quoting and estimating systems engineering.
+- `home-services-field-tech/thepunisher-techniciangpstrackingroutingexpert.md` — **ThePunisher-TechnicianGPSTrackingRoutingExpert**: field-technician GPS tracking and routing engineering.
+- `home-services-field-tech/thepunisher-fieldservicemobileapptechniciansexpert.md` — **ThePunisher-FieldServiceMobileAppTechniciansExpert**: field-service technician mobile-app engineering.
+- `home-services-field-tech/thepunisher-homeservicesinvoicingpaymentcollectionexpert.md` — **ThePunisher-HomeServicesInvoicingPaymentCollectionExpert**: home-services invoicing and payment-collection systems engineering.
+- `home-services-field-tech/thepunisher-hvacservicecontractmanagementsystemsexpert.md` — **ThePunisher-HVACServiceContractManagementSystemsExpert**: HVAC service-contract management-systems engineering.
+- `home-services-field-tech/thepunisher-plumbingservicejobcostingsystemsexpert.md` — **ThePunisher-PlumbingServiceJobCostingSystemsExpert**: plumbing-service job-costing systems engineering.
+- `home-services-field-tech/thepunisher-electricalservicepermittrackingexpert.md` — **ThePunisher-ElectricalServicePermitTrackingExpert**: electrical-service permit-tracking systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicecustomeretanotificationexpert.md` — **ThePunisher-FieldServiceCustomerETANotificationExpert**: field-service customer communication and ETA-notification engineering.
+- `home-services-field-tech/thepunisher-homeservicestruckstockinventoryexpert.md` — **ThePunisher-HomeServicesTruckStockInventoryExpert**: home-services truck-stock inventory-management systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicetechniciancertificationtrackingexpert.md` — **ThePunisher-FieldServiceTechnicianCertificationTrackingExpert**: field-service technician certification-tracking systems engineering.
+- `home-services-field-tech/thepunisher-homeservicesmaintenanceplansystemsexpert.md` — **ThePunisher-HomeServicesMaintenancePlanSystemsExpert**: home-services membership/maintenance-plan systems engineering.
+- `home-services-field-tech/thepunisher-fieldserviceworkordermanagementexpert.md` — **ThePunisher-FieldServiceWorkOrderManagementExpert**: field-service work-order management-systems engineering.
+- `home-services-field-tech/thepunisher-homeservicesonlinebookingwidgetexpert.md` — **ThePunisher-HomeServicesOnlineBookingWidgetExpert**: home-services online booking-widget engineering.
+- `home-services-field-tech/thepunisher-fieldservicerouteoptimizationexpert.md` — **ThePunisher-FieldServiceRouteOptimizationExpert**: field-service route-optimization engineering.
+- `home-services-field-tech/thepunisher-hvacequipmentwarrantyregistrationsystemsexpert.md` — **ThePunisher-HVACEquipmentWarrantyRegistrationSystemsExpert**: HVAC equipment warranty-registration systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicephotovideojobdocumentationexpert.md` — **ThePunisher-FieldServicePhotoVideoJobDocumentationExpert**: field-service photo/video job-documentation systems engineering.
+- `home-services-field-tech/thepunisher-homeservicesreviewreputationmanagementexpert.md` — **ThePunisher-HomeServicesReviewReputationManagementExpert**: home-services review and reputation-management systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicedigitalsignatureapprovalsystemsexpert.md` — **ThePunisher-FieldServiceDigitalSignatureApprovalSystemsExpert**: field-service digital-signature and approval-systems engineering.
+- `home-services-field-tech/thepunisher-homeservicesfinancingpaymentplanintegrationexpert.md` — **ThePunisher-HomeServicesFinancingPaymentPlanIntegrationExpert**: home-services financing and payment-plan integration engineering.
+- `home-services-field-tech/thepunisher-fieldservicetechniciantimetrackingexpert.md` — **ThePunisher-FieldServiceTechnicianTimeTrackingExpert**: field-service technician time-tracking systems engineering.
+- `home-services-field-tech/thepunisher-pestcontrolservicerouteschedulingexpert.md` — **ThePunisher-PestControlServiceRouteSchedulingExpert**: pest-control service route-scheduling systems engineering.
+- `home-services-field-tech/thepunisher-fieldserviceequipmentassettrackingexpert.md` — **ThePunisher-FieldServiceEquipmentAssetTrackingExpert**: field-service equipment/asset-tracking systems engineering.
+- `home-services-field-tech/thepunisher-homeservicesleadgenerationcrmintegrationexpert.md` — **ThePunisher-HomeServicesLeadGenerationCRMIntegrationExpert**: home-services lead-generation and CRM-integration engineering.
+- `home-services-field-tech/thepunisher-fieldservicerecurringjobschedulingexpert.md` — **ThePunisher-FieldServiceRecurringJobSchedulingExpert**: field-service recurring-job scheduling systems engineering.
+- `home-services-field-tech/thepunisher-landscapingservicejobschedulingexpert.md` — **ThePunisher-LandscapingServiceJobSchedulingExpert**: landscaping-service job-scheduling systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicepartsorderingintegrationexpert.md` — **ThePunisher-FieldServicePartsOrderingIntegrationExpert**: field-service parts-ordering integration engineering.
+- `home-services-field-tech/thepunisher-homeservicesmulticrewdispatchoptimizationexpert.md` — **ThePunisher-HomeServicesMultiCrewDispatchOptimizationExpert**: home-services multi-crew dispatch-optimization engineering.
+- `home-services-field-tech/thepunisher-fieldservicesafetychecklistcomplianceexpert.md` — **ThePunisher-FieldServiceSafetyChecklistComplianceExpert**: field-service safety-checklist and compliance-systems engineering.
+- `home-services-field-tech/thepunisher-garagedoorappliancerepairservicesystemsexpert.md` — **ThePunisher-GarageDoorApplianceRepairServiceSystemsExpert**: garage-door and appliance-repair service-systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicecustomerportalexpert.md` — **ThePunisher-FieldServiceCustomerPortalExpert**: field-service customer-portal engineering.
+- `home-services-field-tech/thepunisher-homeservicesfranchiseterritorymanagementexpert.md` — **ThePunisher-HomeServicesFranchiseTerritoryManagementExpert**: home-services franchise territory-management systems engineering.
+- `home-services-field-tech/thepunisher-fieldserviceemergencyafterhoursdispatchexpert.md` — **ThePunisher-FieldServiceEmergencyAfterHoursDispatchExpert**: field-service emergency and after-hours dispatch engineering.
+- `home-services-field-tech/thepunisher-poolserviceroutechemicaltrackingsystemsexpert.md` — **ThePunisher-PoolServiceRouteChemicalTrackingSystemsExpert**: pool-service route and chemical-tracking systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicetechnicianperformanceanalyticsexpert.md` — **ThePunisher-FieldServiceTechnicianPerformanceAnalyticsExpert**: field-service technician performance-analytics engineering.
+- `home-services-field-tech/thepunisher-homeservicesupsellcrosssellrecommendationexpert.md` — **ThePunisher-HomeServicesUpsellCrossSellRecommendationExpert**: home-services upsell/cross-sell recommendation-engine engineering.
+- `home-services-field-tech/thepunisher-fieldserviceweatherawareschedulingexpert.md` — **ThePunisher-FieldServiceWeatherAwareSchedulingExpert**: field-service weather-aware scheduling engineering.
+- `home-services-field-tech/thepunisher-roofingserviceestimationmeasurementsoftwareexpert.md` — **ThePunisher-RoofingServiceEstimationMeasurementSoftwareExpert**: roofing-service estimation and aerial-measurement software engineering.
+- `home-services-field-tech/thepunisher-fieldservicesubcontractormanagementsystemsexpert.md` — **ThePunisher-FieldServiceSubcontractorManagementSystemsExpert**: field-service subcontractor management-systems engineering.
+- `home-services-field-tech/thepunisher-homeservicescallcenterintegrationexpert.md` — **ThePunisher-HomeServicesCallCenterIntegrationExpert**: home-services call-center integration engineering.
+- `home-services-field-tech/thepunisher-fieldservicejobprofitabilityanalyticsexpert.md` — **ThePunisher-FieldServiceJobProfitabilityAnalyticsExpert**: field-service job-profitability analytics engineering.
+- `home-services-field-tech/thepunisher-locksmithdispatchservicesystemsexpert.md` — **ThePunisher-LocksmithDispatchServiceSystemsExpert**: locksmith dispatch and service-systems engineering.
+- `home-services-field-tech/thepunisher-fieldserviceequipmentrentalintegrationexpert.md` — **ThePunisher-FieldServiceEquipmentRentalIntegrationExpert**: field-service equipment-rental integration engineering.
+- `home-services-field-tech/thepunisher-homeservicesseasonaldemandforecastingexpert.md` — **ThePunisher-HomeServicesSeasonalDemandForecastingExpert**: home-services seasonal demand-forecasting engineering.
+- `home-services-field-tech/thepunisher-fieldservicedigitalformschecklistbuilderexpert.md` — **ThePunisher-FieldServiceDigitalFormsChecklistBuilderExpert**: field-service digital-forms and checklist-builder engineering.
+- `home-services-field-tech/thepunisher-chimneyductcleaningserviceschedulingsystemsexpert.md` — **ThePunisher-ChimneyDuctCleaningServiceSchedulingSystemsExpert**: chimney/duct-cleaning service-scheduling systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicemultilocationfranchisereportingexpert.md` — **ThePunisher-FieldServiceMultiLocationFranchiseReportingExpert**: field-service multi-location franchise-reporting systems engineering.
+- `home-services-field-tech/thepunisher-homeservicescustomersatisfactionsurveysystemsexpert.md` — **ThePunisher-HomeServicesCustomerSatisfactionSurveySystemsExpert**: home-services customer-satisfaction survey-systems engineering.
+- `home-services-field-tech/thepunisher-fieldservicevehiclemaintenancetrackingexpert.md` — **ThePunisher-FieldServiceVehicleMaintenanceTrackingExpert**: field-service vehicle maintenance-tracking systems engineering.
+- `home-services-field-tech/thepunisher-homeservicespricebookflatratepricingsystemsexpert.md` — **ThePunisher-HomeServicesPriceBookFlatRatePricingSystemsExpert**: home-services price-book and flat-rate pricing-systems engineering.
+
+## Team 93 — Amusement Park & Attraction Technology Engineering (50 agents)
+
+- `amusement-park-attraction-tech/thepunisher-rideoperationssafetymonitoringsystemsexpert.md` — **ThePunisher-RideOperationsSafetyMonitoringSystemsExpert**: amusement-ride operations and safety-monitoring systems engineering.
+- `amusement-park-attraction-tech/thepunisher-virtualqueuefastpasssystemsexpert.md` — **ThePunisher-VirtualQueueFastPassSystemsExpert**: theme-park virtual-queue and FastPass-style systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkticketingadmissionsystemsexpert.md` — **ThePunisher-ThemeParkTicketingAdmissionSystemsExpert**: theme-park ticketing and admission-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-ridecapacitythroughputanalyticsexpert.md` — **ThePunisher-RideCapacityThroughputAnalyticsExpert**: ride capacity and throughput analytics engineering.
+- `amusement-park-attraction-tech/thepunisher-parkwayfindingmobileappnavigationexpert.md` — **ThePunisher-ParkWayfindingMobileAppNavigationExpert**: theme-park wayfinding and mobile-app navigation engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionmaintenanceinspectioncompliancesystemsexpert.md` — **ThePunisher-AttractionMaintenanceInspectionComplianceSystemsExpert**: attraction maintenance and inspection-compliance systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkguestrfidwristbandsystemsexpert.md` — **ThePunisher-ThemeParkGuestRFIDWristbandSystemsExpert**: theme-park guest RFID/wristband systems engineering.
+- `amusement-park-attraction-tech/thepunisher-rideheightsafetyrestrictionverificationexpert.md` — **ThePunisher-RideHeightSafetyRestrictionVerificationExpert**: ride height/safety-restriction verification systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parkfoodbeverageposintegrationexpert.md` — **ThePunisher-ParkFoodBeveragePOSIntegrationExpert**: theme-park food-and-beverage POS integration engineering.
+- `amusement-park-attraction-tech/thepunisher-attractiondowntimeincidentreportingsystemsexpert.md` — **ThePunisher-AttractionDowntimeIncidentReportingSystemsExpert**: attraction downtime and incident-reporting systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkannualpassmembershipsystemsexpert.md` — **ThePunisher-ThemeParkAnnualPassMembershipSystemsExpert**: theme-park annual-pass membership systems engineering.
+- `amusement-park-attraction-tech/thepunisher-ridephotovideoonridecapturesystemsexpert.md` — **ThePunisher-RidePhotoVideoOnRideCaptureSystemsExpert**: ride on-ride photo/video capture-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parkcrowdflowcapacitymanagementexpert.md` — **ThePunisher-ParkCrowdFlowCapacityManagementExpert**: theme-park crowd-flow and capacity-management systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionpreventivemaintenanceschedulingexpert.md` — **ThePunisher-AttractionPreventiveMaintenanceSchedulingExpert**: attraction preventive-maintenance scheduling engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkdynamicpricingsystemsexpert.md` — **ThePunisher-ThemeParkDynamicPricingSystemsExpert**: theme-park dynamic-pricing systems engineering.
+- `amusement-park-attraction-tech/thepunisher-waterparklifeguardsafetymonitoringsystemsexpert.md` — **ThePunisher-WaterParkLifeguardSafetyMonitoringSystemsExpert**: water-park lifeguard and safety-monitoring systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parkemployeeschedulingcostumingsystemsexpert.md` — **ThePunisher-ParkEmployeeSchedulingCostumingSystemsExpert**: theme-park employee scheduling and costuming-logistics systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionridevehicletelemetrysystemsexpert.md` — **ThePunisher-AttractionRideVehicleTelemetrySystemsExpert**: attraction ride-vehicle telemetry systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkgroupsaleseventbookingsystemsexpert.md` — **ThePunisher-ThemeParkGroupSalesEventBookingSystemsExpert**: theme-park group-sales and event-booking systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parklockerstoragerentalsystemsexpert.md` — **ThePunisher-ParkLockerStorageRentalSystemsExpert**: theme-park locker and storage-rental systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionemergencyevacuationsystemsexpert.md` — **ThePunisher-AttractionEmergencyEvacuationSystemsExpert**: attraction emergency-evacuation systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkloyaltygamificationsystemsexpert.md` — **ThePunisher-ThemeParkLoyaltyGamificationSystemsExpert**: theme-park loyalty and gamification-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-ridecontrolsystemplcsafetyinterlockexpert.md` — **ThePunisher-RideControlSystemPLCSafetyInterlockExpert**: ride control-system (PLC) safety-interlock engineering.
+- `amusement-park-attraction-tech/thepunisher-parkparkingtransportationsystemsexpert.md` — **ThePunisher-ParkParkingTransportationSystemsExpert**: theme-park parking and transportation-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionaccessibilityaccommodationsystemsexpert.md` — **ThePunisher-AttractionAccessibilityAccommodationSystemsExpert**: attraction guest accessibility-accommodation systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkmerchandiseinventorysystemsexpert.md` — **ThePunisher-ThemeParkMerchandiseInventorySystemsExpert**: theme-park merchandise inventory-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-waterparkwaterqualitymonitoringsystemsexpert.md` — **ThePunisher-WaterParkWaterQualityMonitoringSystemsExpert**: water-park water-quality monitoring-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractioncharacterentertainmentschedulingsystemsexpert.md` — **ThePunisher-AttractionCharacterEntertainmentSchedulingSystemsExpert**: attraction character/entertainment show-scheduling systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkweathercontingencyplanningsystemsexpert.md` — **ThePunisher-ThemeParkWeatherContingencyPlanningSystemsExpert**: theme-park weather-contingency planning-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-rideinspectioncertificationtrackingexpert.md` — **ThePunisher-RideInspectionCertificationTrackingExpert**: ride inspection-certification (ASTM/NAARSO) tracking systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parkguestservicerecoverysystemsexpert.md` — **ThePunisher-ParkGuestServiceRecoverySystemsExpert**: theme-park guest service-recovery systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractiondigitaltwinengineeringexpert.md` — **ThePunisher-AttractionDigitalTwinEngineeringExpert**: theme-park attraction digital-twin engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkseasonalstaffingforecastingexpert.md` — **ThePunisher-ThemeParkSeasonalStaffingForecastingExpert**: theme-park seasonal staffing-forecasting engineering.
+- `amusement-park-attraction-tech/thepunisher-ridevibrationstructuralmonitoringsystemsexpert.md` — **ThePunisher-RideVibrationStructuralMonitoringSystemsExpert**: ride vibration and structural-monitoring systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parkcashlesspaymentwalletsystemsexpert.md` — **ThePunisher-ParkCashlessPaymentWalletSystemsExpert**: theme-park cashless payment and wallet-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionlostguestreunificationsystemsexpert.md` — **ThePunisher-AttractionLostGuestReunificationSystemsExpert**: attraction lost-child/guest reunification systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkmultiparkpassinteroperabilitysystemsexpert.md` — **ThePunisher-ThemeParkMultiParkPassInteroperabilitySystemsExpert**: theme-park multi-park pass interoperability-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-rideoperatortrainingcertificationsystemsexpert.md` — **ThePunisher-RideOperatorTrainingCertificationSystemsExpert**: ride-operator training and certification-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parksecuritycamerathreatdetectionsystemsexpert.md` — **ThePunisher-ParkSecurityCameraThreatDetectionSystemsExpert**: theme-park security-camera and threat-detection systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionqueuelineentertainmentsystemsexpert.md` — **ThePunisher-AttractionQueueLineEntertainmentSystemsExpert**: attraction queue-line entertainment/experience systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkvendorconcessionairemanagementsystemsexpert.md` — **ThePunisher-ThemeParkVendorConcessionaireManagementSystemsExpert**: theme-park vendor and concessionaire management-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-ridedataloggingblackboxsystemsexpert.md` — **ThePunisher-RideDataLoggingBlackBoxSystemsExpert**: ride data-logging and black-box systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parkguestphotopackagefulfillmentsystemsexpert.md` — **ThePunisher-ParkGuestPhotoPackageFulfillmentSystemsExpert**: theme-park guest photo-package fulfillment-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionseasonaleventoverlaysystemsexpert.md` — **ThePunisher-AttractionSeasonalEventOverlaySystemsExpert**: attraction seasonal-event (Halloween/holiday) overlay-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkcapacityreservationsystemexpert.md` — **ThePunisher-ThemeParkCapacityReservationSystemExpert**: theme-park capacity-reservation system engineering.
+- `amusement-park-attraction-tech/thepunisher-ridemanufacturerwarrantypartssystemsexpert.md` — **ThePunisher-RideManufacturerWarrantyPartsSystemsExpert**: ride manufacturer warranty and parts-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-parksustainabilityenergymonitoringsystemsexpert.md` — **ThePunisher-ParkSustainabilityEnergyMonitoringSystemsExpert**: theme-park sustainability and energy-monitoring systems engineering.
+- `amusement-park-attraction-tech/thepunisher-attractionlicensedipcompliancesystemsexpert.md` — **ThePunisher-AttractionLicensedIPComplianceSystemsExpert**: attraction franchise/licensed-IP compliance-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-themeparkguestfeedbacknpssystemsexpert.md` — **ThePunisher-ThemeParkGuestFeedbackNPSSystemsExpert**: theme-park guest-feedback and NPS-systems engineering.
+- `amusement-park-attraction-tech/thepunisher-ridequeuelinevrpreshowsystemsexpert.md` — **ThePunisher-RideQueueLineVRPreShowSystemsExpert**: ride queue-line VR pre-show systems engineering.
+
+## Team 94 — Cannabis Industry Technology Engineering (50 agents)
+
+- `cannabis-industry-tech/thepunisher-seedtosaletrackingsystemsexpert.md` — **ThePunisher-SeedToSaleTrackingSystemsExpert**: cannabis seed-to-sale tracking systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdispensarypossystemsexpert.md` — **ThePunisher-CannabisDispensaryPOSSystemsExpert**: cannabis-dispensary point-of-sale systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiscompliancestatereportingexpert.md` — **ThePunisher-CannabisComplianceStateReportingExpert**: cannabis state-compliance reporting systems engineering (METRC-style).
+- `cannabis-industry-tech/thepunisher-cannabiscultivationfacilitymanagementsystemsexpert.md` — **ThePunisher-CannabisCultivationFacilityManagementSystemsExpert**: cannabis cultivation-facility management-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisproducttestinglabintegrationexpert.md` — **ThePunisher-CannabisProductTestingLabIntegrationExpert**: cannabis product-testing-lab integration engineering.
+- `cannabis-industry-tech/thepunisher-cannabisecommerceonlineorderingplatformexpert.md` — **ThePunisher-CannabisEcommerceOnlineOrderingPlatformExpert**: cannabis e-commerce and online-ordering platform engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdeliverydispatchrouteoptimizationexpert.md` — **ThePunisher-CannabisDeliveryDispatchRouteOptimizationExpert**: cannabis delivery dispatch and route-optimization engineering.
+- `cannabis-industry-tech/thepunisher-cannabisinventorybatchtrackingexpert.md` — **ThePunisher-CannabisInventoryBatchTrackingExpert**: cannabis inventory-management and batch-tracking systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisageverificationidscanningsystemsexpert.md` — **ThePunisher-CannabisAgeVerificationIDScanningSystemsExpert**: cannabis age-verification and ID-scanning systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabismenudigitalsignagesystemsexpert.md` — **ThePunisher-CannabisMenuDigitalSignageSystemsExpert**: cannabis dispensary menu and digital-signage systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisloyaltyrewardsprogramsystemsexpert.md` — **ThePunisher-CannabisLoyaltyRewardsProgramSystemsExpert**: cannabis loyalty and rewards-program systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiscultivationenvironmentalcontrolsystemsexpert.md` — **ThePunisher-CannabisCultivationEnvironmentalControlSystemsExpert**: cannabis cultivation environmental-control systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisextractionprocesscontrolexpert.md` — **ThePunisher-CannabisExtractionProcessControlExpert**: cannabis manufacturing (extraction) process-control engineering.
+- `cannabis-industry-tech/thepunisher-cannabispackaginglabelingcompliancesystemsexpert.md` — **ThePunisher-CannabisPackagingLabelingComplianceSystemsExpert**: cannabis packaging and labeling compliance-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiswholesaleb2bmarketplaceplatformexpert.md` — **ThePunisher-CannabisWholesaleB2BMarketplacePlatformExpert**: cannabis wholesale B2B marketplace-platform engineering.
+- `cannabis-industry-tech/thepunisher-cannabisbankingpaymentprocessingintegrationexpert.md` — **ThePunisher-CannabisBankingPaymentProcessingIntegrationExpert**: cannabis banking and payment-processing integration engineering.
+- `cannabis-industry-tech/thepunisher-cannabistaxcompliance280esystemsexpert.md` — **ThePunisher-CannabisTaxCompliance280ESystemsExpert**: cannabis tax-compliance systems engineering (IRC 280E).
+- `cannabis-industry-tech/thepunisher-cannabisproductrecallmanagementsystemsexpert.md` — **ThePunisher-CannabisProductRecallManagementSystemsExpert**: cannabis product recall-management systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisbudtendertrainingsystemsexpert.md` — **ThePunisher-CannabisBudtenderTrainingSystemsExpert**: cannabis dispensary budtender training-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiscultivationyieldforecastingsystemsexpert.md` — **ThePunisher-CannabisCultivationYieldForecastingSystemsExpert**: cannabis cultivation yield-forecasting systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabislicenseapplicationrenewaltrackingexpert.md` — **ThePunisher-CannabisLicenseApplicationRenewalTrackingExpert**: cannabis license application-and-renewal tracking systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisproductpotencyterpenedatasystemsexpert.md` — **ThePunisher-CannabisProductPotencyTerpeneDataSystemsExpert**: cannabis product potency-and-terpene data-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdispensarycurbsidepickupsystemsexpert.md` — **ThePunisher-CannabisDispensaryCurbsidePickupSystemsExpert**: cannabis dispensary curbside-pickup systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabissupplychaintraceabilitysystemsexpert.md` — **ThePunisher-CannabisSupplyChainTraceabilitySystemsExpert**: cannabis supply-chain traceability systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabismarketingcompliancesystemsexpert.md` — **ThePunisher-CannabisMarketingComplianceSystemsExpert**: cannabis marketing-compliance (advertising-restriction) systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiscultivationpestdiseasemonitoringsystemsexpert.md` — **ThePunisher-CannabisCultivationPestDiseaseMonitoringSystemsExpert**: cannabis cultivation pest-and-disease monitoring systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdispensarysecuritysurveillancecomplianceexpert.md` — **ThePunisher-CannabisDispensarySecuritySurveillanceComplianceExpert**: cannabis dispensary security and surveillance compliance-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisproductformulationrecipemanagementexpert.md` — **ThePunisher-CannabisProductFormulationRecipeManagementExpert**: cannabis product formulation and recipe-management engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdeliveryvehiclegpscompliancetrackingexpert.md` — **ThePunisher-CannabisDeliveryVehicleGPSComplianceTrackingExpert**: cannabis delivery-vehicle GPS compliance-tracking systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabismultistateoperatorreportingsystemsexpert.md` — **ThePunisher-CannabisMultiStateOperatorReportingSystemsExpert**: cannabis multi-state-operator (MSO) reporting-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiswastedisposalcompliancetrackingexpert.md` — **ThePunisher-CannabisWasteDisposalComplianceTrackingExpert**: cannabis waste-disposal compliance-tracking systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdispensarycustomerdataprivacysystemsexpert.md` — **ThePunisher-CannabisDispensaryCustomerDataPrivacySystemsExpert**: cannabis dispensary customer data-privacy systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiscultivationgeneticsstraindatabaseexpert.md` — **ThePunisher-CannabisCultivationGeneticsStrainDatabaseExpert**: cannabis cultivation genetics-and-strain database engineering.
+- `cannabis-industry-tech/thepunisher-cannabisproductsamplingqualityassurancesystemsexpert.md` — **ThePunisher-CannabisProductSamplingQualityAssuranceSystemsExpert**: cannabis product sampling and quality-assurance systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisretailanalyticssalesforecastingexpert.md` — **ThePunisher-CannabisRetailAnalyticsSalesForecastingExpert**: cannabis retail analytics and sales-forecasting engineering.
+- `cannabis-industry-tech/thepunisher-cannabisvendorsuppliermanagementsystemsexpert.md` — **ThePunisher-CannabisVendorSupplierManagementSystemsExpert**: cannabis vendor and supplier-management systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdispensarymultilocationmanagementsystemsexpert.md` — **ThePunisher-CannabisDispensaryMultiLocationManagementSystemsExpert**: cannabis dispensary multi-location management-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisproductbarcoderfidtaggingsystemsexpert.md` — **ThePunisher-CannabisProductBarcodeRFIDTaggingSystemsExpert**: cannabis product barcode/RFID tagging-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiscultivationautomatedirrigationsystemsexpert.md` — **ThePunisher-CannabisCultivationAutomatedIrrigationSystemsExpert**: cannabis cultivation automated-irrigation systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabistestinglabcoasystemsexpert.md` — **ThePunisher-CannabisTestingLabCOASystemsExpert**: cannabis testing-lab Certificate of Analysis (COA) systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdispensaryorderfulfillmentqueuesystemsexpert.md` — **ThePunisher-CannabisDispensaryOrderFulfillmentQueueSystemsExpert**: cannabis dispensary order-fulfillment queue-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisregulatoryauditpreparationsystemsexpert.md` — **ThePunisher-CannabisRegulatoryAuditPreparationSystemsExpert**: cannabis regulatory audit-preparation systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabiscultivationharvestschedulingsystemsexpert.md` — **ThePunisher-CannabisCultivationHarvestSchedulingSystemsExpert**: cannabis cultivation harvest-scheduling systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisproductshelflifeexpirationtrackingexpert.md` — **ThePunisher-CannabisProductShelfLifeExpirationTrackingExpert**: cannabis product shelf-life and expiration-tracking systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdispensaryemployeeschedulingsystemsexpert.md` — **ThePunisher-CannabisDispensaryEmployeeSchedulingSystemsExpert**: cannabis dispensary employee-scheduling systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisinterstatecommercecomplianceresearchexpert.md` — **ThePunisher-CannabisInterstateCommerceComplianceResearchExpert**: cannabis interstate-commerce compliance research engineering.
+- `cannabis-industry-tech/thepunisher-cannabiscultivationenergyusageoptimizationexpert.md` — **ThePunisher-CannabisCultivationEnergyUsageOptimizationExpert**: cannabis cultivation energy-usage optimization engineering.
+- `cannabis-industry-tech/thepunisher-cannabisdispensarykioskselfcheckoutsystemsexpert.md` — **ThePunisher-CannabisDispensaryKioskSelfCheckoutSystemsExpert**: cannabis dispensary self-checkout kiosk systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisproductreturnexchangecompliancesystemsexpert.md` — **ThePunisher-CannabisProductReturnExchangeComplianceSystemsExpert**: cannabis product return-and-exchange compliance-systems engineering.
+- `cannabis-industry-tech/thepunisher-cannabisindustrymarketdataanalyticsplatformexpert.md` — **ThePunisher-CannabisIndustryMarketDataAnalyticsPlatformExpert**: cannabis-industry market-data analytics-platform engineering.
+
+## Team 95 — Vacation Rental & Short-Term Rental Technology Engineering (50 agents)
+
+- `vacation-rental-tech/thepunisher-vacationrentalpropertymanagementsoftwareexpert.md` — **ThePunisher-VacationRentalPropertyManagementSoftwareExpert**: vacation-rental property-management software engineering.
+- `vacation-rental-tech/thepunisher-multicalendarchannelsyncexpert.md` — **ThePunisher-MultiCalendarChannelSyncExpert**: vacation-rental multi-calendar channel-sync (iCal) engineering.
+- `vacation-rental-tech/thepunisher-vacationrentaldynamicpricingengineexpert.md` — **ThePunisher-VacationRentalDynamicPricingEngineExpert**: vacation-rental dynamic-pricing engine engineering.
+- `vacation-rental-tech/thepunisher-guestmessagingautomationexpert.md` — **ThePunisher-GuestMessagingAutomationExpert**: vacation-rental guest-messaging automation engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalcleaningturnoverschedulingexpert.md` — **ThePunisher-VacationRentalCleaningTurnoverSchedulingExpert**: vacation-rental cleaning and turnover-scheduling systems engineering.
+- `vacation-rental-tech/thepunisher-smartlockkeylessentryintegrationexpert.md` — **ThePunisher-SmartLockKeylessEntryIntegrationExpert**: vacation-rental smart-lock and keyless-entry integration engineering.
+- `vacation-rental-tech/thepunisher-vacationrentaldamagedepositsecuritysystemsexpert.md` — **ThePunisher-VacationRentalDamageDepositSecuritySystemsExpert**: vacation-rental damage-deposit and security-deposit systems engineering.
+- `vacation-rental-tech/thepunisher-guestscreeningverificationsystemsexpert.md` — **ThePunisher-GuestScreeningVerificationSystemsExpert**: vacation-rental guest screening and verification-systems engineering.
+- `vacation-rental-tech/thepunisher-vacationrentaldirectbookingwebsiteexpert.md` — **ThePunisher-VacationRentalDirectBookingWebsiteExpert**: vacation-rental direct-booking website engineering.
+- `vacation-rental-tech/thepunisher-multipropertyownerreportingdashboardexpert.md` — **ThePunisher-MultiPropertyOwnerReportingDashboardExpert**: vacation-rental multi-property owner reporting-dashboard engineering.
+- `vacation-rental-tech/thepunisher-vacationrentallocalregulationcompliancetrackingexpert.md` — **ThePunisher-VacationRentalLocalRegulationComplianceTrackingExpert**: vacation-rental local regulation compliance-tracking engineering.
+- `vacation-rental-tech/thepunisher-noisemonitoringpartydetectionsystemsexpert.md` — **ThePunisher-NoiseMonitoringPartyDetectionSystemsExpert**: vacation-rental noise-monitoring and party-detection systems engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalrevenuemanagementanalyticsexpert.md` — **ThePunisher-VacationRentalRevenueManagementAnalyticsExpert**: vacation-rental revenue-management analytics engineering.
+- `vacation-rental-tech/thepunisher-guestreviewaggregationresponseautomationexpert.md` — **ThePunisher-GuestReviewAggregationResponseAutomationExpert**: vacation-rental guest-review aggregation and response-automation engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalmaintenanceticketingsystemsexpert.md` — **ThePunisher-VacationRentalMaintenanceTicketingSystemsExpert**: vacation-rental maintenance-ticketing systems engineering.
+- `vacation-rental-tech/thepunisher-cohostpropertymanagertaskassignmentexpert.md` — **ThePunisher-CoHostPropertyManagerTaskAssignmentExpert**: vacation-rental co-host and property-manager task-assignment engineering.
+- `vacation-rental-tech/thepunisher-vacationrentaloccupancytaxremittanceexpert.md` — **ThePunisher-VacationRentalOccupancyTaxRemittanceExpert**: vacation-rental occupancy-tax remittance systems engineering.
+- `vacation-rental-tech/thepunisher-dynamichousemanualdigitalguidebookexpert.md` — **ThePunisher-DynamicHouseManualDigitalGuidebookExpert**: vacation-rental dynamic house-manual and digital-guidebook engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalinsurancedamageclaimsintegrationexpert.md` — **ThePunisher-VacationRentalInsuranceDamageClaimsIntegrationExpert**: vacation-rental insurance and damage-claims integration engineering.
+- `vacation-rental-tech/thepunisher-multiplatformlistingdistributionotaexpert.md` — **ThePunisher-MultiPlatformListingDistributionOTAExpert**: vacation-rental multi-platform (OTA) listing-distribution engineering.
+- `vacation-rental-tech/thepunisher-vacationrentaltrustaccountingsystemsexpert.md` — **ThePunisher-VacationRentalTrustAccountingSystemsExpert**: vacation-rental trust-accounting systems engineering.
+- `vacation-rental-tech/thepunisher-guestupsellexperiencesaddonsplatformexpert.md` — **ThePunisher-GuestUpsellExperiencesAddOnsPlatformExpert**: vacation-rental guest upsell (experiences/add-ons) platform engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalownerpayoutstatementsystemsexpert.md` — **ThePunisher-VacationRentalOwnerPayoutStatementSystemsExpert**: vacation-rental owner payout and statement-systems engineering.
+- `vacation-rental-tech/thepunisher-propertyphotographyvirtualtourintegrationexpert.md` — **ThePunisher-PropertyPhotographyVirtualTourIntegrationExpert**: vacation-rental property-photography and virtual-tour integration engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalfraudchargebackpreventionexpert.md` — **ThePunisher-VacationRentalFraudChargebackPreventionExpert**: vacation-rental fraud and chargeback-prevention systems engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalpermitlicensingtrackingexpert.md` — **ThePunisher-VacationRentalPermitLicensingTrackingExpert**: vacation-rental local regulatory permit-and-licensing tracking engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalutilityenergymonitoringsystemsexpert.md` — **ThePunisher-VacationRentalUtilityEnergyMonitoringSystemsExpert**: vacation-rental utility and energy-monitoring systems engineering.
+- `vacation-rental-tech/thepunisher-contactlesscheckincheckoutsystemsexpert.md` — **ThePunisher-ContactlessCheckInCheckOutSystemsExpert**: vacation-rental contactless check-in/check-out systems engineering.
+- `vacation-rental-tech/thepunisher-vacationrentallongmidtermstayconversionexpert.md` — **ThePunisher-VacationRentalLongMidTermStayConversionExpert**: vacation-rental long/mid-term stay conversion engineering.
+- `vacation-rental-tech/thepunisher-propertyinspectionconditionreportingexpert.md` — **ThePunisher-PropertyInspectionConditionReportingExpert**: vacation-rental property inspection and condition-reporting engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalmultilanguageguestcommunicationexpert.md` — **ThePunisher-VacationRentalMultiLanguageGuestCommunicationExpert**: vacation-rental multi-language guest-communication engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalcorporatebusinesstravelbookingexpert.md` — **ThePunisher-VacationRentalCorporateBusinessTravelBookingExpert**: vacation-rental corporate/business-travel booking engineering.
+- `vacation-rental-tech/thepunisher-propertydamagewaiverprotectionplansystemsexpert.md` — **ThePunisher-PropertyDamageWaiverProtectionPlanSystemsExpert**: vacation-rental damage-waiver and protection-plan systems engineering.
+- `vacation-rental-tech/thepunisher-vacationrentaloccupancyforecastingexpert.md` — **ThePunisher-VacationRentalOccupancyForecastingExpert**: vacation-rental occupancy-forecasting engineering.
+- `vacation-rental-tech/thepunisher-amenityinventoryrestockingautomationexpert.md` — **ThePunisher-AmenityInventoryRestockingAutomationExpert**: vacation-rental amenity and inventory-restocking automation engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalgroupeventbookingrestrictionexpert.md` — **ThePunisher-VacationRentalGroupEventBookingRestrictionExpert**: vacation-rental group/event booking-restriction systems engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalhoacompliancetrackingexpert.md` — **ThePunisher-VacationRentalHOAComplianceTrackingExpert**: vacation-rental HOA compliance-tracking engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalmulticurrencypaymentprocessingexpert.md` — **ThePunisher-VacationRentalMultiCurrencyPaymentProcessingExpert**: vacation-rental multi-currency payment-processing engineering.
+- `vacation-rental-tech/thepunisher-propertymanagementvendormarketplaceintegrationexpert.md` — **ThePunisher-PropertyManagementVendorMarketplaceIntegrationExpert**: vacation-rental property-management vendor-marketplace integration engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalcancellationpolicyengineexpert.md` — **ThePunisher-VacationRentalCancellationPolicyEngineExpert**: vacation-rental cancellation-policy engine engineering.
+- `vacation-rental-tech/thepunisher-guestidentityverificationbackgroundcheckexpert.md` — **ThePunisher-GuestIdentityVerificationBackgroundCheckExpert**: vacation-rental guest identity-verification and background-check integration engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalportfolioacquisitionanalyticsexpert.md` — **ThePunisher-VacationRentalPortfolioAcquisitionAnalyticsExpert**: vacation-rental portfolio-acquisition analytics engineering.
+- `vacation-rental-tech/thepunisher-smartthermostatenergysavingautomationexpert.md` — **ThePunisher-SmartThermostatEnergySavingAutomationExpert**: vacation-rental smart-thermostat and energy-saving automation engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalemergencyafterhoursguestsupportexpert.md` — **ThePunisher-VacationRentalEmergencyAfterHoursGuestSupportExpert**: vacation-rental emergency and after-hours guest-support systems engineering.
+- `vacation-rental-tech/thepunisher-cohostingmarketplacerevenuesplitsystemsexpert.md` — **ThePunisher-CoHostingMarketplaceRevenueSplitSystemsExpert**: vacation-rental co-hosting marketplace and revenue-split systems engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalsustainabilitycertificationtrackingexpert.md` — **ThePunisher-VacationRentalSustainabilityCertificationTrackingExpert**: vacation-rental sustainability-certification tracking engineering.
+- `vacation-rental-tech/thepunisher-propertyonboardinglistingoptimizationexpert.md` — **ThePunisher-PropertyOnboardingListingOptimizationExpert**: vacation-rental property-onboarding and listing-optimization engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalneighborcomplaintmanagementsystemsexpert.md` — **ThePunisher-VacationRentalNeighborComplaintManagementSystemsExpert**: vacation-rental neighbor-complaint management-systems engineering.
+- `vacation-rental-tech/thepunisher-multiunitbuildingamenitybookingsystemsexpert.md` — **ThePunisher-MultiUnitBuildingAmenityBookingSystemsExpert**: multi-unit building amenity-booking systems engineering.
+- `vacation-rental-tech/thepunisher-vacationrentalmarketcompanalysissystemsexpert.md` — **ThePunisher-VacationRentalMarketCompAnalysisSystemsExpert**: vacation-rental market-comp analysis-systems engineering.
+
+## Team 96 — Photography & Videography Business Technology Engineering (50 agents)
+
+- `photography-videography-business-tech/thepunisher-photographystudiobookingcrmsystemsexpert.md` — **ThePunisher-PhotographyStudioBookingCRMSystemsExpert**: photography-studio booking and CRM systems engineering.
+- `photography-videography-business-tech/thepunisher-clientonlineproofinggallerysystemsexpert.md` — **ThePunisher-ClientOnlineProofingGallerySystemsExpert**: client online-proofing gallery systems engineering.
+- `photography-videography-business-tech/thepunisher-photoprintfulfillmentlabintegrationexpert.md` — **ThePunisher-PhotoPrintFulfillmentLabIntegrationExpert**: photo print-fulfillment and lab-integration engineering.
+- `photography-videography-business-tech/thepunisher-photographycontractinvoiceautomationexpert.md` — **ThePunisher-PhotographyContractInvoiceAutomationExpert**: photography contract and invoice-automation engineering.
+- `photography-videography-business-tech/thepunisher-weddingphotographyworkflowmanagementexpert.md` — **ThePunisher-WeddingPhotographyWorkflowManagementExpert**: wedding-photography workflow-management engineering.
+- `photography-videography-business-tech/thepunisher-photovideofiledeliverywatermarkingsystemsexpert.md` — **ThePunisher-PhotoVideoFileDeliveryWatermarkingSystemsExpert**: photo/video file-delivery and watermarking systems engineering.
+- `photography-videography-business-tech/thepunisher-stockphotographylicensingplatformexpert.md` — **ThePunisher-StockPhotographyLicensingPlatformExpert**: stock-photography licensing-platform engineering.
+- `photography-videography-business-tech/thepunisher-photographystudiosessionschedulingexpert.md` — **ThePunisher-PhotographyStudioSessionSchedulingExpert**: photography-studio session-scheduling systems engineering.
+- `photography-videography-business-tech/thepunisher-portraitphotographysalessessionsoftwareexpert.md` — **ThePunisher-PortraitPhotographySalesSessionSoftwareExpert**: portrait-photography sales-session software engineering.
+- `photography-videography-business-tech/thepunisher-photographerportfoliowebsitebuilderexpert.md` — **ThePunisher-PhotographerPortfolioWebsiteBuilderExpert**: photographer portfolio-website builder engineering.
+- `photography-videography-business-tech/thepunisher-photocullingselectionworkflowautomationexpert.md` — **ThePunisher-PhotoCullingSelectionWorkflowAutomationExpert**: photo culling and selection-workflow automation engineering.
+- `photography-videography-business-tech/thepunisher-videographyeditingpipelinemanagementexpert.md` — **ThePunisher-VideographyEditingPipelineManagementExpert**: videography editing-pipeline management engineering.
+- `photography-videography-business-tech/thepunisher-photographybusinessexpensetaxtrackingexpert.md` — **ThePunisher-PhotographyBusinessExpenseTaxTrackingExpert**: photography-business expense and tax-tracking engineering.
+- `photography-videography-business-tech/thepunisher-clientalbumdesignsoftwareexpert.md` — **ThePunisher-ClientAlbumDesignSoftwareExpert**: client photo-album design software engineering.
+- `photography-videography-business-tech/thepunisher-photographyequipmentrentalmarketplaceexpert.md` — **ThePunisher-PhotographyEquipmentRentalMarketplaceExpert**: photography-equipment rental-marketplace engineering.
+- `photography-videography-business-tech/thepunisher-dronephotographyflightcompliancetrackingexpert.md` — **ThePunisher-DronePhotographyFlightComplianceTrackingExpert**: drone-photography flight-compliance tracking engineering.
+- `photography-videography-business-tech/thepunisher-photographystudiomultilocationfranchiseexpert.md` — **ThePunisher-PhotographyStudioMultiLocationFranchiseExpert**: photography-studio multi-location franchise-systems engineering.
+- `photography-videography-business-tech/thepunisher-videoproductionprojectmanagementexpert.md` — **ThePunisher-VideoProductionProjectManagementExpert**: video-production project-management engineering.
+- `photography-videography-business-tech/thepunisher-photographysecondshooterassociateschedulingexpert.md` — **ThePunisher-PhotographySecondShooterAssociateSchedulingExpert**: photography second-shooter/associate scheduling engineering.
+- `photography-videography-business-tech/thepunisher-rawimagebackuparchivalsystemsexpert.md` — **ThePunisher-RAWImageBackupArchivalSystemsExpert**: RAW-image backup and archival-systems engineering.
+- `photography-videography-business-tech/thepunisher-photographyreferralaffiliateprogramexpert.md` — **ThePunisher-PhotographyReferralAffiliateProgramExpert**: photography-business referral and affiliate-program engineering.
+- `photography-videography-business-tech/thepunisher-schoolsportsphotographybatchprocessingexpert.md` — **ThePunisher-SchoolSportsPhotographyBatchProcessingExpert**: school/sports photography batch-processing engineering.
+- `photography-videography-business-tech/thepunisher-photoboothrentalbookingsystemsexpert.md` — **ThePunisher-PhotoBoothRentalBookingSystemsExpert**: photo-booth rental booking-systems engineering.
+- `photography-videography-business-tech/thepunisher-photographystudiopointofsalesystemsexpert.md` — **ThePunisher-PhotographyStudioPointOfSaleSystemsExpert**: photography-studio point-of-sale systems engineering.
+- `photography-videography-business-tech/thepunisher-clientphotoselectionvotingsystemsexpert.md` — **ThePunisher-ClientPhotoSelectionVotingSystemsExpert**: client photo-selection voting-systems engineering.
+- `photography-videography-business-tech/thepunisher-videographyclientapprovalrevisiontrackingexpert.md` — **ThePunisher-VideographyClientApprovalRevisionTrackingExpert**: videography client-approval and revision-tracking engineering.
+- `photography-videography-business-tech/thepunisher-photographymetadatakeywordingautomationexpert.md` — **ThePunisher-PhotographyMetadataKeywordingAutomationExpert**: photography metadata and keywording-automation engineering.
+- `photography-videography-business-tech/thepunisher-printondemandphotoproductfulfillmentexpert.md` — **ThePunisher-PrintOnDemandPhotoProductFulfillmentExpert**: print-on-demand photo-product fulfillment engineering.
+- `photography-videography-business-tech/thepunisher-photographymodelreleaseformmanagementexpert.md` — **ThePunisher-PhotographyModelReleaseFormManagementExpert**: photography model-release form-management engineering.
+- `photography-videography-business-tech/thepunisher-videolivestreamproductionservicesystemsexpert.md` — **ThePunisher-VideoLivestreamProductionServiceSystemsExpert**: video livestream production-service systems engineering.
+- `photography-videography-business-tech/thepunisher-photographystudiolightingequipmentinventoryexpert.md` — **ThePunisher-PhotographyStudioLightingEquipmentInventoryExpert**: photography-studio lighting/equipment inventory-management engineering.
+- `photography-videography-business-tech/thepunisher-clientgallerypasswordaccesscontrolexpert.md` — **ThePunisher-ClientGalleryPasswordAccessControlExpert**: client-gallery password-protection and access-control engineering.
+- `photography-videography-business-tech/thepunisher-photographybusinessleadcaptureinquiryformsexpert.md` — **ThePunisher-PhotographyBusinessLeadCaptureInquiryFormsExpert**: photography-business lead-capture and inquiry-form engineering.
+- `photography-videography-business-tech/thepunisher-videocolorgradingworkflowsoftwareexpert.md` — **ThePunisher-VideoColorGradingWorkflowSoftwareExpert**: video color-grading workflow-software engineering.
+- `photography-videography-business-tech/thepunisher-photographycopyrightusagerightstrackingexpert.md` — **ThePunisher-PhotographyCopyrightUsageRightsTrackingExpert**: photography copyright and usage-rights tracking engineering.
+- `photography-videography-business-tech/thepunisher-newbornfamilyphotographysessionpackagesystemsexpert.md` — **ThePunisher-NewbornFamilyPhotographySessionPackageSystemsExpert**: newborn/family photography session-package systems engineering.
+- `photography-videography-business-tech/thepunisher-photographystudioclientcommunicationautomationexpert.md` — **ThePunisher-PhotographyStudioClientCommunicationAutomationExpert**: photography-studio client-communication automation engineering.
+- `photography-videography-business-tech/thepunisher-videomotiongraphicstemplatemanagementexpert.md` — **ThePunisher-VideoMotionGraphicsTemplateManagementExpert**: video motion-graphics template-management engineering.
+- `photography-videography-business-tech/thepunisher-photographycompetitionawardsubmissiontrackingexpert.md` — **ThePunisher-PhotographyCompetitionAwardSubmissionTrackingExpert**: photography competition and award-submission tracking engineering.
+- `photography-videography-business-tech/thepunisher-photoretouchingoutsourcingworkflowexpert.md` — **ThePunisher-PhotoRetouchingOutsourcingWorkflowExpert**: photo-retouching outsourcing-workflow engineering.
+- `photography-videography-business-tech/thepunisher-photographystudiofinancialreportingdashboardexpert.md` — **ThePunisher-PhotographyStudioFinancialReportingDashboardExpert**: photography-studio financial-reporting dashboard engineering.
+- `photography-videography-business-tech/thepunisher-videographymulticamerasyncworkflowexpert.md` — **ThePunisher-VideographyMultiCameraSyncWorkflowExpert**: videography multi-camera sync-workflow engineering.
+- `photography-videography-business-tech/thepunisher-photographyclientgiftcertificatesystemsexpert.md` — **ThePunisher-PhotographyClientGiftCertificateSystemsExpert**: photography client gift-certificate systems engineering.
+- `photography-videography-business-tech/thepunisher-videoproductioncrewschedulingsystemsexpert.md` — **ThePunisher-VideoProductionCrewSchedulingSystemsExpert**: video-production crew-scheduling systems engineering.
+- `photography-videography-business-tech/thepunisher-photographystudioinsuranceliabilitytrackingexpert.md` — **ThePunisher-PhotographyStudioInsuranceLiabilityTrackingExpert**: photography-studio insurance and liability-tracking engineering.
+- `photography-videography-business-tech/thepunisher-clientslideshowhighlightreelgenerationexpert.md` — **ThePunisher-ClientSlideshowHighlightReelGenerationExpert**: client slideshow and highlight-reel generation engineering.
+- `photography-videography-business-tech/thepunisher-photographybusinesssocialmediaautopostingexpert.md` — **ThePunisher-PhotographyBusinessSocialMediaAutoPostingExpert**: photography-business social-media auto-posting engineering.
+- `photography-videography-business-tech/thepunisher-videoproductionlocationscoutingdatabaseexpert.md` — **ThePunisher-VideoProductionLocationScoutingDatabaseExpert**: video-production location-scouting database engineering.
+- `photography-videography-business-tech/thepunisher-photographystudiopackagepricingconfiguratorexpert.md` — **ThePunisher-PhotographyStudioPackagePricingConfiguratorExpert**: photography-studio package/pricing configurator engineering.
+- `photography-videography-business-tech/thepunisher-photovideometadatagpstaggingsystemsexpert.md` — **ThePunisher-PhotoVideoMetadataGPSTaggingSystemsExpert**: photo/video metadata GPS-tagging systems engineering.
+
+## Team 97 — Language Interpretation & Translation Services Technology Engineering (50 agents)
+
+- `interpretation-translation-services-tech/thepunisher-interpreterschedulingdispatchsystemsexpert.md` — **ThePunisher-InterpreterSchedulingDispatchSystemsExpert**: interpreter scheduling and dispatch-systems engineering.
+- `interpretation-translation-services-tech/thepunisher-remotesimultaneousinterpretationrsiplatformexpert.md` — **ThePunisher-RemoteSimultaneousInterpretationRSIPlatformExpert**: Remote Simultaneous Interpretation (RSI) platform engineering.
+- `interpretation-translation-services-tech/thepunisher-certifiedtranslationworkflowmanagementexpert.md` — **ThePunisher-CertifiedTranslationWorkflowManagementExpert**: certified-translation workflow-management engineering.
+- `interpretation-translation-services-tech/thepunisher-medicalinterpretercertificationtrackingexpert.md` — **ThePunisher-MedicalInterpreterCertificationTrackingExpert**: medical-interpreter certification-tracking systems engineering.
+- `interpretation-translation-services-tech/thepunisher-legalinterpretercourtschedulingsystemsexpert.md` — **ThePunisher-LegalInterpreterCourtSchedulingSystemsExpert**: legal-interpreter court-scheduling systems engineering.
+- `interpretation-translation-services-tech/thepunisher-overthephoneinterpretationopiroutingexpert.md` — **ThePunisher-OverThePhoneInterpretationOPIRoutingExpert**: Over-the-Phone Interpretation (OPI) call-routing engineering.
+- `interpretation-translation-services-tech/thepunisher-translationprojectmanagementsystemsexpert.md` — **ThePunisher-TranslationProjectManagementSystemsExpert**: translation-agency project-management systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationmemorydatabasemanagementexpert.md` — **ThePunisher-TranslationMemoryDatabaseManagementExpert**: translation-memory (TM) database-management engineering.
+- `interpretation-translation-services-tech/thepunisher-videoremoteinterpretingvriplatformexpert.md` — **ThePunisher-VideoRemoteInterpretingVRIPlatformExpert**: Video Remote Interpreting (VRI) platform engineering.
+- `interpretation-translation-services-tech/thepunisher-translationvendorfreelancermarketplaceexpert.md` — **ThePunisher-TranslationVendorFreelancerMarketplaceExpert**: translation vendor/freelancer marketplace engineering.
+- `interpretation-translation-services-tech/thepunisher-translationqualityassuranceworkflowexpert.md` — **ThePunisher-TranslationQualityAssuranceWorkflowExpert**: translation quality-assurance workflow engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterlanguagepairmatchingsystemsexpert.md` — **ThePunisher-InterpreterLanguagePairMatchingSystemsExpert**: interpreter language-pair matching-systems engineering.
+- `interpretation-translation-services-tech/thepunisher-localizationprojectworkflowmanagementexpert.md` — **ThePunisher-LocalizationProjectWorkflowManagementExpert**: localization project-workflow management engineering.
+- `interpretation-translation-services-tech/thepunisher-translationwordcountbillinginvoicingexpert.md` — **ThePunisher-TranslationWordCountBillingInvoicingExpert**: translation word-count billing and invoicing-systems engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterondemandbookingappexpert.md` — **ThePunisher-InterpreterOnDemandBookingAppExpert**: interpreter on-demand booking-app engineering.
+- `interpretation-translation-services-tech/thepunisher-signlanguageinterpretationschedulingsystemsexpert.md` — **ThePunisher-SignLanguageInterpretationSchedulingSystemsExpert**: sign-language interpretation scheduling-systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationterminologyglossarymanagementexpert.md` — **ThePunisher-TranslationTerminologyGlossaryManagementExpert**: translation terminology and glossary-management engineering.
+- `interpretation-translation-services-tech/thepunisher-healthcareinterpretationtitlevicomplianceexpert.md` — **ThePunisher-HealthcareInterpretationTitleVIComplianceExpert**: healthcare-interpretation Title VI compliance-tracking engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterperformanceratingqasystemsexpert.md` — **ThePunisher-InterpreterPerformanceRatingQASystemsExpert**: interpreter performance-rating and QA-systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationcattoolintegrationexpert.md` — **ThePunisher-TranslationCATToolIntegrationExpert**: translation CAT-tool integration engineering.
+- `interpretation-translation-services-tech/thepunisher-conferenceinterpretationboothequipmentmanagementexpert.md` — **ThePunisher-ConferenceInterpretationBoothEquipmentManagementExpert**: conference-interpretation booth equipment-management engineering.
+- `interpretation-translation-services-tech/thepunisher-translationclientportalfileexchangeexpert.md` — **ThePunisher-TranslationClientPortalFileExchangeExpert**: translation client-portal and file-exchange engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreteremergencycrisisresponsedispatchexpert.md` — **ThePunisher-InterpreterEmergencyCrisisResponseDispatchExpert**: interpreter emergency/crisis-response dispatch engineering.
+- `interpretation-translation-services-tech/thepunisher-multilingualdocumentformattingautomationexpert.md` — **ThePunisher-MultilingualDocumentFormattingAutomationExpert**: multilingual document-formatting automation engineering.
+- `interpretation-translation-services-tech/thepunisher-translationagencymultivendorratemanagementexpert.md` — **ThePunisher-TranslationAgencyMultiVendorRateManagementExpert**: translation-agency multi-vendor rate-management engineering.
+- `interpretation-translation-services-tech/thepunisher-interpretercredentialverificationsystemsexpert.md` — **ThePunisher-InterpreterCredentialVerificationSystemsExpert**: interpreter credential-verification systems engineering.
+- `interpretation-translation-services-tech/thepunisher-subtitleclosedcaptiontranslationworkflowexpert.md` — **ThePunisher-SubtitleClosedCaptionTranslationWorkflowExpert**: subtitle and closed-caption translation-workflow engineering.
+- `interpretation-translation-services-tech/thepunisher-translationmachineassistedposteditingworkflowexpert.md` — **ThePunisher-TranslationMachineAssistedPostEditingWorkflowExpert**: translation machine-assisted post-editing (MTPE) workflow engineering, distinct from Team 28's underlying machine-translation model engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterschedulingconflictresolutionsystemsexpert.md` — **ThePunisher-InterpreterSchedulingConflictResolutionSystemsExpert**: interpreter scheduling-conflict resolution systems engineering.
+- `interpretation-translation-services-tech/thepunisher-communityinterpretervolunteercoordinationexpert.md` — **ThePunisher-CommunityInterpreterVolunteerCoordinationExpert**: community-interpreter volunteer-coordination engineering.
+- `interpretation-translation-services-tech/thepunisher-translationiso17100compliancetrackingexpert.md` — **ThePunisher-TranslationISO17100ComplianceTrackingExpert**: translation-industry ISO 17100 compliance-tracking engineering.
+- `interpretation-translation-services-tech/thepunisher-interpretermobileappfieldassignmentsexpert.md` — **ThePunisher-InterpreterMobileAppFieldAssignmentsExpert**: interpreter mobile-app engineering for field assignments.
+- `interpretation-translation-services-tech/thepunisher-translationagencyclientrelationshipmanagementexpert.md` — **ThePunisher-TranslationAgencyClientRelationshipManagementExpert**: translation-agency client-relationship-management engineering.
+- `interpretation-translation-services-tech/thepunisher-multilingualvoiceoverproductionworkflowexpert.md` — **ThePunisher-MultilingualVoiceOverProductionWorkflowExpert**: multilingual voice-over production-workflow engineering.
+- `interpretation-translation-services-tech/thepunisher-interpretercancellationnoshowtrackingexpert.md` — **ThePunisher-InterpreterCancellationNoShowTrackingExpert**: interpreter cancellation and no-show tracking engineering.
+- `interpretation-translation-services-tech/thepunisher-translationrushorderpriorityqueuesystemsexpert.md` — **ThePunisher-TranslationRushOrderPriorityQueueSystemsExpert**: translation rush-order priority-queue systems engineering.
+- `interpretation-translation-services-tech/thepunisher-interpretercontinuingeducationtrackingexpert.md` — **ThePunisher-InterpreterContinuingEducationTrackingExpert**: interpreter continuing-education tracking systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationagencyfinancialreportingsystemsexpert.md` — **ThePunisher-TranslationAgencyFinancialReportingSystemsExpert**: translation-agency financial-reporting systems engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterlanguageaccessplancomplianceexpert.md` — **ThePunisher-InterpreterLanguageAccessPlanComplianceExpert**: interpreter Language Access Plan compliance-systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationstyleguideenforcementautomationexpert.md` — **ThePunisher-TranslationStyleGuideEnforcementAutomationExpert**: translation style-guide enforcement automation engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterrealtimeavailabilitycalendarexpert.md` — **ThePunisher-InterpreterRealTimeAvailabilityCalendarExpert**: interpreter real-time availability-calendar systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationagencywebsitelocalizationexpert.md` — **ThePunisher-TranslationAgencyWebsiteLocalizationExpert**: translation-agency multi-language website-localization engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterbackgroundcheckvettingsystemsexpert.md` — **ThePunisher-InterpreterBackgroundCheckVettingSystemsExpert**: interpreter background-check and vetting-systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationdesktoppublishingdtpworkflowexpert.md` — **ThePunisher-TranslationDesktopPublishingDTPWorkflowExpert**: translation Desktop Publishing (DTP) workflow engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterassignmentfeedbackloopsystemsexpert.md` — **ThePunisher-InterpreterAssignmentFeedbackLoopSystemsExpert**: interpreter assignment feedback-loop systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationagencygovernmentcontractcomplianceexpert.md` — **ThePunisher-TranslationAgencyGovernmentContractComplianceExpert**: translation-agency government-contract compliance engineering.
+- `interpretation-translation-services-tech/thepunisher-interpretertravelexpensereimbursementsystemsexpert.md` — **ThePunisher-InterpreterTravelExpenseReimbursementSystemsExpert**: interpreter travel and expense-reimbursement systems engineering.
+- `interpretation-translation-services-tech/thepunisher-translationconfidentialityndamanagementexpert.md` — **ThePunisher-TranslationConfidentialityNDAManagementExpert**: translation confidentiality and NDA-management engineering.
+- `interpretation-translation-services-tech/thepunisher-interpreterskillstestingcertificationprepexpert.md` — **ThePunisher-InterpreterSkillsTestingCertificationPrepExpert**: interpreter skills-testing and certification-prep engineering.
+- `interpretation-translation-services-tech/thepunisher-translationagencycapacityplanningsystemsexpert.md` — **ThePunisher-TranslationAgencyCapacityPlanningSystemsExpert**: translation-agency capacity-planning systems engineering.
+
+## Team 98 — Notary & Signing Services Technology Engineering (50 agents)
+
+- `notary-signing-services-tech/thepunisher-mobilenotaryscheduledispatchsystemsexpert.md` — **ThePunisher-MobileNotaryScheduleDispatchSystemsExpert**: mobile-notary scheduling and dispatch systems engineering.
+- `notary-signing-services-tech/thepunisher-remoteonlinenotarizationronplatformexpert.md` — **ThePunisher-RemoteOnlineNotarizationRONPlatformExpert**: Remote Online Notarization (RON) platform engineering, distinct from Team 54's single legal-industry-integration-focused notarization agent.
+- `notary-signing-services-tech/thepunisher-loansigningservicemarketplaceplatformexpert.md` — **ThePunisher-LoanSigningServiceMarketplacePlatformExpert**: loan-signing-service marketplace platform engineering.
+- `notary-signing-services-tech/thepunisher-notarycommissioneoinsurancetrackingexpert.md` — **ThePunisher-NotaryCommissionEOInsuranceTrackingExpert**: notary commission and Errors & Omissions (E&O) insurance tracking engineering.
+- `notary-signing-services-tech/thepunisher-signingagentcertificationbackgroundcheckexpert.md` — **ThePunisher-SigningAgentCertificationBackgroundCheckExpert**: signing-agent certification and background-check systems engineering.
+- `notary-signing-services-tech/thepunisher-eclosingcoordinationplatformexpert.md` — **ThePunisher-EClosingCoordinationPlatformExpert**: e-closing coordination platform engineering.
+- `notary-signing-services-tech/thepunisher-notaryjournalrecordkeepingsystemsexpert.md` — **ThePunisher-NotaryJournalRecordKeepingSystemsExpert**: notary journal and record-keeping systems engineering.
+- `notary-signing-services-tech/thepunisher-signingservicedocumentpackagetrackingexpert.md` — **ThePunisher-SigningServiceDocumentPackageTrackingExpert**: signing-service document-package tracking engineering.
+- `notary-signing-services-tech/thepunisher-notarypubliccompliancestatetrackingexpert.md` — **ThePunisher-NotaryPublicComplianceStateTrackingExpert**: notary-public compliance tracking engineering (state-by-state).
+- `notary-signing-services-tech/thepunisher-realestateclosingdocumentdeliverysystemsexpert.md` — **ThePunisher-RealEstateClosingDocumentDeliverySystemsExpert**: real-estate closing document-delivery systems engineering.
+- `notary-signing-services-tech/thepunisher-notaryfeeinvoicemanagementsystemsexpert.md` — **ThePunisher-NotaryFeeInvoiceManagementSystemsExpert**: notary fee and invoice-management systems engineering.
+- `notary-signing-services-tech/thepunisher-signingagentgpsappointmentverificationexpert.md` — **ThePunisher-SigningAgentGPSAppointmentVerificationExpert**: signing-agent GPS and appointment-verification engineering.
+- `notary-signing-services-tech/thepunisher-notaryidentityverificationkbaintegrationexpert.md` — **ThePunisher-NotaryIdentityVerificationKBAIntegrationExpert**: notary identity-verification (KBA) integration engineering.
+- `notary-signing-services-tech/thepunisher-signingserviceclientportalexpert.md` — **ThePunisher-SigningServiceClientPortalExpert**: signing-service client-portal engineering.
+- `notary-signing-services-tech/thepunisher-notarysessionvideorecordingretentionexpert.md` — **ThePunisher-NotarySessionVideoRecordingRetentionExpert**: notary-session video-recording and retention systems engineering.
+- `notary-signing-services-tech/thepunisher-mobilenotaryrouteoptimizationexpert.md` — **ThePunisher-MobileNotaryRouteOptimizationExpert**: mobile-notary route-optimization engineering.
+- `notary-signing-services-tech/thepunisher-signingagentqualityscoreratingsystemsexpert.md` — **ThePunisher-SigningAgentQualityScoreRatingSystemsExpert**: signing-agent quality-score and rating-systems engineering.
+- `notary-signing-services-tech/thepunisher-notarystampsealdigitalcertificatemanagementexpert.md` — **ThePunisher-NotaryStampSealDigitalCertificateManagementExpert**: notary digital stamp/seal certificate-management engineering.
+- `notary-signing-services-tech/thepunisher-loandocumentshippingreturntrackingexpert.md` — **ThePunisher-LoanDocumentShippingReturnTrackingExpert**: loan-document shipping and return-tracking engineering.
+- `notary-signing-services-tech/thepunisher-notarypublicbondrenewaltrackingexpert.md` — **ThePunisher-NotaryPublicBondRenewalTrackingExpert**: notary-public surety-bond renewal-tracking engineering.
+- `notary-signing-services-tech/thepunisher-signingservicemultistatecoveragenetworkexpert.md` — **ThePunisher-SigningServiceMultiStateCoverageNetworkExpert**: signing-service multi-state coverage-network engineering.
+- `notary-signing-services-tech/thepunisher-notaryappointmentreschedulingcancellationexpert.md` — **ThePunisher-NotaryAppointmentReschedulingCancellationExpert**: notary appointment rescheduling and cancellation-systems engineering.
+- `notary-signing-services-tech/thepunisher-enotarizationaudittrailcomplianceexpert.md` — **ThePunisher-ENotarizationAuditTrailComplianceExpert**: e-notarization audit-trail compliance engineering.
+- `notary-signing-services-tech/thepunisher-signingagentonboardingtrainingsystemsexpert.md` — **ThePunisher-SigningAgentOnboardingTrainingSystemsExpert**: signing-agent onboarding and training-systems engineering.
+- `notary-signing-services-tech/thepunisher-notarypublicdirectorysearchplatformexpert.md` — **ThePunisher-NotaryPublicDirectorySearchPlatformExpert**: notary-public directory and search-platform engineering.
+- `notary-signing-services-tech/thepunisher-realestatetitlecompanyintegrationexpert.md` — **ThePunisher-RealEstateTitleCompanyIntegrationExpert**: real-estate title-company integration engineering.
+- `notary-signing-services-tech/thepunisher-notarysessionfrauddetectionsystemsexpert.md` — **ThePunisher-NotarySessionFraudDetectionSystemsExpert**: notary-session fraud-detection systems engineering.
+- `notary-signing-services-tech/thepunisher-signingservicepaymentpayoutsystemsexpert.md` — **ThePunisher-SigningServicePaymentPayoutSystemsExpert**: signing-service payment-processing and payout-systems engineering.
+- `notary-signing-services-tech/thepunisher-notarypubliccontinuingeducationtrackingexpert.md` — **ThePunisher-NotaryPublicContinuingEducationTrackingExpert**: notary-public continuing-education tracking engineering.
+- `notary-signing-services-tech/thepunisher-loansigningpackageprintondemandsystemsexpert.md` — **ThePunisher-LoanSigningPackagePrintOnDemandSystemsExpert**: loan-signing package print-on-demand systems engineering.
+- `notary-signing-services-tech/thepunisher-notaryappointmentconfirmationreminderexpert.md` — **ThePunisher-NotaryAppointmentConfirmationReminderExpert**: notary appointment confirmation-and-reminder systems engineering.
+- `notary-signing-services-tech/thepunisher-signingservicevendormanagementportalexpert.md` — **ThePunisher-SigningServiceVendorManagementPortalExpert**: signing-service vendor-management portal engineering.
+- `notary-signing-services-tech/thepunisher-notarypublicstateregistryintegrationexpert.md` — **ThePunisher-NotaryPublicStateRegistryIntegrationExpert**: notary-public state-registry integration engineering.
+- `notary-signing-services-tech/thepunisher-wetsignatureinkverificationsystemsexpert.md` — **ThePunisher-WetSignatureInkVerificationSystemsExpert**: wet-signature ink-verification systems engineering.
+- `notary-signing-services-tech/thepunisher-signingagentcapacitycoverageheatmapexpert.md` — **ThePunisher-SigningAgentCapacityCoverageHeatmapExpert**: signing-agent capacity-and-coverage heatmap engineering.
+- `notary-signing-services-tech/thepunisher-notarypubliceoclaimstrackingexpert.md` — **ThePunisher-NotaryPublicEOClaimsTrackingExpert**: notary-public Errors & Omissions claims-tracking engineering.
+- `notary-signing-services-tech/thepunisher-realestatebuyersellersigningcoordinationexpert.md` — **ThePunisher-RealEstateBuyerSellerSigningCoordinationExpert**: real-estate buyer/seller signing-coordination engineering.
+- `notary-signing-services-tech/thepunisher-notarypublicmultilanguagesessionsupportexpert.md` — **ThePunisher-NotaryPublicMultiLanguageSessionSupportExpert**: notary-public multi-language session-support engineering.
+- `notary-signing-services-tech/thepunisher-signingserviceslaturnaroundanalyticsexpert.md` — **ThePunisher-SigningServiceSLATurnaroundAnalyticsExpert**: signing-service SLA and turnaround-time analytics engineering.
+- `notary-signing-services-tech/thepunisher-notarysessionrecordingstorageretrievalexpert.md` — **ThePunisher-NotarySessionRecordingStorageRetrievalExpert**: notary-session recording storage-and-retrieval systems engineering.
+- `notary-signing-services-tech/thepunisher-digitalsignaturesequencingworkflowexpert.md` — **ThePunisher-DigitalSignatureSequencingWorkflowExpert**: digital-signature sequencing and workflow engineering.
+- `notary-signing-services-tech/thepunisher-notarypublicapostilleauthenticationtrackingexpert.md` — **ThePunisher-NotaryPublicApostilleAuthenticationTrackingExpert**: notary-public apostille-and-authentication tracking engineering.
+- `notary-signing-services-tech/thepunisher-signingagentcontractortax1099systemsexpert.md` — **ThePunisher-SigningAgentContractorTax1099SystemsExpert**: signing-agent independent-contractor tax (1099) systems engineering.
+- `notary-signing-services-tech/thepunisher-notarypublicsessionconsentdisclosureexpert.md` — **ThePunisher-NotaryPublicSessionConsentDisclosureExpert**: notary-public session consent-and-disclosure systems engineering.
+- `notary-signing-services-tech/thepunisher-loansigningservicelenderintegrationexpert.md` — **ThePunisher-LoanSigningServiceLenderIntegrationExpert**: loan-signing-service lender-integration engineering.
+- `notary-signing-services-tech/thepunisher-notarypublictrustaccountcomplianceexpert.md` — **ThePunisher-NotaryPublicTrustAccountComplianceExpert**: notary-public trust-account compliance engineering.
+- `notary-signing-services-tech/thepunisher-signingserviceescrowofficercommunicationexpert.md` — **ThePunisher-SigningServiceEscrowOfficerCommunicationExpert**: signing-service escrow-officer communication-systems engineering.
+- `notary-signing-services-tech/thepunisher-notarypublicreschedulingpenaltysystemsexpert.md` — **ThePunisher-NotaryPublicReschedulingPenaltySystemsExpert**: notary-public session rescheduling-penalty systems engineering.
+- `notary-signing-services-tech/thepunisher-mobilenotaryequipmentsupplyinventoryexpert.md` — **ThePunisher-MobileNotaryEquipmentSupplyInventoryExpert**: mobile-notary equipment and supply inventory-systems engineering.
+- `notary-signing-services-tech/thepunisher-notarypublicmarketanalyticsplatformexpert.md` — **ThePunisher-NotaryPublicMarketAnalyticsPlatformExpert**: notary-public industry market-analytics platform engineering.
+
+## Team 99 — Home Security & Alarm Monitoring Technology Engineering (50 agents)
+
+- `home-security-alarm-monitoring-tech/thepunisher-centralstationalarmmonitoringsoftwareexpert.md` — **ThePunisher-CentralStationAlarmMonitoringSoftwareExpert**: central-station alarm-monitoring software engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmsignalprotocolprocessingexpert.md` — **ThePunisher-AlarmSignalProtocolProcessingExpert**: alarm-signal protocol processing engineering (Contact ID/SIA).
+- `home-security-alarm-monitoring-tech/thepunisher-videoverificationalarmresponsesystemsexpert.md` — **ThePunisher-VideoVerificationAlarmResponseSystemsExpert**: video-verification alarm-response systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecurityinstallationschedulingexpert.md` — **ThePunisher-HomeSecurityInstallationSchedulingExpert**: home-security-system installation scheduling engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmdealermanagementsystemsexpert.md` — **ThePunisher-AlarmDealerManagementSystemsExpert**: alarm-dealer management-systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitypanelprogrammingremoteconfigexpert.md` — **ThePunisher-SecurityPanelProgrammingRemoteConfigExpert**: security-panel programming and remote-configuration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringdispatchtopoliceintegrationexpert.md` — **ThePunisher-AlarmMonitoringDispatchToPoliceIntegrationExpert**: alarm-monitoring dispatch-to-police integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecurityselfmonitoringappexpert.md` — **ThePunisher-HomeSecuritySelfMonitoringAppExpert**: home-security customer self-monitoring app engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmsystemfalsealarmreductionanalyticsexpert.md` — **ThePunisher-AlarmSystemFalseAlarmReductionAnalyticsExpert**: alarm-system false-alarm-reduction analytics engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysensornetworkhealthmonitoringexpert.md` — **ThePunisher-SecuritySensorNetworkHealthMonitoringExpert**: security-sensor-network health-monitoring engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringcentralstationulcomplianceexpert.md` — **ThePunisher-AlarmMonitoringCentralStationULComplianceExpert**: alarm-monitoring central-station UL-compliance engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecuritysubscriberbillingrmrsystemsexpert.md` — **ThePunisher-HomeSecuritySubscriberBillingRMRSystemsExpert**: home-security subscriber billing and recurring-monthly-revenue (RMR) systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystemtwowayvoiceintegrationexpert.md` — **ThePunisher-SecuritySystemTwoWayVoiceIntegrationExpert**: security-system two-way-voice integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringbackupcommunicationpathexpert.md` — **ThePunisher-AlarmMonitoringBackupCommunicationPathExpert**: alarm-monitoring backup communication-path systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecuritytechnicianfieldservicesystemsexpert.md` — **ThePunisher-HomeSecurityTechnicianFieldServiceSystemsExpert**: home-security technician field-service systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitycameranvrdvrintegrationexpert.md` — **ThePunisher-SecurityCameraNVRDVRIntegrationExpert**: security-camera NVR/DVR integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringoperatorconsolesystemsexpert.md` — **ThePunisher-AlarmMonitoringOperatorConsoleSystemsExpert**: alarm-monitoring operator-console systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecurityaccesscontrolintegrationexpert.md` — **ThePunisher-HomeSecurityAccessControlIntegrationExpert**: home-security access-control integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmsignalcellularbackupsystemsexpert.md` — **ThePunisher-AlarmSignalCellularBackupSystemsExpert**: alarm-signal cellular-backup systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystempanicbuttonduressalertexpert.md` — **ThePunisher-SecuritySystemPanicButtonDuressAlertExpert**: security-system panic-button/duress-alert engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringcentralstationredundancyexpert.md` — **ThePunisher-AlarmMonitoringCentralStationRedundancyExpert**: alarm-monitoring central-station redundancy-systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecuritysmarthomeintegrationexpert.md` — **ThePunisher-HomeSecuritySmartHomeIntegrationExpert**: home-security smart-home integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmdealerportalaccountmanagementexpert.md` — **ThePunisher-AlarmDealerPortalAccountManagementExpert**: alarm-dealer portal and account-management engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystemwarrantyservicecontractexpert.md` — **ThePunisher-SecuritySystemWarrantyServiceContractExpert**: security-system warranty and service-contract systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringoperatortrainingsystemsexpert.md` — **ThePunisher-AlarmMonitoringOperatorTrainingSystemsExpert**: alarm-monitoring central-station operator training-systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecurityfiresmokedetectionintegrationexpert.md` — **ThePunisher-HomeSecurityFireSmokeDetectionIntegrationExpert**: home-security fire/smoke-detection integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringcallhandlinganalyticsexpert.md` — **ThePunisher-AlarmMonitoringCallHandlingAnalyticsExpert**: alarm-monitoring central-station call-handling analytics engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystemenvironmentalsensormonitoringexpert.md` — **ThePunisher-SecuritySystemEnvironmentalSensorMonitoringExpert**: security-system environmental-sensor monitoring engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringfivediamondcertificationtrackingexpert.md` — **ThePunisher-AlarmMonitoringFiveDiamondCertificationTrackingExpert**: alarm-monitoring central-station certification-tracking engineering (Five Diamond-style).
+- `home-security-alarm-monitoring-tech/thepunisher-homesecurityremotediagnosticsexpert.md` — **ThePunisher-HomeSecurityRemoteDiagnosticsExpert**: home-security-system remote-diagnostics engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringcontractterminationmanagementexpert.md` — **ThePunisher-AlarmMonitoringContractTerminationManagementExpert**: alarm-monitoring contract and termination-management systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystemwirelesssensorbatterymonitoringexpert.md` — **ThePunisher-SecuritySystemWirelessSensorBatteryMonitoringExpert**: security-system wireless-sensor battery-monitoring engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringdisasterrecoverysystemsexpert.md` — **ThePunisher-AlarmMonitoringDisasterRecoverySystemsExpert**: alarm-monitoring central-station disaster-recovery systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecurityneighborhoodwatchintegrationexpert.md` — **ThePunisher-HomeSecurityNeighborhoodWatchIntegrationExpert**: home-security neighborhood-watch integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringmultisitefederationexpert.md` — **ThePunisher-AlarmMonitoringMultiSiteFederationExpert**: alarm-monitoring central-station multi-site federation engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystemguardtourpatrolverificationexpert.md` — **ThePunisher-SecuritySystemGuardTourPatrolVerificationExpert**: security-system guard-tour and patrol-verification engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringaitriagesystemsexpert.md` — **ThePunisher-AlarmMonitoringAITriageSystemsExpert**: alarm-monitoring central-station AI-triage systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecurityinsurancediscountverificationexpert.md` — **ThePunisher-HomeSecurityInsuranceDiscountVerificationExpert**: home-security insurance-discount verification-integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringcompliancereportingexpert.md` — **ThePunisher-AlarmMonitoringComplianceReportingExpert**: alarm-monitoring central-station compliance-reporting engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystemdealerwholesaleorderingexpert.md` — **ThePunisher-SecuritySystemDealerWholesaleOrderingExpert**: security-system dealer wholesale-ordering systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringuptimeslamonitoringexpert.md` — **ThePunisher-AlarmMonitoringUptimeSLAMonitoringExpert**: alarm-monitoring central-station uptime-SLA monitoring engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecuritysubscriberretentionanalyticsexpert.md` — **ThePunisher-HomeSecuritySubscriberRetentionAnalyticsExpert**: home-security subscriber-retention analytics engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringmultilanguageoperatorsupportexpert.md` — **ThePunisher-AlarmMonitoringMultiLanguageOperatorSupportExpert**: alarm-monitoring central-station multi-language operator-support engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystemendoflifeequipmentmigrationexpert.md` — **ThePunisher-SecuritySystemEndOfLifeEquipmentMigrationExpert**: security-system end-of-life equipment-migration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringregulatorylicensingtrackingexpert.md` — **ThePunisher-AlarmMonitoringRegulatoryLicensingTrackingExpert**: alarm-monitoring central-station regulatory-licensing tracking engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecuritymarketingleadgenerationsystemsexpert.md` — **ThePunisher-HomeSecurityMarketingLeadGenerationSystemsExpert**: home-security marketing lead-generation systems engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringvendorinterconnectexpert.md` — **ThePunisher-AlarmMonitoringVendorInterconnectExpert**: alarm-monitoring central-station vendor-interconnect engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-securitysystemcommercialfirealarmintegrationexpert.md` — **ThePunisher-SecuritySystemCommercialFireAlarmIntegrationExpert**: security-system commercial fire-alarm integration engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-alarmmonitoringhistoricalsignalanalyticsexpert.md` — **ThePunisher-AlarmMonitoringHistoricalSignalAnalyticsExpert**: alarm-monitoring central-station historical signal-analytics engineering.
+- `home-security-alarm-monitoring-tech/thepunisher-homesecurityuninstallationdeactivationsystemsexpert.md` — **ThePunisher-HomeSecurityUninstallationDeactivationSystemsExpert**: home-security-system uninstallation and deactivation systems engineering.
+
+## Team 100 — Franchise Business Operations Technology Engineering (50 agents)
+
+- `franchise-business-ops-tech/thepunisher-franchisedisclosuredocumentmanagementsystemsexpert.md` — **ThePunisher-FranchiseDisclosureDocumentManagementSystemsExpert**: Franchise Disclosure Document (FDD) management-systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseleadgenerationsalescrmexpert.md` — **ThePunisher-FranchiseLeadGenerationSalesCRMExpert**: franchise lead-generation and sales-CRM engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseeonboardingtraininglmsexpert.md` — **ThePunisher-FranchiseeOnboardingTrainingLMSExpert**: franchisee onboarding and training-LMS engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseterritoryareadevelopmentmappingexpert.md` — **ThePunisher-FranchiseTerritoryAreaDevelopmentMappingExpert**: franchise territory and area-development mapping engineering.
+- `franchise-business-ops-tech/thepunisher-multibrandfranchiseportfoliomanagementexpert.md` — **ThePunisher-MultiBrandFranchisePortfolioManagementExpert**: multi-brand franchise-portfolio management-systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseroyaltycalculationcollectionplatformexpert.md` — **ThePunisher-FranchiseRoyaltyCalculationCollectionPlatformExpert**: franchise royalty calculation-and-collection platform engineering.
+- `franchise-business-ops-tech/thepunisher-franchisecompliancebrandstandardsauditexpert.md` — **ThePunisher-FranchiseComplianceBrandStandardsAuditExpert**: franchise compliance and brand-standards audit-systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseoperationsmanualdigitalpublishingexpert.md` — **ThePunisher-FranchiseOperationsManualDigitalPublishingExpert**: franchise operations-manual digital-publishing engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseeperformancebenchmarkingdashboardexpert.md` — **ThePunisher-FranchiseePerformanceBenchmarkingDashboardExpert**: franchisee performance-benchmarking dashboard engineering.
+- `franchise-business-ops-tech/thepunisher-franchisedevelopmentbrokernetworksystemsexpert.md` — **ThePunisher-FranchiseDevelopmentBrokerNetworkSystemsExpert**: franchise-development broker-network systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiserenewaltransfermanagementexpert.md` — **ThePunisher-FranchiseRenewalTransferManagementExpert**: franchise renewal and transfer-management engineering.
+- `franchise-business-ops-tech/thepunisher-franchisesiteselectiondemographicsanalyticsexpert.md` — **ThePunisher-FranchiseSiteSelectionDemographicsAnalyticsExpert**: franchise site-selection and demographics-analytics engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseecommunicationintranetplatformexpert.md` — **ThePunisher-FranchiseeCommunicationIntranetPlatformExpert**: franchisee communication and intranet-platform engineering.
+- `franchise-business-ops-tech/thepunisher-franchiselegalagreementlifecyclemanagementexpert.md` — **ThePunisher-FranchiseLegalAgreementLifecycleManagementExpert**: franchise legal-agreement lifecycle-management engineering.
+- `franchise-business-ops-tech/thepunisher-franchisemarketingfundadministrationsystemsexpert.md` — **ThePunisher-FranchiseMarketingFundAdministrationSystemsExpert**: franchise marketing-fund administration-systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseefinancialreportingconsolidationexpert.md` — **ThePunisher-FranchiseeFinancialReportingConsolidationExpert**: franchisee financial-reporting consolidation engineering.
+- `franchise-business-ops-tech/thepunisher-franchisecandidatequalificationscoringexpert.md` — **ThePunisher-FranchiseCandidateQualificationScoringExpert**: franchise-candidate qualification-scoring engineering.
+- `franchise-business-ops-tech/thepunisher-franchisegrandopeningsupportsystemsexpert.md` — **ThePunisher-FranchiseGrandOpeningSupportSystemsExpert**: franchise grand-opening support-systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchisemastersubfranchiseagreementtrackingexpert.md` — **ThePunisher-FranchiseMasterSubFranchiseAgreementTrackingExpert**: franchise master/sub-franchise agreement-tracking engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseesatisfactionsurveycouncilsystemsexpert.md` — **ThePunisher-FranchiseeSatisfactionSurveyCouncilSystemsExpert**: franchisee satisfaction-survey and franchise-council systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchisetrademarkiplicensingtrackingexpert.md` — **ThePunisher-FranchiseTrademarkIPLicensingTrackingExpert**: franchise trademark and IP-licensing tracking engineering.
+- `franchise-business-ops-tech/thepunisher-franchisebuildoutconstructionapprovalsystemsexpert.md` — **ThePunisher-FranchiseBuildOutConstructionApprovalSystemsExpert**: franchise build-out and construction-approval systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseelocalmarketingcoopmanagementexpert.md` — **ThePunisher-FranchiseeLocalMarketingCoOpManagementExpert**: franchisee local marketing co-op management-systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseitem19financialperformancesystemsexpert.md` — **ThePunisher-FranchiseItem19FinancialPerformanceSystemsExpert**: franchise Item 19 financial-performance-representation systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseinternationalexpansioncompliancetrackingexpert.md` — **ThePunisher-FranchiseInternationalExpansionComplianceTrackingExpert**: franchise international-expansion compliance-tracking engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseesupportticketfieldconsultantsystemsexpert.md` — **ThePunisher-FranchiseeSupportTicketFieldConsultantSystemsExpert**: franchisee support-ticket and field-consultant systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseresaletransfermarketplaceplatformexpert.md` — **ThePunisher-FranchiseResaleTransferMarketplacePlatformExpert**: franchise resale-and-transfer marketplace platform engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseuniteconomicsmodelingsoftwareexpert.md` — **ThePunisher-FranchiseUnitEconomicsModelingSoftwareExpert**: franchise unit-economics modeling software engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseevendorapprovedsupplierdirectoryexpert.md` — **ThePunisher-FranchiseeVendorApprovedSupplierDirectoryExpert**: franchisee vendor and approved-supplier directory engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseregistrationstatecompliancetrackingexpert.md` — **ThePunisher-FranchiseRegistrationStateComplianceTrackingExpert**: franchise registration state-compliance tracking engineering (FTC Franchise Rule).
+- `franchise-business-ops-tech/thepunisher-franchiseerecruitmentdiscoverydaysystemsexpert.md` — **ThePunisher-FranchiseeRecruitmentDiscoveryDaySystemsExpert**: franchisee recruitment event and discovery-day systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchisebrandconsistencyauditphotoverificationexpert.md` — **ThePunisher-FranchiseBrandConsistencyAuditPhotoVerificationExpert**: franchise brand-consistency audit photo-verification engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseeexitsuccessionplanningsystemsexpert.md` — **ThePunisher-FranchiseeExitSuccessionPlanningSystemsExpert**: franchisee exit-and-succession planning systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchisedevelopmentpipelinecrmexpert.md` — **ThePunisher-FranchiseDevelopmentPipelineCRMExpert**: franchise-development pipeline-CRM engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseeequipmentfixtureorderingsystemsexpert.md` — **ThePunisher-FranchiseeEquipmentFixtureOrderingSystemsExpert**: franchisee equipment-and-fixture ordering systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseannualconventioneventmanagementexpert.md` — **ThePunisher-FranchiseAnnualConventionEventManagementExpert**: franchise annual-convention and event-management engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseeloansbafinancingreferralsystemsexpert.md` — **ThePunisher-FranchiseeLoanSBAFinancingReferralSystemsExpert**: franchisee loan and SBA-financing referral systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchisemultiunitoperatorscalinganalyticsexpert.md` — **ThePunisher-FranchiseMultiUnitOperatorScalingAnalyticsExpert**: franchise multi-unit-operator scaling analytics engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseemysteryshopperprogramsystemsexpert.md` — **ThePunisher-FranchiseeMysteryShopperProgramSystemsExpert**: franchisee mystery-shopper program systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchisebrandadvertisingapprovalworkflowexpert.md` — **ThePunisher-FranchiseBrandAdvertisingApprovalWorkflowExpert**: franchise brand-advertising approval-workflow engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseepeerbenchmarkingnetworksystemsexpert.md` — **ThePunisher-FranchiseePeerBenchmarkingNetworkSystemsExpert**: franchisee peer-benchmarking network systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchisedevelopmentdealpipelineforecastingexpert.md` — **ThePunisher-FranchiseDevelopmentDealPipelineForecastingExpert**: franchise-development deal-pipeline forecasting engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseegrandopeningmarketingkitfulfillmentexpert.md` — **ThePunisher-FranchiseeGrandOpeningMarketingKitFulfillmentExpert**: franchisee grand-opening marketing-kit fulfillment engineering.
+- `franchise-business-ops-tech/thepunisher-franchiselitigationdisputetrackingsystemsexpert.md` — **ThePunisher-FranchiseLitigationDisputeTrackingSystemsExpert**: franchise litigation-and-dispute tracking systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseecultureengagementsurveysystemsexpert.md` — **ThePunisher-FranchiseeCultureEngagementSurveySystemsExpert**: franchisee culture-and-engagement survey systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchisemasterfranchisorreportingdashboardexpert.md` — **ThePunisher-FranchiseMasterFranchisorReportingDashboardExpert**: franchise master-franchisor reporting-dashboard engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseenewunitrampupanalyticsexpert.md` — **ThePunisher-FranchiseeNewUnitRampUpAnalyticsExpert**: franchisee new-unit ramp-up analytics engineering.
+- `franchise-business-ops-tech/thepunisher-franchisedevelopmentdigitalmarketingattributionexpert.md` — **ThePunisher-FranchiseDevelopmentDigitalMarketingAttributionExpert**: franchise-development digital-marketing attribution engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseecontinuingfeereconciliationsystemsexpert.md` — **ThePunisher-FranchiseeContinuingFeeReconciliationSystemsExpert**: franchisee continuing-fee reconciliation systems engineering.
+- `franchise-business-ops-tech/thepunisher-franchiseindustrybenchmarkanalyticsplatformexpert.md` — **ThePunisher-FranchiseIndustryBenchmarkAnalyticsPlatformExpert**: franchise-industry benchmark analytics-platform engineering.

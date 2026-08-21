@@ -1,10 +1,10 @@
 {
-  "bundle_version": "1.4.0",
+  "bundle_version": "1.5.0",
   "source_repo": "ThePunisherai/ThePunisher-Agent",
-  "source_version": "1.67.0",
-  "generated": "2026-08-20",
-  "note": "Team leads + curated skills + memory hooks + the built-in project tracker, pre-installed into PulsarIDE. The 5,050 specialist subagents are deliberately NOT bundled: deploying them all as native subagents blows Claude Code's ~15k-token agent-description budget (ThePunisher-Agent's own hard-won lesson). Team leads route to specialists on demand. The tracker (plan CLI + planide package + planide MCP server) lets agents read and update each project's .planide/state.json board directly, so the IDE's Tracker tab reflects agent work live.",
-  "team_leads": 101,
+  "source_version": "1.77.0",
+  "generated": "2026-08-21",
+  "note": "Team leads + curated skills + memory hooks + the built-in project tracker deploy natively; the FULL ThePunisher roster (5,374 specialist + growth subagents, 472 vendored agents) and the FULL skills-library (9 libraries) ship alongside as on-disk DATA. Only the 15 core generalist team leads register as native subagents and only the curated skills deploy into ~/.claude/skills -- deploying all of them blows Claude Code's ~15k-token agent-description budget (ThePunisher-Agent's own hard-won lesson). Everything else is reached on demand by the Council skill / router at zero context cost. The tracker (plan CLI + planide package + planide MCP server) lets agents read and update each project's .planide/state.json board directly.",
+  "team_leads": 100,
   "skills": 49,
   "orchestration_skills": [
     "council",
@@ -212,5 +212,17 @@
   "teams_on_disk": {
     "note": "All 100 team leads are deployed to ~/.config/pulsaride/teams/ as DATA (zero context cost). The `council` skill greps them to route a task to a domain-vertical team and adopt its persona inline -- that is how the 85 non-core teams stay reachable without registering them as native subagents.",
     "path": "~/.config/pulsaride/teams"
-  }
+  },
+  "specialists_on_disk": 5374,
+  "vendored_agents_on_disk": 472,
+  "skills_library_files": 9182,
+  "data_paths": {
+    "note": "Deployed as pure on-disk DATA under the IDE's config dir; nothing is loaded until the Council skill / router reads one on demand (zero context cost). This is how 'all agents + all skills pre-built in' coexists with the ~15k agent-description budget.",
+    "specialists": "~/.config/pulsaride/specialists",
+    "vendored_agents": "~/.config/pulsaride/vendored-agents",
+    "skills_library": "~/.config/pulsaride/skills-library",
+    "routing": "~/.config/pulsaride/routing (roster.json + router.py)",
+    "teams": "~/.config/pulsaride/teams (all 100 team leads)"
+  },
+  "skills_library_note": "Full 9-library vendored copy, minus demo/benchmark media (sample jpeg/png/gif/mp3 and swebench result dumps) which are not needed to run a skill. Curated subset (skills[]) deploys native by default; the full library is data the Council reaches."
 }

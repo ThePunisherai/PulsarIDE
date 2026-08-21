@@ -37,11 +37,41 @@ Pick by matching the task's real domain against each file's `description:` front
 
 Name the team you picked in one line before you start, so the user can see the routing.
 
+### Going deeper than a team lead — the full roster is on disk
+
+The team lead is the entry point; ThePunisher's **5,374 specialist subagents** and **472
+vendored agents** ship with the IDE too, as plain files. When a task needs a narrower expert
+than the lead, read the matching specialist and adopt it — do not spawn it (same token-budget
+reason: none of these are native subagents).
+
+```
+ls ~/.config/pulsaride/specialists/            # 100 team folders of specialists (+ _growth/)
+ls ~/.config/pulsaride/vendored-agents/        # 4 vendored agent libraries
+grep -ril "<domain keyword>" ~/.config/pulsaride/specialists/<team>/ | head
+```
+
+For a name-based lookup across the whole roster, `~/.config/pulsaride/routing/roster.json` is the
+machine-readable index and `routing/router.py` is ThePunisher's own task→team/agent/skill matcher
+(`python3 ~/.config/pulsaride/routing/router.py "<task text>"`) — use it when the domain is
+unclear instead of guessing a team name.
+
 ## 2. Skills
 
 Match the task against installed skills the same way (`ls ~/.claude/skills/`) and invoke the
 ones that genuinely apply. Prefer a real skill over improvising its content. Do not stack
 skills on a task that does not need them — an obvious one-line change needs no ceremony.
+
+The ~/.claude/skills set is the **curated** subset (deployed native). The **full** vendored
+skills-library — 9 libraries, thousands of skills — ships on disk too:
+
+```
+ls ~/.config/pulsaride/skills-library/                                  # 9 libraries
+grep -ril "<keyword>" ~/.config/pulsaride/skills-library/*/            # find a skill's SKILL.md
+```
+
+When the curated set has nothing that fits, search the full library, read the matching
+`SKILL.md`, and follow it inline. (Demo/benchmark media is stripped from the bundled copy — the
+instructions and code are all there; sample images/audio are not.)
 
 ## 3. Verify before you claim (the part that makes it a Council, not just a router)
 

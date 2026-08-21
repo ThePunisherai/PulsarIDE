@@ -6,6 +6,35 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.16.0] - 2026-08-21
+
+### Added
+- **All of ThePunisher-Agent's agents and skills are now pre-built into the IDE.**
+  The bundle ships the FULL roster — 100 team leads, 5,374 specialist + growth
+  subagents and 472 vendored agents — plus the FULL vendored skills-library (9
+  libraries, thousands of skills). Everything travels with the app and works
+  offline, in every project, for Claude Code, Codex, Gemini CLI and Antigravity.
+- **The Council reaches all of it on demand.** The `council` skill now greps the
+  on-disk specialists, the full skills-library and ThePunisher's own `router.py`
+  (all under `~/.config/pulsaride/`) to route a task to the right specialist or
+  skill and adopt it inline — so the whole roster is usable without any of it
+  costing context.
+- **`ide/sync-agent-bundle.py`** regenerates the bundle from a ThePunisher-Agent
+  checkout, so the IDE ships exactly what the agent system does (this run tracks
+  ThePunisher-Agent v1.77.0, up from the bundle's stale v1.67.0).
+
+### Changed
+- **Still only the 15 core team leads register as native subagents, and only the
+  curated skills deploy into `~/.claude/skills`.** The full roster and
+  skills-library deploy as pure on-disk DATA under `~/.config/pulsaride/`
+  (`specialists/`, `vendored-agents/`, `skills-library/`, `routing/`), loaded only
+  when the Council reads one — so "everything pre-built" adds zero tokens to Claude
+  Code's ~15k agent-description budget. Deploy is reconcile-safe: a later bundle
+  that drops a data root removes the stale copy too.
+- Demo/benchmark media (sample images, audio, swebench result dumps) is stripped
+  from the bundled skills-library — every skill's instructions and code are kept;
+  only the ballast that would bloat the repo is dropped.
+
 ## [0.15.0] - 2026-08-21
 
 ### Added

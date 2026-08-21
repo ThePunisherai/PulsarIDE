@@ -10,10 +10,13 @@
  *
  * Deliberately conservative:
  *
- *  * Only the 101 team leads deploy as native subagents — never the 5,050
- *    specialists. Deploying all of them blows Claude Code's ~15k-token
- *    agent-description budget; that is ThePunisher-Agent's own documented lesson.
- *    A team lead reads and adopts a specialist on demand.
+ *  * Only the 15 CORE team leads deploy as native subagents, and only the curated
+ *    skills deploy into ~/.claude/skills — never the 5,374 specialists, the 472
+ *    vendored agents or the full skills-library. Deploying all of them blows Claude
+ *    Code's ~15k-token agent-description budget; that is ThePunisher-Agent's own
+ *    documented lesson. The FULL roster + skills-library still ship, as on-disk DATA
+ *    under ~/.config/pulsaride, which the Council skill / router reaches on demand at
+ *    zero context cost — so everything is pre-built in without any context tax.
  *  * Version-gated: it redeploys only when the bundled version changes, so a
  *    normal launch pays nothing.
  *  * Reconcile-not-accumulate: it tracks exactly what it wrote in a marker file
@@ -54,6 +57,7 @@ type Marker = {
   hooks: string[] // absolute hook-script paths we wrote
   tracker?: string // deployed tracker root we own
   mcp?: string[] // MCP server names we registered at user scope
+  data?: string[] // on-disk data roots we own (full roster + skills-library + routing)
 }
 
 export type DeployResult = {
@@ -64,6 +68,7 @@ export type DeployResult = {
   hookWired: boolean
   trackerDeployed: boolean
   mcpWired: boolean
+  dataDirs: number
 }
 
 /**
@@ -182,7 +187,8 @@ export function deployAgentBundle(
     skills: 0,
     hookWired: false,
     trackerDeployed,
-    mcpWired
+    mcpWired,
+    dataDirs: 0
   })
   try {
     const root = bundleRoot(opts)
@@ -208,6 +214,7 @@ export function deployAgentBundle(
       for (const p of prev.agents) rmSync(p, { force: true })
       for (const name of prev.skills) rmSync(join(home, '.claude', 'skills', name), { recursive: true, force: true })
       if (prev.tracker) rmSync(prev.tracker, { recursive: true, force: true })
+      for (const d of prev.data ?? []) rmSync(d, { recursive: true, force: true })
     }
 
     // --- agents: team leads -> Claude Code, Gemini CLI, Codex ------------- //
@@ -265,6 +272,24 @@ export function deployAgentBundle(
       cpSync(join(agentDir, file), join(teamsDest, file))
     }
 
+    // --- full agent roster + skills library as DATA (never native) -------- //
+    // Everything ThePunisher-Agent ships travels with the IDE so the Council / router can reach
+    // ANY specialist, vendored agent or skill offline -- but only the core leads + curated
+    // skills above cost context. These are pure on-disk data under the IDE's own config dir;
+    // nothing is loaded until the Council greps or reads one on demand (zero context cost).
+    // That is how "all agents + all skills pre-built in" coexists with Claude Code's ~15k
+    // agent-description budget. Reconcile-safe: each root is rebuilt in place and tracked in the
+    // marker, so a later bundle that drops one removes the stale copy too.
+    const dataRoots: string[] = []
+    for (const name of ['specialists', 'vendored-agents', 'skills-library', 'routing']) {
+      const srcDir = join(root, name)
+      if (!existsSync(srcDir)) continue
+      const destDir = join(configDir(home), name)
+      rmSync(destDir, { recursive: true, force: true })
+      cpSync(srcDir, destDir, { recursive: true })
+      dataRoots.push(destDir)
+    }
+
     // --- skills: curated set incl. orchestration -> Claude Code ----------- //
     const skillsSrc = join(root, 'skills')
     const skillNames = existsSync(skillsSrc)
@@ -295,7 +320,8 @@ export function deployAgentBundle(
       skills: skillNames,
       hooks: hookWired ? [join(configDir(home), 'hooks')] : [],
       tracker: trackerRoot ?? undefined,
-      mcp: mcpWired ? ['planide'] : []
+      mcp: mcpWired ? ['planide'] : [],
+      data: dataRoots
     }
     mkdirSync(configDir(home), { recursive: true })
     writeFileSync(join(configDir(home), 'agent-bundle.json'), JSON.stringify(marker, null, 2))
@@ -307,7 +333,8 @@ export function deployAgentBundle(
       skills: skillNames.length,
       hookWired,
       trackerDeployed: Boolean(trackerRoot),
-      mcpWired
+      mcpWired,
+      dataDirs: dataRoots.length
     }
   } catch (err) {
     // Never break startup.

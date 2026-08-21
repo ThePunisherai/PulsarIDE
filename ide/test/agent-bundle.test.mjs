@@ -65,6 +65,22 @@ ok('tracker instruction injected into agent bodies (Claude + Codex)',
   readFileSync(join(HOME, '.claude/agents/pulsar-council.md'), 'utf8').includes('PulsarIDE built-in tracker') &&
   readFileSync(join(HOME, '.codex/agents/pulsar-council.toml'), 'utf8').includes('PulsarIDE built-in tracker'))
 
+// --- full roster + skills-library as on-disk DATA (never native) ----------- //
+// "vergeet niet alle skills en agents van the punisher agent pre builded erin te zetten":
+// everything ships, but as data the Council reaches -- NOT as native subagents (token budget).
+const dataDir = join(HOME, '.config/pulsaride')
+ok('full roster + skills-library deployed as data',
+  r1.dataDirs === 4 &&
+  existsSync(join(dataDir, 'specialists')) &&
+  existsSync(join(dataDir, 'vendored-agents')) &&
+  existsSync(join(dataDir, 'skills-library')) &&
+  existsSync(join(dataDir, 'routing/roster.json')) &&
+  existsSync(join(dataDir, 'routing/router.py')))
+// the data ships but must NOT inflate native subagents: still only CORE leads in ~/.claude/agents
+ok('specialists ship as data but never as native subagents',
+  readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === CORE &&
+  readdirSync(join(dataDir, 'specialists')).length > 50)
+
 const r2 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('second run is version-gated no-op', r2.deployed === false)
 const s2 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
@@ -76,6 +92,8 @@ const cj3 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
 ok('force redeploy keeps planide MCP + preserves other servers + tracker present',
   r3.mcpWired === true && cj3.mcpServers.planide && cj3.mcpServers.other &&
   existsSync(join(HOME, '.config/pulsaride/tracker/plan')))
+ok('force redeploy keeps the on-disk data roster (reconcile, no accumulation)',
+  r3.dataDirs === 4 && existsSync(join(dataDir, 'skills-library')) && existsSync(join(dataDir, 'specialists')))
 
 // Once the self-contained venv exists, the MCP re-points at its python (which
 // has fastmcp) instead of the system one. Simulate the venv being ready and
