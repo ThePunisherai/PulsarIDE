@@ -21,6 +21,12 @@ is broken, what must not be touched, and what the agents have been doing.
 - **The Tracker sidebar tab opened nothing when clicked.** It was typed, rendered
   and persistence-guarded, but the route normalizer's runtime allowlist never
   included `planide`, so every click snapped back to Explorer. Fixed.
+- **Codex subagents suddenly stopped working.** The bundle's own `README.md` was
+  being deployed as an agent (no `name:`, empty description) into
+  `~/.codex/agents/` — one malformed agent can make Codex reject the whole set.
+  The deploy now ships only real agents (100 team leads). Also hardened the Codex
+  TOML generation to use a literal string for instructions, so a persona body
+  with a regex/hex/Windows path (backslashes) can never break the parse.
 
 ### Added
 - **The Council asks first.** Every main session now starts with the Council's

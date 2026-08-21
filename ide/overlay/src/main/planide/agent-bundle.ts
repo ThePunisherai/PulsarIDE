@@ -150,11 +150,20 @@ function parseAgent(md: string): { name: string; description: string; body: stri
 
 function toToml(md: string): string {
   const { name, description, body } = parseAgent(md)
+  // Single-line basic strings for name/description (short, escape quotes/backslashes).
   const esc = (s: string): string => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  // developer_instructions uses a LITERAL multi-line string ('''…'''), not a basic
+  // one ("""…"""): a basic string interprets backslash escapes, so a persona body
+  // with a regex (\b, \d), a hex byte (\x) or a Windows path would be an invalid
+  // TOML escape and break Codex's parse of that agent. A literal string takes the
+  // body verbatim; its only constraint is it can't contain ''' (rare — swapped for
+  // ' ' '). The 101 current team leads have no backslashes, but the growth pool and
+  // future agents do, so this removes a real latent failure mode.
+  const literalBody = body.replace(/'''/g, "' ' '")
   return (
     `name = "${esc(name)}"\n` +
     `description = "${esc(description)}"\n` +
-    `developer_instructions = """\n${body.replace(/"""/g, '\\"\\"\\"')}\n"""\n`
+    `developer_instructions = '''\n${literalBody}\n'''\n`
   )
 }
 
@@ -210,7 +219,18 @@ export function deployAgentBundle(
 
     // --- agents: team leads -> Claude Code, Gemini CLI, Codex ------------- //
     const agentDir = join(root, 'agents')
-    const agentFiles = readdirSync(agentDir).filter((f) => f.endsWith('.md'))
+    // Only real agents — a .md with a `name:` frontmatter. This excludes the
+    // bundle's own README.md, which was being deployed as a malformed agent
+    // (empty description, generic name) and could make Codex reject the whole
+    // ~/.codex/agents set — the "subagents suddenly stopped working" report.
+    const agentFiles = readdirSync(agentDir).filter((f) => {
+      if (!f.endsWith('.md')) return false
+      try {
+        return /^name:\s*\S/m.test(readFileSync(join(agentDir, f), 'utf8').slice(0, 600))
+      } catch {
+        return false
+      }
+    })
     const wroteAgents: string[] = []
 
     const claudeAgents = join(home, '.claude', 'agents')

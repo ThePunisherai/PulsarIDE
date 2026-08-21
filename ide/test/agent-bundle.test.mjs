@@ -36,10 +36,16 @@ writeFileSync(join(HOME, '.codex/AGENTS.md'), '# My own notes\n\nKeep this.\n')
 
 const r1 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('deploys on first run', r1.deployed === true)
-ok('101 team leads', r1.agents === 101)
+ok('100 team leads (README excluded)', r1.agents === 100)
 ok('48 skills incl. orchestration', r1.skills === 48 && existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) && existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')))
-ok('claude/gemini/codex all get the roster', readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === 101 && readdirSync(join(HOME, '.gemini/agents')).length === 101 && readdirSync(join(HOME, '.codex/agents')).filter(f => f.endsWith('.toml')).length === 101)
+ok('claude/gemini/codex all get the roster', readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === 100 && readdirSync(join(HOME, '.gemini/agents')).length === 100 && readdirSync(join(HOME, '.codex/agents')).filter(f => f.endsWith('.toml')).length === 100)
 try { execSync('python3 -c "import tomllib,sys;[tomllib.load(open(f,\'rb\')) for f in sys.argv[1:]]" ' + readdirSync(join(HOME, '.codex/agents')).map(f => join(HOME, '.codex/agents', f)).join(' ')); ok('every codex toml parses', true) } catch { ok('every codex toml parses', false) }
+ok('README.md is NOT deployed as an agent (would break Codex agent loading)',
+  !existsSync(join(HOME, '.codex/agents/pulsar-README.toml')) &&
+  !existsSync(join(HOME, '.claude/agents/pulsar-README.md')) &&
+  !existsSync(join(HOME, '.gemini/agents/pulsar-README.md')))
+ok('codex toml uses a literal string for instructions (backslash-safe)',
+  readFileSync(join(HOME, '.codex/agents/pulsar-council.toml'), 'utf8').includes("developer_instructions = '''"))
 ok('graphify hook wired per project', r1.hookWired === true && existsSync(join(HOME, '.config/pulsaride/hooks/graphify-bootstrap.sh')))
 const s1 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
 ok('user hook + agent untouched, our hook added', existsSync(join(HOME, '.claude/agents/my-own.md')) && s1.hooks.SessionStart.some(e => JSON.stringify(e).includes('mine.sh')) && s1.hooks.SessionStart.some(e => JSON.stringify(e).includes('graphify-bootstrap.sh')))
@@ -83,7 +89,7 @@ const s2 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
 ok('hook not duplicated', s2.hooks.SessionStart.filter(e => JSON.stringify(e).includes('graphify-bootstrap.sh')).length === 1)
 
 const r3 = deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
-ok('force redeploys without accumulating', r3.deployed === true && readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === 101 && existsSync(join(HOME, '.claude/agents/my-own.md')))
+ok('force redeploys without accumulating', r3.deployed === true && readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === 100 && existsSync(join(HOME, '.claude/agents/my-own.md')))
 const cj3 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
 ok('force redeploy keeps planide MCP + preserves other servers + tracker present',
   r3.mcpWired === true && cj3.mcpServers.planide && cj3.mcpServers.other &&
