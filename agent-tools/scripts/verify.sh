@@ -83,24 +83,29 @@ $P fix done "$PROJ" "$FX" 2>/dev/null | grep -q "fixed" \
   && ok "cli: fix add + done" || bad "cli: fix add/done"
 
 # --- MCP surface ----------------------------------------------------------- #
-# Capture first: the server exits 1 when 'mcp' is absent, which pipefail would
-# otherwise propagate through the grep as a false failure.
-MCPMSG=$(python3 mcp/planide_mcp.py 2>&1 || true)
-echo "$MCPMSG" | grep -q "pip install mcp" \
-  && ok "mcp: graceful message when 'mcp' is absent" || bad "mcp: graceful message"
+# FastMCP moved out of the `mcp` SDK (2.x) into the standalone `fastmcp` package,
+# so planide_mcp accepts either. Capture first: the server exits 1 when neither
+# is present (</dev/null so a present one can't hang on stdin), which pipefail
+# would otherwise propagate through the grep as a false failure.
+MCPMSG=$(python3 mcp/planide_mcp.py </dev/null 2>&1 || true)
+echo "$MCPMSG" | grep -qi "fastmcp" \
+  && ok "mcp: graceful message when FastMCP is absent" || bad "mcp: graceful message"
 
-FAKE=$(mktemp -d); mkdir -p "$FAKE/mcp/server"
-: > "$FAKE/mcp/__init__.py"; : > "$FAKE/mcp/server/__init__.py"
-printf 'class FastMCP:\n    def __init__(self,n): self.tools=[]\n    def tool(self):\n        def d(f): self.tools.append(f.__name__); return f\n        return d\n    def run(self): pass\n' > "$FAKE/mcp/server/fastmcp.py"
+# Fake the standalone `fastmcp` package (the newest-first import path), so this
+# runs the same on any machine regardless of what is really installed.
+FAKE=$(mktemp -d)
+printf 'class FastMCP:\n    def __init__(self,n): self.tools=[]\n    def tool(self):\n        def d(f): self.tools.append(f.__name__); return f\n        return d\n    def run(self,**k): pass\n' > "$FAKE/fastmcp.py"
 PYTHONPATH="$FAKE" python3 -c "
 import importlib.util
 s = importlib.util.spec_from_file_location('m','mcp/planide_mcp.py')
 m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
-assert m.FastMCP.__module__ == 'mcp.server.fastmcp', m.FastMCP.__module__
+assert m.FastMCP.__module__ == 'fastmcp', m.FastMCP.__module__
+assert m._FASTMCP_KIND == 'standalone', m._FASTMCP_KIND
 bad = [t for t in m.mcp.tools if 'verif' in t or 'confirm' in t or 'lock' in t or 'protect' in t]
 assert not bad, bad
+assert 'get_board' in m.mcp.tools and 'set_item' in m.mcp.tools
 " 2>/dev/null \
-  && ok "mcp: loads, and exposes no confirm/protect tool to agents" \
+  && ok "mcp: loads via standalone fastmcp, exposes no confirm/protect tool" \
   || bad "mcp: import or trust-boundary problem"
 rm -rf "$FAKE"
 

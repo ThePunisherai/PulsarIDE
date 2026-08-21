@@ -173,8 +173,26 @@ _LLM_KEY_ENV_VARS = (
 )
 
 
+def _graphify_exe():
+    """Find the graphify CLI. PulsarIDE provisions it into its own isolated venv
+    (~/.config/pulsaride/pyenv), so that comes first -- it works even when the
+    venv's bin dir is not on PATH (the common case for an app-managed venv). Falls
+    back to an explicit override, then a normal PATH lookup for a user who
+    installed graphify themselves."""
+    override = os.environ.get("PULSAR_GRAPHIFY")
+    if override and Path(override).is_file():
+        return override
+    if os.name == "nt":
+        venv = Path.home() / ".config" / "pulsaride" / "pyenv" / "Scripts" / "graphify.exe"
+    else:
+        venv = Path.home() / ".config" / "pulsaride" / "pyenv" / "bin" / "graphify"
+    if venv.is_file() and os.access(str(venv), os.X_OK):
+        return str(venv)
+    return shutil.which("graphify")
+
+
 def graphify_sync(project, project_slug, force=False):
-    executable = shutil.which("graphify")
+    executable = _graphify_exe()
     receipt = {"available": bool(executable), "updated_at": utc_now(), "status": "not-installed"}
     if not executable:
         return receipt

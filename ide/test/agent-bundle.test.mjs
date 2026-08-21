@@ -30,7 +30,7 @@ writeFileSync(join(HOME, '.claude/settings.json'), JSON.stringify({ hooks: { Ses
 // registration must add `planide` without disturbing any of it.
 writeFileSync(join(HOME, '.claude.json'), JSON.stringify({ mcpServers: { other: { command: 'x' } }, projects: { '/p': { allowedTools: [] } } }))
 
-const r1 = deployAgentBundle({ home: HOME, resourcesPath: res })
+const r1 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('deploys on first run', r1.deployed === true)
 ok('101 team leads', r1.agents === 101)
 ok('48 skills incl. orchestration', r1.skills === 48 && existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) && existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')))
@@ -56,17 +56,26 @@ ok('tracker instruction injected into agent bodies (Claude + Codex)',
   readFileSync(join(HOME, '.claude/agents/pulsar-council.md'), 'utf8').includes('PulsarIDE built-in tracker') &&
   readFileSync(join(HOME, '.codex/agents/pulsar-council.toml'), 'utf8').includes('PulsarIDE built-in tracker'))
 
-const r2 = deployAgentBundle({ home: HOME, resourcesPath: res })
+const r2 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('second run is version-gated no-op', r2.deployed === false)
 const s2 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
 ok('hook not duplicated', s2.hooks.SessionStart.filter(e => JSON.stringify(e).includes('graphify-bootstrap.sh')).length === 1)
 
-const r3 = deployAgentBundle({ home: HOME, resourcesPath: res, force: true })
+const r3 = deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
 ok('force redeploys without accumulating', r3.deployed === true && readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === 101 && existsSync(join(HOME, '.claude/agents/my-own.md')))
 const cj3 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
 ok('force redeploy keeps planide MCP + preserves other servers + tracker present',
   r3.mcpWired === true && cj3.mcpServers.planide && cj3.mcpServers.other &&
   existsSync(join(HOME, '.config/pulsaride/tracker/plan')))
+
+// Once the self-contained venv exists, the MCP re-points at its python (which
+// has fastmcp) instead of the system one. Simulate the venv being ready and
+// redeploy — the command must switch to the venv python.
+const venvPy = join(HOME, '.config/pulsaride/pyenv/bin/python')
+mkdirSync(dirname(venvPy), { recursive: true }); writeFileSync(venvPy, '#!/bin/sh\n')
+deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
+const cj4 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
+ok('MCP re-points at the venv python once it exists', cj4.mcpServers.planide.command === venvPy)
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

@@ -6,6 +6,35 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.15.0] - 2026-08-21
+
+### Added
+- **graphify and the tracker MCP are now truly pre-built — no dashboard, no
+  manual `pip install`.** On first launch the IDE provisions its own isolated
+  Python venv (`~/.config/pulsaride/pyenv`) with graphify + fastmcp, in the
+  background, without touching your system Python. The knowledge-graph memory and
+  the `planide` MCP server then just work: the SessionStart hook finds the venv's
+  graphify even when it's off-PATH, and the MCP re-points at the venv's python the
+  moment it's ready. If Python is missing or offline it degrades gracefully — the
+  `plan` CLI (pure stdlib) still runs and the memory sync still writes Data + the
+  Obsidian note.
+- **The agent creates `todo` items too.** The tracker instruction now covers the
+  whole lifecycle: when you ask for something (or the agent plans a step) it adds
+  a `todo` first, moves it to `wip` when work starts, then `works`/`broken` — kept
+  in sync per project.
+
+### Fixed
+- **`pip install mcp` no longer breaks the tracker MCP.** The `mcp` SDK's 2.0
+  release moved FastMCP into a standalone `fastmcp` package, so the server's old
+  `from mcp.server.fastmcp import FastMCP` failed on the current SDK. It now
+  accepts either (standalone `fastmcp` first), and the bundled venv installs it.
+
+### Notes
+- Fully pre-built, no dashboard: the 101 agents + 48 skills + orchestration, the
+  tracker board, the per-project Obsidian note, and now graphify + the MCP all
+  deploy or provision on launch. The one external app is Obsidian itself — its
+  vault is auto-detected; graphify and fastmcp the IDE provisions for you.
+
 ## [0.14.0] - 2026-08-21
 
 ### Fixed

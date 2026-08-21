@@ -23,12 +23,13 @@
  *    logged and swallowed.
  */
 
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import {
   chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -84,7 +85,10 @@ is tracked, keeping it current is part of your job — you never need to be aske
   \`plan board <project>\`) before you start, so you build on the real state
   instead of guessing. Pass \`project\` = the project's absolute path to every tool.
 - **Mirror the conversation onto the board, in the same turn the fact appears:**
-  - You start or build something → \`add_item\` (status \`wip\`), or \`set_item\` to \`wip\`.
+  - The user asks for something, or you plan a step you have not started yet →
+    \`add_item\` (status \`todo\`), so the plan is on the board before any code moves.
+    Break a big request into several \`todo\` items.
+  - You start or build something → \`set_item\` to \`wip\` (or \`add_item\` \`wip\`).
   - You get something working → \`set_item\` status \`works\` (recorded as *your*
     claim, attributed to you; the user confirms it separately — that's by design).
   - You hit or find a bug → \`add_fix\` (problem + where), or \`set_item\` status \`broken\`.
@@ -159,25 +163,42 @@ function toToml(md: string): string {
  * redeploys even if the version is unchanged.
  */
 export function deployAgentBundle(
-  opts: { home?: string; resourcesPath?: string; appPath?: string; force?: boolean } = {}
+  opts: {
+    home?: string
+    resourcesPath?: string
+    appPath?: string
+    force?: boolean
+    /** Provision the self-contained Python venv (graphify + fastmcp). Default true; tests pass false. */
+    provisionPyEnv?: boolean
+  } = {}
 ): DeployResult {
   const home = opts.home ?? homedir()
-  const skip = (reason: string): DeployResult => ({
+  const skip = (reason: string, mcpWired = false, trackerDeployed = false): DeployResult => ({
     deployed: false,
     reason,
     agents: 0,
     skills: 0,
     hookWired: false,
-    trackerDeployed: false,
-    mcpWired: false
+    trackerDeployed,
+    mcpWired
   })
   try {
     const root = bundleRoot(opts)
     if (!root) return skip('bundle not found')
     const manifest = readManifest(root)
     const prev = readMarker(home)
+
+    // Runs EVERY launch (cheap, idempotent), before the version gate: keep the
+    // self-contained Python venv provisioned and re-point the planide MCP at the
+    // best available python. This lets the MCP switch to the venv the moment the
+    // background install finishes, instead of waiting for a version bump.
+    if (opts.provisionPyEnv !== false) ensurePyEnv(home)
+    const deployedMcpScript = join(configDir(home), 'tracker', 'mcp', 'planide_mcp.py')
+    const alreadyTracked = existsSync(deployedMcpScript)
+    let mcpWired = alreadyTracked ? registerPlanideMcp(home, deployedMcpScript) : false
+
     if (!opts.force && prev && prev.bundle_version === manifest.bundle_version) {
-      return skip(`already at ${manifest.bundle_version}`)
+      return skip(`already at ${manifest.bundle_version}`, mcpWired, alreadyTracked)
     }
 
     // Reconcile: remove what a previous deploy of ours wrote, ours only.
@@ -231,18 +252,20 @@ export function deployAgentBundle(
     const hookWired = wireHooks(home, root)
 
     // --- tracker: plan CLI + planide package + planide MCP server ---------- //
-    // Deploys the built-in tracker and registers it as a user-scope MCP server,
-    // so an agent working in any project can read and update that project's
-    // .planide/state.json board directly — the IDE's Tracker tab reflects it live.
-    const tracker = deployTracker(home, root)
+    // Deploys the built-in tracker files; the MCP registration (user scope, so an
+    // agent in any project can update that project's board — reflected live in the
+    // Tracker tab) is the always-run step above, refreshed here now that the files
+    // are freshly (re)deployed.
+    const trackerRoot = deployTrackerFiles(home, root)
+    if (trackerRoot) mcpWired = registerPlanideMcp(home, join(trackerRoot, 'mcp', 'planide_mcp.py'))
 
     const marker: Marker = {
       bundle_version: manifest.bundle_version,
       agents: wroteAgents,
       skills: skillNames,
       hooks: hookWired ? [join(configDir(home), 'hooks')] : [],
-      tracker: tracker.root ?? undefined,
-      mcp: tracker.mcpWired ? ['planide'] : []
+      tracker: trackerRoot ?? undefined,
+      mcp: mcpWired ? ['planide'] : []
     }
     mkdirSync(configDir(home), { recursive: true })
     writeFileSync(join(configDir(home), 'agent-bundle.json'), JSON.stringify(marker, null, 2))
@@ -253,8 +276,8 @@ export function deployAgentBundle(
       agents: agentFiles.length,
       skills: skillNames.length,
       hookWired,
-      trackerDeployed: Boolean(tracker.root),
-      mcpWired: tracker.mcpWired
+      trackerDeployed: Boolean(trackerRoot),
+      mcpWired
     }
   } catch (err) {
     // Never break startup.
@@ -348,9 +371,9 @@ function wireHooks(home: string, root: string): boolean {
  * agent-events recorder and the pure-stdlib `plan` CLI still work), and we only
  * ever touch the single `planide` key in `~/.claude.json`, never anything else.
  */
-function deployTracker(home: string, root: string): { root: string | null; mcpWired: boolean } {
+function deployTrackerFiles(home: string, root: string): string | null {
   const src = join(root, 'tracker')
-  if (!existsSync(join(src, 'mcp', 'planide_mcp.py'))) return { root: null, mcpWired: false }
+  if (!existsSync(join(src, 'mcp', 'planide_mcp.py'))) return null
 
   const dest = join(configDir(home), 'tracker')
   rmSync(dest, { recursive: true, force: true })
@@ -360,18 +383,25 @@ function deployTracker(home: string, root: string): { root: string | null; mcpWi
   } catch {
     /* non-fatal on filesystems without exec bits */
   }
+  return dest
+}
 
-  const mcpWired = registerPlanideMcp(home, join(dest, 'mcp', 'planide_mcp.py'))
-  return { root: dest, mcpWired }
+/** The IDE-owned Python venv (graphify + fastmcp), isolated from the user's own. */
+function pyEnvDir(home: string): string {
+  return join(configDir(home), 'pyenv')
+}
+function pyEnvPython(home: string): string {
+  const d = pyEnvDir(home)
+  return process.platform === 'win32' ? join(d, 'Scripts', 'python.exe') : join(d, 'bin', 'python')
 }
 
 /**
  * Register (or refresh) the `planide` stdio MCP server at user scope in
  * `~/.claude.json`. Reconcile-not-accumulate: overwrite only our own key and
- * preserve every other server and every other field in the file. The server
- * runs the bundled script with python; if python or the `mcp` package is
- * missing it simply shows as unavailable — the `plan` CLI (pure stdlib) covers
- * agents either way.
+ * preserve every other server and every other field in the file. Prefers the
+ * IDE's own venv python (which has fastmcp) so the server just works; falls back
+ * to the system python until the venv finishes provisioning. Either way the
+ * `plan` CLI (pure stdlib) covers agents, so a missing server is never fatal.
  */
 function registerPlanideMcp(home: string, serverScript: string): boolean {
   const path = join(home, '.claude.json')
@@ -384,14 +414,48 @@ function registerPlanideMcp(home: string, serverScript: string): boolean {
       return false
     }
   }
+  const venvPy = pyEnvPython(home)
+  const command = existsSync(venvPy) ? venvPy : process.platform === 'win32' ? 'python' : 'python3'
   const servers = (config.mcpServers ??= {}) as Record<string, unknown>
-  servers.planide = {
-    type: 'stdio',
-    command: process.platform === 'win32' ? 'python' : 'python3',
-    args: [serverScript]
-  }
+  servers.planide = { type: 'stdio', command, args: [serverScript] }
   writeFileSync(path, JSON.stringify(config, null, 2))
   return true
+}
+
+/**
+ * Provision a self-contained Python venv with graphify + fastmcp, so the
+ * knowledge-graph memory and the planide MCP server work with no manual `pip
+ * install` and without touching the user's own Python. Best-effort and
+ * non-blocking: the install runs detached in the background (a first launch pays
+ * nothing, and it can never delay or break startup). Idempotent — it skips once
+ * the venv python exists. If python3, `venv`, or the network is missing, it
+ * simply never appears and the graceful fallbacks apply (the `plan` CLI is pure
+ * stdlib; the memory sync still writes Data + the Obsidian note without a graph).
+ */
+function ensurePyEnv(home: string): boolean {
+  try {
+    const dir = pyEnvDir(home)
+    if (existsSync(pyEnvPython(home))) return true // already provisioned
+    const sysPy = process.platform === 'win32' ? 'python' : 'python3'
+    try {
+      execFileSync(sysPy, ['--version'], { stdio: 'ignore', timeout: 5000 })
+    } catch {
+      return false // no system python to build the venv from
+    }
+    mkdirSync(configDir(home), { recursive: true })
+    const log = openSync(join(configDir(home), 'pyenv-setup.log'), 'a')
+    const pip =
+      process.platform === 'win32' ? join(dir, 'Scripts', 'pip.exe') : join(dir, 'bin', 'pip')
+    // One detached step: create the venv, then install into it. Fire-and-forget.
+    const shell = process.platform === 'win32' ? 'cmd' : '/bin/sh'
+    const flag = process.platform === 'win32' ? '/c' : '-c'
+    const cmd = `${sysPy} -m venv "${dir}" && "${pip}" install --disable-pip-version-check -q graphifyy fastmcp`
+    const child = spawn(shell, [flag, cmd], { detached: true, stdio: ['ignore', log, log] })
+    child.unref()
+    return true
+  } catch {
+    return false // never break startup over the optional memory backend
+  }
 }
 
 /** Best-effort: is graphify actually installed? (for a status line, not a gate) */

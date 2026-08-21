@@ -30,14 +30,25 @@ import sys
 # Resolve the real MCP SDK FIRST -- before adding the repo root to sys.path.
 # The repo root contains a directory literally named 'mcp' (this one), which
 # would otherwise shadow the installed 'mcp' package and break the import.
+# FastMCP lived in the `mcp` SDK as `mcp.server.fastmcp` through 1.x, but the SDK's
+# 2.0 release moved it out into the standalone `fastmcp` package -- so a plain
+# `pip install mcp` today (2.x) no longer has it. Accept either, newest-first.
+_FASTMCP_KIND = ""
 try:
-    from mcp.server.fastmcp import FastMCP
+    from fastmcp import FastMCP  # standalone package (works with mcp SDK 2.x)
+    _FASTMCP_KIND = "standalone"
 except ImportError:
-    sys.stderr.write(
-        "PlanIDE MCP server needs the 'mcp' package.\n"
-        "  pip install mcp\n"
-        "(The core PlanIDE tool needs nothing -- this bridge is the only extra.)\n")
-    raise SystemExit(1)
+    try:
+        from mcp.server.fastmcp import FastMCP  # bundled in the mcp SDK 1.x
+        _FASTMCP_KIND = "sdk"
+    except ImportError:
+        sys.stderr.write(
+            "PlanIDE MCP server needs FastMCP.\n"
+            "  pip install fastmcp\n"
+            "(The core PlanIDE tool needs nothing -- this bridge is the only extra.\n"
+            " PulsarIDE auto-provisions this in its own venv; install it yourself\n"
+            " only if you run the server outside the IDE.)\n")
+        raise SystemExit(1)
 
 # Now it is safe to make the local `planide` package importable.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -201,4 +212,9 @@ def detect_stack(path: str) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    # Standalone fastmcp prints a startup banner; silence it so nothing but the
+    # JSON-RPC protocol reaches stdout. The 1.x SDK's run() has no such argument.
+    if _FASTMCP_KIND == "standalone":
+        mcp.run(show_banner=False)
+    else:
+        mcp.run()
