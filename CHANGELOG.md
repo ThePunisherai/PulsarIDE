@@ -6,6 +6,14 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.18.0] - 2026-08-21
+
+### Added
+- **Multi-account overview in the tracker.** The Activity tab now leads with
+  "Agent work by account" — each AI account (Claude, Codex, Gemini …) that did
+  work in the project, with its turn count, last-active time and a usage bar. So
+  you can see at a glance which account has been doing what, across the session.
+
 ## [0.17.0] - 2026-08-21
 
 ### Added

@@ -173,6 +173,39 @@ function ConfirmedRing({
  * regression, and an agent talking — as quiet as "added an item". The tone and
  * the icon come from the kind, so the list can be skimmed.
  */
+type AccountUsage = { account: string; turns: number; lastAt: string }
+
+/**
+ * Group agent activity by the AI provider/account that produced it (the `who`
+ * on each agent turn — claude / codex / gemini …). This is the multi-account
+ * overview: which account did how much work in this project.
+ */
+function accountsFromActivity(activity: PlanIdeProject['activity']): AccountUsage[] {
+  const map = new Map<string, AccountUsage>()
+  for (const a of activity ?? []) {
+    if (!String(a.kind ?? '').startsWith('agent-')) continue
+    const account = (a.who || 'agent').toLowerCase()
+    const cur = map.get(account) ?? { account, turns: 0, lastAt: '' }
+    cur.turns += 1
+    if (String(a.at) > cur.lastAt) cur.lastAt = String(a.at)
+    map.set(account, cur)
+  }
+  return [...map.values()].sort((x, y) => y.turns - x.turns)
+}
+
+/** Compact "3m ago" style relative time; empty for a missing/invalid timestamp. */
+function relTime(iso: string): string {
+  const t = Date.parse(iso)
+  if (Number.isNaN(t)) return ''
+  const s = Math.max(0, Math.floor((Date.now() - t) / 1000))
+  if (s < 60) return 'just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
 function ActivityRow({ entry }: { entry: PlanIdeProject['activity'][number] }): React.JSX.Element {
   const kind = String(entry.kind ?? '')
   const regression = entry.text.includes('REGRESSION')
@@ -1042,6 +1075,42 @@ export default function PlanIdeView(): React.JSX.Element {
 
           {tab === 'activity' && (
             <div className="flex flex-col">
+              {(() => {
+                const accounts = accountsFromActivity(project.activity ?? [])
+                if (accounts.length === 0) return null
+                const totalTurns = accounts.reduce((n, a) => n + a.turns, 0)
+                return (
+                  <div className="mb-4">
+                    <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {translate('planide.view.byAccount', 'Agent work by account')} · {totalTurns}{' '}
+                      {translate('planide.view.turns', 'turns')}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {accounts.map((acc) => (
+                        <div
+                          key={acc.account}
+                          className="flex items-center gap-2.5 rounded-xl border border-border bg-card/40 px-3 py-2"
+                        >
+                          <PlanIdeMark size={15} />
+                          <div className="leading-tight">
+                            <div className="text-[12.5px] font-semibold capitalize">{acc.account}</div>
+                            <div className="text-[10.5px] text-muted-foreground">
+                              {acc.turns} {acc.turns === 1 ? translate('planide.view.turn', 'turn') : translate('planide.view.turns', 'turns')}
+                              {acc.lastAt ? ` · ${relTime(acc.lastAt)}` : ''}
+                            </div>
+                          </div>
+                          <div className="ml-1 h-1.5 w-16 overflow-hidden rounded-full bg-border/60">
+                            <div
+                              className="h-full rounded-full bg-violet-400/80"
+                              style={{ width: `${Math.round((acc.turns / accounts[0].turns) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
               {(project.activity ?? []).length === 0 && (
                 <div className="rounded-lg border border-dashed border-border py-10 text-center text-[12px] text-muted-foreground">
                   {translate('planide.view.noActivity', 'Nothing recorded yet.')}
