@@ -251,6 +251,20 @@ export function deployAgentBundle(
       wroteAgents.push(claudePath, geminiPath, codexPath)
     }
 
+    // --- full team roster as DATA (not native agents) --------------------- //
+    // The 85 domain-vertical leads must stay reachable even though only the core 15 register
+    // natively. Copying every team-lead file to a known on-disk location costs ZERO context
+    // (nothing is loaded until something reads it) and is what the `council` skill greps to
+    // route a task to the right specialist team, then adopt that lead's persona inline.
+    const teamsDest = join(configDir(home), 'teams')
+    rmSync(teamsDest, { recursive: true, force: true })
+    mkdirSync(teamsDest, { recursive: true })
+    for (const file of readdirSync(agentDir).filter(
+      (f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md'
+    )) {
+      cpSync(join(agentDir, file), join(teamsDest, file))
+    }
+
     // --- skills: curated set incl. orchestration -> Claude Code ----------- //
     const skillsSrc = join(root, 'skills')
     const skillNames = existsSync(skillsSrc)
@@ -464,6 +478,39 @@ function registerPlanideMcpCodex(home: string, serverScript: string, command: st
   }
 }
 
+/**
+ * Gemini CLI reads MCP servers from ~/.gemini/settings.json under an "mcpServers" object
+ * (verified against Gemini CLI's own docs/tools/mcp-server.md: stdio servers take `command`
+ * and `args`). Antigravity is the same product family and this repo already verified its
+ * config lives under ~/.gemini/config/ (that is where its skills and hooks.json go), so the
+ * same key is written there too -- additive and best-effort: only our own `planide` key is
+ * ever touched, a malformed or absent file is never clobbered, and the Antigravity path is
+ * the one part here inferred from the verified path family rather than its own doc.
+ */
+function registerPlanideMcpJson(file: string, serverScript: string, command: string): boolean {
+  try {
+    mkdirSync(dirname(file), { recursive: true })
+    let config: Record<string, unknown> = {}
+    if (existsSync(file)) {
+      const raw = readFileSync(file, 'utf8')
+      if (raw.trim()) {
+        try {
+          config = JSON.parse(raw) as Record<string, unknown>
+        } catch {
+          // Someone else's settings file we cannot parse -- never overwrite it.
+          return false
+        }
+      }
+    }
+    const servers = (config.mcpServers ??= {}) as Record<string, unknown>
+    servers.planide = { command, args: [serverScript] }
+    writeFileSync(file, JSON.stringify(config, null, 2))
+    return true
+  } catch {
+    return false
+  }
+}
+
 function registerPlanideMcp(home: string, serverScript: string): boolean {
   const path = join(home, '.claude.json')
   let config: Record<string, unknown> = {}
@@ -483,6 +530,10 @@ function registerPlanideMcp(home: string, serverScript: string): boolean {
   // Wire Codex too -- it is a first-class agent in this IDE and was silently missing the
   // tracker tools entirely. Best-effort: Claude Code registration still counts as success.
   registerPlanideMcpCodex(home, serverScript, command)
+  // Gemini CLI + Antigravity -- both already receive the team-lead agents above, so without
+  // this they could see the agents but had no tracker tools to record work with.
+  registerPlanideMcpJson(join(home, '.gemini', 'settings.json'), serverScript, command)
+  registerPlanideMcpJson(join(home, '.gemini', 'config', 'settings.json'), serverScript, command)
   return true
 }
 

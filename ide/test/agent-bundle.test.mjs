@@ -37,7 +37,12 @@ ok('deploys on first run', r1.deployed === true)
 // count from the manifest so this tracks the contract instead of a hardcoded number.
 const CORE = JSON.parse(readFileSync(join(REPO, 'ide/agent-bundle/manifest.json'), 'utf8')).core_team_leads.length
 ok(`${CORE} core team leads (not all 100 -- token budget)`, r1.agents === CORE)
-ok('48 skills incl. orchestration', r1.skills === 48 && existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) && existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')))
+// Count from the bundle itself, and assert the Council (the routing/verification skill that
+// reaches the 85 non-core teams) is among the orchestration skills that actually deploy.
+const SKILLS = readdirSync(join(REPO, 'ide/agent-bundle/skills')).filter((d) =>
+  existsSync(join(REPO, 'ide/agent-bundle/skills', d, 'SKILL.md'))
+).length
+ok(`${SKILLS} skills incl. orchestration + council`, r1.skills === SKILLS && existsSync(join(HOME, '.claude/skills/council/SKILL.md')) && existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) && existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')))
 ok('claude/gemini/codex all get the roster', readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulsar-')).length === CORE && readdirSync(join(HOME, '.gemini/agents')).length === CORE && readdirSync(join(HOME, '.codex/agents')).filter(f => f.endsWith('.toml')).length === CORE)
 try { execSync('python3 -c "import tomllib,sys;[tomllib.load(open(f,\'rb\')) for f in sys.argv[1:]]" ' + readdirSync(join(HOME, '.codex/agents')).map(f => join(HOME, '.codex/agents', f)).join(' ')); ok('every codex toml parses', true) } catch { ok('every codex toml parses', false) }
 ok('graphify hook wired per project', r1.hookWired === true && existsSync(join(HOME, '.config/pulsaride/hooks/graphify-bootstrap.sh')))

@@ -5,8 +5,9 @@
   "generated": "2026-08-20",
   "note": "Team leads + curated skills + memory hooks + the built-in project tracker, pre-installed into PulsarIDE. The 5,050 specialist subagents are deliberately NOT bundled: deploying them all as native subagents blows Claude Code's ~15k-token agent-description budget (ThePunisher-Agent's own hard-won lesson). Team leads route to specialists on demand. The tracker (plan CLI + planide package + planide MCP server) lets agents read and update each project's .planide/state.json board directly, so the IDE's Tracker tab reflects agent work live.",
   "team_leads": 101,
-  "skills": 48,
+  "skills": 49,
   "orchestration_skills": [
+    "council",
     "agent-orchestrator",
     "dispatch",
     "antigravity-skill-orchestrator"
@@ -207,5 +208,9 @@
     "ai-ml",
     "specialized-creative"
   ],
-  "core_team_leads_note": "Only these deploy as NATIVE subagents. Deploying all 100 team leads blows Claude Code's ~15k agent-description token budget -- a real user hit '~36.7k tokens' and every prompt then hit the context limit (the client counts more than the description field per file). These are the generalist entry points, in ThePunisher roster order; the other 85 domain-vertical leads stay in the bundle on disk and are reached on demand via the Council router. Same fix as ThePunisher-Agent v1.70.0."
+  "core_team_leads_note": "Only these deploy as NATIVE subagents. Deploying all 100 team leads blows Claude Code's ~15k agent-description token budget -- a real user hit '~36.7k tokens' and every prompt then hit the context limit (the client counts more than the description field per file). These are the generalist entry points, in ThePunisher roster order; the other 85 domain-vertical leads stay in the bundle on disk and are reached on demand via the Council router. Same fix as ThePunisher-Agent v1.70.0.",
+  "teams_on_disk": {
+    "note": "All 100 team leads are deployed to ~/.config/pulsaride/teams/ as DATA (zero context cost). The `council` skill greps them to route a task to a domain-vertical team and adopt its persona inline -- that is how the 85 non-core teams stay reachable without registering them as native subagents.",
+    "path": "~/.config/pulsaride/teams"
+  }
 }
