@@ -6,6 +6,36 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.14.0] - 2026-08-21
+
+### Fixed
+- **"Orca" is gone from the interface.** The rebrand reached the locale catalogs,
+  but Orca's English UI uses inline fallbacks and raw strings that never live in
+  those catalogs — so the app still showed **"ORCA"** on the welcome screen, in
+  the title bar, and across dialogs, skills and error messages. PulsarIDE now
+  rebrands the product name inside the app's own source strings too (442 files),
+  leaving code, comments, lowercase `orca` commands, compound identifiers and
+  Stably's real external services (Orca Cloud/Relay/CLI) untouched. Verified
+  against Orca's own full typecheck (exit 0) on a clean upstream checkout.
+
+### Added
+- **The agent keeps the tracker in sync with the chat, automatically.** The
+  built-in tracker instruction — carried by every team lead and injected into the
+  main session at start, only for projects you already track — now spells out the
+  behaviour: mark an item `works` when you get it working, `broken` when you hit a
+  bug, `mark_fixed` when you (the user) say something is solved, and **update the
+  board before saying "done" or "please test"**. It records the agent's *claim*
+  (shown amber until you confirm it); it never auto-greens the board.
+
+### Notes
+- The app icon has been the pulsar in every build since v0.11.0 — the installer
+  and the executable both embed it, and the window/dock icon uses it too. If
+  Windows still shows the old icon after updating, that is Windows' own icon
+  cache; a fresh install (or clearing the icon cache) resolves it.
+- Board updates are instruction-driven, so they depend on the agent following the
+  instruction. The Activity trail is the code-guaranteed half: every finished
+  agent turn is recorded automatically, even for an agent that never calls a tool.
+
 ## [0.13.0] - 2026-08-21
 
 ### Added

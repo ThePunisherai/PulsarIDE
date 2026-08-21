@@ -58,7 +58,7 @@ fi
 # Gated on the state file existing -- exactly the guard agent-events.ts uses --
 # so a session in an untracked repo is never nudged and no repo is littered.
 if [ -f "$CWD/.planide/state.json" ]; then
-    NOTE="This project is tracked by PulsarIDE's built-in board (.planide/state.json), shown live in the IDE Tracker tab. Before starting, read it with the planide MCP tool get_board (or: plan board \"$CWD\"). As you work, record items/fixes/versions with the planide MCP tools (add_item, set_item [todo|wip|works|broken|blocked], add_fix, mark_fixed, add_version) or the plan CLI, passing project=\"$CWD\". Report only what is real -- mark works only when it works."
+    NOTE="This project is tracked by PulsarIDE's built-in board (.planide/state.json), shown live in the IDE Tracker tab. Keep it in sync with this chat automatically, without being asked: read it first with the planide MCP tool get_board (or: plan board \"$CWD\"); when you get something working set_item status=works, when you find or hit a bug add_fix or set_item status=broken, when the user says something is solved mark_fixed it and set the item to works, and BEFORE you say 'done' or 'please test' update the board so it matches what you claim. Use the planide MCP tools (add_item, set_item [todo|wip|works|broken|blocked], add_fix, mark_fixed, add_version) or the plan CLI, passing project=\"$CWD\". Report only what is real -- mark works only when it works; the verified/locked flags stay the user's."
     if [ -n "$CTX" ]; then CTX="$CTX $NOTE"; else CTX="$NOTE"; fi
 fi
 

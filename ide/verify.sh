@@ -159,6 +159,39 @@ else
   skip "locale rebrand (no en.json -- run ./ide/fetch-upstream.sh)"
 fi
 
+# 3d. the inline source-string rebrand (patch_source_strings): the fix for "I
+# still see Orca everywhere". Orca's English UI uses inline translate() fallbacks
+# and raw literals that never reach the locale JSON, so this rebrands the product
+# name inside string literals of the app source. Unit-tested on synthetic input
+# (no full checkout needed): product name -> PulsarIDE inside strings, while
+# comments, lowercase `orca`, compound identifiers and the real external Stably
+# services (Orca Cloud/Relay/CLI) are all left verbatim.
+src_out=$(python3 - "$HERE/apply.py" <<'PY'
+import importlib.util, sys
+s = importlib.util.spec_from_file_location('a', sys.argv[1])
+m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+rb = lambda t: m._SOURCE_TOKEN_RE.sub(m._rebrand_source_token, t)
+cases = {
+    "translate('auto.x','ORCA')": "translate('auto.x','PULSARIDE')",
+    "translate('k','Orca logo')": "translate('k','PulsarIDE logo')",
+    "setError('This Orca skill link.')": "setError('This PulsarIDE skill link.')",
+    "// Distinct from prod's 'Orca'.": "// Distinct from prod's 'Orca'.",
+    "const s='Orca Cloud'": "const s='Orca Cloud'",
+    "label('Orca CLI')": "label('Orca CLI')",
+    "x==='orca'": "x==='orca'",
+    "`Welcome to Orca`": "`Welcome to PulsarIDE`",
+    "name('OrcaThing')": "name('OrcaThing')",
+}
+bad = [(src, rb(src), want) for src, want in cases.items() if rb(src) != want]
+print('OK' if not bad else 'FAIL ' + repr(bad[:3]))
+PY
+)
+if echo "$src_out" | grep -q '^OK'; then
+  ok "source-string rebrand (inline Orca -> PulsarIDE; comments/services/identifiers kept)"
+else
+  bad "source-string rebrand"; echo "$src_out" | head -3
+fi
+
 # 4a. the overlay adds to Orca; it must not take anything away.
 python3 "$HERE/check-additive.py" > /tmp/planide-additive.log 2>&1 \
   && ok "no edit removes upstream code (branding constants aside)" \

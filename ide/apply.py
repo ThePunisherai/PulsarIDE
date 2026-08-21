@@ -595,6 +595,86 @@ def patch_locale(root: str, check_only: bool) -> tuple[int, list[str]]:
     return changed, sorted(set(skipped))
 
 
+# --- inline source-string rebrand ------------------------------------------- #
+# patch_locale only reaches strings that live in the locale JSON. Orca's English
+# UI, though, overwhelmingly uses inline fallbacks -- translate('auto.x', 'Orca
+# ...') whose 'auto.x' key is NOT in en.json (English renders the fallback), plus
+# raw literals like setError('Enter an Orca skill share link.'). None of those are
+# in the catalogs, so without this the packaged app still says "Orca"/"ORCA" all
+# over -- the Landing <h1> is literally translate('auto...', 'ORCA'). This
+# rebrands the product name inside the *string literals* of the app source.
+SOURCE_ROOTS = ("src/renderer/src", "src/main")
+
+# A few source files are not product branding and must be left alone:
+#   plugin-display-name.ts capitalises third-party *plugin* names (a plugin whose
+#   slug is "orca" should still display "Orca", not our product name).
+SOURCE_SKIP_FILES = ("plugin-display-name.ts",)
+
+# One combined tokenizer. Order matters: comments match BEFORE strings, so an
+# apostrophe inside a comment ("Orca's data folder") can never be mistaken for the
+# start of a string literal. Only string tokens are rebranded; comments, regex
+# literals and code identifiers pass through untouched. Single/double strings stop
+# at a newline (JS forbids a raw newline in them), which bounds any mis-tokenised
+# span; a substitution only ever swaps Orca->PulsarIDE inside a string, so it can
+# never change the file's structure even in the pathological case.
+import re as _re  # noqa: E402
+
+_SOURCE_TOKEN_RE = _re.compile(
+    r"//[^\n]*"                 # line comment
+    r"|/\*[\s\S]*?\*/"          # block comment
+    r"|'(?:[^'\\\n]|\\.)*'"     # single-quoted string
+    r"|\"(?:[^\"\\\n]|\\.)*\""  # double-quoted string
+    r"|`(?:[^`\\]|\\.)*`"       # template literal (may span lines)
+)
+
+
+def _rebrand_source_token(match: "_re.Match[str]") -> str:
+    tok = match.group(0)
+    if tok[:1] not in ("'", '"', "`"):  # comment -> untouched
+        return tok
+    if "Orca" not in tok and "ORCA" not in tok:
+        return tok
+    # Keep the real external Stably service/artifact names verbatim, same as
+    # patch_locale (Orca Cloud, Orca Relay, Orca CLI, orca.yaml, ...).
+    if any(h in tok for h in LOCALE_SKIP_VALUE_HINTS):
+        return tok
+    return _rebrand_value(tok)
+
+
+def patch_source_strings(root: str, check_only: bool) -> int:
+    """Rebrand the product name inside string literals of the app source.
+
+    Returns the number of files changed. Idempotent (a second run finds no
+    remaining whole-word capital 'Orca' to change) and drift-proof (it scans, it
+    does not depend on anchors), the same way patch_locale is.
+    """
+    changed = 0
+    for sub in SOURCE_ROOTS:
+        base = os.path.join(root, sub)
+        if not os.path.isdir(base):
+            continue
+        for dirpath, _dirs, files in os.walk(base):
+            if "/i18n/locales" in dirpath.replace(os.sep, "/"):
+                continue
+            for f in files:
+                if not (f.endswith(".ts") or f.endswith(".tsx")):
+                    continue
+                if ".test." in f or ".spec." in f or f.endswith(".d.ts"):
+                    continue
+                if f in SOURCE_SKIP_FILES:
+                    continue
+                path = os.path.join(dirpath, f)
+                text = read(path)
+                if "Orca" not in text and "ORCA" not in text:
+                    continue
+                new = _SOURCE_TOKEN_RE.sub(_rebrand_source_token, text)
+                if new != text:
+                    changed += 1
+                    if not check_only:
+                        write(path, new)
+    return changed
+
+
 def main(argv: list[str]) -> int:
     args = [a for a in argv if not a.startswith("--")]
     check_only = "--check" in argv
@@ -612,6 +692,7 @@ def main(argv: list[str]) -> int:
     applied, skipped, edit_problems = apply_edits(root, check_only)
     pkg_problems = patch_package_json(root, check_only)
     locale_changed, locale_skipped = patch_locale(root, check_only)
+    source_changed = patch_source_strings(root, check_only)
     problems = copy_problems + bundle_problems + edit_problems + pkg_problems
 
     print(f"  overlay files : {copied}")
@@ -619,6 +700,7 @@ def main(argv: list[str]) -> int:
     print(f"  edits applied : {applied}")
     print(f"  already done  : {skipped}")
     print(f"  locale strings: {locale_changed} rebranded, {len(locale_skipped)} left (Orca services)")
+    print(f"  source strings: {source_changed} files rebranded (inline Orca -> {PRODUCT})")
     if problems:
         print(f"  PROBLEMS      : {len(problems)}")
         for p in problems:

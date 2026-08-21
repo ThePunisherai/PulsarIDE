@@ -74,21 +74,30 @@ export type DeployResult = {
  */
 const TRACKER_INSTRUCTION = `
 
-## PulsarIDE built-in tracker
+## PulsarIDE built-in tracker — keep it in sync with the chat, automatically
 
 This project may be tracked by PulsarIDE's built-in board, stored in
-\`<project>/.planide/state.json\` and shown live in the IDE's Tracker tab. When it is:
+\`<project>/.planide/state.json\` and shown live in the IDE's Tracker tab. When it
+is tracked, keeping it current is part of your job — you never need to be asked.
 
 - **Read it first.** Call the \`planide\` MCP tool \`get_board\` (or run
   \`plan board <project>\`) before you start, so you build on the real state
-  instead of guessing.
-- **Record what you actually do.** As you finish work, use the \`planide\` MCP
-  tools — \`add_item\`/\`set_item\` (status: todo|wip|works|broken|blocked),
-  \`add_fix\`/\`mark_fixed\`, \`add_version\` — or the \`plan\` CLI equivalents.
-  Pass \`project\` = the project's absolute path.
-- **Only report what is real.** Mark an item \`works\` when it works, \`broken\`
-  when it does not. You cannot set the \`verified\`/\`locked\` flags — those stay
-  the user's. Never green-wash the board.
+  instead of guessing. Pass \`project\` = the project's absolute path to every tool.
+- **Mirror the conversation onto the board, in the same turn the fact appears:**
+  - You start or build something → \`add_item\` (status \`wip\`), or \`set_item\` to \`wip\`.
+  - You get something working → \`set_item\` status \`works\` (recorded as *your*
+    claim, attributed to you; the user confirms it separately — that's by design).
+  - You hit or find a bug → \`add_fix\` (problem + where), or \`set_item\` status \`broken\`.
+  - The user says "that's solved / fixed / it works now" → \`mark_fixed\` that fix,
+    and \`set_item\` the related item to \`works\`.
+  - The user says something is broken or still failing → \`set_item\` status \`broken\`.
+  - You ship a milestone or bump the version → \`add_version\`.
+- **Before you tell the user "done" or "please test", update the board first**, so
+  what it shows matches what you just claimed. A turn that ends "everything works,
+  test it" while the board still says \`todo\`/\`broken\` is not finished.
+- **Only report what is real.** \`works\` means it works; \`broken\` means it doesn't.
+  You cannot set the \`verified\`/\`locked\` flags — those stay the user's. Never
+  green-wash the board.
 `
 
 /** Where the bundle lives: the dev checkout, or the packaged app's resources. */
