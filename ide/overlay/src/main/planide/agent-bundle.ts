@@ -195,7 +195,7 @@ export function deployAgentBundle(
     if (opts.provisionPyEnv !== false) ensurePyEnv(home)
     const deployedMcpScript = join(configDir(home), 'tracker', 'mcp', 'planide_mcp.py')
     const alreadyTracked = existsSync(deployedMcpScript)
-    let mcpWired = alreadyTracked ? registerPlanideMcp(home, deployedMcpScript) : false
+    let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home, deployedMcpScript) : false
 
     if (!opts.force && prev && prev.bundle_version === manifest.bundle_version) {
       return skip(`already at ${manifest.bundle_version}`, mcpWired, alreadyTracked)
@@ -257,7 +257,7 @@ export function deployAgentBundle(
     // Tracker tab) is the always-run step above, refreshed here now that the files
     // are freshly (re)deployed.
     const trackerRoot = deployTrackerFiles(home, root)
-    if (trackerRoot) mcpWired = registerPlanideMcp(home, join(trackerRoot, 'mcp', 'planide_mcp.py'))
+    if (trackerRoot) mcpWired = registerTrackerForAllAgents(home, join(trackerRoot, 'mcp', 'planide_mcp.py'))
 
     const marker: Marker = {
       bundle_version: manifest.bundle_version,
@@ -414,12 +414,159 @@ function registerPlanideMcp(home: string, serverScript: string): boolean {
       return false
     }
   }
-  const venvPy = pyEnvPython(home)
-  const command = existsSync(venvPy) ? venvPy : process.platform === 'win32' ? 'python' : 'python3'
   const servers = (config.mcpServers ??= {}) as Record<string, unknown>
-  servers.planide = { type: 'stdio', command, args: [serverScript] }
+  servers.planide = { type: 'stdio', command: mcpPython(home), args: [serverScript] }
   writeFileSync(path, JSON.stringify(config, null, 2))
   return true
+}
+
+/** The python that runs the MCP server: the IDE's venv (has fastmcp) if ready, else system. */
+function mcpPython(home: string): string {
+  const venvPy = pyEnvPython(home)
+  return existsSync(venvPy) ? venvPy : process.platform === 'win32' ? 'python' : 'python3'
+}
+
+/**
+ * Register the `planide` MCP for Codex CLI in `~/.codex/config.toml` as a
+ * `[mcp_servers.planide]` stdio table (verified shape). No TOML parser needed:
+ * strip any prior `[mcp_servers.planide]` block (and its sub-tables), keep every
+ * other line verbatim, append a fresh block. This is why Codex — which the user
+ * actually runs — saw no tracker tools before: it only ever went into
+ * ~/.claude.json.
+ */
+function registerPlanideMcpCodex(home: string, serverScript: string): boolean {
+  try {
+    const path = join(home, '.codex', 'config.toml')
+    let text = ''
+    if (existsSync(path)) {
+      try {
+        text = readFileSync(path, 'utf8')
+      } catch {
+        return false // don't clobber a file we can't read
+      }
+    }
+    const kept: string[] = []
+    let skipping = false
+    for (const line of text.split(/\r?\n/)) {
+      const header = line.match(/^\s*\[([^\]]+)\]/)
+      if (header) {
+        const name = header[1]
+        skipping = name === 'mcp_servers.planide' || name.startsWith('mcp_servers.planide.')
+      }
+      if (!skipping) kept.push(line)
+    }
+    const esc = (s: string): string => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    const block = `[mcp_servers.planide]\ncommand = "${esc(mcpPython(home))}"\nargs = ["${esc(serverScript)}"]\n`
+    const body = kept.join('\n').replace(/\s+$/, '')
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, (body ? body + '\n\n' : '') + block)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Register the `planide` MCP for Cursor in `~/.cursor/mcp.json` (user scope). */
+function registerPlanideMcpCursor(home: string, serverScript: string): boolean {
+  try {
+    const path = join(home, '.cursor', 'mcp.json')
+    let config: Record<string, unknown> = {}
+    if (existsSync(path)) {
+      try {
+        config = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+      } catch {
+        return false
+      }
+    }
+    const servers = (config.mcpServers ??= {}) as Record<string, unknown>
+    servers.planide = { command: mcpPython(home), args: [serverScript] }
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, JSON.stringify(config, null, 2))
+    return true
+  } catch {
+    return false
+  }
+}
+
+const MANAGED_BEGIN = '<!-- PULSAR:MAIN:BEGIN -->'
+const MANAGED_END = '<!-- PULSAR:MAIN:END -->'
+
+/**
+ * The always-loaded instruction for a *main* session (not a subagent): the
+ * Council's understand-first rule, then the tracker. Codex/Cursor/Gemini main
+ * sessions never adopt the council-subagent persona, so this is where "the
+ * Council asks first" and "keep the board in sync" actually reach them.
+ */
+function mainSessionBlock(home: string): string {
+  const trackerDir = join(configDir(home), 'tracker')
+  const py = mcpPython(home)
+  return [
+    '## PulsarIDE — orchestrate as The Council first',
+    '',
+    'Before diving into a non-trivial task, act as **The Council** (ThePunisher\'s',
+    'orchestrator):',
+    '',
+    '1. **Understand first.** Restate the actual request in one sentence. If it is genuinely',
+    '   ambiguous or underspecified, say what is unclear and **ask one clarifying question**',
+    '   before you start — a misread request executed perfectly is still wrong. (Skip the',
+    '   question only when the intent is already unambiguous.)',
+    '2. **Route.** Name the ThePunisher team + the specific specialist(s) that fit, then adopt',
+    '   that persona. Never repeat an approach already tried and failed.',
+    '3. **Validate.** Before you claim something works, verify it — do not green-wash.',
+    '',
+    '## PulsarIDE built-in tracker — keep it in sync with the chat',
+    '',
+    'A project opened in PulsarIDE may carry a built-in board at `<project>/.planide/state.json`,',
+    'shown live in the IDE Tracker tab. When one does, keeping it current is part of the job.',
+    'Pass `project` = the project\'s absolute path to every call.',
+    '',
+    '- **Read it first** — `planide` MCP tool `get_board`, or run:',
+    '  `` PYTHONPATH="' + trackerDir + '" ' + py + ' -m planide board <project> ``',
+    '- **Mirror the conversation, in the same turn the fact appears:**',
+    '  - user asks / you plan a step → `add_item` status `todo`',
+    '  - you start it → `set_item` `wip`;  it works → `set_item` `works`',
+    '  - a bug → `add_fix` (problem + where) or `set_item` `broken`',
+    '  - user says it is solved → `mark_fixed`;  a release → `add_version`',
+    '- **Before you say "done" or "please test", update the board first.**',
+    '- Only report what is real; never green-wash. `verified`/`locked` stay the user\'s.',
+    ''
+  ].join('\n')
+}
+
+/** Merge our managed block into a main-session context file, reconcile-not-accumulate. */
+function mergeManagedBlock(path: string, block: string): boolean {
+  try {
+    let text = existsSync(path) ? readFileSync(path, 'utf8') : ''
+    const managed = `${MANAGED_BEGIN}\n${block}\n${MANAGED_END}`
+    if (text.includes(MANAGED_BEGIN) && text.includes(MANAGED_END)) {
+      text = text.split(MANAGED_BEGIN)[0] + managed + (text.split(MANAGED_END)[1] ?? '')
+    } else {
+      text = (text.trim() ? text.trimEnd() + '\n\n' : '') + managed + '\n'
+    }
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, text)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Register the planide tracker MCP for every embedded agent that reads a
+ * user-scope config — Claude Code, Codex CLI and Cursor — and merge the
+ * main-session context (Council understand-first + tracker) into each tool's
+ * always-loaded memory file so the *main* session gets it without an @-mention.
+ * Returns true if any MCP registration wrote.
+ */
+function registerTrackerForAllAgents(home: string, serverScript: string): boolean {
+  const claude = registerPlanideMcp(home, serverScript)
+  const codex = registerPlanideMcpCodex(home, serverScript)
+  registerPlanideMcpCursor(home, serverScript)
+  const block = mainSessionBlock(home)
+  mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
+  mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)
+  mergeManagedBlock(join(home, '.gemini', 'GEMINI.md'), block)
+  return claude || codex
 }
 
 /**

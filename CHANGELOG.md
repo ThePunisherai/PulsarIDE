@@ -6,6 +6,27 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.16.0] - 2026-08-21
+
+### Fixed
+- **The tracker now works in Codex and Cursor, not just Claude Code.** The
+  planide MCP and its instruction were only ever registered for Claude Code — so
+  a project run in Codex never got them and the board stayed empty. The MCP is now
+  registered in `~/.codex/config.toml` (`[mcp_servers.planide]`) and
+  `~/.cursor/mcp.json`, and the instruction is merged into each tool's
+  always-loaded memory (`~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`,
+  `~/.gemini/GEMINI.md`) so the *main* session uses the board without an
+  @-mention. The generated Codex TOML is verified to parse and to preserve your
+  existing config.
+- **The Tracker sidebar tab opened nothing when clicked.** It was typed, rendered
+  and persistence-guarded, but the route normalizer's runtime allowlist never
+  included `planide`, so every click snapped back to Explorer. Fixed.
+
+### Added
+- **The Council asks first.** Every main session now starts with the Council's
+  understand-first rule — restate the request, ask one clarifying question when it
+  is genuinely ambiguous, then route — before diving in.
+
 ## [0.15.0] - 2026-08-21
 
 ### Added

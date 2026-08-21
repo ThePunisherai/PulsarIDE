@@ -29,6 +29,10 @@ writeFileSync(join(HOME, '.claude/settings.json'), JSON.stringify({ hooks: { Ses
 // A realistic pre-existing ~/.claude.json (Claude Code's own state): our MCP
 // registration must add `planide` without disturbing any of it.
 writeFileSync(join(HOME, '.claude.json'), JSON.stringify({ mcpServers: { other: { command: 'x' } }, projects: { '/p': { allowedTools: [] } } }))
+// Pre-existing Codex config + AGENTS.md: our edits must preserve the user's content.
+mkdirSync(join(HOME, '.codex'), { recursive: true })
+writeFileSync(join(HOME, '.codex/config.toml'), 'model = "gpt-5"\n\n[mcp_servers.other]\ncommand = "x"\nargs = ["y"]\n')
+writeFileSync(join(HOME, '.codex/AGENTS.md'), '# My own notes\n\nKeep this.\n')
 
 const r1 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('deploys on first run', r1.deployed === true)
@@ -55,6 +59,23 @@ ok('existing ~/.claude.json content preserved (never clobbered)',
 ok('tracker instruction injected into agent bodies (Claude + Codex)',
   readFileSync(join(HOME, '.claude/agents/pulsar-council.md'), 'utf8').includes('PulsarIDE built-in tracker') &&
   readFileSync(join(HOME, '.codex/agents/pulsar-council.toml'), 'utf8').includes('PulsarIDE built-in tracker'))
+// Codex: the MCP is registered as a real [mcp_servers.planide] table, pointing at
+// our script, and the user's existing config + AGENTS.md are preserved.
+const codexToml = readFileSync(join(HOME, '.codex/config.toml'), 'utf8')
+ok('Codex MCP registered ([mcp_servers.planide]) pointing at our script',
+  codexToml.includes('[mcp_servers.planide]') && codexToml.includes(trackerScript))
+ok('Codex existing config preserved (other server + model key kept)',
+  codexToml.includes('[mcp_servers.other]') && codexToml.includes('model = "gpt-5"'))
+const codexAgentsMd = readFileSync(join(HOME, '.codex/AGENTS.md'), 'utf8')
+ok('Codex AGENTS.md gets orchestrator + tracker block, user content kept',
+  codexAgentsMd.includes('orchestrate as The Council first') &&
+  codexAgentsMd.includes('ask one clarifying question') &&
+  codexAgentsMd.includes('PulsarIDE built-in tracker') && codexAgentsMd.includes('Keep this.'))
+ok('Claude + Gemini main-session memory get the same block',
+  readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('orchestrate as The Council first') &&
+  readFileSync(join(HOME, '.gemini/GEMINI.md'), 'utf8').includes('orchestrate as The Council first'))
+ok('Cursor MCP registered at ~/.cursor/mcp.json',
+  JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide.args[0] === trackerScript)
 
 const r2 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('second run is version-gated no-op', r2.deployed === false)

@@ -145,6 +145,15 @@ EDITS: list[tuple[str, str, str, str]] = [
         "        {effectiveTab === 'planide' && <PlanIdePanel />}\n        {effectiveTab === 'explorer' && <FileExplorer />}",
         "render the tracker panel",
     ),
+    (
+        # The route normalizer has a runtime allowlist; a tab not in it snaps back
+        # to 'explorer' on click. Without this, clicking the Tracker tab did nothing
+        # (it was typed + rendered + persistence-guarded, but never allowed here).
+        "src/renderer/src/store/right-sidebar-route.ts",
+        "    tab === 'explorer' ||\n    tab === 'vault' ||",
+        "    tab === 'planide' ||\n    tab === 'explorer' ||\n    tab === 'vault' ||",
+        "let the tracker tab pass the route normalizer (else clicking it does nothing)",
+    ),
     # ---- integration: start the tracker engine --------------------------- #
     (
         "src/main/index.ts",
