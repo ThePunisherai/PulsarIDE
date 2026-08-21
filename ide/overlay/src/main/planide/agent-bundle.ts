@@ -403,6 +403,51 @@ function pyEnvPython(home: string): string {
  * to the system python until the venv finishes provisioning. Either way the
  * `plan` CLI (pure stdlib) covers agents, so a missing server is never fatal.
  */
+/**
+ * Codex reads its MCP servers from ~/.codex/config.toml (verified: headroom-ai's own
+ * providers/codex/install.py writes its marked section into that same file). Without this,
+ * agents running in Codex have NO tracker tools at all -- add_project/add_item/get_board
+ * simply do not exist for them -- so a whole project run in Codex silently produces an empty
+ * board ("tracker doet helemaal niets, wordt niets aangemaakt"). Claude Code got the server
+ * via ~/.claude.json below; Codex was never wired.
+ *
+ * Written as a DELIMITED block so a re-deploy replaces exactly our own section and never
+ * touches the user's own Codex config (same merge convention this project uses for every
+ * other shared config file).
+ */
+const CODEX_MCP_BEGIN = '# >>> PulsarIDE tracker (auto-managed) >>>'
+const CODEX_MCP_END = '# <<< PulsarIDE tracker (auto-managed) <<<'
+
+function registerPlanideMcpCodex(home: string, serverScript: string, command: string): boolean {
+  try {
+    const dir = join(home, '.codex')
+    mkdirSync(dir, { recursive: true })
+    const path = join(dir, 'config.toml')
+    let existing = existsSync(path) ? readFileSync(path, 'utf8') : ''
+    // Drop a previous block of ours (any position), keep everything else verbatim.
+    const start = existing.indexOf(CODEX_MCP_BEGIN)
+    if (start !== -1) {
+      const end = existing.indexOf(CODEX_MCP_END)
+      if (end !== -1) {
+        existing = existing.slice(0, start) + existing.slice(end + CODEX_MCP_END.length)
+      }
+    }
+    const tomlStr = (v: string): string => JSON.stringify(v) // TOML basic strings match JSON escaping
+    const block =
+      `${CODEX_MCP_BEGIN}\n` +
+      `[mcp_servers.planide]\n` +
+      `command = ${tomlStr(command)}\n` +
+      `args = [${tomlStr(serverScript)}]\n` +
+      `${CODEX_MCP_END}\n`
+    const body = existing.trimEnd()
+    writeFileSync(path, (body ? body + '\n\n' : '') + block)
+    return true
+  } catch {
+    // Never let a Codex config problem break the whole bundle deploy.
+    return false
+  }
+}
+
 function registerPlanideMcp(home: string, serverScript: string): boolean {
   const path = join(home, '.claude.json')
   let config: Record<string, unknown> = {}
@@ -419,6 +464,9 @@ function registerPlanideMcp(home: string, serverScript: string): boolean {
   const servers = (config.mcpServers ??= {}) as Record<string, unknown>
   servers.planide = { type: 'stdio', command, args: [serverScript] }
   writeFileSync(path, JSON.stringify(config, null, 2))
+  // Wire Codex too -- it is a first-class agent in this IDE and was silently missing the
+  // tracker tools entirely. Best-effort: Claude Code registration still counts as success.
+  registerPlanideMcpCodex(home, serverScript, command)
   return true
 }
 
