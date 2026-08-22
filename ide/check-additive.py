@@ -2,7 +2,7 @@
 """The promise this overlay makes: it ADDS to Orca, it does not take anything away.
 
 Only the branding constants may rewrite an upstream line (Orca -> PlanIDE in the
-app name, bundle id, protocol and artifact names). Every other edit must keep
+app name, bundle id, protocol, artifact names and the release feed). Every other edit must keep
 each line of its anchor, so no Orca feature can be quietly deleted by an edit
 that looked like an improvement.
 
@@ -19,6 +19,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BRANDING = {
     "src/main/startup/dev-instance-identity.ts",
     "config/electron-builder.config.cjs",
+    # Release identity: which product's releases this app updates from and
+    # publishes to. Same category as the app name and bundle id -- pointing the
+    # updater at Orca's releases would hand our users Orca builds.
+    "src/shared/release-channel.ts",
+    "src/main/updater-prerelease-feed.ts",
 }
 
 

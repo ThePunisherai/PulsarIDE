@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "79be5b7fde1a78bf5aca52999167b55d2d72ffdf"  # 2026-08-18, v1.4.178-rc.2
+PINNED_COMMIT = "9725654855152d87e9c6aa26d05a980f22d8c53f"  # 2026-08-21, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -37,6 +37,10 @@ OVERLAY = os.path.join(HERE, "overlay")
 PRODUCT = "PulsarIDE"
 APP_ID = "com.thepunisher.pulsaride"
 PROTOCOL = "pulsar"
+# Where the app looks for its own updates, and where releases are published.
+RELEASE_OWNER = "ThePunisherai"
+RELEASE_NAME = "PulsarIDE"
+RELEASE_REPO = f"{RELEASE_OWNER}/{RELEASE_NAME}"
 
 # --------------------------------------------------------------------------- #
 # edits: (relative path, anchor, replacement, description)
@@ -348,6 +352,35 @@ EDITS: list[tuple[str, str, str, str]] = [
         "      }",
         "record finished agent turns in the tracker",
     ),
+    # ---- auto-update: point Orca's own updater at OUR releases ----------- #
+    # Orca already ships a full, well-tested electron-updater subsystem. It does
+    # not need replacing -- it needs to look at our repo instead of Stably's.
+    # These three constants are what decide which releases the app sees.
+    (
+        "src/shared/release-channel.ts",
+        "export const MAIN_RELEASE_REPO = 'stablyai/orca'",
+        f"export const MAIN_RELEASE_REPO = '{RELEASE_REPO}'",
+        "update feed: stable/rc channel points at our releases",
+    ),
+    (
+        "src/main/updater-prerelease-feed.ts",
+        "const ATOM_FEED_URL = 'https://github.com/stablyai/orca/releases.atom'",
+        f"const ATOM_FEED_URL = 'https://github.com/{RELEASE_REPO}/releases.atom'",
+        "update feed: releases atom feed",
+    ),
+    (
+        "src/main/updater-prerelease-feed.ts",
+        "const RELEASES_DOWNLOAD_BASE = 'https://github.com/stablyai/orca/releases/download'",
+        f"const RELEASES_DOWNLOAD_BASE = 'https://github.com/{RELEASE_REPO}/releases/download'",
+        "update feed: release asset download base",
+    ),
+    (
+        "config/electron-builder.config.cjs",
+        "  publish: {\n    provider: 'github',\n    owner: 'stablyai',\n    repo: devChannelRepo ?? 'orca',",
+        "  publish: {\n    provider: 'github',\n"
+        f"    owner: '{RELEASE_OWNER}',\n    repo: devChannelRepo ?? '{RELEASE_NAME}',",
+        "publish target: our own GitHub releases",
+    ),
     # ---- the agent bundle: ThePunisher agents + skills, packaged ---------- #
     (
         "config/electron-builder.config.cjs",
@@ -505,6 +538,17 @@ def copy_bundle(root: str, check_only: bool) -> tuple[int, list[str]]:
     return count, problems
 
 
+def pulsar_version() -> str | None:
+    """PulsarIDE's own version (agent-tools/VERSION), or None if unreadable."""
+    path = os.path.join(HERE, "..", "agent-tools", "VERSION")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            v = fh.read().strip()
+        return v or None
+    except OSError:
+        return None
+
+
 def patch_package_json(root: str, check_only: bool) -> list[str]:
     import json
 
@@ -518,6 +562,15 @@ def patch_package_json(root: str, check_only: bool) -> list[str]:
         if data.get(key) != value:
             data[key] = value
             changed = True
+    # The app must report OUR version, not Orca's. app.getVersion() is what
+    # electron-updater compares against the release feed: shipping Orca's
+    # 1.4.178-rc.2 while our releases are tagged v0.20.0 makes every release look
+    # like a downgrade, so the updater would silently never offer one. Our own
+    # versions increase monotonically, which is exactly what it needs.
+    version = pulsar_version()
+    if version and data.get("version") != version:
+        data["version"] = version
+        changed = True
     # Note: packaging inputs (extraResources, asar excludes) are NOT here --
     # Orca configures electron-builder in config/electron-builder.config.cjs,
     # and package.json has no "build" key at all. The tracker is shipped by the

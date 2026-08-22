@@ -6,6 +6,31 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.21.0] - 2026-08-22
+
+### Added
+- **PulsarIDE updates itself now.** The app checks your own releases and installs
+  new versions in the background — the same updater Orca ships, pointed at
+  PulsarIDE instead of Orca, so you get a tested mechanism rather than a new one.
+  Each release now also publishes the update manifest the updater needs.
+- **The app reports its own version.** It used to report Orca's (1.4.178-rc.2)
+  while releases were tagged 0.x — the updater read every release as a downgrade
+  and would never have offered one. It now uses PulsarIDE's version.
+
+### Changed
+- **Updated to the latest Orca** (2026-08-21), so PulsarIDE keeps up with
+  upstream's fixes. All 46 overlay edits still apply cleanly.
+
+### Fixed
+- **Linux builds stopped dying halfway.** The build runs three typecheckers at
+  once, each allowed a 4 GB heap, which could exhaust the build machine and kill
+  it mid-run. Capped so they fit.
+
+### Note
+- Auto-update takes over **after** you install this version once by hand: an
+  older install still reports Orca's version number, so it cannot recognise 0.21.0
+  as newer. From 0.21.0 onward it is automatic.
+
 ## [0.20.0] - 2026-08-22
 
 ### Fixed

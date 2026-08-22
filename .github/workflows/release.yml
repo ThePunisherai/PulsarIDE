@@ -160,6 +160,14 @@ jobs:
             Get-ChildItem dist | Format-Table Name, Length
             throw 'the installer was not produced'
           }
+          # latest.yml is what electron-updater reads to discover a new version.
+          # Without it in the release, auto-update can never fire -- so this is a
+          # hard failure, not a warning: a release that cannot update is broken.
+          if (-not (Test-Path 'dist/latest.yml')) {
+            Get-ChildItem dist | Format-Table Name, Length
+            throw 'latest.yml was not produced -- auto-update would never see this release'
+          }
+          Get-Content dist/latest.yml
 
       - name: Attach the installer to the release
         shell: bash
@@ -173,6 +181,7 @@ jobs:
           gh release upload "${{ needs.create-release.outputs.tag }}" \
             dist/pulsar-windows-setup.exe \
             dist/pulsar-windows-setup.exe.blockmap \
+            dist/latest.yml \
             --clobber
 
   linux:
@@ -227,7 +236,12 @@ jobs:
         working-directory: work/orca
         run: pnpm build:desktop
         env:
-          NODE_OPTIONS: --max-old-space-size=4096
+          # 2048, not 4096: build:desktop runs three concurrent tsc processes
+          # (run-typecheck-projects-in-parallel.mjs) and each inherits this
+          # limit. At 4096 they can collectively exhaust the runner, which
+          # kills it mid-typecheck -- the 'runner has received a shutdown
+          # signal' failure this job hit twice.
+          NODE_OPTIONS: --max-old-space-size=2048
 
       - name: Package the AppImage
         working-directory: work/orca
@@ -235,6 +249,13 @@ jobs:
           node config/scripts/ensure-native-runtime.mjs --runtime=electron
           pnpm exec electron-builder --config config/electron-builder.config.cjs --linux AppImage --publish never
           ls -la dist/*.AppImage
+          # The update manifest, same reasoning as Windows' latest.yml.
+          if [ ! -f dist/latest-linux.yml ]; then
+            ls -la dist
+            echo "latest-linux.yml was not produced -- auto-update would never see this release" >&2
+            exit 1
+          fi
+          cat dist/latest-linux.yml
 
       - name: Attach the AppImage to the release
         working-directory: work/orca
@@ -244,4 +265,5 @@ jobs:
           # is the Orca clone, where this release does not exist.
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release upload "${{ needs.create-release.outputs.tag }}" dist/*.AppImage --clobber
+          gh release upload "${{ needs.create-release.outputs.tag }}" \
+            dist/*.AppImage dist/latest-linux.yml --clobber
