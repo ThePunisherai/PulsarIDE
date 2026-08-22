@@ -77,13 +77,13 @@ const TRACKER_INSTRUCTION = `
 
 ## PulsarIDE built-in tracker — keep it in sync with the chat, automatically
 
-This project may be tracked by PulsarIDE's built-in board, stored in
-\`<project>/.planide/state.json\` and shown live in the IDE's Tracker tab. When it
-is tracked, keeping it current is part of your job — you never need to be asked.
+This project has a built-in board, stored in \`<project>/.planide/state.json\` and
+shown live in the IDE's Tracker tab. Keeping it current is part of your job — you
+never need to be asked, and the board is created on first use, so it always works.
 
-- **Read it first.** Call the \`planide\` MCP tool \`get_board\` (or run
-  \`plan board <project>\`) before you start, so you build on the real state
-  instead of guessing. Pass \`project\` = the project's absolute path to every tool.
+- **Read it first.** Call the \`planide\` MCP tool \`get_board\` before you start, so
+  you build on the real state instead of guessing. Pass \`project\` = the project's
+  absolute path to every tool.
 - **Mirror the conversation onto the board, in the same turn the fact appears:**
   - The user asks for something, or you plan a step you have not started yet →
     \`add_item\` (status \`todo\`), so the plan is on the board before any code moves.
@@ -202,9 +202,8 @@ export function deployAgentBundle(
     // best available python. This lets the MCP switch to the venv the moment the
     // background install finishes, instead of waiting for a version bump.
     if (opts.provisionPyEnv !== false) ensurePyEnv(home)
-    const deployedMcpScript = join(configDir(home), 'tracker', 'mcp', 'planide_mcp.py')
-    const alreadyTracked = existsSync(deployedMcpScript)
-    let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home, deployedMcpScript) : false
+    const alreadyTracked = existsSync(join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs'))
+    let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home) : false
 
     if (!opts.force && prev && prev.bundle_version === manifest.bundle_version) {
       return skip(`already at ${manifest.bundle_version}`, mcpWired, alreadyTracked)
@@ -277,7 +276,7 @@ export function deployAgentBundle(
     // Tracker tab) is the always-run step above, refreshed here now that the files
     // are freshly (re)deployed.
     const trackerRoot = deployTrackerFiles(home, root)
-    if (trackerRoot) mcpWired = registerTrackerForAllAgents(home, join(trackerRoot, 'mcp', 'planide_mcp.py'))
+    if (trackerRoot) mcpWired = registerTrackerForAllAgents(home)
     deployToolsFiles(home, root)
 
     const marker: Marker = {
@@ -394,7 +393,7 @@ function wireHooks(home: string, root: string): boolean {
  */
 function deployTrackerFiles(home: string, root: string): string | null {
   const src = join(root, 'tracker')
-  if (!existsSync(join(src, 'mcp', 'planide_mcp.py'))) return null
+  if (!existsSync(join(src, 'mcp', 'planide-mcp.mjs'))) return null
 
   const dest = join(configDir(home), 'tracker')
   rmSync(dest, { recursive: true, force: true })
@@ -434,7 +433,7 @@ function pyEnvPython(home: string): string {
  * to the system python until the venv finishes provisioning. Either way the
  * `plan` CLI (pure stdlib) covers agents, so a missing server is never fatal.
  */
-function registerPlanideMcp(home: string, serverScript: string): boolean {
+function registerPlanideMcp(home: string): boolean {
   const path = join(home, '.claude.json')
   let config: Record<string, unknown> = {}
   if (existsSync(path)) {
@@ -446,15 +445,41 @@ function registerPlanideMcp(home: string, serverScript: string): boolean {
     }
   }
   const servers = (config.mcpServers ??= {}) as Record<string, unknown>
-  servers.planide = { type: 'stdio', command: mcpPython(home), args: [serverScript] }
+  const launch = mcpLaunch(home)
+  servers.planide = { type: 'stdio', command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
   writeFileSync(path, JSON.stringify(config, null, 2))
   return true
 }
 
-/** The python that runs the MCP server: the IDE's venv (has fastmcp) if ready, else system. */
-function mcpPython(home: string): string {
+/** How an agent should launch the tracker MCP server. */
+type McpLaunch = { command: string; args: string[]; env?: Record<string, string> }
+
+/**
+ * Launch the tracker MCP server with the app's own Electron binary, as a plain
+ * Node runtime (`ELECTRON_RUN_AS_NODE=1`).
+ *
+ * This is the fix for the tracker doing nothing in any agent. It used to run
+ * `planide_mcp.py`, which needs Python *and* `fastmcp` — verified: without them
+ * the server exits immediately, so the agent had no tracker tools at all and the
+ * board could never move, no matter what the user asked for. The IDE cannot
+ * assume a working Python: the venv it provisions in the background needs
+ * python3, `venv`, and network, and any of those can be missing (a Windows box
+ * with no Python, or only the Microsoft Store stub, is the common case).
+ *
+ * `process.execPath` is the IDE's own executable, so it is always there — the
+ * server has zero install steps and cannot be broken by the user's Python.
+ * The Python server stays on disk for anyone running it outside the IDE, but
+ * nothing here depends on it any more.
+ */
+function mcpLaunch(home: string): McpLaunch {
+  const nodeServer = join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs')
+  if (existsSync(nodeServer)) {
+    return { command: process.execPath, args: [nodeServer], env: { ELECTRON_RUN_AS_NODE: '1' } }
+  }
+  // Only reachable before the bundle has ever deployed (or if it was deleted).
   const venvPy = pyEnvPython(home)
-  return existsSync(venvPy) ? venvPy : process.platform === 'win32' ? 'python' : 'python3'
+  const py = existsSync(venvPy) ? venvPy : process.platform === 'win32' ? 'python' : 'python3'
+  return { command: py, args: [join(configDir(home), 'tracker', 'mcp', 'planide_mcp.py')] }
 }
 
 /**
@@ -465,7 +490,7 @@ function mcpPython(home: string): string {
  * actually runs — saw no tracker tools before: it only ever went into
  * ~/.claude.json.
  */
-function registerPlanideMcpCodex(home: string, serverScript: string): boolean {
+function registerPlanideMcpCodex(home: string): boolean {
   try {
     const path = join(home, '.codex', 'config.toml')
     let text = ''
@@ -487,7 +512,14 @@ function registerPlanideMcpCodex(home: string, serverScript: string): boolean {
       if (!skipping) kept.push(line)
     }
     const esc = (s: string): string => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-    const block = `[mcp_servers.planide]\ncommand = "${esc(mcpPython(home))}"\nargs = ["${esc(serverScript)}"]\n`
+    const launch = mcpLaunch(home)
+    const envBlock = launch.env
+      ? Object.entries(launch.env).map(([k, v]) => `${k} = "${esc(v)}"`).join('\n')
+      : ''
+    const block =
+      `[mcp_servers.planide]\ncommand = "${esc(launch.command)}"\n` +
+      `args = [${launch.args.map((a) => `"${esc(a)}"`).join(', ')}]\n` +
+      (envBlock ? `\n[mcp_servers.planide.env]\n${envBlock}\n` : '')
     const body = kept.join('\n').replace(/\s+$/, '')
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, (body ? body + '\n\n' : '') + block)
@@ -498,7 +530,7 @@ function registerPlanideMcpCodex(home: string, serverScript: string): boolean {
 }
 
 /** Register the `planide` MCP for Cursor in `~/.cursor/mcp.json` (user scope). */
-function registerPlanideMcpCursor(home: string, serverScript: string): boolean {
+function registerPlanideMcpCursor(home: string): boolean {
   try {
     const path = join(home, '.cursor', 'mcp.json')
     let config: Record<string, unknown> = {}
@@ -510,7 +542,8 @@ function registerPlanideMcpCursor(home: string, serverScript: string): boolean {
       }
     }
     const servers = (config.mcpServers ??= {}) as Record<string, unknown>
-    servers.planide = { command: mcpPython(home), args: [serverScript] }
+    const launch = mcpLaunch(home)
+    servers.planide = { command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, JSON.stringify(config, null, 2))
     return true
@@ -530,7 +563,7 @@ function registerPlanideMcpCursor(home: string, serverScript: string): boolean {
  * wrote the MCP entry for them. Reconcile-not-accumulate: only the `planide` key
  * is touched; every other server and setting in the file is preserved verbatim.
  */
-function registerPlanideMcpGemini(home: string, serverScript: string): boolean {
+function registerPlanideMcpGemini(home: string): boolean {
   try {
     const path = join(home, '.gemini', 'settings.json')
     let config: Record<string, unknown> = {}
@@ -543,7 +576,8 @@ function registerPlanideMcpGemini(home: string, serverScript: string): boolean {
       }
     }
     const servers = (config.mcpServers ??= {}) as Record<string, unknown>
-    servers.planide = { command: mcpPython(home), args: [serverScript] }
+    const launch = mcpLaunch(home)
+    servers.planide = { command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, JSON.stringify(config, null, 2))
     return true
@@ -562,42 +596,50 @@ const MANAGED_END = '<!-- PULSAR:MAIN:END -->'
  * Council asks first" and "keep the board in sync" actually reach them.
  */
 function mainSessionBlock(home: string): string {
-  const trackerDir = join(configDir(home), 'tracker')
-  const py = mcpPython(home)
   return [
-    '## PulsarIDE — orchestrate as The Council first',
+    '## PulsarIDE — orchestrate as The Council, and keep the board live',
     '',
     'Before diving into a non-trivial task, act as **The Council** (Pulsar\'s',
-    'orchestrator):',
+    'orchestrator). These four steps are the default way you work here, not an option:',
     '',
     '1. **Understand first.** Restate the actual request in one sentence. If it is genuinely',
     '   ambiguous or underspecified, say what is unclear and **ask one clarifying question**',
     '   before you start — a misread request executed perfectly is still wrong. (Skip the',
     '   question only when the intent is already unambiguous.)',
-    '2. **Route.** Name the Pulsar team + the specific specialist(s) that fit, then adopt',
+    '2. **Put it on the board, before you write any code.** Call the `planide` MCP tool',
+    '   `get_board` to see the real state, then `add_item` (status `todo`) for what was just',
+    '   asked — one item per real piece of work, not one giant item. This is step 2 of every',
+    '   task, not an afterthought: the user watches the Tracker tab to see that you understood',
+    '   the request, so an empty board while you are working reads as nothing happening.',
+    '3. **Route.** Name the Pulsar team + the specific specialist(s) that fit, then adopt',
     '   that persona. There are 100 team leads (installed) routing to 5,050 named specialists —',
     '   read a specialist\'s file on demand and adopt it inline. Never repeat a failed approach.',
-    '3. **Validate.** Before you claim something works, verify it — do not green-wash.',
+    '4. **Work the board as the work happens, and validate before you claim.**',
+    '   `set_item` to `wip` when you start it, `works` only once it genuinely works, `broken`',
+    '   when it fails; `add_fix` the moment you hit a bug; `mark_fixed` when the user says it',
+    '   is solved; `add_version` when you ship. Verify before you claim — do not green-wash.',
     '',
     'Reverse-engineering toolkit is installed at `' + join(configDir(home), 'tools', 'reverse-engineering') + '`',
     '(re-triage.sh, ghidra/frida/x64dbg drivers, fuzz-driver.sh, linux-unpack.sh) — use it for',
     'binary/RE work.',
     '',
-    '## PulsarIDE built-in tracker — keep it in sync with the chat',
+    '## The `planide` tracker tools',
     '',
-    'A project opened in PulsarIDE may carry a built-in board at `<project>/.planide/state.json`,',
-    'shown live in the IDE Tracker tab. When one does, keeping it current is part of the job.',
-    'Pass `project` = the project\'s absolute path to every call.',
+    'Every project opened in PulsarIDE has a board at `<project>/.planide/state.json`, shown',
+    'live in the IDE Tracker tab. Keeping it current is part of the job, in the same turn the',
+    'fact appears — you never need to be asked. Pass `project` = the project\'s absolute path',
+    'to every call. The board is created for you on first use, so it always works.',
     '',
-    '- **Read it first** — `planide` MCP tool `get_board`, or run:',
-    '  `` PYTHONPATH="' + trackerDir + '" ' + py + ' -m planide board <project> ``',
-    '- **Mirror the conversation, in the same turn the fact appears:**',
-    '  - user asks / you plan a step → `add_item` status `todo`',
-    '  - you start it → `set_item` `wip`;  it works → `set_item` `works`',
-    '  - a bug → `add_fix` (problem + where) or `set_item` `broken`',
-    '  - user says it is solved → `mark_fixed`;  a release → `add_version`',
-    '- **Before you say "done" or "please test", update the board first.**',
-    '- Only report what is real; never green-wash. `verified`/`locked` stay the user\'s.',
+    '- `get_board` — read it first, every task.',
+    '- `add_item` — the user asks / you plan a step → status `todo`.',
+    '- `set_item` — you start it → `wip`;  it works → `works`;  it fails → `broken`.',
+    '- `add_fix` — a bug (problem + where);  `mark_fixed` — the user says it is solved.',
+    '- `add_version` — a release or milestone.',
+    '',
+    '- **Before you say "done" or "please test", update the board first**, so what it shows',
+    '  matches what you just claimed.',
+    '- Only report what is real; never green-wash. `verified`/`locked` stay the user\'s — you',
+    '  cannot set them, by design.',
     ''
   ].join('\n')
 }
@@ -627,11 +669,11 @@ function mergeManagedBlock(path: string, block: string): boolean {
  * each tool's always-loaded memory file so the *main* session gets it without an
  * @-mention. Returns true if any MCP registration wrote.
  */
-function registerTrackerForAllAgents(home: string, serverScript: string): boolean {
-  const claude = registerPlanideMcp(home, serverScript)
-  const codex = registerPlanideMcpCodex(home, serverScript)
-  registerPlanideMcpCursor(home, serverScript)
-  const gemini = registerPlanideMcpGemini(home, serverScript)
+function registerTrackerForAllAgents(home: string): boolean {
+  const claude = registerPlanideMcp(home)
+  const codex = registerPlanideMcpCodex(home)
+  registerPlanideMcpCursor(home)
+  const gemini = registerPlanideMcpGemini(home)
   const block = mainSessionBlock(home)
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
   mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)

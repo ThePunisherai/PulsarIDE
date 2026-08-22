@@ -21,7 +21,7 @@ import {
   recordAgentTurn,
   resetAgentTurnCache
 } from '../overlay/src/main/planide/agent-events'
-import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -112,8 +112,17 @@ ok('a replay is ignored', recordAgentTurn(turn({ isReplay: true }, { turnComplet
 ok('working/waiting churn is ignored', recordAgentTurn(turn({}, { state: 'working' })) === false)
 // Upstream marks connect/resume/clear as a `done` that is not a completed turn.
 ok('a session boundary is ignored', recordAgentTurn(turn({}, { sessionBoundary: true, turnCompletedAt: 3 })) === false)
-ok('an untracked project is left alone',
-   recordAgentTurn({ worktreeId: wt(mkdtempSync(join(tmpdir(), 'untracked-'))), payload: { state: 'done' } }) === false)
+// The board starts itself: a project you never opened the Tracker tab in still
+// gets its trail from the first finished turn. (This assertion is deliberately
+// the inverse of what it used to be -- requiring a pre-existing state.json meant
+// running a whole task through an agent left the tracker completely empty.)
+const fresh = mkdtempSync(join(tmpdir(), 'untracked-'))
+ok('a project with no board yet gets one from the first finished turn',
+   recordAgentTurn({ worktreeId: wt(fresh), payload: { state: 'done', agentType: 'codex', prompt: 'build the thing' } }) === true &&
+   existsSync(join(fresh, '.planide', 'state.json')))
+// A remote (SSH) worktree's path does not exist locally -- still never written.
+ok('a path that does not exist locally is left alone',
+   recordAgentTurn({ worktreeId: wt(join(tmpdir(), 'no-such-dir-' + Date.now())), payload: { state: 'done' } }) === false)
 // Orca's own per-turn key is authoritative, so the same key is always a duplicate...
 ok('a repeat of the same turn key is one entry',
    recordAgentTurn(turn({ promptInteractionKey: 'k1' })) === true &&

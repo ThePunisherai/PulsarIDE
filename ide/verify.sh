@@ -233,6 +233,27 @@ else
   skip "agent bundle deploy (npx unavailable)"
 fi
 
+# 4c-2. the tracker MCP server: driven over real MCP stdio frames, and checked
+# against the IDE's own store so the two cannot drift. This is the server agents
+# actually call -- it runs under the app binary, so it needs no Python.
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/overlay/src/main/planide/store.ts" --bundle --platform=node \
+       --format=cjs --outfile="$work/store.cjs" --external:electron --log-level=error >/dev/null 2>&1; then
+    out=$(PULSAR_REPO="$ROOT" PULSAR_STORE_CJS="$work/store.cjs" node "$HERE/test/mcp-node.test.mjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "tracker MCP server: $(echo "$out" | grep -oE 'PASS=[0-9]+') protocol + parity checks"
+    else
+      bad "tracker MCP server"; echo "$out" | grep "FAIL " | head -4
+    fi
+  else
+    bad "tracker MCP server: store bundle failed to build"
+  fi
+  rm -rf "$work"
+else
+  skip "tracker MCP server (npx unavailable)"
+fi
+
 # 4d. per-project memory status: graphify graph + Obsidian note detection reads
 # the same layout council-memory.py writes (same slug, same vault-resolution
 # order), so the Tracker's Memory panel and the hook never disagree.

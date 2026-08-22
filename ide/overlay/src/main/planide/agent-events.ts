@@ -13,9 +13,10 @@
  *    a turn is not evidence that anything works, and auto-filling the board with
  *    guesses is exactly the "green board nobody checked" problem this project
  *    exists to avoid. Promoting a turn into an item stays your call.
- *  * Only projects you already track. A workspace with no `.planide/state.json`
- *    is left alone, so merely using an agent never litters a repo with tracker
- *    files you did not ask for.
+ *  * Local projects only. The board is created on the first real turn an agent
+ *    finishes in a workspace, so the trail is there without setting anything up
+ *    first. A remote (SSH) worktree's path does not exist on this machine, so
+ *    this stays silent there rather than writing the board somewhere wrong.
  *  * Real completions only. Replays, session boundaries and duplicate hook
  *    deliveries are all dropped (see the guards in recordAgentTurn).
  *
@@ -120,9 +121,19 @@ export function recordAgentTurn(turn: AgentTurn): boolean {
 
     const path = projectPathFromWorktreeId(turn.worktreeId)
     if (!path) return false
-    // Only projects you already track: never create tracker state as a side
-    // effect of running an agent.
-    if (!existsSync(statePath(path))) return false
+    // The board starts itself on the first real turn an agent finishes here.
+    //
+    // This used to require `.planide/state.json` to already exist, so a project
+    // you never opened the Tracker tab in recorded nothing, ever -- you ran a
+    // whole task through an agent and the tracker stayed empty ("wordt niets
+    // aangemaakt"). That guard was there so merely running an agent could not
+    // litter a repo with tracker files, but it made the automatic trail useless
+    // for exactly the case it exists for: work you did not think to set up first.
+    //
+    // The directory check is what keeps it honest: a remote (SSH) worktree's
+    // path does not exist on this machine, so this still stays silent there
+    // instead of writing the board somewhere wrong.
+    if (!existsSync(statePath(path)) && !existsSync(path)) return false
 
     const agent = trim(payload.agentType) || 'agent'
     const prompt = trim(payload.prompt)

@@ -6,6 +6,23 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.20.0] - 2026-08-22
+
+### Fixed
+- **The tracker actually tracks now.** Two separate bugs meant nothing ever
+  reached the board, in any agent:
+  - The MCP server agents call needed **Python plus `fastmcp`** — without them it
+    exited on startup, so the agent had no tracker tools at all and the board
+    could never move. It is now a **zero-dependency Node server that runs on the
+    IDE's own binary**: nothing to install, and it cannot be broken by your
+    Python. Claude, Codex, Cursor and Gemini/Antigravity all get it.
+  - The automatic activity trail only recorded in a project that **already had**
+    a board, so a project you had not opened the Tracker tab in recorded nothing,
+    ever. **The board now starts itself** on the first turn an agent finishes.
+- **Keeping the board current is now step 2 of every task**, before any code —
+  read the board, then put the request on it — instead of a note further down the
+  instructions that was easy to skip. That is what the Council now does by default.
+
 ## [0.19.0] - 2026-08-22
 
 ### Fixed

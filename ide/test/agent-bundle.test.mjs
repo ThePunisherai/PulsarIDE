@@ -54,8 +54,8 @@ const s1 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
 ok('user hook + agent untouched, our hook added', existsSync(join(HOME, '.claude/agents/my-own.md')) && s1.hooks.SessionStart.some(e => JSON.stringify(e).includes('mine.sh')) && s1.hooks.SessionStart.some(e => JSON.stringify(e).includes('graphify-bootstrap.sh')))
 
 // --- tracker: CLI + package + planide MCP, so agents update the board ------ //
-const trackerScript = join(HOME, '.config/pulsaride/tracker/mcp/planide_mcp.py')
-ok('tracker deployed (CLI + package + MCP script)', r1.trackerDeployed === true &&
+const trackerScript = join(HOME, '.config/pulsaride/tracker/mcp/planide-mcp.mjs')
+ok('tracker deployed (CLI + package + Node MCP server)', r1.trackerDeployed === true &&
   existsSync(trackerScript) &&
   existsSync(join(HOME, '.config/pulsaride/tracker/plan')) &&
   existsSync(join(HOME, '.config/pulsaride/tracker/planide/store.py')))
@@ -64,6 +64,11 @@ const cj1 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
 ok('planide MCP registered at user scope, points at deployed script',
   r1.mcpWired === true && cj1.mcpServers && cj1.mcpServers.planide &&
   cj1.mcpServers.planide.args && cj1.mcpServers.planide.args[0] === trackerScript)
+// The whole point of the Node server: it runs under the app's own binary, so it
+// needs no Python and no fastmcp -- the reason the tracker did nothing before.
+ok('MCP runs under the app binary as node (no Python dependency)',
+  cj1.mcpServers.planide.command === process.execPath &&
+  cj1.mcpServers.planide.env && cj1.mcpServers.planide.env.ELECTRON_RUN_AS_NODE === '1')
 ok('existing ~/.claude.json content preserved (never clobbered)',
   cj1.mcpServers.other && cj1.projects && cj1.projects['/p'])
 ok('tracker instruction injected into agent bodies (Claude + Codex)',
@@ -74,21 +79,31 @@ ok('tracker instruction injected into agent bodies (Claude + Codex)',
 const codexToml = readFileSync(join(HOME, '.codex/config.toml'), 'utf8')
 ok('Codex MCP registered ([mcp_servers.planide]) pointing at our script',
   codexToml.includes('[mcp_servers.planide]') && codexToml.includes(trackerScript))
+ok('Codex MCP carries the run-as-node env table',
+  codexToml.includes('[mcp_servers.planide.env]') && codexToml.includes('ELECTRON_RUN_AS_NODE = "1"'))
 ok('Codex existing config preserved (other server + model key kept)',
   codexToml.includes('[mcp_servers.other]') && codexToml.includes('model = "gpt-5"'))
 const codexAgentsMd = readFileSync(join(HOME, '.codex/AGENTS.md'), 'utf8')
 ok('Codex AGENTS.md gets orchestrator + tracker block, user content kept',
-  codexAgentsMd.includes('orchestrate as The Council first') &&
+  codexAgentsMd.includes('orchestrate as The Council') &&
   codexAgentsMd.includes('ask one clarifying question') &&
-  codexAgentsMd.includes('PulsarIDE built-in tracker') && codexAgentsMd.includes('Keep this.'))
+  codexAgentsMd.includes('planide') && codexAgentsMd.includes('Keep this.'))
+// The fix for "I give it a task and nothing appears": putting the request on the
+// board is step 2 of every task, before any code -- not a separate optional note.
+ok('the main-session block makes the board a Council step, before any code',
+  codexAgentsMd.includes('Put it on the board, before you write any code') &&
+  codexAgentsMd.includes('get_board') && codexAgentsMd.includes('add_item'))
 ok('Claude + Gemini main-session memory get the same block',
-  readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('orchestrate as The Council first') &&
-  readFileSync(join(HOME, '.gemini/GEMINI.md'), 'utf8').includes('orchestrate as The Council first'))
+  readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('orchestrate as The Council') &&
+  readFileSync(join(HOME, '.gemini/GEMINI.md'), 'utf8').includes('orchestrate as The Council'))
 ok('Cursor MCP registered at ~/.cursor/mcp.json',
   JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide.args[0] === trackerScript)
 const gem1 = JSON.parse(readFileSync(join(HOME, '.gemini/settings.json'), 'utf8'))
 ok('Gemini/Antigravity MCP registered at ~/.gemini/settings.json, user content preserved',
   gem1.mcpServers.planide.args[0] === trackerScript && gem1.mcpServers.other && gem1.theme === 'Default')
+ok('every agent gets the same dependency-free launch (claude/codex/cursor/gemini)',
+  [JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide, gem1.mcpServers.planide]
+    .every((s) => s.command === process.execPath && s.env?.ELECTRON_RUN_AS_NODE === '1'))
 
 const r2 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('second run is version-gated no-op', r2.deployed === false)
@@ -102,14 +117,14 @@ ok('force redeploy keeps planide MCP + preserves other servers + tracker present
   r3.mcpWired === true && cj3.mcpServers.planide && cj3.mcpServers.other &&
   existsSync(join(HOME, '.config/pulsaride/tracker/plan')))
 
-// Once the self-contained venv exists, the MCP re-points at its python (which
-// has fastmcp) instead of the system one. Simulate the venv being ready and
-// redeploy — the command must switch to the venv python.
+// A provisioned Python venv must NOT drag the MCP back onto Python: the Node
+// server under the app binary is the one that always works, so it stays.
 const venvPy = join(HOME, '.config/pulsaride/pyenv/bin/python')
 mkdirSync(dirname(venvPy), { recursive: true }); writeFileSync(venvPy, '#!/bin/sh\n')
 deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
 const cj4 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
-ok('MCP re-points at the venv python once it exists', cj4.mcpServers.planide.command === venvPy)
+ok('a Python venv does not displace the Node MCP server',
+  cj4.mcpServers.planide.command === process.execPath && cj4.mcpServers.planide.args[0] === trackerScript)
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)
