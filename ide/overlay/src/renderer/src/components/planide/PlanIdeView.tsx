@@ -21,7 +21,10 @@ import {
   History,
   Loader2,
   Lock,
+  BookText,
+  ExternalLink,
   Map as MapIcon,
+  Network,
   Plus,
   RefreshCw,
   ShieldAlert,
@@ -50,12 +53,14 @@ import {
   deleteItem,
   lockItem,
   markFixDone,
+  memoryStatus,
   openProject,
   setItemStatus,
   toggleMilestone,
   updateItem,
   verifyItem,
   type ItemStatus,
+  type MemoryStatus,
   type PlanIdeItem,
   type PlanIdeProject
 } from '../right-sidebar/planide-engine-client'
@@ -69,6 +74,7 @@ type Tab =
   | 'sync'
   | 'backups'
   | 'activity'
+  | 'memory'
   | 'ai'
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
@@ -80,6 +86,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: 'sync', label: 'GitHub', icon: GitBranch },
   { id: 'backups', label: 'Backups', icon: Archive },
   { id: 'activity', label: 'Activity', icon: History },
+  { id: 'memory', label: 'Memory', icon: Network },
   { id: 'ai', label: 'AI briefing', icon: Sparkles }
 ]
 
@@ -263,6 +270,131 @@ function ActivityRow({ entry }: { entry: PlanIdeProject['activity'][number] }): 
       <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70">
         {String(entry.at).slice(5, 16).replace('T', ' ')}
       </span>
+    </div>
+  )
+}
+
+/** relTime for an epoch-ms timestamp (memory-status uses file mtimes, not ISO). */
+function relTimeMs(ms: number | null): string {
+  return ms ? relTime(new Date(ms).toISOString()) : ''
+}
+
+/**
+ * Per-project memory panel: shows graphify's knowledge graph and the Obsidian
+ * note actually working for this project — the "see graphify/Obsidian per
+ * project" overview. Read-only; the SessionStart hook and the tracker's
+ * memory-sync are what write them.
+ */
+function MemoryPanel({
+  status,
+  loading,
+  onRefresh
+}: {
+  status: MemoryStatus | null
+  loading: boolean
+  onRefresh: () => void
+}): React.JSX.Element {
+  const g = status?.graphify
+  const o = status?.obsidian
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <span className="text-[12px] text-muted-foreground">
+          {translate(
+            'planide.memory.hint',
+            'graphify and Obsidian run automatically per project — this is their live state here.'
+          )}
+        </span>
+        <Button size="sm" variant="outline" className="ml-auto" onClick={onRefresh} disabled={loading}>
+          <RefreshCw size={13} className={cn(loading && 'animate-spin')} />{' '}
+          {translate('planide.memory.refresh', 'Refresh')}
+        </Button>
+      </div>
+
+      {/* graphify knowledge graph */}
+      <div className="rounded-xl border border-border bg-card/40 p-3.5">
+        <div className="mb-2 flex items-center gap-2">
+          <Network size={15} className={cn(g?.available ? 'text-violet-400' : 'text-muted-foreground/50')} />
+          <span className="text-[12.5px] font-semibold">
+            {translate('planide.memory.graph', 'Knowledge graph')}
+          </span>
+          <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">graphify-out/</span>
+        </div>
+        {g?.available ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-lg bg-violet-500/10 px-2.5 py-1 text-[12px] font-semibold text-violet-300">
+              {g.nodes.toLocaleString()} {translate('planide.memory.nodes', 'nodes')}
+            </span>
+            <span className="rounded-lg bg-sky-500/10 px-2.5 py-1 text-[12px] font-semibold text-sky-300">
+              {g.edges.toLocaleString()} {translate('planide.memory.edges', 'edges')}
+            </span>
+            {g.hasReport && (
+              <span className="rounded-lg border border-border px-2 py-1 text-[11px] text-muted-foreground">
+                GRAPH_REPORT.md
+              </span>
+            )}
+            {g.hasHtml && (
+              <span className="rounded-lg border border-border px-2 py-1 text-[11px] text-muted-foreground">
+                graph.html
+              </span>
+            )}
+            {g.updatedAt && (
+              <span className="ml-auto text-[11px] text-muted-foreground/80">
+                {translate('planide.memory.updated', 'updated')} {relTimeMs(g.updatedAt)}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="text-[12px] text-muted-foreground">
+            {translate(
+              'planide.memory.noGraph',
+              'No graph yet. graphify builds one automatically when an agent starts a session here, or run `graphify extract .` in the project.'
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Obsidian note */}
+      <div className="rounded-xl border border-border bg-card/40 p-3.5">
+        <div className="mb-2 flex items-center gap-2">
+          <BookText size={15} className={cn(o?.noteExists ? 'text-emerald-400' : 'text-muted-foreground/50')} />
+          <span className="text-[12.5px] font-semibold">
+            {translate('planide.memory.obsidian', 'Obsidian note')}
+          </span>
+          {o?.noteExists && o.updatedAt && (
+            <span className="ml-auto text-[11px] text-muted-foreground/80">
+              {translate('planide.memory.updated', 'updated')} {relTimeMs(o.updatedAt)}
+            </span>
+          )}
+        </div>
+        {!o?.vault ? (
+          <div className="text-[12px] text-muted-foreground">
+            {translate(
+              'planide.memory.noVault',
+              'No Obsidian vault detected. Open a vault in Obsidian, or set OBSIDIAN_VAULT_PATH, and notes appear here.'
+            )}
+          </div>
+        ) : o.noteExists ? (
+          <div className="flex items-start gap-2">
+            <ExternalLink size={12} className="mt-[3px] shrink-0 text-muted-foreground/60" />
+            <span className="min-w-0 break-all font-mono text-[11px] text-muted-foreground">{o.notePath}</span>
+          </div>
+        ) : (
+          <div className="text-[12px] text-muted-foreground">
+            {translate(
+              'planide.memory.noNote',
+              'Vault detected — a note is written under Pulsar/ after an agent finishes meaningful work here.'
+            )}
+            <div className="mt-1 font-mono text-[10.5px] text-muted-foreground/60">{o.vault}</div>
+          </div>
+        )}
+      </div>
+
+      {loading && !status && (
+        <div className="py-6 text-center text-[12px] text-muted-foreground">
+          {translate('planide.memory.loading', 'Reading project memory…')}
+        </div>
+      )}
     </div>
   )
 }
@@ -458,6 +590,8 @@ export default function PlanIdeView(): React.JSX.Element {
   const [tab, setTab] = useState<Tab>('board')
   const [filter, setFilter] = useState('')
   const [briefing, setBriefing] = useState('')
+  const [memory, setMemory] = useState<MemoryStatus | null>(null)
+  const [memoryLoading, setMemoryLoading] = useState(false)
 
   // quick capture
   const [qTitle, setQTitle] = useState('')
@@ -549,6 +683,22 @@ export default function PlanIdeView(): React.JSX.Element {
       cancelled = true
     }
   }, [tab, worktreePath])
+
+  const loadMemory = useCallback(async (path: string) => {
+    setMemoryLoading(true)
+    try {
+      setMemory(await memoryStatus(path))
+    } catch {
+      setMemory(null)
+    } finally {
+      setMemoryLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (tab !== 'memory' || !worktreePath) return
+    void loadMemory(worktreePath)
+  }, [tab, worktreePath, loadMemory])
 
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase()
@@ -1120,6 +1270,14 @@ export default function PlanIdeView(): React.JSX.Element {
                 <ActivityRow key={a.id} entry={a} />
               ))}
             </div>
+          )}
+
+          {tab === 'memory' && (
+            <MemoryPanel
+              status={memory}
+              loading={memoryLoading}
+              onRefresh={() => worktreePath && void loadMemory(worktreePath)}
+            />
           )}
 
           {tab === 'ai' && (

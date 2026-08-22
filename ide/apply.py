@@ -392,6 +392,7 @@ OVERLAY_FILES = [
     "src/main/planide/ipc.ts",
     "src/main/planide/agent-events.ts",
     "src/main/planide/memory-sync.ts",
+    "src/main/planide/memory-status.ts",
     "src/main/planide/auto-push.ts",
     "src/main/planide/agent-bundle.ts",
     "src/preload/planide.ts",
@@ -410,6 +411,14 @@ OVERLAY_FILES = [
     "resources/build/icon.png",
     "resources/build/icon.ico",
     "resources/build/icon.icns",
+    # The IN-APP logo (Landing screen, title bar, onboarding, settings all import
+    # resources/logo.svg). Without this the whole UI still shows Orca's logo even
+    # though the app icon is ours -- the real "I still see the Orca logo" bug.
+    "resources/logo.svg",
+    # Alternate app-icon choices in Settings > App Icon -- Orca-branded PNGs, so a
+    # user who picked one saw an Orca icon. Replaced with pulsar variants.
+    "resources/app-icons/orca-watercolor.png",
+    "resources/app-icons/orca-blue.png",
 ]
 
 # package.json scalar fields.

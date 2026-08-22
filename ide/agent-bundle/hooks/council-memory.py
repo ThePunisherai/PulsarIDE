@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Durable Council memory sync for Graphify, Obsidian, and ThePunisher Data."""
+"""Durable Council memory sync for Graphify, Obsidian, and Pulsar Data."""
 import argparse
 import datetime as dt
 import json
@@ -39,14 +39,14 @@ def version_slug(value):
 
 
 def data_root():
-    explicit = os.environ.get("THEPUNISHER_DATA_DIR")
+    explicit = os.environ.get("PULSAR_DATA_DIR") or os.environ.get("THEPUNISHER_DATA_DIR")
     if explicit:
         return Path(explicit).expanduser()
     if os.name == "nt":
         base = Path(os.environ.get("LOCALAPPDATA", Path.home()))
-        return base / "ThePunisher-Agent" / "Data"
+        return base / "Pulsar" / "Data"
     base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
-    return base / "thepunisher-agent" / "Data"
+    return base / "pulsar" / "Data"
 
 
 def read_json(path, default=None):
@@ -128,7 +128,7 @@ def obsidian_vault():
     explicit = os.environ.get("OBSIDIAN_VAULT_PATH")
     if explicit and Path(explicit).is_dir():
         return Path(explicit)
-    settings = read_json(Path.home() / ".config" / "thepunisher" / "dashboard-settings.json", {})
+    settings = read_json(Path.home() / ".config" / "pulsaride" / "dashboard-settings.json", read_json(Path.home() / ".config" / "thepunisher" / "dashboard-settings.json", {}))
     configured = settings.get("obsidian_vault_path")
     if configured and Path(configured).expanduser().is_dir():
         return Path(configured).expanduser()
@@ -136,7 +136,7 @@ def obsidian_vault():
 
 
 def update_obsidian(vault, metadata):
-    note = vault / "ThePunisher" / (metadata["project_slug"] + ".md")
+    note = vault / "Pulsar" / (metadata["project_slug"] + ".md")
     note.parent.mkdir(parents=True, exist_ok=True)
     existing = note.read_text(encoding="utf-8", errors="replace") if note.exists() else ""
     managed = "\n".join([
@@ -149,7 +149,7 @@ def update_obsidian(vault, metadata):
         "- Last agent: " + (metadata.get("agent") or "Council"),
         "- Last event: " + (metadata.get("event") or "sync"),
         "",
-        "[[ThePunisher Council]]",
+        "[[Pulsar Council]]",
         MANAGED_END,
     ])
     if MANAGED_BEGIN in existing and MANAGED_END in existing:
@@ -299,7 +299,7 @@ def sync(args):
 def overview(_args):
     """The centralized cross-project view: direct response to "wil dat dit altijd in
     folder van agent gemaakt van onze the punisher ai waar die staan zodat die altijd
-    alle data heeft" (I want this to always be in the folder our ThePunisher AI made,
+    alle data heeft" (I want this to always be in the folder our Pulsar AI made,
     wherever that is, so it always has all the data) -- reads the SAME durable Data
     directory every project's sync() call already writes into (not the project's own
     folder), grouping every known version of every project (using version_slug for the
@@ -330,7 +330,7 @@ def overview(_args):
                 "latest_game_version": latest.get("game_version", ""),
                 "latest_updated_at": latest.get("updated_at", ""),
                 # "Recognized by our agent" -- every entry here only exists because a real
-                # ThePunisher agent/team called sync() (via the SessionStart hook or a
+                # Pulsar agent/team called sync() (via the SessionStart hook or a
                 # Live Activity event), never a bare graphify/Obsidian run on its own. The
                 # metadata already carries WHICH agent/team and via what trigger; overview()
                 # previously dropped those fields on the floor even though sync() writes

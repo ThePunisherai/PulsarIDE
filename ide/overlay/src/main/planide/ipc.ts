@@ -15,6 +15,7 @@ import * as backup from './backup'
 import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
 import { detect } from './detect'
+import { memoryStatus } from './memory-status'
 import { buildReport, type ReportMode } from './report'
 import {
   addFix,
@@ -172,6 +173,10 @@ export function registerPlanIdeIpc(): void {
 
   // ---- briefing ---------------------------------------------------------- //
   on('planide:report', (path: string, mode: ReportMode) => buildReport(loadState(path), mode))
+
+  // project memory: graphify graph + Obsidian note status, so the Tracker tab
+  // can show graphify/Obsidian actually working for this project (read-only).
+  on('planide:memory-status', (path: string) => memoryStatus(path))
 
   // ---- git --------------------------------------------------------------- //
   on('planide:git-status', (path: string) => git.status(path))

@@ -233,6 +233,27 @@ else
   skip "agent bundle deploy (npx unavailable)"
 fi
 
+# 4d. per-project memory status: graphify graph + Obsidian note detection reads
+# the same layout council-memory.py writes (same slug, same vault-resolution
+# order), so the Tracker's Memory panel and the hook never disagree.
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/overlay/src/main/planide/memory-status.ts" --bundle --platform=node \
+       --format=cjs --outfile="$work/ms.cjs" --external:electron --log-level=error >/dev/null 2>&1; then
+    out=$(PULSAR_MEMSTATUS_CJS="$work/ms.cjs" node "$HERE/test/memory-status.test.mjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "memory status: $(echo "$out" | grep -oE 'PASS=[0-9]+') checks"
+    else
+      bad "memory status"; echo "$out" | grep "FAIL " | head -4
+    fi
+  else
+    bad "memory status: test bundle failed to build"
+  fi
+  rm -rf "$work"
+else
+  skip "memory status (npx unavailable)"
+fi
+
 # 5. the real test: does the overlay still apply to an Orca checkout?
 if [ -f "$CHECKOUT/package.json" ]; then
   tmp=$(mktemp -d)

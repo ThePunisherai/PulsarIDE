@@ -1,4 +1,4 @@
-﻿# ThePunisher :: graphify SessionStart bootstrap hook (Claude Code, Windows).
+﻿# Pulsar :: graphify SessionStart bootstrap hook (Claude Code, Windows).
 #
 # PowerShell twin of scripts/graphify-bootstrap.sh -- see that file's header comment for
 # the full rationale (converts the "personas should auto-run graphify" instruction from

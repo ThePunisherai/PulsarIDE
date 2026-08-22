@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ThePunisher :: graphify SessionStart bootstrap hook (Claude Code).
+# Pulsar :: graphify SessionStart bootstrap hook (Claude Code).
 #
 # Converts the "personas should auto-run graphify" instruction (GLOBAL_RULES / CLAUDE.md)
 # from a prompt-level request into something code actually enforces. Direct response to a

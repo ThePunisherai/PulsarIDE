@@ -6,6 +6,34 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.19.0] - 2026-08-22
+
+### Fixed
+- **The last of the Orca logo is gone.** The in-app logo (`resources/logo.svg`,
+  shown on the landing screen, the title bar, onboarding and settings) and both
+  app/dock icons were still Orca's — the overlay had never replaced them. They
+  are now a Pulsar mark: a neutron-star core with two relativistic beams. No
+  Orca artwork remains anywhere in the UI.
+
+### Changed
+- **The built-in agent is now "Pulsar", not "ThePunisher".** Every team lead's
+  activation banner now reads `🔴 Pulsar — <team>`, and the persona, the
+  main-session orchestration block and the Obsidian notes all say Pulsar. The
+  100 team leads are registered as `pulsar-*` (so `@pulsar-council`, etc.), and
+  per-project notes are written under `<vault>/Pulsar/`.
+
+### Added
+- **The tracker now reaches every agent, including Gemini and Antigravity.** The
+  `planide` tracker MCP is registered for Gemini CLI / Antigravity in
+  `~/.gemini/settings.json` too — alongside Claude Code, Codex and Cursor — so a
+  session in any of them can read and update the board live. Existing settings in
+  that file are preserved; only the `planide` entry is added.
+- **A "Memory" tab in the tracker.** It shows, for the project in front of you,
+  whether graphify's knowledge graph is built (node/edge counts, freshness,
+  report/HTML present) and whether its Obsidian note exists — the same graph and
+  note the per-project hooks write. So you can *see* graphify and Obsidian
+  working for a project, instead of trusting a background hook ran.
+
 ## [0.18.0] - 2026-08-21
 
 ### Added

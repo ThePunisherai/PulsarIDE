@@ -1,5 +1,5 @@
 /**
- * ThePunisher agents, pre-installed.
+ * Pulsar agents, pre-installed.
  *
  * PulsarIDE ships ThePunisher-Agent's team-lead subagents and its curated skills
  * inside the app (see resources/pulsar-agents, assembled from
@@ -141,7 +141,7 @@ function parseAgent(md: string): { name: string; description: string; body: stri
   const m = md.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
   const front = m ? m[1] : ''
   const body = m ? m[2] : md
-  const name = (front.match(/^name:\s*(.+)$/m)?.[1] ?? 'thepunisher-agent').trim()
+  const name = (front.match(/^name:\s*(.+)$/m)?.[1] ?? 'pulsar-agent').trim()
   // description can be a folded (>) block; take the first line as a summary.
   const descLine = front.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? ''
   const desc = descLine === '>' || descLine === '|' ? (front.match(/\n\s{2,}(.+)/)?.[1] ?? '').trim() : descLine
@@ -407,7 +407,7 @@ function deployTrackerFiles(home: string, root: string): string | null {
   return dest
 }
 
-/** Deploy ThePunisher's tool kits (the reverse-engineering toolkit) to a stable location. */
+/** Deploy Pulsar's tool kits (the reverse-engineering toolkit) to a stable location. */
 function deployToolsFiles(home: string, root: string): string | null {
   const src = join(root, 'tools')
   if (!existsSync(src)) return null
@@ -519,6 +519,39 @@ function registerPlanideMcpCursor(home: string, serverScript: string): boolean {
   }
 }
 
+/**
+ * Register the `planide` MCP for Gemini CLI and Antigravity in
+ * `~/.gemini/settings.json` (user scope). Both are Gemini-based and read this
+ * same file's `mcpServers` map — verified against google-gemini/gemini-cli's own
+ * docs (docs/tools/mcp-server.md) and the github-mcp-server Gemini install guide:
+ * a local server is `{ command, args }` stdio, the same shape Cursor uses. This
+ * is why Gemini/Antigravity saw the roster and the tracker instruction (via
+ * ~/.gemini/agents + GEMINI.md) but not the live `planide` tools — nothing ever
+ * wrote the MCP entry for them. Reconcile-not-accumulate: only the `planide` key
+ * is touched; every other server and setting in the file is preserved verbatim.
+ */
+function registerPlanideMcpGemini(home: string, serverScript: string): boolean {
+  try {
+    const path = join(home, '.gemini', 'settings.json')
+    let config: Record<string, unknown> = {}
+    if (existsSync(path)) {
+      try {
+        config = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+      } catch {
+        // A malformed ~/.gemini/settings.json is Gemini's own state — never clobber it.
+        return false
+      }
+    }
+    const servers = (config.mcpServers ??= {}) as Record<string, unknown>
+    servers.planide = { command: mcpPython(home), args: [serverScript] }
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, JSON.stringify(config, null, 2))
+    return true
+  } catch {
+    return false
+  }
+}
+
 const MANAGED_BEGIN = '<!-- PULSAR:MAIN:BEGIN -->'
 const MANAGED_END = '<!-- PULSAR:MAIN:END -->'
 
@@ -534,14 +567,14 @@ function mainSessionBlock(home: string): string {
   return [
     '## PulsarIDE — orchestrate as The Council first',
     '',
-    'Before diving into a non-trivial task, act as **The Council** (ThePunisher\'s',
+    'Before diving into a non-trivial task, act as **The Council** (Pulsar\'s',
     'orchestrator):',
     '',
     '1. **Understand first.** Restate the actual request in one sentence. If it is genuinely',
     '   ambiguous or underspecified, say what is unclear and **ask one clarifying question**',
     '   before you start — a misread request executed perfectly is still wrong. (Skip the',
     '   question only when the intent is already unambiguous.)',
-    '2. **Route.** Name the ThePunisher team + the specific specialist(s) that fit, then adopt',
+    '2. **Route.** Name the Pulsar team + the specific specialist(s) that fit, then adopt',
     '   that persona. There are 100 team leads (installed) routing to 5,050 named specialists —',
     '   read a specialist\'s file on demand and adopt it inline. Never repeat a failed approach.',
     '3. **Validate.** Before you claim something works, verify it — do not green-wash.',
@@ -589,20 +622,21 @@ function mergeManagedBlock(path: string, block: string): boolean {
 
 /**
  * Register the planide tracker MCP for every embedded agent that reads a
- * user-scope config — Claude Code, Codex CLI and Cursor — and merge the
- * main-session context (Council understand-first + tracker) into each tool's
- * always-loaded memory file so the *main* session gets it without an @-mention.
- * Returns true if any MCP registration wrote.
+ * user-scope config — Claude Code, Codex CLI, Cursor, and Gemini CLI/Antigravity
+ * — and merge the main-session context (Council understand-first + tracker) into
+ * each tool's always-loaded memory file so the *main* session gets it without an
+ * @-mention. Returns true if any MCP registration wrote.
  */
 function registerTrackerForAllAgents(home: string, serverScript: string): boolean {
   const claude = registerPlanideMcp(home, serverScript)
   const codex = registerPlanideMcpCodex(home, serverScript)
   registerPlanideMcpCursor(home, serverScript)
+  const gemini = registerPlanideMcpGemini(home, serverScript)
   const block = mainSessionBlock(home)
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
   mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)
   mergeManagedBlock(join(home, '.gemini', 'GEMINI.md'), block)
-  return claude || codex
+  return claude || codex || gemini
 }
 
 /**

@@ -151,6 +151,24 @@ export type SyncResult = {
 
 export type BackupInfo = { file: string; size: number; size_mb: number; created_at: string }
 
+/** Per-project memory: graphify knowledge graph + Obsidian note status. */
+export type MemoryStatus = {
+  graphify: {
+    available: boolean
+    nodes: number
+    edges: number
+    updatedAt: number | null
+    hasReport: boolean
+    hasHtml: boolean
+  }
+  obsidian: {
+    vault: string | null
+    noteExists: boolean
+    notePath: string | null
+    updatedAt: number | null
+  }
+}
+
 type Reply<T> = { ok: boolean; data?: T; error?: string }
 
 type PlanIdeBridge = Record<string, (...args: never[]) => Promise<Reply<unknown>>>
@@ -266,6 +284,11 @@ export function addVersion(
 // --------------------------------------------------------------------------- briefing
 export function aiReport(path: string, mode = 'full'): Promise<string> {
   return call<string>('report', path, mode)
+}
+
+// --------------------------------------------------------------------------- memory
+export function memoryStatus(path: string): Promise<MemoryStatus> {
+  return call<MemoryStatus>('memoryStatus', path)
 }
 
 // --------------------------------------------------------------------------- git

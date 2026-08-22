@@ -52,6 +52,9 @@ export const planIdeApi = {
   // briefing
   report: (path: string, mode: string) => call<string>('planide:report', path, mode),
 
+  // project memory (graphify graph + Obsidian note status)
+  memoryStatus: <T>(path: string) => call<T>('planide:memory-status', path),
+
   // git
   gitStatus: <T>(path: string) => call<T>('planide:git-status', path),
   gitInit: <T>(path: string, branch: string) => call<T>('planide:git-init', path, branch),

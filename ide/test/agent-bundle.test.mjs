@@ -33,6 +33,9 @@ writeFileSync(join(HOME, '.claude.json'), JSON.stringify({ mcpServers: { other: 
 mkdirSync(join(HOME, '.codex'), { recursive: true })
 writeFileSync(join(HOME, '.codex/config.toml'), 'model = "gpt-5"\n\n[mcp_servers.other]\ncommand = "x"\nargs = ["y"]\n')
 writeFileSync(join(HOME, '.codex/AGENTS.md'), '# My own notes\n\nKeep this.\n')
+// Pre-existing Gemini/Antigravity settings.json: registering planide must keep it.
+mkdirSync(join(HOME, '.gemini'), { recursive: true })
+writeFileSync(join(HOME, '.gemini/settings.json'), JSON.stringify({ theme: 'Default', mcpServers: { other: { command: 'x' } } }))
 
 const r1 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('deploys on first run', r1.deployed === true)
@@ -83,6 +86,9 @@ ok('Claude + Gemini main-session memory get the same block',
   readFileSync(join(HOME, '.gemini/GEMINI.md'), 'utf8').includes('orchestrate as The Council first'))
 ok('Cursor MCP registered at ~/.cursor/mcp.json',
   JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide.args[0] === trackerScript)
+const gem1 = JSON.parse(readFileSync(join(HOME, '.gemini/settings.json'), 'utf8'))
+ok('Gemini/Antigravity MCP registered at ~/.gemini/settings.json, user content preserved',
+  gem1.mcpServers.planide.args[0] === trackerScript && gem1.mcpServers.other && gem1.theme === 'Default')
 
 const r2 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('second run is version-gated no-op', r2.deployed === false)

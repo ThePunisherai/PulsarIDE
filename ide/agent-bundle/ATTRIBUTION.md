@@ -1,12 +1,12 @@
 # PulsarIDE agent bundle — attribution
 
 These assets are pre-installed into PulsarIDE so the CLI agents running inside it
-(Claude Code, Codex, Gemini) have ThePunisher's agents and skills available in
-every project, with no separate dashboard or install step.
+(Claude Code, Codex, Gemini/Antigravity, Cursor) have the Pulsar agent system's
+team leads and skills available in every project, with no separate dashboard or install step.
 
 ## What's here
 
-- `agents/` — the 101 team-lead subagents from
+- `agents/` — the 100 team-lead subagents (rebranded to Pulsar) from
   [`ThePunisherai/ThePunisher-Agent`](https://github.com/ThePunisherai/ThePunisher-Agent)
   (same owner as PulsarIDE). These are the routable team leads; the 5,050
   specialist subagents are **not** bundled — deploying all of them as native
