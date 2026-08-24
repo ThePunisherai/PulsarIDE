@@ -291,6 +291,18 @@ export function memoryStatus(path: string): Promise<MemoryStatus> {
   return call<MemoryStatus>('memoryStatus', path)
 }
 
+// --------------------------------------------------------------------------- live
+/**
+ * Subscribe to board changes pushed from the main process (an agent wrote the
+ * project's state.json). Returns an unsubscribe; a no-op outside the desktop
+ * shell, so a surface can always call it unconditionally.
+ */
+export function onBoardChanged(listener: (path: string) => void): () => void {
+  const api = bridge() as unknown as { onBoardChanged?: (l: (p: string) => void) => () => void } | null
+  if (!api?.onBoardChanged) return () => {}
+  return api.onBoardChanged(listener)
+}
+
 // --------------------------------------------------------------------------- git
 export function gitStatus(path: string): Promise<GitStatus> {
   return call<GitStatus>('gitStatus', path)

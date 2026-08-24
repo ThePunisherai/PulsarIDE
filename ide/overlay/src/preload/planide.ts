@@ -7,7 +7,7 @@
  * knows the active worktree's.
  */
 
-import { ipcRenderer } from 'electron'
+import { ipcRenderer, type IpcRendererEvent } from 'electron'
 
 type Reply<T> = { ok: boolean; data?: T; error?: string }
 
@@ -54,6 +54,19 @@ export const planIdeApi = {
 
   // project memory (graphify graph + Obsidian note status)
   memoryStatus: <T>(path: string) => call<T>('planide:memory-status', path),
+
+  /**
+   * Live board updates. The main process watches the project's state.json and
+   * pushes here whenever an agent (or the CLI, or another window) writes it, so
+   * the Tracker reflects agent work without anyone pressing Refresh.
+   * Returns an unsubscribe -- a renderer that re-subscribes on every render must
+   * not stack listeners.
+   */
+  onBoardChanged: (listener: (path: string) => void): (() => void) => {
+    const handler = (_e: IpcRendererEvent, path: string): void => listener(path)
+    ipcRenderer.on('planide:board-changed', handler)
+    return () => ipcRenderer.removeListener('planide:board-changed', handler)
+  },
 
   // git
   gitStatus: <T>(path: string) => call<T>('planide:git-status', path),

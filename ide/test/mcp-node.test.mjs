@@ -62,7 +62,8 @@ ok('initialize answers with server info + protocol', init?.result?.serverInfo?.n
 ok('capabilities advertise tools', Boolean(init?.result?.capabilities?.tools))
 ok('a notification is never answered (2 frames for 3 messages)', hs.replies.length === 2)
 const tools = byId(hs.replies, 2).result.tools.map((t) => t.name)
-ok('all six tracker tools are listed', ['get_board', 'add_item', 'set_item', 'add_fix', 'mark_fixed', 'add_version'].every((t) => tools.includes(t)))
+ok('every tracker tool is listed, roadmap included',
+  ['get_board', 'add_item', 'set_item', 'add_fix', 'mark_fixed', 'add_version', 'add_milestone', 'set_milestone'].every((t) => tools.includes(t)))
 ok('every tool takes project and declares a schema',
   byId(hs.replies, 2).result.tools.every((t) => t.inputSchema?.properties?.project && t.inputSchema.required.includes('project')))
 ok('nothing but protocol frames on stdout', hs.stderr.length === 0 || !hs.stderr.includes('{'))
@@ -92,6 +93,29 @@ const run2 = await drive([
 ok('set_item moves an item', json(byId(run2.replies, 20)).status === 'works')
 ok('mark_fixed closes a fix', json(byId(run2.replies, 21)).status === 'fixed')
 ok('add_version records a release', json(byId(run2.replies, 22)).version === '0.2.0')
+
+// --- the roadmap: the tool whose absence meant no roadmap was ever created -- //
+const run2b = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(23, 'add_milestone', { project: proj, title: 'Ship the beta', target: 'v0.3.0', agent: 'codex' }),
+  call(24, 'get_board', { project: proj })
+])
+const milestone = json(byId(run2b.replies, 23))
+ok('add_milestone creates a roadmap entry', milestone.id.startsWith('m_') && milestone.target === 'v0.3.0')
+ok('get_board reports the roadmap back', json(byId(run2b.replies, 24)).roadmap.some((m) => m.id === milestone.id))
+const run2c = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(25, 'set_milestone', { project: proj, milestone_id: milestone.id, done: true })
+])
+ok('set_milestone closes it', json(byId(run2c.replies, 25)).done === true)
+ok('the IDE store sees the same roadmap', store.loadState(proj).roadmap.some((m) => m.id === milestone.id && m.done === true))
+
+// Finished work must be able to reach 'done' -- it was piling up in 'works'.
+const run2d = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(26, 'set_item', { project: proj, item_id: first.id, status: 'done', agent: 'codex' })
+])
+ok('an item can be closed out to done', json(byId(run2d.replies, 26)).status === 'done')
 
 // --- the trust boundary: an agent can never confirm or protect ------------- //
 const run3 = await drive([

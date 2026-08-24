@@ -33,6 +33,7 @@ import {
   aiReport,
   lockItem,
   markFixDone,
+  onBoardChanged,
   openProject,
   setItemStatus,
   verifyItem,
@@ -151,6 +152,7 @@ export default function PlanIdePanel(): React.JSX.Element {
     void load(worktreePath)
   }, [worktreePath, load])
 
+
   const refresh = useCallback(async () => {
     if (!worktreePath) return
     try {
@@ -159,6 +161,14 @@ export default function PlanIdePanel(): React.JSX.Element {
       setError(err instanceof Error ? err.message : String(err))
     }
   }, [worktreePath])
+
+  // Live: an agent writing this project's board updates the panel by itself.
+  useEffect(() => {
+    if (!worktreePath) return
+    return onBoardChanged((changed) => {
+      if (changed === worktreePath) void refresh()
+    })
+  }, [worktreePath, refresh])
 
   const grouped = useMemo(() => {
     const byStatus = new Map<ItemStatus, PlanIdeItem[]>()

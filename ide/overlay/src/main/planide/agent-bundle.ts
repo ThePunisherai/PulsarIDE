@@ -91,6 +91,12 @@ never need to be asked, and the board is created on first use, so it always work
   - You start or build something → \`set_item\` to \`wip\` (or \`add_item\` \`wip\`).
   - You get something working → \`set_item\` status \`works\` (recorded as *your*
     claim, attributed to you; the user confirms it separately — that's by design).
+  - That piece is finished and you are not coming back to it → \`set_item\` \`done\`.
+    \`works\` means it functions but is still in play; \`done\` means closed out. They
+    are different columns on the board, so finished work must not sit in \`works\`.
+  - The user describes phases, or you split a big request into stages →
+    \`add_milestone\` (and \`set_milestone\` done when the stage lands). The Roadmap
+    stays empty unless you fill it, so a multi-step project belongs there too.
   - You hit or find a bug → \`add_fix\` (problem + where), or \`set_item\` status \`broken\`.
   - The user says "that's solved / fixed / it works now" → \`mark_fixed\` that fix,
     and \`set_item\` the related item to \`works\`.
@@ -615,9 +621,11 @@ function mainSessionBlock(home: string): string {
     '   that persona. There are 100 team leads (installed) routing to 5,050 named specialists —',
     '   read a specialist\'s file on demand and adopt it inline. Never repeat a failed approach.',
     '4. **Work the board as the work happens, and validate before you claim.**',
-    '   `set_item` to `wip` when you start it, `works` only once it genuinely works, `broken`',
-    '   when it fails; `add_fix` the moment you hit a bug; `mark_fixed` when the user says it',
-    '   is solved; `add_version` when you ship. Verify before you claim — do not green-wash.',
+    '   `set_item` to `wip` when you start it, `works` once it genuinely works, `done` when it',
+    '   is finished and closed out (finished work must not sit in `works` — they are different',
+    '   columns), `broken` when it fails; `add_fix` the moment you hit a bug; `mark_fixed` when',
+    '   the user says it is solved; `add_milestone` for the phases of a bigger plan;',
+    '   `add_version` when you ship. Verify before you claim — do not green-wash.',
     '',
     'Reverse-engineering toolkit is installed at `' + join(configDir(home), 'tools', 'reverse-engineering') + '`',
     '(re-triage.sh, ghidra/frida/x64dbg drivers, fuzz-driver.sh, linux-unpack.sh) — use it for',
@@ -632,9 +640,10 @@ function mainSessionBlock(home: string): string {
     '',
     '- `get_board` — read it first, every task.',
     '- `add_item` — the user asks / you plan a step → status `todo`.',
-    '- `set_item` — you start it → `wip`;  it works → `works`;  it fails → `broken`.',
+    '- `set_item` — you start it → `wip`;  it works → `works`;  finished → `done`;  fails → `broken`.',
     '- `add_fix` — a bug (problem + where);  `mark_fixed` — the user says it is solved.',
-    '- `add_version` — a release or milestone.',
+    '- `add_milestone` / `set_milestone` — the phases of a bigger plan (the Roadmap tab).',
+    '- `add_version` — a release you shipped.',
     '',
     '- **Before you say "done" or "please test", update the board first**, so what it shows',
     '  matches what you just claimed.',

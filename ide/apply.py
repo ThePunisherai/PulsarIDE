@@ -426,6 +426,7 @@ OVERLAY_FILES = [
     "src/main/planide/agent-events.ts",
     "src/main/planide/memory-sync.ts",
     "src/main/planide/memory-status.ts",
+    "src/main/planide/board-watch.ts",
     "src/main/planide/auto-push.ts",
     "src/main/planide/agent-bundle.ts",
     "src/preload/planide.ts",

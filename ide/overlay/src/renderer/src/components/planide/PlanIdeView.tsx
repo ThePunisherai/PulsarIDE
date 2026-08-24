@@ -54,6 +54,7 @@ import {
   lockItem,
   markFixDone,
   memoryStatus,
+  onBoardChanged,
   openProject,
   setItemStatus,
   toggleMilestone,
@@ -621,6 +622,7 @@ export default function PlanIdeView(): React.JSX.Element {
     void load(worktreePath)
   }, [worktreePath, load])
 
+
   const refresh = useCallback(async () => {
     if (!worktreePath) return
     try {
@@ -629,6 +631,15 @@ export default function PlanIdeView(): React.JSX.Element {
       toast.error(err instanceof Error ? err.message : String(err))
     }
   }, [worktreePath])
+
+  // Live: the main process watches this project's state.json, so an agent
+  // writing the board updates what you are looking at, with nothing to press.
+  useEffect(() => {
+    if (!worktreePath) return
+    return onBoardChanged((changed) => {
+      if (changed === worktreePath) void refresh()
+    })
+  }, [worktreePath, refresh])
 
   /** Every mutation returns the refreshed project, so one round-trip is enough. */
   const act = useCallback(async (fn: () => Promise<PlanIdeProject>) => {

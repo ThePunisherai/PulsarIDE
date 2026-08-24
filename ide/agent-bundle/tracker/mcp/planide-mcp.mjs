@@ -179,6 +179,9 @@ const TOOLS = [
         fixes: (state.fixes ?? []).map((f) => ({
           id: f.id, title: f.title, status: f.status, problem: f.problem, solution: f.solution
         })),
+        roadmap: (state.roadmap ?? []).map((m) => ({
+          id: m.id, title: m.title, target: m.target, done: m.done
+        })),
         recent_activity: (state.activity ?? []).slice(0, 15)
       }
     }
@@ -186,7 +189,7 @@ const TOOLS = [
   {
     name: 'add_item',
     description:
-      "Put a piece of work on the board. Use status 'todo' the moment the user asks for something or you plan a step you have not started, 'wip' when you begin it, 'works' only once it genuinely works. Break a big request into several todo items.",
+      "Put a piece of work on the board. Use status 'todo' the moment the user asks for something or you plan a step you have not started, 'wip' when you begin it, 'works' once it genuinely works, and 'done' when it is finished and closed out. Break a big request into several todo items.",
     inputSchema: {
       type: 'object',
       properties: P({
@@ -221,7 +224,7 @@ const TOOLS = [
   {
     name: 'set_item',
     description:
-      "Move an item as the work really changes: 'wip' when you start, 'works' when it works, 'broken' when it fails. Cannot confirm or protect an item -- those stay the user's.",
+      "Move an item as the work really changes: 'wip' when you start, 'works' when it works, 'done' when it is finished and you are not coming back to it, 'broken' when it fails. Do not leave finished work sitting in 'works' -- 'works' means it functions but is still in play, 'done' means closed out, and the board shows them in different columns. Cannot confirm or protect an item -- those stay the user's.",
     inputSchema: {
       type: 'object',
       properties: P({
@@ -319,6 +322,65 @@ const TOOLS = [
         if (typeof args.solution === 'string' && args.solution) fix.solution = args.solution
         logActivity(state, 'fix-done', `fixed: ${fix.title}`, str(args.agent))
         return { id: fix.id, title: fix.title, status: fix.status }
+      })
+    }
+  },
+  {
+    name: 'add_milestone',
+    description:
+      'Add a roadmap milestone: a goal several items build toward, optionally with a target (a date, a version, or a phase). Use this when the user describes a plan in phases, or when you break a large request into stages -- the roadmap is what shows where the project is heading, and it stays empty unless you fill it.',
+    inputSchema: {
+      type: 'object',
+      properties: P({
+        title: { type: 'string', description: 'What this milestone delivers.' },
+        target: { type: 'string', description: 'Optional target: a date, version or phase.' }
+      }),
+      required: ['project', 'title']
+    },
+    run: (args) => {
+      const path = resolveProject(args)
+      const title = str(args.title).trim()
+      if (!title) throw new Error('title is required')
+      return mutate(path, (state) => {
+        state.roadmap ??= []
+        const m = {
+          id: newId('m_'),
+          title,
+          target: str(args.target),
+          done: false,
+          order: state.roadmap.length,
+          item_ids: []
+        }
+        state.roadmap.push(m)
+        logActivity(state, 'milestone-add', `roadmap: ${m.title}`, str(args.agent))
+        return { id: m.id, title: m.title, target: m.target }
+      })
+    }
+  },
+  {
+    name: 'set_milestone',
+    description: 'Mark a roadmap milestone done (or rename/retarget it) once its work is finished.',
+    inputSchema: {
+      type: 'object',
+      properties: P({
+        milestone_id: { type: 'string' },
+        done: { type: 'boolean' },
+        title: { type: 'string' },
+        target: { type: 'string' }
+      }),
+      required: ['project', 'milestone_id']
+    },
+    run: (args) => {
+      const path = resolveProject(args)
+      const mid = str(args.milestone_id)
+      return mutate(path, (state) => {
+        const m = (state.roadmap ?? []).find((x) => x.id === mid)
+        if (!m) throw new Error(`no milestone with id ${mid} (call get_board for the real ids)`)
+        if (typeof args.done === 'boolean') m.done = args.done
+        if (typeof args.title === 'string') m.title = args.title
+        if (typeof args.target === 'string') m.target = args.target
+        logActivity(state, 'milestone', `${m.title}${m.done ? ' -> done' : ''}`, str(args.agent))
+        return { id: m.id, title: m.title, done: m.done }
       })
     }
   },

@@ -10,12 +10,13 @@
  * is no registry to keep in sync.
  */
 
-import { ipcMain } from 'electron'
+import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import * as backup from './backup'
 import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
 import { detect } from './detect'
 import { memoryStatus } from './memory-status'
+import { stopWatchingBoard, watchBoard } from './board-watch'
 import { buildReport, type ReportMode } from './report'
 import {
   addFix,
@@ -102,7 +103,25 @@ export function registerPlanIdeIpc(): void {
   }
 
   // ---- project ---------------------------------------------------------- //
-  on('planide:open', (path: string) => openProject(path))
+  // Opening a project also starts watching its board, so an agent writing to
+  // state.json refreshes the Tracker by itself. The sender is the surface that
+  // asked, which is the one showing this project.
+  ipcMain.handle('planide:open', async (event: IpcMainInvokeEvent, ...args: unknown[]) => {
+    try {
+      const path = args[0] as string
+      const payload = openProject(path)
+      watchBoard(path, (changed) => {
+        if (!event.sender.isDestroyed()) event.sender.send('planide:board-changed', changed)
+      })
+      return { ok: true, data: payload }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+  on('planide:unwatch', () => {
+    stopWatchingBoard()
+    return true
+  })
   on('planide:exists', (path: string) => projectExists(path))
   on('planide:detect', (path: string) => detect(path))
   on('planide:redetect', (path: string) =>
