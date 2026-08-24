@@ -1,4 +1,4 @@
-# Pulsar Team Subagents
+# Pulse Agent Team Subagents
 
 Each file here is a **real, loadable subagent** (Claude Code `.claude/agents/*.md` format: YAML
 frontmatter with `name` + `description`, optional `tools`, then the system prompt). The Council

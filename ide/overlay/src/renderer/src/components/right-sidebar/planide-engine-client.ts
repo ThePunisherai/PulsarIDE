@@ -151,23 +151,40 @@ export type SyncResult = {
 
 export type BackupInfo = { file: string; size: number; size_mb: number; created_at: string }
 
-/** Per-project memory: graphify knowledge graph + Obsidian note status. */
-export type MemoryStatus = {
-  graphify: {
-    available: boolean
-    nodes: number
-    edges: number
-    updatedAt: number | null
-    hasReport: boolean
-    hasHtml: boolean
-  }
-  obsidian: {
-    vault: string | null
-    noteExists: boolean
-    notePath: string | null
-    updatedAt: number | null
-  }
+/** Per-project memory: the knowledge graph (Brain Graph) + the Obsidian notes. */
+export type GraphHub = { id: string; label: string; degree: number; file: string }
+export type NamedCount = { name: string; count: number }
+
+export type BrainGraph = {
+  available: boolean
+  nodes: number
+  edges: number
+  communities: number
+  indexedFiles: number
+  hubs: GraphHub[]
+  relations: NamedCount[]
+  confidence: NamedCount[]
+  kinds: NamedCount[]
+  updatedAt: number | null
+  hasReport: boolean
+  hasHtml: boolean
+  tooLarge: boolean
+  sizeBytes: number
 }
+
+export type ObsidianNote = { name: string; path: string; updatedAt: number | null }
+
+export type ObsidianStatus = {
+  vault: string | null
+  source: 'setting' | 'env' | 'detected' | null
+  noteExists: boolean
+  notePath: string | null
+  updatedAt: number | null
+  excerpt: string
+  notes: ObsidianNote[]
+}
+
+export type MemoryStatus = { graphify: BrainGraph; obsidian: ObsidianStatus }
 
 type Reply<T> = { ok: boolean; data?: T; error?: string }
 

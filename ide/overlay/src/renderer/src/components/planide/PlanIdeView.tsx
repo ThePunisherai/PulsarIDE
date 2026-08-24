@@ -60,8 +60,10 @@ import {
   toggleMilestone,
   updateItem,
   verifyItem,
+  type BrainGraph,
   type ItemStatus,
   type MemoryStatus,
+  type ObsidianStatus,
   type PlanIdeItem,
   type PlanIdeProject
 } from '../right-sidebar/planide-engine-client'
@@ -75,7 +77,8 @@ type Tab =
   | 'sync'
   | 'backups'
   | 'activity'
-  | 'memory'
+  | 'brain'
+  | 'obsidian'
   | 'ai'
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
@@ -87,7 +90,8 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: 'sync', label: 'GitHub', icon: GitBranch },
   { id: 'backups', label: 'Backups', icon: Archive },
   { id: 'activity', label: 'Activity', icon: History },
-  { id: 'memory', label: 'Memory', icon: Network },
+  { id: 'brain', label: 'Brain Graph', icon: Network },
+  { id: 'obsidian', label: 'Obsidian', icon: BookText },
   { id: 'ai', label: 'AI briefing', icon: Sparkles }
 ]
 
@@ -280,121 +284,340 @@ function relTimeMs(ms: number | null): string {
   return ms ? relTime(new Date(ms).toISOString()) : ''
 }
 
+/** A labelled proportion bar — one row of a breakdown. */
+function BreakdownRow({
+  name,
+  count,
+  max,
+  tone
+}: {
+  name: string
+  count: number
+  max: number
+  tone: string
+}): React.JSX.Element {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="w-[104px] shrink-0 truncate text-[11.5px] text-muted-foreground">{name}</span>
+      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-border/50">
+        <div
+          className={cn('h-full rounded-full', tone)}
+          style={{ width: `${max > 0 ? Math.max(4, Math.round((count / max) * 100)) : 0}%` }}
+        />
+      </div>
+      <span className="w-9 shrink-0 text-right text-[11.5px] font-medium tabular-nums">{count}</span>
+    </div>
+  )
+}
+
+/** A big number with a caption — the top row of both memory panels. */
+function MemoryStat({ value, label }: { value: React.ReactNode; label: string }): React.JSX.Element {
+  return (
+    <div className="rounded-xl border border-border/70 bg-card/40 px-3.5 py-2.5">
+      <div className="text-[19px] font-semibold leading-none tabular-nums">{value}</div>
+      <div className="mt-1 text-[10.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    </div>
+  )
+}
+
+function PanelHeader({
+  hint,
+  loading,
+  onRefresh
+}: {
+  hint: string
+  loading: boolean
+  onRefresh: () => void
+}): React.JSX.Element {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[12px] text-muted-foreground">{hint}</span>
+      <Button size="sm" variant="outline" className="ml-auto" onClick={onRefresh} disabled={loading}>
+        <RefreshCw size={13} className={cn(loading && 'animate-spin')} />{' '}
+        {translate('planide.memory.refresh', 'Refresh')}
+      </Button>
+    </div>
+  )
+}
+
 /**
- * Per-project memory panel: shows graphify's knowledge graph and the Obsidian
- * note actually working for this project — the "see graphify/Obsidian per
- * project" overview. Read-only; the SessionStart hook and the tracker's
- * memory-sync are what write them.
+ * Brain Graph — what the project's knowledge graph actually contains.
+ *
+ * graphify's own dashboard leads with the same things: how big the graph is, the
+ * hubs everything hangs off ("god nodes"), and how much of it was read straight
+ * out of the code versus inferred. This shows them without leaving the IDE, and
+ * refreshes itself when an agent works.
  */
-function MemoryPanel({
+function BrainGraphPanel({
+  graph,
+  loading,
+  onRefresh
+}: {
+  graph: BrainGraph | null
+  loading: boolean
+  onRefresh: () => void
+}): React.JSX.Element {
+  const CONFIDENCE_TONE: Record<string, string> = {
+    EXTRACTED: 'bg-emerald-500/80',
+    INFERRED: 'bg-amber-500/80',
+    AMBIGUOUS: 'bg-rose-500/70'
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <PanelHeader
+        hint={translate(
+          'planide.brain.hint',
+          'The knowledge graph of this project — built automatically as agents work here.'
+        )}
+        loading={loading}
+        onRefresh={onRefresh}
+      />
+
+      {!graph?.available ? (
+        <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center">
+          <Network size={20} className="mx-auto mb-2 text-muted-foreground/50" />
+          <div className="text-[12.5px] font-medium">
+            {translate('planide.brain.none', 'No graph for this project yet')}
+          </div>
+          <div className="mx-auto mt-1 max-w-[42ch] text-[11.5px] text-muted-foreground">
+            {translate(
+              'planide.brain.noneHint',
+              'One is built the first time an agent starts a session here. You can also run `graphify extract .` in the project.'
+            )}
+          </div>
+        </div>
+      ) : graph.tooLarge ? (
+        <div className="rounded-xl border border-border bg-card/40 p-4 text-[12px] text-muted-foreground">
+          {translate(
+            'planide.brain.tooLarge',
+            'This graph is very large, so it is not summarised here to keep the window responsive.'
+          )}{' '}
+          ({Math.round(graph.sizeBytes / (1024 * 1024))} MB)
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <MemoryStat value={graph.nodes.toLocaleString()} label={translate('planide.brain.nodes', 'Nodes')} />
+            <MemoryStat value={graph.edges.toLocaleString()} label={translate('planide.brain.edges', 'Connections')} />
+            <MemoryStat
+              value={graph.communities.toLocaleString()}
+              label={translate('planide.brain.communities', 'Clusters')}
+            />
+            <MemoryStat
+              value={graph.indexedFiles.toLocaleString()}
+              label={translate('planide.brain.files', 'Files indexed')}
+            />
+          </div>
+
+          {graph.hubs.length > 0 && (
+            <div className="rounded-xl border border-border bg-card/40 p-3.5">
+              <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {translate('planide.brain.hubs', 'What the project hangs off')}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {graph.hubs.map((h) => (
+                  <div key={h.id} className="flex items-baseline gap-2.5">
+                    <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">{h.label}</span>
+                    {h.file && (
+                      <span className="shrink-0 truncate font-mono text-[10.5px] text-muted-foreground/70">
+                        {h.file}
+                      </span>
+                    )}
+                    <span className="shrink-0 rounded-md bg-violet-500/10 px-1.5 py-0.5 text-[10.5px] font-medium text-violet-300 tabular-nums">
+                      {h.degree}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {graph.relations.length > 0 && (
+              <div className="rounded-xl border border-border bg-card/40 p-3.5">
+                <div className="mb-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {translate('planide.brain.relations', 'How things relate')}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {graph.relations.slice(0, 6).map((r) => (
+                    <BreakdownRow
+                      key={r.name}
+                      name={r.name}
+                      count={r.count}
+                      max={graph.relations[0].count}
+                      tone="bg-violet-400/80"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {graph.confidence.length > 0 && (
+              <div className="rounded-xl border border-border bg-card/40 p-3.5">
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {translate('planide.brain.confidence', 'How it was learned')}
+                </div>
+                <div className="mb-2.5 text-[10.5px] text-muted-foreground/80">
+                  {translate(
+                    'planide.brain.confidenceHint',
+                    'Extracted = read from the code. Inferred = worked out. Ambiguous = unsure.'
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {graph.confidence.map((c) => (
+                    <BreakdownRow
+                      key={c.name}
+                      name={c.name.toLowerCase()}
+                      count={c.count}
+                      max={graph.confidence[0].count}
+                      tone={CONFIDENCE_TONE[c.name] ?? 'bg-sky-500/70'}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            {graph.kinds.map((k) => (
+              <span key={k.name} className="rounded-md border border-border px-2 py-0.5">
+                {k.count} {k.name}
+              </span>
+            ))}
+            {graph.hasReport && (
+              <span className="rounded-md border border-border px-2 py-0.5">GRAPH_REPORT.md</span>
+            )}
+            {graph.hasHtml && <span className="rounded-md border border-border px-2 py-0.5">graph.html</span>}
+            {graph.updatedAt && (
+              <span className="ml-auto">
+                {translate('planide.memory.updated', 'updated')} {relTimeMs(graph.updatedAt)}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Obsidian — the notes the agent keeps, per project.
+ *
+ * The vault is found the same way the note writer finds it, and every project
+ * note in it is listed, so this is the whole memory rather than just this one
+ * project's line.
+ */
+function ObsidianPanel({
   status,
   loading,
   onRefresh
 }: {
-  status: MemoryStatus | null
+  status: ObsidianStatus | null
   loading: boolean
   onRefresh: () => void
 }): React.JSX.Element {
-  const g = status?.graphify
-  const o = status?.obsidian
+  const SOURCE_LABEL: Record<string, string> = {
+    setting: 'from your setting',
+    env: 'from OBSIDIAN_VAULT_PATH',
+    detected: 'detected automatically'
+  }
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[12px] text-muted-foreground">
-          {translate(
-            'planide.memory.hint',
-            'graphify and Obsidian run automatically per project — this is their live state here.'
-          )}
-        </span>
-        <Button size="sm" variant="outline" className="ml-auto" onClick={onRefresh} disabled={loading}>
-          <RefreshCw size={13} className={cn(loading && 'animate-spin')} />{' '}
-          {translate('planide.memory.refresh', 'Refresh')}
-        </Button>
-      </div>
-
-      {/* graphify knowledge graph */}
-      <div className="rounded-xl border border-border bg-card/40 p-3.5">
-        <div className="mb-2 flex items-center gap-2">
-          <Network size={15} className={cn(g?.available ? 'text-violet-400' : 'text-muted-foreground/50')} />
-          <span className="text-[12.5px] font-semibold">
-            {translate('planide.memory.graph', 'Knowledge graph')}
-          </span>
-          <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">graphify-out/</span>
-        </div>
-        {g?.available ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-lg bg-violet-500/10 px-2.5 py-1 text-[12px] font-semibold text-violet-300">
-              {g.nodes.toLocaleString()} {translate('planide.memory.nodes', 'nodes')}
-            </span>
-            <span className="rounded-lg bg-sky-500/10 px-2.5 py-1 text-[12px] font-semibold text-sky-300">
-              {g.edges.toLocaleString()} {translate('planide.memory.edges', 'edges')}
-            </span>
-            {g.hasReport && (
-              <span className="rounded-lg border border-border px-2 py-1 text-[11px] text-muted-foreground">
-                GRAPH_REPORT.md
-              </span>
-            )}
-            {g.hasHtml && (
-              <span className="rounded-lg border border-border px-2 py-1 text-[11px] text-muted-foreground">
-                graph.html
-              </span>
-            )}
-            {g.updatedAt && (
-              <span className="ml-auto text-[11px] text-muted-foreground/80">
-                {translate('planide.memory.updated', 'updated')} {relTimeMs(g.updatedAt)}
-              </span>
-            )}
-          </div>
-        ) : (
-          <div className="text-[12px] text-muted-foreground">
-            {translate(
-              'planide.memory.noGraph',
-              'No graph yet. graphify builds one automatically when an agent starts a session here, or run `graphify extract .` in the project.'
-            )}
-          </div>
+      <PanelHeader
+        hint={translate(
+          'planide.obsidian.hint',
+          'Notes the agent writes for each project, in your own vault.'
         )}
-      </div>
+        loading={loading}
+        onRefresh={onRefresh}
+      />
 
-      {/* Obsidian note */}
-      <div className="rounded-xl border border-border bg-card/40 p-3.5">
-        <div className="mb-2 flex items-center gap-2">
-          <BookText size={15} className={cn(o?.noteExists ? 'text-emerald-400' : 'text-muted-foreground/50')} />
-          <span className="text-[12.5px] font-semibold">
-            {translate('planide.memory.obsidian', 'Obsidian note')}
-          </span>
-          {o?.noteExists && o.updatedAt && (
-            <span className="ml-auto text-[11px] text-muted-foreground/80">
-              {translate('planide.memory.updated', 'updated')} {relTimeMs(o.updatedAt)}
-            </span>
+      {!status?.vault ? (
+        <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center">
+          <BookText size={20} className="mx-auto mb-2 text-muted-foreground/50" />
+          <div className="text-[12.5px] font-medium">
+            {translate('planide.obsidian.noVault', 'No Obsidian vault found')}
+          </div>
+          <div className="mx-auto mt-1 max-w-[46ch] text-[11.5px] text-muted-foreground">
+            {translate(
+              'planide.obsidian.noVaultHint',
+              'Open a vault in Obsidian once, or set OBSIDIAN_VAULT_PATH, and notes appear here by themselves.'
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="rounded-xl border border-border bg-card/40 p-3.5">
+            <div className="flex items-center gap-2">
+              <BookText size={14} className="shrink-0 text-emerald-400" />
+              <span className="min-w-0 flex-1 truncate font-mono text-[11.5px]">{status.vault}</span>
+              {status.source && (
+                <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  {SOURCE_LABEL[status.source] ?? status.source}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card/40 p-3.5">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {translate('planide.obsidian.thisProject', 'This project')}
+              </span>
+              {status.noteExists && status.updatedAt && (
+                <span className="ml-auto text-[11px] text-muted-foreground/80">
+                  {translate('planide.memory.updated', 'updated')} {relTimeMs(status.updatedAt)}
+                </span>
+              )}
+            </div>
+            {status.noteExists ? (
+              <>
+                <div className="flex items-start gap-2">
+                  <ExternalLink size={12} className="mt-[3px] shrink-0 text-muted-foreground/60" />
+                  <span className="min-w-0 break-all font-mono text-[11px] text-muted-foreground">
+                    {status.notePath}
+                  </span>
+                </div>
+                {status.excerpt && (
+                  <pre className="mt-2.5 max-h-52 overflow-auto whitespace-pre-wrap rounded-lg border border-border/60 bg-background/40 p-2.5 font-mono text-[11px] leading-relaxed">
+                    {status.excerpt}
+                  </pre>
+                )}
+              </>
+            ) : (
+              <div className="text-[12px] text-muted-foreground">
+                {translate(
+                  'planide.obsidian.noNote',
+                  'No note yet — one is written under Pulse/ after an agent finishes real work here.'
+                )}
+              </div>
+            )}
+          </div>
+
+          {status.notes.length > 0 && (
+            <div className="rounded-xl border border-border bg-card/40 p-3.5">
+              <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {translate('planide.obsidian.allNotes', 'Everything remembered')} · {status.notes.length}
+              </div>
+              <div className="flex flex-col">
+                {status.notes.slice(0, 20).map((n) => (
+                  <div
+                    key={n.path}
+                    className={cn(
+                      'flex items-baseline gap-2.5 border-b border-border/40 py-1.5 text-[12px] last:border-none',
+                      n.path === status.notePath && 'font-medium text-emerald-400'
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{n.name}</span>
+                    <span className="shrink-0 text-[10.5px] text-muted-foreground/70">
+                      {relTimeMs(n.updatedAt)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
-        </div>
-        {!o?.vault ? (
-          <div className="text-[12px] text-muted-foreground">
-            {translate(
-              'planide.memory.noVault',
-              'No Obsidian vault detected. Open a vault in Obsidian, or set OBSIDIAN_VAULT_PATH, and notes appear here.'
-            )}
-          </div>
-        ) : o.noteExists ? (
-          <div className="flex items-start gap-2">
-            <ExternalLink size={12} className="mt-[3px] shrink-0 text-muted-foreground/60" />
-            <span className="min-w-0 break-all font-mono text-[11px] text-muted-foreground">{o.notePath}</span>
-          </div>
-        ) : (
-          <div className="text-[12px] text-muted-foreground">
-            {translate(
-              'planide.memory.noNote',
-              'Vault detected — a note is written under Pulsar/ after an agent finishes meaningful work here.'
-            )}
-            <div className="mt-1 font-mono text-[10.5px] text-muted-foreground/60">{o.vault}</div>
-          </div>
-        )}
-      </div>
-
-      {loading && !status && (
-        <div className="py-6 text-center text-[12px] text-muted-foreground">
-          {translate('planide.memory.loading', 'Reading project memory…')}
-        </div>
+        </>
       )}
     </div>
   )
@@ -707,8 +930,17 @@ export default function PlanIdeView(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    if (tab !== 'memory' || !worktreePath) return
+    if ((tab !== 'brain' && tab !== 'obsidian') || !worktreePath) return
     void loadMemory(worktreePath)
+  }, [tab, worktreePath, loadMemory])
+
+  // The graph and the notes are written by background jobs, so refresh them
+  // whenever the board moves too -- that is when an agent has just been working.
+  useEffect(() => {
+    if (!worktreePath || (tab !== 'brain' && tab !== 'obsidian')) return
+    return onBoardChanged((changed) => {
+      if (changed === worktreePath) void loadMemory(worktreePath)
+    })
   }, [tab, worktreePath, loadMemory])
 
   const shown = useMemo(() => {
@@ -955,41 +1187,65 @@ export default function PlanIdeView(): React.JSX.Element {
 
         <div className="py-4">
           {tab === 'board' && (
-            <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            /*
+             * One row of columns that scrolls, not a 3x2 grid.
+             *
+             * The grid put six columns on two rows of wildly different heights,
+             * so a real board (lots of "to do" and "works", nothing "broken")
+             * showed tall empty boxes saying "nothing here" while the columns
+             * that mattered were pushed onto a second row. A kanban row keeps
+             * the flow left-to-right, and an empty column collapses to a thin
+             * marker instead of a hole -- it is still there, it just stops
+             * taking the space of a full column.
+             */
+            <div className="-mx-1 flex snap-x items-start gap-3 overflow-x-auto px-1 pb-2">
               {COLUMNS.map((col) => {
                 const items = shown.filter((i) => i.status === col.id)
+                if (items.length === 0) {
+                  return (
+                    <div
+                      key={col.id}
+                      title={`${col.label} — ${translate('planide.view.columnEmpty', 'nothing here')}`}
+                      className="flex w-9 shrink-0 flex-col items-center gap-2 rounded-xl border border-dashed border-border/50 py-2.5"
+                    >
+                      <span className={cn('size-1.5 shrink-0 rounded-full opacity-60', col.dot)} />
+                      <span
+                        className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50"
+                        style={{ writingMode: 'vertical-rl' }}
+                      >
+                        {col.label}
+                      </span>
+                    </div>
+                  )
+                }
                 return (
                   <div
                     key={col.id}
-                    className="overflow-hidden rounded-xl border border-border/60 bg-card/20"
+                    className="flex w-[252px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border/60 bg-card/20"
                   >
                     <div className={cn('h-[3px] w-full opacity-70', col.dot)} />
-                    <div className="p-2.5">
-                    <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {col.label}
-                      <span className="ml-auto tabular-nums">{items.length}</span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {items.map((item) => (
-                        <ItemCard
-                          key={item.id}
-                          item={item}
-                          onCycle={(i) => void act(() => setItemStatus(worktreePath, i.id, NEXT_STATUS[i.status]))}
-                          onVerify={(i) => void act(() => verifyItem(worktreePath, i.id, !i.verified))}
-                          onLock={(i) => void act(() => lockItem(worktreePath, i.id, !i.locked))}
-                          onEdit={(i) => void editItem(i)}
-                          onDelete={(i) => {
-                            if (window.confirm(translate('planide.view.confirmDelete', 'Delete this item?')))
-                              void act(() => deleteItem(worktreePath, i.id))
-                          }}
-                        />
-                      ))}
-                      {items.length === 0 && (
-                        <div className="py-3 text-center text-[11px] text-muted-foreground/40">
-                          {translate('planide.view.columnEmpty', 'nothing here')}
-                        </div>
-                      )}
-                    </div>
+                    <div className="flex min-h-0 flex-col p-2.5">
+                      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <span className={cn('size-1.5 shrink-0 rounded-full', col.dot)} />
+                        {col.label}
+                        <span className="ml-auto tabular-nums">{items.length}</span>
+                      </div>
+                      <div className="flex max-h-[calc(100vh-22rem)] flex-col gap-2 overflow-y-auto pr-0.5">
+                        {items.map((item) => (
+                          <ItemCard
+                            key={item.id}
+                            item={item}
+                            onCycle={(i) => void act(() => setItemStatus(worktreePath, i.id, NEXT_STATUS[i.status]))}
+                            onVerify={(i) => void act(() => verifyItem(worktreePath, i.id, !i.verified))}
+                            onLock={(i) => void act(() => lockItem(worktreePath, i.id, !i.locked))}
+                            onEdit={(i) => void editItem(i)}
+                            onDelete={(i) => {
+                              if (window.confirm(translate('planide.view.confirmDelete', 'Delete this item?')))
+                                void act(() => deleteItem(worktreePath, i.id))
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )
@@ -1283,9 +1539,17 @@ export default function PlanIdeView(): React.JSX.Element {
             </div>
           )}
 
-          {tab === 'memory' && (
-            <MemoryPanel
-              status={memory}
+          {tab === 'brain' && (
+            <BrainGraphPanel
+              graph={memory?.graphify ?? null}
+              loading={memoryLoading}
+              onRefresh={() => worktreePath && void loadMemory(worktreePath)}
+            />
+          )}
+
+          {tab === 'obsidian' && (
+            <ObsidianPanel
+              status={memory?.obsidian ?? null}
               loading={memoryLoading}
               onRefresh={() => worktreePath && void loadMemory(worktreePath)}
             />

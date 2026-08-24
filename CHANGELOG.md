@@ -6,6 +6,35 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.22.0] - 2026-08-24
+
+### Fixed
+- **The agent can create a roadmap again.** The tool for it was missing from the
+  tracker's tool set, so the Roadmap tab could only ever stay empty no matter
+  what you asked for. Milestones can now be added and closed.
+- **Finished work reaches Complete.** Everything piled up in "Works" because
+  nothing said what the difference was. "Works" now means it functions but is
+  still in play; "Complete" means closed out — and the agent is told which is
+  which.
+- **The board updates itself.** The tracker watches the project and refreshes the
+  moment an agent writes to it, in both the sidebar and the full page. No more
+  pressing Refresh and wondering.
+
+### Changed
+- **The agent is now "Pulse Agent".** Every team lead announces itself as
+  `🔴 Pulse Agent — <team>`, and notes are written under `Pulse/` in your vault.
+- **The board is a proper kanban.** It was a 3×2 grid, so a real project with
+  nothing broken showed tall empty boxes saying "nothing here" while the columns
+  you cared about were pushed onto a second row. Now it is one row that scrolls,
+  and an empty column shrinks to a thin marker instead of a hole.
+
+### Added
+- **Brain Graph tab** — what the project's knowledge graph actually contains:
+  size, the pieces everything hangs off, how things relate, and how much was read
+  straight from the code versus inferred.
+- **Obsidian tab** — the vault, this project's note with a preview, and every
+  project the agent has remembered.
+
 ## [0.21.0] - 2026-08-22
 
 ### Added

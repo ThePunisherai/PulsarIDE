@@ -1,42 +1,76 @@
 /**
- * Per-project memory status: is graphify's knowledge graph built for this
- * project, and does its Obsidian note exist yet?
+ * Per-project memory: the knowledge graph (Brain Graph) and the Obsidian notes.
  *
- * This is the read side of the memory the SessionStart hook
- * (graphify-bootstrap) and the tracker's memory-sync write. The IDE's Tracker
- * tab shows it as a small "Project memory" panel, so a user can *see* graphify
- * and Obsidian actually working for the project in front of them — the "overview
- * of how graphify works, per project" that was asked for — instead of trusting
- * that a background hook ran.
+ * This is the read side of what the SessionStart hook and the tracker's
+ * memory-sync write. The IDE shows it as two tabs, so you can *see* graphify and
+ * Obsidian working for the project in front of you instead of trusting that a
+ * background job ran.
  *
- * Pure Node fs, best-effort: every read is wrapped, and a missing graph, vault
- * or note is a normal "not yet" state, never an error. It never writes anything.
+ * The graph shape here is not guessed — it was read off a real `graphify extract`
+ * run (graphify 0.9.49). The file is node-link JSON:
+ *
+ *   { directed, multigraph, graph, nodes[], links[], hyperedges[] }
+ *   node: id, label, community, file_type, source_file, source_location, _origin
+ *   link: source, target, relation, confidence ("EXTRACTED" | "INFERRED" |
+ *         "AMBIGUOUS"), confidence_score, context, source_file, weight
+ *
+ * Note the edge list is `links`, not `edges` — reading the wrong key is exactly
+ * the sort of thing that silently reports 0 forever, so both are accepted.
+ *
+ * Pure Node fs, best-effort: every read is wrapped, and a missing graph, vault or
+ * note is a normal "not yet" state, never an error. It never writes anything.
  */
 
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { homedir, platform } from 'node:os'
 import { basename, join } from 'node:path'
 
-export type MemoryStatus = {
-  graphify: {
-    /** graphify-out/graph.json exists for this project. */
-    available: boolean
-    nodes: number
-    edges: number
-    /** graph.json mtime, epoch ms, or null. */
-    updatedAt: number | null
-    hasReport: boolean
-    hasHtml: boolean
-  }
-  obsidian: {
-    /** The resolved vault (explicit setting, or auto-detected), or null. */
-    vault: string | null
-    /** `<vault>/Pulsar/<project-slug>.md` exists. */
-    noteExists: boolean
-    notePath: string | null
-    updatedAt: number | null
-  }
+/** A hub: the nodes most of the graph hangs off ("god nodes" in graphify's own report). */
+export type GraphHub = { id: string; label: string; degree: number; file: string }
+
+export type BrainGraph = {
+  available: boolean
+  nodes: number
+  edges: number
+  communities: number
+  /** Files graphify has indexed, from its own manifest. */
+  indexedFiles: number
+  hubs: GraphHub[]
+  /** relation -> count, biggest first. */
+  relations: { name: string; count: number }[]
+  /** EXTRACTED / INFERRED / AMBIGUOUS -> count. */
+  confidence: { name: string; count: number }[]
+  /** code / doc / paper / image -> count. */
+  kinds: { name: string; count: number }[]
+  updatedAt: number | null
+  hasReport: boolean
+  hasHtml: boolean
+  /** Set when the graph is too big to analyse without stalling the UI. */
+  tooLarge: boolean
+  sizeBytes: number
 }
+
+export type ObsidianNote = { name: string; path: string; updatedAt: number | null }
+
+export type ObsidianStatus = {
+  /** The resolved vault (explicit setting, env, or auto-detected), or null. */
+  vault: string | null
+  /** How the vault was found, so the UI can say so honestly. */
+  source: 'setting' | 'env' | 'detected' | null
+  /** `<vault>/Pulse/<project-slug>.md` for THIS project. */
+  noteExists: boolean
+  notePath: string | null
+  updatedAt: number | null
+  /** The managed block the agent wrote, for a preview. */
+  excerpt: string
+  /** Every project note in the vault — what the agent remembers, across projects. */
+  notes: ObsidianNote[]
+}
+
+export type MemoryStatus = { graphify: BrainGraph; obsidian: ObsidianStatus }
+
+/** Parsing a very large graph on the main process would stall the window. */
+const MAX_GRAPH_BYTES = 25 * 1024 * 1024
 
 /** Faithful port of council-memory.py's slug(): the same note filename it writes. */
 function slugify(name: string): string {
@@ -50,7 +84,6 @@ function slugify(name: string): string {
 
 function readJson(path: string): unknown {
   try {
-    // utf-8-sig tolerance: strip a leading BOM if present.
     return JSON.parse(readFileSync(path, 'utf8').replace(/^﻿/, ''))
   } catch {
     return null
@@ -65,36 +98,108 @@ function mtimeMs(path: string): number | null {
   }
 }
 
-/** graphify-out/graph.json for a project: node/edge counts + freshness. */
-function graphifyStatus(projectPath: string): MemoryStatus['graphify'] {
+function sizeOf(path: string): number {
+  try {
+    return statSync(path).size
+  } catch {
+    return 0
+  }
+}
+
+/** count -> sorted [{name, count}], biggest first. */
+function tally(values: (string | undefined)[]): { name: string; count: number }[] {
+  const counts = new Map<string, number>()
+  for (const v of values) {
+    const key = (v ?? '').trim()
+    if (!key) continue
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+}
+
+const EMPTY_GRAPH: BrainGraph = {
+  available: false,
+  nodes: 0,
+  edges: 0,
+  communities: 0,
+  indexedFiles: 0,
+  hubs: [],
+  relations: [],
+  confidence: [],
+  kinds: [],
+  updatedAt: null,
+  hasReport: false,
+  hasHtml: false,
+  tooLarge: false,
+  sizeBytes: 0
+}
+
+type RawNode = { id?: unknown; label?: unknown; community?: unknown; file_type?: unknown; source_file?: unknown }
+type RawLink = { source?: unknown; target?: unknown; relation?: unknown; confidence?: unknown }
+
+/** Read and summarise the project's graphify graph. */
+function brainGraph(projectPath: string): BrainGraph {
   const out = join(projectPath, 'graphify-out')
   const graphPath = join(out, 'graph.json')
-  const empty = {
-    available: false,
-    nodes: 0,
-    edges: 0,
-    updatedAt: null as number | null,
-    hasReport: false,
-    hasHtml: false
-  }
-  if (!existsSync(graphPath)) return empty
-  const data = readJson(graphPath) as
-    | { nodes?: unknown[]; edges?: unknown[]; links?: unknown[] }
-    | null
-  const nodes = Array.isArray(data?.nodes) ? data!.nodes.length : 0
-  // graphify has used both "edges" and "links" across versions — accept either.
-  const edges = Array.isArray(data?.edges)
-    ? data!.edges.length
-    : Array.isArray(data?.links)
-      ? data!.links.length
-      : 0
-  return {
+  if (!existsSync(graphPath)) return EMPTY_GRAPH
+
+  const shell: BrainGraph = {
+    ...EMPTY_GRAPH,
     available: true,
-    nodes,
-    edges,
     updatedAt: mtimeMs(graphPath),
     hasReport: existsSync(join(out, 'GRAPH_REPORT.md')),
-    hasHtml: existsSync(join(out, 'graph.html'))
+    hasHtml: existsSync(join(out, 'graph.html')),
+    sizeBytes: sizeOf(graphPath),
+    indexedFiles: Object.keys((readJson(join(out, 'manifest.json')) as object) ?? {}).length
+  }
+  if (shell.sizeBytes > MAX_GRAPH_BYTES) return { ...shell, tooLarge: true }
+
+  const data = readJson(graphPath) as { nodes?: RawNode[]; links?: RawLink[]; edges?: RawLink[] } | null
+  const nodes = Array.isArray(data?.nodes) ? data!.nodes : []
+  // graphify writes node-link JSON, so the edge list is `links`; `edges` is
+  // accepted too rather than depending on one spelling staying put.
+  const links = Array.isArray(data?.links) ? data!.links : Array.isArray(data?.edges) ? data!.edges : []
+
+  // Degree per node -> the hubs. An id that only appears on a link still counts,
+  // so a partial graph does not silently lose its busiest connections.
+  const degree = new Map<string, number>()
+  for (const l of links) {
+    for (const end of [l.source, l.target]) {
+      if (typeof end !== 'string') continue
+      degree.set(end, (degree.get(end) ?? 0) + 1)
+    }
+  }
+  const byId = new Map<string, RawNode>()
+  for (const n of nodes) if (typeof n.id === 'string') byId.set(n.id, n)
+
+  const hubs: GraphHub[] = [...degree.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([id, deg]) => {
+      const n = byId.get(id)
+      return {
+        id,
+        label: typeof n?.label === 'string' && n.label ? n.label : id,
+        degree: deg,
+        file: typeof n?.source_file === 'string' ? n.source_file : ''
+      }
+    })
+
+  const communities = new Set(
+    nodes.map((n) => n.community).filter((c) => c !== undefined && c !== null)
+  ).size
+
+  return {
+    ...shell,
+    nodes: nodes.length,
+    edges: links.length,
+    communities,
+    hubs,
+    relations: tally(links.map((l) => (typeof l.relation === 'string' ? l.relation : undefined))),
+    confidence: tally(links.map((l) => (typeof l.confidence === 'string' ? l.confidence : undefined))),
+    kinds: tally(nodes.map((n) => (typeof n.file_type === 'string' ? n.file_type : undefined)))
   }
 }
 
@@ -114,46 +219,78 @@ function detectObsidianVault(home: string): string | null {
   const data = readJson(cfg) as { vaults?: Record<string, { path?: string; ts?: number }> } | null
   if (!data || typeof data.vaults !== 'object') return null
   const vaults = Object.values(data.vaults).sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
-  for (const v of vaults) {
-    if (v.path && existsSync(v.path)) return v.path
-  }
+  for (const v of vaults) if (v.path && existsSync(v.path)) return v.path
   return null
 }
 
 /** Resolve the vault the same way council-memory.py does, same priority order. */
-function resolveObsidianVault(home: string): string | null {
+function resolveVault(home: string): { vault: string | null; source: ObsidianStatus['source'] } {
   const env = process.env.OBSIDIAN_VAULT_PATH
-  if (env && existsSync(env)) return env
+  if (env && existsSync(env)) return { vault: env, source: 'env' }
   for (const brand of ['pulsaride', 'thepunisher']) {
     const settings = readJson(join(home, '.config', brand, 'dashboard-settings.json')) as
       | { obsidian_vault_path?: string }
       | null
     const p = settings?.obsidian_vault_path
-    if (p && existsSync(p)) return p
+    if (p && existsSync(p)) return { vault: p, source: 'setting' }
   }
-  return detectObsidianVault(home)
+  const detected = detectObsidianVault(home)
+  return { vault: detected, source: detected ? 'detected' : null }
 }
 
-function obsidianStatus(projectPath: string, home: string): MemoryStatus['obsidian'] {
-  const vault = resolveObsidianVault(home)
-  if (!vault) return { vault: null, noteExists: false, notePath: null, updatedAt: null }
-  const note = join(vault, 'Pulsar', slugify(basename(projectPath)) + '.md')
-  const exists = existsSync(note)
+/** The managed block council-memory.py writes, trimmed for a preview. */
+function noteExcerpt(path: string): string {
+  try {
+    const text = readFileSync(path, 'utf8')
+    const body = text.split(/<!--\s*PULSE:BEGIN\s*-->|<!--\s*PULSAR:BEGIN\s*-->/)[1] ?? text
+    return body
+      .split(/<!--\s*PULSE:END\s*-->|<!--\s*PULSAR:END\s*-->/)[0]
+      .trim()
+      .slice(0, 600)
+  } catch {
+    return ''
+  }
+}
+
+function obsidianStatus(projectPath: string, home: string): ObsidianStatus {
+  const { vault, source } = resolveVault(home)
+  if (!vault) {
+    return { vault: null, source: null, noteExists: false, notePath: null, updatedAt: null, excerpt: '', notes: [] }
+  }
+  // The agent writes under Pulse/; older installs wrote Pulsar/ or ThePunisher/,
+  // so those are still read rather than pretending the earlier notes vanished.
+  const folders = ['Pulse', 'Pulsar', 'ThePunisher']
+  const slug = slugify(basename(projectPath.replace(/[/\\]+$/, '')))
+  let notePath: string | null = null
+  const notes: ObsidianNote[] = []
+  for (const folder of folders) {
+    const dir = join(vault, folder)
+    if (!existsSync(dir)) continue
+    let entries: string[] = []
+    try {
+      entries = readdirSync(dir).filter((f) => f.endsWith('.md'))
+    } catch {
+      continue
+    }
+    for (const f of entries) {
+      const full = join(dir, f)
+      notes.push({ name: f.replace(/\.md$/, ''), path: full, updatedAt: mtimeMs(full) })
+      if (!notePath && f === `${slug}.md`) notePath = full
+    }
+  }
+  notes.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
   return {
     vault,
-    noteExists: exists,
-    notePath: exists ? note : null,
-    updatedAt: exists ? mtimeMs(note) : null
+    source,
+    noteExists: Boolean(notePath),
+    notePath,
+    updatedAt: notePath ? mtimeMs(notePath) : null,
+    excerpt: notePath ? noteExcerpt(notePath) : '',
+    notes
   }
 }
 
-/**
- * The full per-project memory status. `home` is injectable for tests; it
- * defaults to the real home dir.
- */
+/** The full per-project memory status. `home` is injectable for tests. */
 export function memoryStatus(projectPath: string, home: string = homedir()): MemoryStatus {
-  return {
-    graphify: graphifyStatus(projectPath),
-    obsidian: obsidianStatus(projectPath, home)
-  }
+  return { graphify: brainGraph(projectPath), obsidian: obsidianStatus(projectPath, home) }
 }

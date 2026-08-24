@@ -96,6 +96,62 @@ const after = <T,>(result: T): unknown => ok({ result, payload: rollups() })
       (store.updateMilestone(state, id, { done }), ok(rollups())),
     addVersion: async (_p: string, v: string, n: string) => after(store.addVersion(state, v, n)),
     report: async (_p: string, mode: string) => ok(buildReport(state, mode as never)),
+    // The Brain Graph / Obsidian tabs. Shaped exactly like memory-status.ts
+    // returns, with numbers of the size a real project produces.
+    memoryStatus: async () =>
+      ok({
+        graphify: {
+          available: true,
+          nodes: 4182,
+          edges: 9734,
+          communities: 27,
+          indexedFiles: 316,
+          hubs: [
+            { id: 'src_cpu_arm7', label: 'Arm7Core', degree: 214, file: 'src/cpu/arm7.cpp' },
+            { id: 'src_ppu_renderer', label: 'PpuRenderer', degree: 168, file: 'src/ppu/renderer.cpp' },
+            { id: 'src_bus_memorybus', label: 'MemoryBus', degree: 141, file: 'src/bus/memory.cpp' },
+            { id: 'src_apu_channel', label: 'AudioChannel', degree: 97, file: 'src/apu/channel.cpp' },
+            { id: 'src_save_state', label: 'SaveState', degree: 64, file: 'src/save/state.cpp' },
+            { id: 'src_net_link', label: 'LinkCable', degree: 38, file: 'src/net/link.cpp' }
+          ],
+          relations: [
+            { name: 'calls', count: 4210 },
+            { name: 'contains', count: 2988 },
+            { name: 'imports', count: 1401 },
+            { name: 'method', count: 806 },
+            { name: 'imports_from', count: 329 }
+          ],
+          confidence: [
+            { name: 'EXTRACTED', count: 8402 },
+            { name: 'INFERRED', count: 1109 },
+            { name: 'AMBIGUOUS', count: 223 }
+          ],
+          kinds: [
+            { name: 'code', count: 3711 },
+            { name: 'doc', count: 471 }
+          ],
+          updatedAt: Date.now() - 1000 * 60 * 12,
+          hasReport: true,
+          hasHtml: true,
+          tooLarge: false,
+          sizeBytes: 6_412_880
+        },
+        obsidian: {
+          vault: '/home/you/Documents/Vault',
+          source: 'detected',
+          noteExists: true,
+          notePath: '/home/you/Documents/Vault/Pulse/rakion-emu.md',
+          updatedAt: Date.now() - 1000 * 60 * 8,
+          excerpt:
+            '# rakion-emu\n\n- Version: 0.4.2\n- Last Pulse sync: 2026-08-24T21:40:00Z\n- Project path: `/home/you/projects/rakion-emu`\n- Last agent: Reverse Engineering Command\n- Last event: session-start\n\n[[Pulse Agent Council]]',
+          notes: [
+            { name: 'rakion-emu', path: '/home/you/Documents/Vault/Pulse/rakion-emu.md', updatedAt: Date.now() - 1000 * 60 * 8 },
+            { name: 'order2', path: '/home/you/Documents/Vault/Pulse/order2.md', updatedAt: Date.now() - 1000 * 60 * 60 * 5 },
+            { name: 'pulsaride', path: '/home/you/Documents/Vault/Pulse/pulsaride.md', updatedAt: Date.now() - 1000 * 60 * 60 * 30 }
+          ]
+        }
+      }),
+    onBoardChanged: () => () => {},
     // Git and backups are real subprocess/filesystem work in the app; here they
     // are plausible answers so the two tabs can be looked at.
     gitStatus: async () =>

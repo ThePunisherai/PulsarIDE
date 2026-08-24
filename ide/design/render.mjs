@@ -100,7 +100,7 @@ for (const theme of ['dark', 'light']) {
   await page.waitForTimeout(700)
   await page.screenshot({ path: join(SHOTS, `tracker-${theme}.png`) })
 
-  for (const tab of ['Protected', 'Fixes', 'Roadmap', 'GitHub', 'Backups', 'Activity', 'AI briefing']) {
+  for (const tab of ['Protected', 'Fixes', 'Roadmap', 'GitHub', 'Backups', 'Activity', 'Brain Graph', 'Obsidian', 'AI briefing']) {
     const button = page.locator('button', { hasText: tab }).first()
     if (await button.count()) {
       await button.click()

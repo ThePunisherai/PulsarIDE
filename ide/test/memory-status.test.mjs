@@ -8,7 +8,10 @@
  */
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const REPO = process.env.PULSAR_REPO || join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 const MOD = process.env.PULSAR_MEMSTATUS_CJS
 const { memoryStatus } = await import(MOD)
@@ -36,6 +39,29 @@ const s = memoryStatus(proj, HOME)
 ok('graphify available with correct node/edge counts', s.graphify.available && s.graphify.nodes === 3 && s.graphify.edges === 2)
 ok('graphify report + html detected', s.graphify.hasReport === true && s.graphify.hasHtml === true)
 ok('graphify updatedAt is a real timestamp', typeof s.graphify.updatedAt === 'number' && s.graphify.updatedAt > 0)
+
+// --- against a REAL `graphify extract` output, not a synthetic fixture ------ //
+// PULSAR_REAL_GRAPH points at a project graphed by the actual CLI, so the
+// summary is proven against the schema graphify really writes (node-link JSON:
+// `links`, not `edges`) rather than one we assumed.
+{
+  const fixture = join(REPO, 'ide/test/fixtures/real-graphify-project')
+  const real = memoryStatus(fixture, HOME).graphify
+  ok('real graph: parsed with nodes and edges', real.available && real.nodes > 0 && real.edges > 0)
+  ok('real graph: reads the node-link `links` key', real.edges === 9 && real.nodes === 6)
+  ok('real graph: communities counted', real.communities === 2)
+  ok('real graph: indexed files from graphify manifest', real.indexedFiles === 2)
+  ok('real graph: hubs ranked by degree with a label and file',
+    real.hubs.length > 0 && real.hubs[0].degree >= real.hubs[real.hubs.length - 1].degree &&
+    real.hubs.every((h) => typeof h.label === 'string' && h.label.length > 0))
+  ok('real graph: relation breakdown, biggest first',
+    real.relations.length > 0 && real.relations[0].count >= real.relations[real.relations.length - 1].count &&
+    real.relations.some((r) => r.name === 'calls'))
+  ok('real graph: confidence breakdown (graphify tags every edge)',
+    real.confidence.some((c) => c.name === 'EXTRACTED'))
+  ok('real graph: node kinds counted', real.kinds.some((k) => k.name === 'code'))
+  ok('real graph: not flagged too large', real.tooLarge === false && real.sizeBytes > 0)
+}
 ok('obsidian vault resolved from pulsaride settings', s.obsidian.vault === vault)
 ok('obsidian note found at <vault>/Pulsar/<slug>.md (slug matches council-memory.py)',
   s.obsidian.noteExists === true && s.obsidian.notePath === join(vault, 'Pulsar', 'myproject.md'))

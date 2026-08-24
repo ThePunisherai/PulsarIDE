@@ -1,0 +1,179 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "src_auth_sessionstore",
+      "label": "SessionStore",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 1,
+      "file_type": "code",
+      "norm_label": "sessionstore",
+      "source_file": "src/auth.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_api_handle_request",
+      "label": "handle_request()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "file_type": "code",
+      "norm_label": "handle_request()",
+      "source_file": "src/api.py",
+      "source_location": "L2"
+    },
+    {
+      "id": "src_auth_login",
+      "label": "login()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "file_type": "code",
+      "norm_label": "login()",
+      "source_file": "src/auth.py",
+      "source_location": "L3"
+    },
+    {
+      "id": "src_auth_sessionstore_get",
+      "label": ".get()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "file_type": "code",
+      "norm_label": ".get()",
+      "source_file": "src/auth.py",
+      "source_location": "L2"
+    },
+    {
+      "id": "src_api",
+      "label": "api.py",
+      "_origin": "ast",
+      "community": 0,
+      "file_type": "code",
+      "norm_label": "api.py",
+      "source_file": "src/api.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_auth",
+      "label": "auth.py",
+      "_origin": "ast",
+      "community": 0,
+      "file_type": "code",
+      "norm_label": "auth.py",
+      "source_file": "src/auth.py",
+      "source_location": "L1"
+    }
+  ],
+  "links": [
+    {
+      "source": "src_api_handle_request",
+      "target": "src_auth_login",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/api.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_auth_login",
+      "target": "src_auth_sessionstore",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/auth.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_api",
+      "target": "src_auth_login",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/api.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_api",
+      "target": "src_auth_sessionstore",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/api.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_api",
+      "target": "src_auth",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/api.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_api",
+      "target": "src_api_handle_request",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/api.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_auth",
+      "target": "src_auth_sessionstore",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/auth.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_auth",
+      "target": "src_auth_login",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/auth.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_auth_sessionstore",
+      "target": "src_auth_sessionstore_get",
+      "relation": "method",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/auth.py",
+      "source_location": "L2",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

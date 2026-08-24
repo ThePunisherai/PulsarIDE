@@ -1,5 +1,5 @@
 /**
- * Pulsar agents, pre-installed.
+ * Pulse Agent, pre-installed.
  *
  * PulsarIDE ships ThePunisher-Agent's team-lead subagents and its curated skills
  * inside the app (see resources/pulsar-agents, assembled from
@@ -147,7 +147,7 @@ function parseAgent(md: string): { name: string; description: string; body: stri
   const m = md.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
   const front = m ? m[1] : ''
   const body = m ? m[2] : md
-  const name = (front.match(/^name:\s*(.+)$/m)?.[1] ?? 'pulsar-agent').trim()
+  const name = (front.match(/^name:\s*(.+)$/m)?.[1] ?? 'pulse-agent').trim()
   // description can be a folded (>) block; take the first line as a summary.
   const descLine = front.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? ''
   const desc = descLine === '>' || descLine === '|' ? (front.match(/\n\s{2,}(.+)/)?.[1] ?? '').trim() : descLine
@@ -250,10 +250,10 @@ export function deployAgentBundle(
       // Append the tracker instruction to the body (never the frontmatter
       // description) so the subagent updates the board with zero token-budget cost.
       const mdOut = `${md.trimEnd()}\n${TRACKER_INSTRUCTION}`
-      const base = `pulsar-${file}` // pulsar- prefix marks ours and avoids clobbering
+      const base = `pulse-${file}` // pulse- prefix marks ours and avoids clobbering
       const claudePath = join(claudeAgents, base)
       const geminiPath = join(geminiAgents, base)
-      const codexPath = join(codexAgents, `pulsar-${file.replace(/\.md$/, '.toml')}`)
+      const codexPath = join(codexAgents, `pulse-${file.replace(/\.md$/, '.toml')}`)
       writeFileSync(claudePath, mdOut)
       writeFileSync(geminiPath, mdOut)
       writeFileSync(codexPath, toToml(mdOut))
@@ -412,7 +412,7 @@ function deployTrackerFiles(home: string, root: string): string | null {
   return dest
 }
 
-/** Deploy Pulsar's tool kits (the reverse-engineering toolkit) to a stable location. */
+/** Deploy Pulse Agent's tool kits (the reverse-engineering toolkit) to a stable location. */
 function deployToolsFiles(home: string, root: string): string | null {
   const src = join(root, 'tools')
   if (!existsSync(src)) return null
@@ -605,7 +605,7 @@ function mainSessionBlock(home: string): string {
   return [
     '## PulsarIDE — orchestrate as The Council, and keep the board live',
     '',
-    'Before diving into a non-trivial task, act as **The Council** (Pulsar\'s',
+    'Before diving into a non-trivial task, act as **The Council** (Pulse Agent\'s',
     'orchestrator). These four steps are the default way you work here, not an option:',
     '',
     '1. **Understand first.** Restate the actual request in one sentence. If it is genuinely',
@@ -617,7 +617,7 @@ function mainSessionBlock(home: string): string {
     '   asked — one item per real piece of work, not one giant item. This is step 2 of every',
     '   task, not an afterthought: the user watches the Tracker tab to see that you understood',
     '   the request, so an empty board while you are working reads as nothing happening.',
-    '3. **Route.** Name the Pulsar team + the specific specialist(s) that fit, then adopt',
+    '3. **Route.** Name the Pulse Agent team + the specific specialist(s) that fit, then adopt',
     '   that persona. There are 100 team leads (installed) routing to 5,050 named specialists —',
     '   read a specialist\'s file on demand and adopt it inline. Never repeat a failed approach.',
     '4. **Work the board as the work happens, and validate before you claim.**',

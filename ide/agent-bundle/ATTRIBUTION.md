@@ -6,7 +6,7 @@ team leads and skills available in every project, with no separate dashboard or 
 
 ## What's here
 
-- `agents/` — the 100 team-lead subagents (rebranded to Pulsar) from
+- `agents/` — the 100 team-lead subagents (rebranded to Pulse Agent) from
   [`ThePunisherai/ThePunisher-Agent`](https://github.com/ThePunisherai/ThePunisher-Agent)
   (same owner as PulsarIDE). These are the routable team leads; the 5,050
   specialist subagents are **not** bundled — deploying all of them as native
