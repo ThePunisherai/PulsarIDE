@@ -46,6 +46,21 @@ mk('Rewind buffer', 'wip', { by: 'Claude' })
 mk('Cheat engine UI', 'todo')
 mk('Per-game input profiles', 'todo')
 
+// A card the way an agent really writes one. The fixture used to hold only
+// one-line notes, so the board always looked tidy here while a real project's
+// board -- where an agent had written fifteen lines into a single card -- was a
+// wall of text in a narrow column. Keep at least one of these: an unrealistic
+// fixture is how that shipped unnoticed.
+mk('Volledige editable clientpariteit reconstrueren', 'wip', {
+  by: 'ThePunisher',
+  notes:
+    'Source-only clientmijlpaal uitgebreid: LoadingMenu GUI-data, BSprite-geometrie, ' +
+    'ETC/PVR en shadercontract renderen op Android; progressbar-kleuren/states zijn ' +
+    'editable en runtime gekoppeld; host/Android/capturetests groen. Exacte developer ' +
+    'source blijft niet recoverable; algemene UI state/input/animatie, editor export, ' +
+    'gameplay, 3D runtime, audio en iOS/PC blijven open.'
+})
+
 // a regression: protected work that broke
 const regressed = store.addItem(state, { title: 'Boot ROM timing', status: 'works' })
 store.verifyItem(state, regressed.id, true)

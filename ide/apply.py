@@ -109,6 +109,22 @@ EDITS: list[tuple[str, str, str, str]] = [
         "    artifactName: 'pulsar-macos-${arch}.${ext}'",
         "macOS artifact filename",
     ),
+    # ---- branding: the PulsarIDE theme ----------------------------------- #
+    # Imported straight after Orca's own stylesheet in BOTH renderer entry
+    # points (the main window and the pop-out), so a popped-out panel is not
+    # left wearing Orca's palette.
+    (
+        "src/renderer/src/main.tsx",
+        "import './assets/main.css'",
+        "import './assets/main.css'\nimport './assets/pulsar-theme.css'",
+        "PulsarIDE theme (main window)",
+    ),
+    (
+        "src/renderer/src/popout.tsx",
+        "import './assets/main.css'",
+        "import './assets/main.css'\nimport './assets/pulsar-theme.css'",
+        "PulsarIDE theme (pop-out window)",
+    ),
     # ---- integration: the sidebar tab ------------------------------------ #
     (
         "src/shared/ui-chrome-types.ts",
@@ -428,6 +444,10 @@ OVERLAY_FILES = [
     "src/renderer/src/components/planide/PlanIdeMark.tsx",
     "src/renderer/src/components/planide/PlanIdeSync.tsx",
     "src/renderer/src/components/planide/PlanIdeBackups.tsx",
+    # The PulsarIDE theme: re-declares Orca's own design tokens (nothing
+    # upstream is edited). Imported after main.css by the two renderer entry
+    # points below, so the later declaration wins.
+    "src/renderer/src/assets/pulsar-theme.css",
     # Branding: these replace Orca's own icons, so the packaged app, its
     # installer, the dock and the taskbar all wear the PlanIDE mark. Generated
     # from assets/icon.svg by ide/design/make-icons.mjs -- edit the SVG, re-run

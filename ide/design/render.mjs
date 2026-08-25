@@ -67,7 +67,11 @@ writeFileSync(
       .split('\n')
       .filter((l) => !(l.startsWith('@import') && !l.includes("'tailwindcss'")))
       .join('\n')
-      .replace(/@font-face\s*\{[^}]*\}/g, '')
+      .replace(/@font-face\s*\{[^}]*\}/g, ''),
+    // The PulsarIDE theme, appended exactly the way the app loads it (imported
+    // after main.css). Without this the harness renders Orca's palette and a
+    // screenshot says nothing about how the shipped app actually looks.
+    readFileSync(join(HERE, '../overlay/src/renderer/src/assets/pulsar-theme.css'), 'utf8')
   ].join('\n')
 )
 

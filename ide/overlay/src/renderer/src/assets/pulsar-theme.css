@@ -1,0 +1,117 @@
+/*
+ * PulsarIDE's own theme.
+ *
+ * Orca ships a neutral grey/blue palette. This is the identity the app is
+ * actually named for: a neutron star — near-black space, and two beams (blue
+ * #8ab4ff, violet #b39bff) that the logo, the tracker accents and the charts
+ * all share.
+ *
+ * How this works, and why it is safe: it only re-declares Orca's own design
+ * tokens. Nothing upstream is edited or removed — this file is imported *after*
+ * `main.css`, and because `:root` and `.dark` have identical specificity, the
+ * later declaration wins. The block order here mirrors Orca's (`:root` then
+ * `.dark`) so dark mode still overrides light, exactly as before.
+ *
+ * Deliberately NOT re-declared: the semantic colours Orca tuned for meaning and
+ * contrast — git decoration colours, status-success, agent-question, the
+ * security-mode palette, terminal title bars. Those encode information, not
+ * branding, and repainting them would cost legibility for no identity gain.
+ */
+
+/* ── Light ───────────────────────────────────────────── */
+:root {
+  --background: #fafbff;
+  --editor-surface: #ffffff;
+  --foreground: #101320;
+  --card: #ffffff;
+  --card-foreground: #101320;
+  --popover: #ffffff;
+  --popover-foreground: #101320;
+  --primary: #3055c8;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1fb;
+  --secondary-foreground: #1b2233;
+  --muted: #f1f4fc;
+  --muted-foreground: #5f6879;
+  --accent: #e7edfc;
+  --accent-foreground: #1b2233;
+  --border: #e0e6f5;
+  --input: #d9e1f2;
+  --ring: #7592d8;
+
+  --sidebar: #f3f6fd;
+  --sidebar-foreground: #101320;
+  --sidebar-primary: #3055c8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7edfc;
+  --sidebar-accent-foreground: #1b2233;
+  --sidebar-border: #e0e6f5;
+  --sidebar-ring: #7592d8;
+
+  --worktree-sidebar: #eef2fc;
+  --worktree-sidebar-foreground: #101320;
+  --worktree-sidebar-accent: #e2eafb;
+  --worktree-sidebar-accent-foreground: #1b2233;
+  --worktree-sidebar-border: #e0e6f5;
+  --worktree-sidebar-ring: #7592d8;
+
+  /* The violet beam: Orca uses this for AI-initiated actions. */
+  --ai-action-accent: #7c5cf0;
+
+  /* Charts ramp along the two beams instead of a single blue. */
+  --chart-1: #9cc0ff;
+  --chart-2: #6f9df6;
+  --chart-3: #3055c8;
+  --chart-4: #7c5cf0;
+  --chart-5: #5b3fc4;
+}
+
+/* ── Dark: the identity ──────────────────────────────── */
+.dark {
+  --background: #080a11;
+  --editor-surface: #0b0e17;
+  --foreground: #e6e9f2;
+  --card: #10131e;
+  --card-foreground: #e6e9f2;
+  --popover: #141826;
+  --popover-foreground: #e6e9f2;
+  --primary: #8ab4ff;
+  --primary-foreground: #08111f;
+  --secondary: #1a1f30;
+  --secondary-foreground: #dfe4f0;
+  --muted: #171b28;
+  --muted-foreground: #8d95aa;
+  --accent: #232939;
+  --accent-foreground: #f0f2f8;
+  --border: rgb(158 178 255 / 0.11);
+  --input: rgb(158 178 255 / 0.14);
+  --ring: #6f8fd8;
+
+  --sidebar: #0b0e18;
+  --sidebar-foreground: #e6e9f2;
+  --sidebar-primary: #8ab4ff;
+  --sidebar-primary-foreground: #08111f;
+  --sidebar-accent: #1b2030;
+  --sidebar-accent-foreground: #f0f2f8;
+  --sidebar-border: rgb(158 178 255 / 0.10);
+  --sidebar-ring: #5f7cc0;
+
+  --worktree-sidebar: #0e121c;
+  --worktree-sidebar-foreground: #e6e9f2;
+  --worktree-sidebar-accent: #1b2030;
+  --worktree-sidebar-accent-foreground: #f0f2f8;
+  --worktree-sidebar-border: rgb(158 178 255 / 0.10);
+  --worktree-sidebar-ring: #5f7cc0;
+
+  --ai-action-accent: #b39bff;
+
+  --chart-1: #c3d5ff;
+  --chart-2: #8ab4ff;
+  --chart-3: #6f8fd8;
+  --chart-4: #b39bff;
+  --chart-5: #8a6ff0;
+
+  /* Pane dividers read as structure, not dirt, on a blue-black ground. */
+  --tab-group-split-divider: #414d68;
+  --tab-group-split-divider-strong: #55617e;
+}

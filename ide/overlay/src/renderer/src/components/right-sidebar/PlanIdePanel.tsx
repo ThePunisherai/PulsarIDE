@@ -123,6 +123,7 @@ export default function PlanIdePanel(): React.JSX.Element {
   const [project, setProject] = useState<PlanIdeProject | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
 
@@ -153,12 +154,21 @@ export default function PlanIdePanel(): React.JSX.Element {
   }, [worktreePath, load])
 
 
+  /**
+   * `refreshing` is not decoration: without it a refresh that finds nothing new
+   * changed nothing on screen at all, so the button read as dead. The icon now
+   * spins while it re-reads, which is the whole feedback this control has room
+   * for in the sidebar.
+   */
   const refresh = useCallback(async () => {
     if (!worktreePath) return
+    setRefreshing(true)
     try {
       setProject(await openProject(worktreePath))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setRefreshing(false)
     }
   }, [worktreePath])
 
@@ -317,10 +327,11 @@ export default function PlanIdePanel(): React.JSX.Element {
           <button
             type="button"
             onClick={() => void refresh()}
+            disabled={refreshing}
             className="shrink-0 text-muted-foreground/60 transition-colors hover:text-foreground"
             aria-label={translate('planide.panel.refresh', 'Refresh tracker')}
           >
-            <RefreshCw size={13} />
+            <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />
           </button>
         </div>
 

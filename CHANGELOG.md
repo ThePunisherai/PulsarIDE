@@ -6,6 +6,26 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.24.0] - 2026-08-25
+
+### Added
+- **A theme of our own.** The IDE no longer wears Orca's grey. Deep blue-black,
+  with the two beams from the logo — blue and violet — running through buttons,
+  focus rings, charts and the sidebar. Light mode gets the same identity in
+  daylight. Nothing upstream was edited: it re-declares the same design tokens.
+
+### Fixed
+- **Refresh now shows it did something.** It always re-read the board — but a
+  refresh that found nothing new changed nothing on screen, so the button looked
+  dead. It spins while it works now, and the tracker says when it last updated.
+  Same fix in the sidebar.
+- **Cards stopped being walls of text.** An agent writing fifteen lines of notes
+  turned one card into a full column. Titles and notes are clamped now; the full
+  text is still there on hover and when you open the card.
+- **The board uses the space it has.** Cards no longer reserve room for buttons
+  you cannot see, columns are wider, and the page is no longer squeezed into a
+  1152px reading column, so a six-column board is not cut off at the edge.
+
 ## [0.23.0] - 2026-08-25
 
 ### Changed

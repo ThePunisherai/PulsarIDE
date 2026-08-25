@@ -741,14 +741,20 @@ function ItemCard({
             )}
           />
         </button>
+        {/* Clamped on purpose. Agents write long notes -- a single ORDER2 card
+            carried fifteen lines of prose, which in a kanban column turns every
+            card into a wall of text and pushes the rest of the board off-screen.
+            Nothing is lost: the full text is the tooltip, and clicking the card
+            opens it in the editor. */}
         <button
           type="button"
           onClick={() => onEdit(item)}
           className="min-w-0 flex-1 text-left"
+          title={item.notes ? `${item.title}\n\n${item.notes}` : item.title}
         >
-          <div className="text-[13px] leading-snug">{item.title}</div>
+          <div className="line-clamp-3 text-[13px] font-medium leading-snug">{item.title}</div>
           {item.notes && (
-            <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+            <div className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
               {item.notes}
             </div>
           )}
@@ -764,8 +770,11 @@ function ItemCard({
       </div>
       <ItemBadges item={item} />
       {/* Orca hides row actions until hover and keeps them visible on touch
-          (its own `can-hover:` variant); the board follows that. */}
-      <div className="mt-2 flex flex-wrap gap-1.5 can-hover:opacity-0 can-hover:transition-opacity can-hover:group-focus-within:opacity-100 can-hover:group-hover:opacity-100">
+          (its own `can-hover:` variant); the board follows that. Collapsed to
+          zero height too, not just transparent: opacity-0 still occupies its
+          row, which reserved ~28px of dead space in every card and made a
+          one-line card as tall as a three-line one. */}
+      <div className="flex flex-wrap gap-1.5 pt-2 can-hover:max-h-0 can-hover:overflow-hidden can-hover:pt-0 can-hover:opacity-0 can-hover:transition-all can-hover:group-focus-within:max-h-16 can-hover:group-focus-within:pt-2 can-hover:group-focus-within:opacity-100 can-hover:group-hover:max-h-16 can-hover:group-hover:pt-2 can-hover:group-hover:opacity-100">
         {working && (
           <button
             type="button"
@@ -816,6 +825,11 @@ export default function PlanIdeView(): React.JSX.Element {
   const [briefing, setBriefing] = useState('')
   const [memory, setMemory] = useState<MemoryStatus | null>(null)
   const [memoryLoading, setMemoryLoading] = useState(false)
+  // Refresh feedback: see refresh() below for why a no-op refresh still has to
+  // show something.
+  const [refreshing, setRefreshing] = useState(false)
+  const [loadedAt, setLoadedAt] = useState<number | null>(null)
+  const [, setNowTick] = useState(0)
 
   // quick capture
   const [qTitle, setQTitle] = useState('')
@@ -829,6 +843,7 @@ export default function PlanIdeView(): React.JSX.Element {
     setError(null)
     try {
       setProject(await openProject(path))
+      setLoadedAt(Date.now())
     } catch (err) {
       setProject(null)
       setError(err instanceof Error ? err.message : String(err))
@@ -846,14 +861,32 @@ export default function PlanIdeView(): React.JSX.Element {
   }, [worktreePath, load])
 
 
+  /**
+   * Re-read the board. `refreshing` and `loadedAt` exist for one reason: a
+   * refresh that finds nothing new used to change literally nothing on screen,
+   * so the button read as broken ("doet geen moer") even though it had just
+   * re-read the file. Now the icon spins while it works and the timestamp next
+   * to it resets, so a no-op refresh still visibly happened.
+   */
   const refresh = useCallback(async () => {
     if (!worktreePath) return
+    setRefreshing(true)
     try {
       setProject(await openProject(worktreePath))
+      setLoadedAt(Date.now())
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
+    } finally {
+      setRefreshing(false)
     }
   }, [worktreePath])
+
+  // Re-tick the "updated" label so it ages in place instead of freezing at
+  // "just now" until the next refresh.
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 15_000)
+    return () => clearInterval(id)
+  }, [])
 
   // Live: the main process watches this project's state.json, so an agent
   // writing the board updates what you are looking at, with nothing to press.
@@ -1010,7 +1043,11 @@ export default function PlanIdeView(): React.JSX.Element {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-6xl px-6 py-5">
+      {/* Wider than a reading column on purpose: a six-column board inside
+          max-w-6xl (1152px) had ~1100px for ~1800px of columns, so it always
+          scrolled and the last column sat half-cut at the edge. Still capped, so
+          it does not sprawl on an ultrawide. */}
+      <div className="mx-auto w-full max-w-[1600px] px-6 py-5">
         {/* identity — the mark, the project, and the one number that matters */}
         <header className="flex flex-wrap items-start gap-x-4 gap-y-3">
           {/* The glyph, not the full badge: the app icon is a dark tile with fine
@@ -1038,14 +1075,23 @@ export default function PlanIdeView(): React.JSX.Element {
             </div>
           </div>
           <ConfirmedRing progress={p} />
-          <Button
-            size="sm"
-            variant="ghost"
-            className="shrink-0 text-muted-foreground"
-            onClick={() => void refresh()}
-          >
-            <RefreshCw size={13} /> {translate('planide.view.refresh', 'Refresh')}
-          </Button>
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-muted-foreground"
+              onClick={() => void refresh()}
+              disabled={refreshing}
+            >
+              <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />{' '}
+              {translate('planide.view.refresh', 'Refresh')}
+            </Button>
+            {loadedAt !== null && (
+              <span className="pr-1 text-[10px] text-muted-foreground/60">
+                {translate('planide.view.updated', 'updated')} {relTimeMs(loadedAt)}
+              </span>
+            )}
+          </div>
         </header>
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
@@ -1221,7 +1267,7 @@ export default function PlanIdeView(): React.JSX.Element {
                 return (
                   <div
                     key={col.id}
-                    className="flex w-[252px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border/60 bg-card/20"
+                    className="flex w-[304px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border/60 bg-card/20"
                   >
                     <div className={cn('h-[3px] w-full opacity-70', col.dot)} />
                     <div className="flex min-h-0 flex-col p-2.5">
@@ -1230,7 +1276,7 @@ export default function PlanIdeView(): React.JSX.Element {
                         {col.label}
                         <span className="ml-auto tabular-nums">{items.length}</span>
                       </div>
-                      <div className="flex max-h-[calc(100vh-22rem)] flex-col gap-2 overflow-y-auto pr-0.5">
+                      <div className="flex max-h-[calc(100vh-22rem)] min-h-[220px] flex-col gap-2 overflow-y-auto pr-0.5">
                         {items.map((item) => (
                           <ItemCard
                             key={item.id}
