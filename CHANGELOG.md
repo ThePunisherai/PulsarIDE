@@ -6,6 +6,22 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.23.0] - 2026-08-25
+
+### Changed
+- **Up to date with the latest Orca.** 182 upstream commits since the last bump,
+  including their split of several big files into smaller modules. Everything
+  PulsarIDE adds still applies cleanly on top, and Orca's own full typecheck
+  passes — checked by actually building it here, not by assuming.
+
+### Fixed
+- **A rebase landmine, before it went off.** Upstream reflowed the import our
+  tracker hooks into, which would have broken the next update. The tracker's
+  four imports now go in as one block anchored on a line upstream leaves alone,
+  instead of each one hanging off the one before it — a chain where any upstream
+  edit in the middle could snap the whole thing, and which had already broken
+  re-running the build once before.
+
 ## [0.22.0] - 2026-08-24
 
 ### Fixed

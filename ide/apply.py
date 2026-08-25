@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "9725654855152d87e9c6aa26d05a980f22d8c53f"  # 2026-08-21, upstream HEAD
+PINNED_COMMIT = "61c7b51c8cc9e992dbdebc037562c208f84ac8cd"  # 2026-08-25, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -168,11 +168,21 @@ EDITS: list[tuple[str, str, str, str]] = [
         "  registerPlanIdeIpc()",
         "register the tracker IPC on launch",
     ),
+    # All four main-process imports go in as ONE block, on purpose. They used to
+    # be separate edits chained onto each other's output; that daisy-chain broke
+    # idempotency, because a later edit split an earlier one's replacement so its
+    # "already applied?" check could no longer find it. One block cannot desync
+    # with itself. Anchored on the node:fs import: upstream keeps it single-line
+    # (the electron import next to it has already been reflowed once).
     (
         "src/main/index.ts",
-        "import { app, BrowserWindow",
-        "import { registerPlanIdeIpc } from './planide/ipc'\nimport { app, BrowserWindow",
-        "tracker IPC import",
+        "import { existsSync, statSync } from 'node:fs'",
+        "import { existsSync, statSync } from 'node:fs'\n"
+        "import { deployAgentBundle } from './planide/agent-bundle'\n"
+        "import { recordAgentTurn } from './planide/agent-events'\n"
+        "import { maybeSyncMemory } from './planide/memory-sync'\n"
+        "import { registerPlanIdeIpc } from './planide/ipc'",
+        "tracker + agent-bundle main-process imports",
     ),
     # ---- integration: the renderer bridge --------------------------------- #
     (
@@ -323,18 +333,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     # ---- integration: agents write their own trail --------------------------- #
     # Orca already knows when an agent finishes a turn; the tracker listens to the
     # same signal so the Activity trail is complete even for agents that never
-    # call the CLI or MCP. Anchored on the import the previous edit inserts --
-    # edits run in list order, so it is present by the time this one runs, and it
-    # keeps the two imports from fighting over one upstream line (which broke
-    # idempotency once already).
-    (
-        "src/main/index.ts",
-        "import { registerPlanIdeIpc } from './planide/ipc'",
-        "import { recordAgentTurn } from './planide/agent-events'\n"
-        "import { maybeSyncMemory } from './planide/memory-sync'\n"
-        "import { registerPlanIdeIpc } from './planide/ipc'",
-        "agent-turn recorder import",
-    ),
+    # call the CLI or MCP. (Its import ships in the block above.)
     (
         "src/main/index.ts",
         "      if (!restoredUnconfirmed) {\n"
@@ -388,13 +387,6 @@ EDITS: list[tuple[str, str, str, str]] = [
         "const pulsarAgentsResource = { from: 'resources/pulsar-agents', to: 'pulsar-agents' }\n"
         "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources, pulsarAgentsResource]",
         "ship the ThePunisher agent bundle inside the app",
-    ),
-    (
-        "src/main/index.ts",
-        "import { recordAgentTurn } from './planide/agent-events'",
-        "import { deployAgentBundle } from './planide/agent-bundle'\n"
-        "import { recordAgentTurn } from './planide/agent-events'",
-        "agent-bundle deploy import",
     ),
     (
         "src/main/index.ts",
