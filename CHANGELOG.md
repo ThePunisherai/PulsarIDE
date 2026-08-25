@@ -6,6 +6,17 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.26.0] - 2026-08-25
+
+### Fixed
+- **Subagents stopped working if you also run ThePunisher-Agent.** PulsarIDE
+  ships that same roster, so both installs put the same 100 team leads in the
+  same folder under different names — and two rosters cost about 21k tokens
+  against the ~15k Claude Code allows for agent descriptions. Over the limit,
+  agents stop loading. PulsarIDE now notices the roster is already there and
+  does not add a second copy. Your other install is left exactly as it is, and
+  the board instructions still reach every session.
+
 ## [0.25.0] - 2026-08-25
 
 ### Added

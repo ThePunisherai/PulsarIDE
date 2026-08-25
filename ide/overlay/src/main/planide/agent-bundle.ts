@@ -245,6 +245,45 @@ export function deployAgentBundle(
     mkdirSync(geminiAgents, { recursive: true })
     mkdirSync(codexAgents, { recursive: true })
 
+    /**
+     * Do not deploy a second copy of the same roster.
+     *
+     * PulsarIDE's bundle IS ThePunisher-Agent's roster. Someone who also runs
+     * that project's standalone installer already has the identical 100 team
+     * leads in these very directories, under a `thepunisher-` prefix -- and
+     * because our prefix is `pulse-`, the two do not overwrite, they ADD.
+     *
+     * Claude Code budgets ~15k tokens for agent descriptions. One roster costs
+     * ~10.5k (measured off these files). Two costs ~21k, which puts Claude Code
+     * over the limit and is exactly how "subagents suddenly stopped working"
+     * happens -- the roster is not broken, it is too big to load.
+     *
+     * So: if a tool's directory already carries that roster, we skip our own
+     * copies there rather than doubling it. Never by deleting theirs -- that is
+     * another product's install, not ours to remove. Nothing is lost either:
+     * the tracker instruction our copies carry in the body also reaches the main
+     * session through the managed block in CLAUDE.md / AGENTS.md / GEMINI.md.
+     */
+    const hasForeignRoster = (dir: string): boolean => {
+      try {
+        return readdirSync(dir).some((f) => f.startsWith('thepunisher-'))
+      } catch {
+        return false
+      }
+    }
+    const skipClaude = hasForeignRoster(claudeAgents)
+    const skipGemini = hasForeignRoster(geminiAgents)
+    const skipCodex = hasForeignRoster(codexAgents)
+    if (skipClaude || skipGemini || skipCodex) {
+      console.warn(
+        '[pulsar] ThePunisher-Agent already provides this roster in ' +
+          [skipClaude && 'claude', skipGemini && 'gemini', skipCodex && 'codex']
+            .filter(Boolean)
+            .join('/') +
+          ' -- skipping our duplicate copies to stay inside the agent-description budget'
+      )
+    }
+
     for (const file of agentFiles) {
       const md = readFileSync(join(agentDir, file), 'utf8')
       // Append the tracker instruction to the body (never the frontmatter
@@ -254,10 +293,18 @@ export function deployAgentBundle(
       const claudePath = join(claudeAgents, base)
       const geminiPath = join(geminiAgents, base)
       const codexPath = join(codexAgents, `pulse-${file.replace(/\.md$/, '.toml')}`)
-      writeFileSync(claudePath, mdOut)
-      writeFileSync(geminiPath, mdOut)
-      writeFileSync(codexPath, toToml(mdOut))
-      wroteAgents.push(claudePath, geminiPath, codexPath)
+      if (!skipClaude) {
+        writeFileSync(claudePath, mdOut)
+        wroteAgents.push(claudePath)
+      }
+      if (!skipGemini) {
+        writeFileSync(geminiPath, mdOut)
+        wroteAgents.push(geminiPath)
+      }
+      if (!skipCodex) {
+        writeFileSync(codexPath, toToml(mdOut))
+        wroteAgents.push(codexPath)
+      }
     }
 
     // --- skills: curated set incl. orchestration -> Claude Code ----------- //

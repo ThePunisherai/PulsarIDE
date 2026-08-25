@@ -163,5 +163,44 @@ ok('Cursor rule is alwaysApply (Cursor has no task routing to discover it otherw
 ok('Cursor rule carries the same orchestrator body the other agents get',
   mdc.includes('orchestrate as The Council') && mdc.includes('get_board'))
 
+// --- the agent-description budget: one roster, never two ------------------- //
+// PulsarIDE's bundle IS ThePunisher-Agent's roster. Someone running that
+// project's own installer too has the same 100 team leads here already, under a
+// `thepunisher-` prefix -- which does not collide with our `pulse-` one, so
+// without a guard the two ADD and Claude Code goes over its ~15k description
+// budget. That is what "subagents suddenly stopped working" actually is.
+const descTokens = (dir, prefix) => {
+  let t = 0
+  for (const f of readdirSync(dir).filter((f) => f.startsWith(prefix) && f.endsWith('.md'))) {
+    const head = readFileSync(join(dir, f), 'utf8').slice(0, 4000)
+    const d = /^description:\s*([\s\S]*?)(?=^\w+:|^---)/m.exec(head)
+    if (d) t += (d[1].replace(/\s+/g, ' ').trim().length + f.length) / 4
+  }
+  return t
+}
+const oneRoster = descTokens(join(HOME, '.claude/agents'), 'pulse-')
+ok(`one roster fits Claude Code's ~15k description budget (~${Math.round(oneRoster)} tokens)`,
+  oneRoster > 0 && oneRoster < 15000)
+ok('two rosters would NOT fit -- which is why the guard below has to exist',
+  oneRoster * 2 > 15000)
+
+// Simulate the standalone installer having already deployed the same roster.
+const HOME2 = join(work, 'home-dual'); mkdirSync(HOME2)
+for (const d of ['.claude/agents', '.gemini/agents', '.codex/agents']) {
+  mkdirSync(join(HOME2, d), { recursive: true })
+}
+writeFileSync(join(HOME2, '.claude/agents/thepunisher-council.md'), '---\nname: thepunisher-council\ndescription: x\n---\n')
+writeFileSync(join(HOME2, '.gemini/agents/thepunisher-council.md'), '---\nname: thepunisher-council\ndescription: x\n---\n')
+writeFileSync(join(HOME2, '.codex/agents/thepunisher-council.toml'), 'name = "thepunisher-council"\n')
+deployAgentBundle({ home: HOME2, resourcesPath: res, force: true, provisionPyEnv: false })
+const dupPulse = (d, ext) => readdirSync(join(HOME2, d)).filter((f) => f.startsWith('pulse-') && f.endsWith(ext)).length
+ok('roster NOT duplicated when ThePunisher-Agent already provides it (Claude)', dupPulse('.claude/agents', '.md') === 0)
+ok('roster NOT duplicated (Gemini)', dupPulse('.gemini/agents', '.md') === 0)
+ok('roster NOT duplicated (Codex)', dupPulse('.codex/agents', '.toml') === 0)
+ok("the other install's own files are left untouched (never ours to delete)",
+  existsSync(join(HOME2, '.claude/agents/thepunisher-council.md')))
+ok('the tracker still reaches the main session in that case (managed block)',
+  readFileSync(join(HOME2, '.claude/CLAUDE.md'), 'utf8').includes('get_board'))
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)
