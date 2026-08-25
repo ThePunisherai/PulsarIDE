@@ -38,8 +38,13 @@ PulsarIDE adds, in the sidebar, wired to the agents.
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
-| **The agents, pre-installed** | ThePunisher's 101 team leads + 48 skills (orchestration included) ship inside the app and deploy to every project — Claude Code, Codex, Gemini — with graphify + Obsidian wired per project, and the `planide` MCP server registered so those agents update the board in any project out of the box |
+| **Pulse Agent, pre-installed** | 100 team leads + 48 skills (orchestration included) ship inside the app and deploy on launch — Claude Code, Codex and Gemini CLI as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule — with graphify + Obsidian wired per project and the `planide` MCP registered, so every agent updates the board out of the box |
 | **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
+| **Live board** | The tracker watches the project, so an agent writing to the board updates what you are looking at — no refreshing |
+| **Brain Graph** | What the project's knowledge graph actually holds: size, the pieces everything hangs off, how things relate, and how much was read from the code versus inferred |
+| **Obsidian** | The vault, this project's note with a preview, and every project the agent has remembered |
+| **Its own theme** | Blue-black space and the two beams from the logo, in light and dark — not Orca's grey |
+| **Updates itself** | Orca's own updater, pointed at PulsarIDE releases |
 
 <img src="assets/screenshot-board.png" alt="The PulsarIDE tracker: board, protected work, and the sidebar panel" />
 
@@ -72,7 +77,7 @@ You enter what you know; agents fill in the rest. Every item has a **status**
 
 | Status | |
 |---|---|
-| `open` · `wip` | still to be done |
+| `todo` · `wip` | still to be done |
 | `works` | it functions |
 | `done` | **complete** — finished and closed out |
 | `broken` · `blocked` | needs attention |
@@ -129,8 +134,8 @@ tracker panel + engine wiring), installs, and starts the IDE. Needs `git`,
 Everything lives **inside the IDE**, in two places:
 
 - **Tracker** in the left nav (radar icon) — the full workbench: quick capture,
-  the whole board, Protected, Fixes, Roadmap, Versions, Activity, and the AI
-  briefing.
+  the whole board, Protected, Fixes, Roadmap, Versions, GitHub, Backups,
+  Activity, **Brain Graph**, **Obsidian**, and the AI briefing.
 - The **right-sidebar panel** (same radar icon) — the glanceable version you
   keep open while an agent works: progress, regressions, open fixes, and
   one-click confirm/protect without leaving your code.
@@ -148,6 +153,10 @@ PlanIDE/
 │   │                                store · detect · report · git · backup · ipc
 │   ├── overlay/src/preload/         the typed IPC bridge
 │   ├── overlay/src/renderer/…       the Tracker page + sidebar panel
+│   ├── agent-bundle/       Pulse Agent itself: 100 team leads, 48 skills, the
+│   │                       memory hooks, the RE toolkit, and the tracker MCP
+│   ├── design/             the harness that renders the real surfaces in a
+│   │                       browser, so a design change is checked, not guessed
 │   ├── apply.py            anchored, verified, idempotent integration + branding
 │   ├── build.sh            clone Orca → apply → install → run
 │   ├── test/               the tracker's own behaviour tests
@@ -173,11 +182,11 @@ line (`PINNED_COMMIT` in `ide/apply.py`) instead of a merge conflict across
 if upstream drifts, `apply.py` fails loudly naming the file, instead of
 silently producing a half-patched IDE.
 
-**Nothing Orca does is removed.** The overlay adds 12 files, replaces 5 images
-(the icons), and makes 38 anchored edits — 31 of which keep the upstream line
-verbatim and add around it. The 7 that rewrite a line are all branding constants
-(app name, bundle id, protocol, executable names). `ide/check-additive.py` fails
-the suite if that ever stops being true, so a feature cannot go missing quietly.
+**Nothing Orca does is removed.** The overlay adds 28 files, replaces 5 images
+(the icons), and makes 46 anchored edits — the ones that rewrite a line rather
+than add around it are branding constants (app name, bundle id, protocol,
+executable names, release repo). `ide/check-additive.py` fails the suite if an
+edit ever drops upstream code, so a feature cannot go missing quietly.
 
 ## Tracking *via* the agents
 
@@ -199,9 +208,12 @@ To have an agent update the board itself, two ways — pick per agent:
   ./agent-tools/plan item set <project-path> <item_id> --status works
   ./agent-tools/plan fix done <project-path> <fix_id> --solution "awaited the query"
   ```
-- **MCP** — MCP-native agents call `set_item` / `mark_fixed` / `add_fix`
-  directly. `pip install mcp`, then see
-  [`agent-tools/mcp/README.md`](agent-tools/mcp/README.md).
+- **MCP** (nothing to install) — the `planide` server is registered for Claude
+  Code, Codex, Cursor, Gemini CLI and Antigravity on launch, and agents call
+  `get_board` / `add_item` / `set_item` / `add_fix` / `mark_fixed` /
+  `add_milestone` / `set_milestone` / `add_version` directly. It is a
+  zero-dependency Node server run by the IDE's own binary, so there is no Python
+  and no `pip install` in the path.
 
 Both write the same state the IDE reads, so a fix an agent logs mid-session
 shows up in the Tracker.
@@ -209,7 +221,7 @@ shows up in the Tracker.
 ## Verify
 
 ```bash
-./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 12 checks
+./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 18 checks
 ```
 
 ## Credits & license

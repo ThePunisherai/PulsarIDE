@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 
 const REPO = process.env.PULSAR_REPO || join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const MOD = process.env.PULSAR_BUNDLE_CJS // esbuild output, provided by verify.sh
-const { deployAgentBundle } = await import(MOD)
+const { deployAgentBundle, deployCursorRule } = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
 const res = join(work, 'res'); mkdirSync(res)
@@ -132,6 +132,36 @@ deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv:
 const cj4 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
 ok('a Python venv does not displace the Node MCP server',
   cj4.mcpServers.planide.command === process.execPath && cj4.mcpServers.planide.args[0] === trackerScript)
+
+// --- Antigravity: its own native Skill, not only the shared GEMINI.md block -- //
+// Antigravity does not read ~/.gemini/agents/, so without this it saw Pulse
+// Agent only through the merged GEMINI.md. Path per ThePunisher-Agent's own
+// verified installer.
+const skillPath = join(HOME, '.gemini/config/skills/pulse-agent/SKILL.md')
+ok('Antigravity native Skill deployed at ~/.gemini/config/skills/pulse-agent/SKILL.md',
+  existsSync(skillPath))
+const skill = existsSync(skillPath) ? readFileSync(skillPath, 'utf8') : ''
+ok('Antigravity Skill has the frontmatter Antigravity matches on (name + description)',
+  /^---\r?\n/.test(skill) && /\nname:\s*pulse-agent\b/.test(skill) && /\ndescription:/.test(skill))
+ok('Antigravity Skill carries the real orchestrator body, not just frontmatter',
+  skill.includes('orchestrate as The Council') && skill.includes('get_board'))
+
+// --- Cursor: a project-scoped rule, and ONLY for a tracked project ---------- //
+// Cursor has no verified user-scope rules location, so this writes into the
+// repo -- which makes "only where a board already exists" the load-bearing part.
+const untracked = join(work, 'untracked'); mkdirSync(untracked)
+ok('Cursor rule NOT written into a project with no board (never litters a repo)',
+  deployCursorRule(untracked, HOME) === false &&
+  !existsSync(join(untracked, '.cursor/rules/pulse-agent.mdc')))
+
+const tracked = join(work, 'tracked'); mkdirSync(join(tracked, '.planide'), { recursive: true })
+writeFileSync(join(tracked, '.planide/state.json'), '{}')
+ok('Cursor rule written for a tracked project', deployCursorRule(tracked, HOME) === true)
+const mdc = readFileSync(join(tracked, '.cursor/rules/pulse-agent.mdc'), 'utf8')
+ok('Cursor rule is alwaysApply (Cursor has no task routing to discover it otherwise)',
+  /^---\r?\n/.test(mdc) && /\nalwaysApply:\s*true\b/.test(mdc))
+ok('Cursor rule carries the same orchestrator body the other agents get',
+  mdc.includes('orchestrate as The Council') && mdc.includes('get_board'))
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

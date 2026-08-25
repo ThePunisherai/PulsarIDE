@@ -6,6 +6,20 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.25.0] - 2026-08-25
+
+### Added
+- **Pulse Agent now reaches every agent in the IDE.** Antigravity gets its own
+  native Skill instead of only seeing the shared GEMINI.md, and Cursor — which
+  had the tracker but no persona at all — gets an always-applied rule. Claude
+  Code, Codex and Gemini CLI are unchanged.
+
+### Changed
+- **README brought back in line with the app.** It still described 101 agents, a
+  `pip install` for the MCP that no longer exists, and an overlay of 38 edits.
+  It now says what actually ships — including Brain Graph, Obsidian, the live
+  board, the theme and self-updating, none of which it mentioned.
+
 ## [0.24.0] - 2026-08-25
 
 ### Added

@@ -653,6 +653,85 @@ function mainSessionBlock(home: string): string {
   ].join('\n')
 }
 
+
+/**
+ * Antigravity's own native mechanism: a Skill. Antigravity does NOT read
+ * `~/.gemini/agents/` the way Gemini CLI does (different product, shared config
+ * dir), so without this it only ever saw Pulse Agent through the merged
+ * GEMINI.md block. A Skill is auto-discovered and activated when a task matches
+ * its `description`, which is the closest thing Antigravity has to Claude Code's
+ * subagent routing.
+ *
+ * Path verified in ThePunisher-Agent's own installer (deploy_antigravity_skill):
+ * `~/.gemini/config/skills/<name>/SKILL.md`, which is the global location across
+ * all three Antigravity flavours (IDE, CLI, AGY).
+ *
+ * Additive, not a replacement: the GEMINI.md block stays, because it is always
+ * loaded while a Skill is only pulled in when it matches.
+ */
+function deployAntigravitySkill(home: string, block: string): string | null {
+  try {
+    const dir = join(home, '.gemini', 'config', 'skills', 'pulse-agent')
+    mkdirSync(dir, { recursive: true })
+    const path = join(dir, 'SKILL.md')
+    writeFileSync(
+      path,
+      [
+        '---',
+        'name: pulse-agent',
+        'description: >-',
+        '  Pulse Agent — the orchestrator for any non-trivial software engineering task:',
+        '  coding, debugging, testing, reverse engineering, security, web and API work,',
+        '  DevOps, code review, brainstorming and research. Routes to the right specialist,',
+        '  refuses to repeat a failed approach, verifies before it claims, and keeps the',
+        "  project's PulsarIDE board current as it works. Use for every real development",
+        '  task, not only unusual ones.',
+        '---',
+        '',
+        block,
+        ''
+      ].join('\n')
+    )
+    return path
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Cursor's persona. Cursor has no verified USER-scope rules location -- its
+ * documented mechanism is a project-scoped `.cursor/rules/*.mdc` -- so this is
+ * written per project rather than once into $HOME. `alwaysApply: true` is what
+ * makes it load without being @-mentioned, which matters because Cursor has no
+ * task-based auto-routing at all.
+ *
+ * Gated on the project already having a board, exactly like agent-events.ts:
+ * this writes into the user's own repository, so a project they never tracked is
+ * left completely alone rather than gaining a file they did not ask for.
+ */
+export function deployCursorRule(projectPath: string, home: string = homedir()): boolean {
+  try {
+    if (!existsSync(join(projectPath, '.planide', 'state.json'))) return false
+    const dir = join(projectPath, '.cursor', 'rules')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(
+      join(dir, 'pulse-agent.mdc'),
+      [
+        '---',
+        'description: Pulse Agent — orchestration and the PulsarIDE board',
+        'alwaysApply: true',
+        '---',
+        '',
+        mainSessionBlock(home),
+        ''
+      ].join('\n')
+    )
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Merge our managed block into a main-session context file, reconcile-not-accumulate. */
 function mergeManagedBlock(path: string, block: string): boolean {
   try {
@@ -687,6 +766,8 @@ function registerTrackerForAllAgents(home: string): boolean {
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
   mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)
   mergeManagedBlock(join(home, '.gemini', 'GEMINI.md'), block)
+  // Antigravity's own native surface, on top of the shared GEMINI.md block.
+  deployAntigravitySkill(home, block)
   return claude || codex || gemini
 }
 

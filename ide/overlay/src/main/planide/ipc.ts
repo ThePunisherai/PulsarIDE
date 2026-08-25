@@ -17,6 +17,7 @@ import * as git from './git'
 import { detect } from './detect'
 import { memoryStatus } from './memory-status'
 import { stopWatchingBoard, watchBoard } from './board-watch'
+import { deployCursorRule } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
 import {
   addFix,
@@ -110,6 +111,10 @@ export function registerPlanIdeIpc(): void {
     try {
       const path = args[0] as string
       const payload = openProject(path)
+      // Cursor is the one embedded agent with no user-scope persona location, so
+      // its rule lives in the project. Now that the board exists, write it.
+      // Best-effort by design: a read-only checkout must not break opening.
+      deployCursorRule(path)
       watchBoard(path, (changed) => {
         if (!event.sender.isDestroyed()) event.sender.send('planide:board-changed', changed)
       })
