@@ -32,6 +32,7 @@ import {
   openSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync
 } from 'node:fs'
@@ -126,6 +127,34 @@ export function bundleRoot(opts: { resourcesPath?: string; appPath?: string } = 
 
 function readManifest(root: string): Manifest {
   return JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as Manifest
+}
+
+/**
+ * Write a config file another tool owns, atomically.
+ *
+ * `~/.claude/settings.json` is shared: Claude Code reads it, Orca installs the
+ * managed agent hooks it drives its orchestrator's subagent tracking from, and
+ * we add a SessionStart entry. A plain writeFileSync truncates the file first,
+ * so a crash or a concurrent reader mid-write leaves behind exactly the
+ * "truncated settings.json that the agent CLI would refuse to load" that Orca's
+ * own installer takes pains to avoid. Same for ~/.claude.json and the Codex,
+ * Cursor and Gemini configs. Write to a sibling temp file and rename: a rename
+ * within a directory is atomic, so a reader sees either the old file or the new
+ * one, never half of one.
+ */
+function writeConfigAtomic(path: string, text: string): void {
+  const tmp = `${path}.pulsar-${process.pid}.tmp`
+  try {
+    writeFileSync(tmp, text)
+    renameSync(tmp, path)
+  } catch (err) {
+    try {
+      rmSync(tmp, { force: true })
+    } catch {
+      /* the temp file is already gone */
+    }
+    throw err
+  }
 }
 
 function configDir(home: string): string {
@@ -407,7 +436,17 @@ function wireHooks(home: string, root: string): boolean {
     try {
       settings = JSON.parse(readFileSync(settingsPath, 'utf8') || '{}') as Record<string, unknown>
     } catch {
-      settings = {}
+      // Never clobber it. This file is not ours: Claude Code keeps env,
+      // permissions and statusline here, and Orca installs the managed agent
+      // hooks its orchestrator tracks Claude/Codex subagents through. Resetting
+      // to {} and writing -- which is what this used to do -- silently deleted
+      // all of that and took Orca's subagent orchestration down with it, for
+      // any reason a parse can fail: a concurrent write while Orca installs its
+      // own hooks, a partial read, a stray BOM. Backing off costs us one
+      // graphify hook; the alternative costs the user their agent setup.
+      // (registerPlanideMcp already refused to clobber ~/.claude.json for
+      // exactly this reason -- this is the same rule, applied consistently.)
+      return false
     }
   }
   const hooks = (settings.hooks ??= {}) as Record<string, unknown>
@@ -425,7 +464,7 @@ function wireHooks(home: string, root: string): boolean {
   })
   kept.push({ hooks: [{ type: 'command', command, timeout: 30 }] })
   hooks.SessionStart = kept
-  writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
+  writeConfigAtomic(settingsPath, JSON.stringify(settings, null, 2))
   return true
 }
 
@@ -500,7 +539,7 @@ function registerPlanideMcp(home: string): boolean {
   const servers = (config.mcpServers ??= {}) as Record<string, unknown>
   const launch = mcpLaunch(home)
   servers.planide = { type: 'stdio', command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
-  writeFileSync(path, JSON.stringify(config, null, 2))
+  writeConfigAtomic(path, JSON.stringify(config, null, 2))
   return true
 }
 
@@ -575,7 +614,7 @@ function registerPlanideMcpCodex(home: string): boolean {
       (envBlock ? `\n[mcp_servers.planide.env]\n${envBlock}\n` : '')
     const body = kept.join('\n').replace(/\s+$/, '')
     mkdirSync(dirname(path), { recursive: true })
-    writeFileSync(path, (body ? body + '\n\n' : '') + block)
+    writeConfigAtomic(path, (body ? body + '\n\n' : '') + block)
     return true
   } catch {
     return false
@@ -598,7 +637,7 @@ function registerPlanideMcpCursor(home: string): boolean {
     const launch = mcpLaunch(home)
     servers.planide = { command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
     mkdirSync(dirname(path), { recursive: true })
-    writeFileSync(path, JSON.stringify(config, null, 2))
+    writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
   } catch {
     return false
@@ -632,7 +671,7 @@ function registerPlanideMcpGemini(home: string): boolean {
     const launch = mcpLaunch(home)
     servers.planide = { command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
     mkdirSync(dirname(path), { recursive: true })
-    writeFileSync(path, JSON.stringify(config, null, 2))
+    writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
   } catch {
     return false
@@ -790,7 +829,7 @@ function mergeManagedBlock(path: string, block: string): boolean {
       text = (text.trim() ? text.trimEnd() + '\n\n' : '') + managed + '\n'
     }
     mkdirSync(dirname(path), { recursive: true })
-    writeFileSync(path, text)
+    writeConfigAtomic(path, text)
     return true
   } catch {
     return false

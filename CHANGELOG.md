@@ -6,6 +6,26 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.27.0] - 2026-08-25
+
+### Fixed
+- **The IDE could wipe your Claude settings, taking Orca's subagents with it.**
+  `~/.claude/settings.json` is shared — Claude Code keeps your env and
+  permissions there, and Orca installs the hooks its orchestrator drives
+  Claude/Codex subagents through. If PulsarIDE could not parse that file for any
+  reason, it replaced it with an empty one. That deleted Orca's hooks, which is
+  exactly why subagents launched from the IDE stopped working. It now leaves a
+  file it cannot read completely alone.
+- **Config writes can no longer leave a half-written file.** Every shared config
+  we touch is written to a temp file and renamed, so a crash or a reader landing
+  mid-write can never produce the truncated settings.json an agent CLI refuses
+  to load.
+
+### Changed
+- **The theme reaches the rest of the IDE, not just its colours.** Corner radius
+  is tighter across every card, button, input and dialog, and errors now use the
+  palette's own red instead of a borrowed one.
+
 ## [0.26.0] - 2026-08-25
 
 ### Fixed

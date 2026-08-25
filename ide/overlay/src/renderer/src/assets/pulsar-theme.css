@@ -55,6 +55,19 @@
   --worktree-sidebar-border: #e0e6f5;
   --worktree-sidebar-ring: #7592d8;
 
+  /* Corner radius, IDE-wide. Orca derives its whole scale from this one value
+     (--radius-sm/md/lg/xl are all calc() off it), so this is the single knob
+     that reshapes every card, button, input and dialog in the app. Tighter than
+     Orca's 0.625rem: this is an instrument, and a sharper corner reads as
+     precision rather than consumer-app softness. */
+  --radius: 0.5rem;
+
+  /* Danger, in this palette's own red rather than a borrowed orange-red. Still
+     unmistakably danger -- the point is that an error looks like part of the
+     design instead of an alien element. */
+  --destructive: #d81b3f;
+  --destructive-foreground: #fff5f7;
+
   /* The violet beam: Orca uses this for AI-initiated actions. */
   --ai-action-accent: #7c5cf0;
 
@@ -102,6 +115,11 @@
   --worktree-sidebar-accent-foreground: #f0f2f8;
   --worktree-sidebar-border: rgb(158 178 255 / 0.10);
   --worktree-sidebar-ring: #5f7cc0;
+
+  /* Orca's dark destructive is a bright surface with deep red text, not the
+     inverse -- that relationship is kept, only the hue moves into our palette. */
+  --destructive: #ff5f7a;
+  --destructive-foreground: #4a0c1c;
 
   --ai-action-accent: #b39bff;
 

@@ -202,5 +202,40 @@ ok("the other install's own files are left untouched (never ours to delete)",
 ok('the tracker still reaches the main session in that case (managed block)',
   readFileSync(join(HOME2, '.claude/CLAUDE.md'), 'utf8').includes('get_board'))
 
+// --- never destroy ~/.claude/settings.json ---------------------------------- //
+// That file is not ours. Claude Code keeps env/permissions there, and Orca
+// installs the managed agent hooks its ORCHESTRATOR tracks Claude/Codex
+// subagents through. This used to reset it to {} whenever JSON.parse threw --
+// a concurrent write while Orca installs its own hooks is enough -- which
+// deleted Orca's hooks and broke subagents driven from the IDE.
+const HOME3 = join(work, 'home-malformed'); mkdirSync(join(HOME3, '.claude'), { recursive: true })
+const malformed = '{ "hooks": { "SubagentStop": [ {"orca": true} ]  <<< truncated'
+writeFileSync(join(HOME3, '.claude/settings.json'), malformed)
+deployAgentBundle({ home: HOME3, resourcesPath: res, force: true, provisionPyEnv: false })
+ok('a settings.json we cannot parse is left byte-for-byte alone (Orca hooks survive)',
+  readFileSync(join(HOME3, '.claude/settings.json'), 'utf8') === malformed)
+
+// A settings.json we CAN parse keeps every key and every foreign hook.
+const HOME4 = join(work, 'home-orca'); mkdirSync(join(HOME4, '.claude'), { recursive: true })
+writeFileSync(join(HOME4, '.claude/settings.json'), JSON.stringify({
+  env: { FOO: 'bar' },
+  permissions: { allow: ['Bash'] },
+  hooks: {
+    SubagentStop: [{ hooks: [{ type: 'command', command: 'orca-agent-hook' }] }],
+    SessionStart: [{ hooks: [{ type: 'command', command: 'someone-elses-hook' }] }]
+  }
+}, null, 2))
+deployAgentBundle({ home: HOME4, resourcesPath: res, force: true, provisionPyEnv: false })
+const st = JSON.parse(readFileSync(join(HOME4, '.claude/settings.json'), 'utf8'))
+ok("Orca's SubagentStop hook is untouched (its orchestrator keeps working)",
+  JSON.stringify(st.hooks.SubagentStop).includes('orca-agent-hook'))
+ok('unrelated settings keys survive (env, permissions)',
+  st.env.FOO === 'bar' && st.permissions.allow[0] === 'Bash')
+ok("someone else's SessionStart hook survives alongside ours",
+  st.hooks.SessionStart.some((e) => JSON.stringify(e).includes('someone-elses-hook')) &&
+  st.hooks.SessionStart.some((e) => JSON.stringify(e).includes('graphify-bootstrap')))
+ok('no temp file is left behind by the atomic write',
+  readdirSync(join(HOME4, '.claude')).every((f) => !f.includes('.tmp')))
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)
