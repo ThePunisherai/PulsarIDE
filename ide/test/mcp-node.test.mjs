@@ -13,7 +13,7 @@
  *     what keeps the two implementations from drifting apart.
  */
 import { spawn } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -192,6 +192,46 @@ const run6 = await new Promise((resolve) => {
   child.stdin.end()
 })
 ok('a malformed frame is dropped and the server keeps serving', run6.length === 1 && run6[0].id === 60)
+
+// --- clean_doc strips AI watermarks without touching real content --------- //
+// The dirty string carries one of each mark class next to content that must
+// survive: an em-dash, an emoji, CJK, and a sentence a non-breaking space splits.
+const dirty = 'The\u200Bplan \u2014 ship it \u2705\u200F, \u4e2d\u6587 ok.\u00a0Done\u{E0061}.\n'
+const docDir = mkdtempSync(join(tmpdir(), 'pulsar-doc-'))
+const docProj = join(docDir, 'proj')
+mkdirSync(docProj)
+const sibling = join(docDir, 'proj-evil')
+mkdirSync(sibling)
+writeFileSync(join(sibling, 'secret.md'), 'left\u200Balone\n', 'utf8')
+writeFileSync(join(docProj, 'doc.md'), dirty, 'utf8')
+// A second copy: drive() sends the whole batch before we can read anything back,
+// so the inspect_only check needs a file no later call in the batch rewrites.
+writeFileSync(join(docProj, 'untouched.md'), dirty, 'utf8')
+
+const run7 = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(70, 'clean_doc', { project: docProj, path: 'untouched.md', inspect_only: true }),
+  call(71, 'clean_doc', { project: docProj, path: 'doc.md' }),
+  call(72, 'clean_doc', { project: docProj, path: 'doc.md' }),
+  call(73, 'clean_doc', { project: docProj, path: '../proj-evil/secret.md' }),
+  call(74, 'clean_doc', { project: docProj, path: 'nope.md' })
+])
+const inspected = json(byId(run7.replies, 70))
+ok('clean_doc counts every mark class it finds',
+  inspected.total === 4 && inspected.removed.zeroWidth === 1 && inspected.removed.bidi === 1 &&
+  inspected.removed.tags === 1 && inspected.removed.oddSpaces === 1)
+ok('inspect_only reports without rewriting the file',
+  inspected.written === false && readFileSync(join(docProj, 'untouched.md'), 'utf8') === dirty)
+const cleaned = json(byId(run7.replies, 71))
+const afterDoc = readFileSync(join(docProj, 'doc.md'), 'utf8')
+ok('clean_doc writes the stripped document', cleaned.written === true && cleaned.total === 4)
+ok('real content survives -- em-dash, emoji, CJK, and the nbsp becomes a plain space',
+  afterDoc === 'Theplan \u2014 ship it \u2705, \u4e2d\u6587 ok. Done.\n')
+ok('a second pass finds nothing left to remove', json(byId(run7.replies, 72)).total === 0)
+ok('a sibling directory cannot be reached through the project root',
+  byId(run7.replies, 73).result.isError === true &&
+  readFileSync(join(sibling, 'secret.md'), 'utf8').includes('\u200B'))
+ok('a missing document is a correctable tool error', byId(run7.replies, 74).result.isError === true)
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

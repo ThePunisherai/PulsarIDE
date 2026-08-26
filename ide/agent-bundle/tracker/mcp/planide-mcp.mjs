@@ -29,7 +29,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { basename, isAbsolute, join, resolve } from 'node:path'
+import { basename, isAbsolute, join, resolve, sep } from 'node:path'
 
 const SERVER_NAME = 'planide'
 const SERVER_VERSION = '2.0.0'
@@ -167,6 +167,38 @@ const P = (extra = {}) => ({
   project: { type: 'string', description: "Absolute path of the project directory (the workspace you are working in)." },
   ...extra
 })
+
+
+// --------------------------------------------------------------------------- doc hygiene
+// Layer-A AI provenance marks: characters that carry no visible meaning but do
+// carry a watermark -- zero-width, bidirectional controls, Unicode tag
+// characters (an entire hidden payload fits in U+E0000..U+E007F), and lookalike
+// spaces. Modelled on guillaumemeyer/watermarks-remover (MIT).
+//
+// Kept deliberately in step with src/main/planide/doc-clean.ts: this server is
+// standalone by design (no imports out of the bundle), so the patterns are
+// duplicated rather than shared. Change one, change the other.
+const MARKS = [
+  ['zeroWidth', /[\u200B-\u200D\u2060\uFEFF]/g, ''],
+  ['bidi', /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, ''],
+  ['tags', /[\u{E0000}-\u{E007F}]/gu, ''],
+  ['invisible', /[\u00AD\u034F\u061C\u180E\u2061-\u2064]/g, ''],
+  ['oddSpaces', /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g, ' ']
+]
+
+function cleanMarks(text) {
+  const removed = {}
+  let out = text
+  let total = 0
+  for (const [name, re, sub] of MARKS) {
+    const hits = text.match(re)
+    const n = hits ? hits.length : 0
+    removed[name] = n
+    total += n
+    out = out.replace(re, sub)
+  }
+  return { cleaned: out, removed, total, changed: out !== text }
+}
 
 const TOOLS = [
   {
@@ -411,6 +443,49 @@ const TOOLS = [
         logActivity(state, 'milestone', `${m.title}${m.done ? ' -> done' : ''}`, str(args.agent))
         return { id: m.id, title: m.title, done: m.done }
       })
+    }
+  },
+  {
+    name: 'clean_doc',
+    description:
+      'Strip invisible AI watermark characters out of a text document you wrote (zero-width characters, bidirectional controls, Unicode tag characters, lookalike spaces). Call this on every markdown/text doc you produce before you call it finished. Reports exactly what it removed; leaves real content -- punctuation, emoji, non-Latin scripts -- untouched.',
+    inputSchema: {
+      type: 'object',
+      properties: P({
+        path: { type: 'string', description: 'File to clean, relative to the project (or absolute).' },
+        inspect_only: { type: 'boolean', description: 'Report what is there without changing the file.' }
+      }),
+      required: ['project', 'path']
+    },
+    run: (args) => {
+      const root = resolveProject(args)
+      const rel = str(args.path)
+      if (!rel) throw new Error('path is required')
+      const file = isAbsolute(rel) ? rel : join(root, rel)
+      // Stay inside the project: a tool that rewrites files must not be usable
+      // to reach somewhere else on disk.
+      // startsWith alone would let a sibling directory through -- '/proj-evil'
+      // starts with '/proj'. Compare against the root plus its separator.
+      const resolvedRoot = resolve(root)
+      const resolvedFile = resolve(file)
+      if (resolvedFile !== resolvedRoot && !resolvedFile.startsWith(resolvedRoot + sep)) {
+        throw new Error('path must be inside the project')
+      }
+      if (!existsSync(file)) throw new Error(`no such file: ${rel}`)
+      const before = readFileSync(file, 'utf8')
+      const report = cleanMarks(before)
+      if (!args.inspect_only && report.changed) {
+        const tmp = `${file}.${process.pid}.tmp`
+        writeFileSync(tmp, report.cleaned, 'utf8')
+        renameSync(tmp, file)
+      }
+      return {
+        path: rel,
+        removed: report.removed,
+        total: report.total,
+        changed: report.changed,
+        written: Boolean(!args.inspect_only && report.changed)
+      }
     }
   },
   {

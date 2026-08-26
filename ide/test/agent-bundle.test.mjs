@@ -103,6 +103,12 @@ ok('the main-session block makes the board a Council step, before any code',
 ok('Claude + Gemini main-session memory get the same block',
   readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('orchestrate as The Council') &&
   readFileSync(join(HOME, '.gemini/GEMINI.md'), 'utf8').includes('orchestrate as The Council'))
+// The watermark instruction has to reach every agent, not just Claude -- an
+// invisible mark is invisible regardless of which model wrote the doc.
+ok('every agent is told to clean the docs it writes',
+  codexAgentsMd.includes('clean_doc') &&
+  readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('clean_doc') &&
+  readFileSync(join(HOME, '.gemini/GEMINI.md'), 'utf8').includes('clean_doc'))
 ok('Cursor MCP registered at ~/.cursor/mcp.json',
   JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide.args[0] === trackerScript)
 const gem1 = JSON.parse(readFileSync(join(HOME, '.gemini/settings.json'), 'utf8'))

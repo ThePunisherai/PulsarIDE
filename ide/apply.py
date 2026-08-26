@@ -468,6 +468,29 @@ EDITS: list[tuple[str, str, str, str]] = [
     # Orca already ships a full, well-tested electron-updater subsystem. It does
     # not need replacing -- it needs to look at our repo instead of Stably's.
     # These three constants are what decide which releases the app sees.
+    # Every channel, not just stable/rc. These three are the dev channels, and
+    # upstream points them at stablyai/orca-hourly|daily|adhoc. Left alone, a
+    # PulsarIDE user who switches channel would have Orca builds downloaded and
+    # installed OVER PulsarIDE -- the worst version of the two apps mixing. We
+    # publish one repo, so every channel resolves to it.
+    (
+        "src/shared/release-channel.ts",
+        "export const HOURLY_RELEASE_REPO = 'stablyai/orca-hourly'",
+        f"export const HOURLY_RELEASE_REPO = '{RELEASE_REPO}'",
+        "dev channel: hourly points at our releases, never Orca's",
+    ),
+    (
+        "src/shared/release-channel.ts",
+        "export const DAILY_RELEASE_REPO = 'stablyai/orca-daily'",
+        f"export const DAILY_RELEASE_REPO = '{RELEASE_REPO}'",
+        "dev channel: daily points at our releases, never Orca's",
+    ),
+    (
+        "src/shared/release-channel.ts",
+        "export const ADHOC_RELEASE_REPO = 'stablyai/orca-adhoc'",
+        f"export const ADHOC_RELEASE_REPO = '{RELEASE_REPO}'",
+        "dev channel: adhoc points at our releases, never Orca's",
+    ),
     (
         "src/shared/release-channel.ts",
         "export const MAIN_RELEASE_REPO = 'stablyai/orca'",
@@ -531,6 +554,8 @@ OVERLAY_FILES = [
     "src/main/planide/agent-events.ts",
     "src/main/planide/memory-sync.ts",
     "src/main/planide/memory-status.ts",
+    # Strips invisible AI watermarks out of docs the agents write.
+    "src/main/planide/doc-clean.ts",
     "src/main/planide/board-watch.ts",
     "src/main/planide/auto-push.ts",
     "src/main/planide/agent-bundle.ts",

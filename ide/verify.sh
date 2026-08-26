@@ -332,6 +332,17 @@ PY
     applied=$(echo "$result" | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
     done_already=$(echo "$result" | grep -oE 'already done  : [0-9]+' | grep -oE '[0-9]+')
     ok "overlay applies to the Orca checkout ($((applied + done_already)) edits resolve)$note"
+    # Every release channel must point at our repo. If an Orca bump adds a new
+    # channel constant we did not patch, a user switching to it would download
+    # and install Orca OVER PulsarIDE -- the worst way the two apps can mix.
+    stray=$(grep -oE "RELEASE_REPO = '[^']*'" "$tmp/src/shared/release-channel.ts" 2>/dev/null \
+            | grep -v "ThePunisherai/PulsarIDE" || true)
+    if [ -z "$stray" ]; then
+      chans=$(grep -cE "RELEASE_REPO = 'ThePunisherai/PulsarIDE'" "$tmp/src/shared/release-channel.ts")
+      ok "every release channel ($chans) updates from PulsarIDE, not Orca"
+    else
+      bad "a release channel still points at Orca: $stray"
+    fi
     # re-run must be a no-op
     again=$(python3 "$HERE/apply.py" "$tmp" 2>&1 | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
     [ "$again" = "0" ] && ok "apply is idempotent (re-run changes nothing)" \

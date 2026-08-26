@@ -6,6 +6,24 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.31.0] - 2026-08-26
+
+### Added
+- **Docs come out clean.** Models quietly sprinkle invisible characters into the
+  text they write — zero-width joiners, direction controls, Unicode tag
+  characters, spaces that only look like spaces. They survive copy-paste and go
+  on to break diffs, filenames and shell commands. Every agent in PulsarIDE now
+  strips them from each document it writes, and the AI briefing the tracker
+  generates is cleaned before it leaves. Real content — punctuation, emoji,
+  Chinese, Arabic — is left exactly as written.
+
+### Fixed
+- **A channel switch can no longer install Orca over PulsarIDE.** The hourly,
+  daily and adhoc update channels still pointed at Stably's repositories, so
+  moving off stable would have downloaded Orca and installed it on top of your
+  PulsarIDE. All four channels update from PulsarIDE now, and the build fails if
+  a future Orca release ever adds one we missed.
+
 ## [0.30.0] - 2026-08-26
 
 ### Changed
