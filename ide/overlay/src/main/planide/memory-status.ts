@@ -33,6 +33,8 @@ export type BrainGraph = {
   nodes: number
   edges: number
   communities: number
+  /** Whether `communities` came from graphify's own tags or from our fallback. */
+  communitiesFrom: 'graphify' | 'components'
   /** Files graphify has indexed, from its own manifest. */
   indexedFiles: number
   hubs: GraphHub[]
@@ -124,6 +126,7 @@ const EMPTY_GRAPH: BrainGraph = {
   nodes: 0,
   edges: 0,
   communities: 0,
+  communitiesFrom: 'graphify',
   indexedFiles: 0,
   hubs: [],
   relations: [],
@@ -138,6 +141,45 @@ const EMPTY_GRAPH: BrainGraph = {
 
 type RawNode = { id?: unknown; label?: unknown; community?: unknown; file_type?: unknown; source_file?: unknown }
 type RawLink = { source?: unknown; target?: unknown; relation?: unknown; confidence?: unknown }
+
+/**
+ * Connected components over the edge list -- union-find, near-linear, so it is
+ * safe on a graph with thousands of nodes. Nodes with no edges each count as
+ * their own component, which is the honest answer: an unconnected file really is
+ * its own island in the graph.
+ */
+function connectedComponents(nodes: RawNode[], links: RawLink[]): number {
+  const parent = new Map<string, string>()
+  const find = (x: string): string => {
+    let r = x
+    while (parent.get(r) !== r) r = parent.get(r) ?? r
+    // Path compression, so a long chain does not cost us on the next lookup.
+    let cur = x
+    while (parent.get(cur) !== r) {
+      const next = parent.get(cur) ?? r
+      parent.set(cur, r)
+      cur = next
+    }
+    return r
+  }
+  const add = (id: string): void => {
+    if (!parent.has(id)) parent.set(id, id)
+  }
+  for (const n of nodes) if (typeof n.id === 'string') add(n.id)
+  for (const l of links) {
+    const a = l.source
+    const b = l.target
+    if (typeof a !== 'string' || typeof b !== 'string') continue
+    add(a)
+    add(b)
+    const ra = find(a)
+    const rb = find(b)
+    if (ra !== rb) parent.set(ra, rb)
+  }
+  const roots = new Set<string>()
+  for (const id of parent.keys()) roots.add(find(id))
+  return roots.size
+}
 
 /** Read and summarise the project's graphify graph. */
 function brainGraph(projectPath: string): BrainGraph {
@@ -187,15 +229,27 @@ function brainGraph(projectPath: string): BrainGraph {
       }
     })
 
-  const communities = new Set(
+  // graphify tags each node with a numeric `community`. When it is there we use
+  // it. When it is NOT -- an older graphify, or a graph written before
+  // clustering ran -- reporting 0 clusters for a 2,000-node graph is worse than
+  // useless, it reads as broken. So fall back to the connected components of the
+  // graph, which is a real structural property we can compute from the edges we
+  // already have, and say which of the two the number came from.
+  let communities = new Set(
     nodes.map((n) => n.community).filter((c) => c !== undefined && c !== null)
   ).size
+  let communitiesFrom: BrainGraph['communitiesFrom'] = 'graphify'
+  if (communities === 0 && nodes.length > 0) {
+    communities = connectedComponents(nodes, links)
+    communitiesFrom = 'components'
+  }
 
   return {
     ...shell,
     nodes: nodes.length,
     edges: links.length,
     communities,
+    communitiesFrom,
     hubs,
     relations: tally(links.map((l) => (typeof l.relation === 'string' ? l.relation : undefined))),
     confidence: tally(links.map((l) => (typeof l.confidence === 'string' ? l.confidence : undefined))),

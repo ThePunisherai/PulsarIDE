@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "61c7b51c8cc9e992dbdebc037562c208f84ac8cd"  # 2026-08-25, upstream HEAD
+PINNED_COMMIT = "8d61cb8b771b7b658a5e1e2bb426c719644d09f3"  # 2026-08-26, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -164,6 +164,21 @@ EDITS: list[tuple[str, str, str, str]] = [
         "    private baseDir = join(homedir(), '.orca', 'sessions')",
         "    private baseDir = join(homedir(), '.pulsar', 'sessions')",
         "relay session state is ours",
+    ),
+    (
+        "src/main/grok/grok-hook-owners.ts",
+        "  return join(homedir(), '.orca', 'agent-hooks', 'grok-owners')",
+        "  return join(homedir(), '.pulsar', 'agent-hooks', 'grok-owners')",
+        "Grok hook ownership is ours (same agent-hooks dir as the launchers)",
+    ),
+    (
+        "src/main/orcad/orcad-app-paths.ts",
+        # Anchored on the PRISTINE text: patch_source_strings rewrites the
+        # 'Orca' literal to 'PulsarIDE' later, so anchoring on the patched form
+        # matches nothing on a clean checkout.
+        "  return xdg ? join(xdg, 'Orca') : join(homedir(), '.orca')",
+        "  return xdg ? join(xdg, 'Orca') : join(homedir(), '.pulsar')",
+        "daemon state dir: the XDG branch was already ours, the fallback was not",
     ),
     # ---- integration: the sidebar tab ------------------------------------ #
     (

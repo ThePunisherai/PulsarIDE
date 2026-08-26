@@ -46,6 +46,8 @@ export type Item = {
   /** You confirmed it works. Never set by an agent. */
   verified: boolean
   verified_at: string
+  /** Who confirmed it: '' = you, otherwise the agent that reported it working. */
+  verified_by: string
   /** "Do not break this." Never set by an agent. */
   locked: boolean
   locked_at: string
@@ -198,6 +200,7 @@ export function loadState(projectPath: string): ProjectState {
     item.claimed_by ??= ''
     item.verified ??= false
     item.verified_at ??= ''
+    item.verified_by ??= ''
     item.locked ??= false
     item.locked_at ??= ''
     item.tags ??= []
@@ -268,6 +271,7 @@ export function addItem(
     claimed_by: opts.claimedBy ?? '',
     verified: false,
     verified_at: '',
+    verified_by: '',
     locked: false,
     locked_at: ''
   }
@@ -279,10 +283,15 @@ export function addItem(
 /**
  * Update an item's own fields.
  *
- * Deliberately cannot set `verified` or `locked`: those are yours, and an agent
- * calling this must not be able to confirm its own work or unprotect what it is
- * about to change. Changing the status drops a confirmation, because what you
- * confirmed is no longer what the item says.
+ * `locked` is still yours alone -- an agent must never unprotect what it is
+ * about to change.
+ *
+ * `verified` works differently now, by request: an agent moving something to
+ * `works` or `done` confirms it, so the board goes green as work lands instead
+ * of waiting on you to tick every row. What keeps that honest is attribution --
+ * `verified_by` records WHO confirmed, so an agent's confirmation still reads as
+ * the agent's, and you can decline it. Any other status change still drops the
+ * confirmation: what was confirmed is no longer what the item says.
  */
 export function updateItem(
   state: ProjectState,
@@ -299,7 +308,13 @@ export function updateItem(
   if (statusChanged && item.verified) {
     item.verified = false
     item.verified_at = ''
+    item.verified_by = ''
   }
+  // An agent reporting something working confirms it, attributed to that agent.
+  // `claimed_by` is what tells us an agent is speaking rather than you.
+  const reporter = fields.claimed_by || item.claimed_by || ''
+  const autoConfirm =
+    statusChanged && (fields.status === 'works' || fields.status === 'done') && Boolean(reporter)
   // Runtime allowlist, not just the TypeScript signature: this is reachable over
   // IPC with arbitrary JSON, so `verified` and `locked` must be impossible to
   // slip in here -- that is the whole trust boundary.
@@ -308,6 +323,11 @@ export function updateItem(
     if (!WRITABLE.has(k)) continue
     if (k === 'status' && !(ITEM_STATUSES as readonly string[]).includes(v as string)) continue
     ;(item as unknown as Record<string, unknown>)[k] = v
+  }
+  if (autoConfirm) {
+    item.verified = true
+    item.verified_at = nowIso()
+    item.verified_by = reporter
   }
   item.updated_at = nowIso()
   if (fields.status !== undefined) {
@@ -338,6 +358,8 @@ export function verifyItem(state: ProjectState, itemId: string, verified: boolea
   if (!item) return null
   item.verified = verified
   item.verified_at = verified ? nowIso() : ''
+  // Yours: confirming clears the agent's name, declining clears it entirely.
+  item.verified_by = ''
   item.updated_at = nowIso()
   logActivity(state, 'verify', `${verified ? 'confirmed' : 'unconfirmed'} ${item.title}`)
   return item

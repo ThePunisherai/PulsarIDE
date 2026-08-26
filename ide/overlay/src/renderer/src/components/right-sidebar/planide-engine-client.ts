@@ -50,6 +50,8 @@ export type PlanIdeItem = {
   /** True only when YOU confirmed it -- agents cannot set this. */
   verified: boolean
   verified_at: string
+  /** Who confirmed it: '' = you, otherwise the agent that reported it working. */
+  verified_by: string
   /** Who reported this (agent name), empty when you entered it yourself. */
   claimed_by: string
   /** "Do not break this" -- protected by you. Agents read it, never set it. */

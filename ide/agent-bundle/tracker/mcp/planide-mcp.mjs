@@ -21,7 +21,8 @@
  * `ide/test/mcp-node.test.mjs` asserts that shape stays in step with store.ts.
  *
  * Trust boundary, identical to the IDE's: an agent can add and move items, log
- * and close fixes, and cut versions — but it can NEVER set `verified` or
+ * and close fixes, and cut versions. Reporting `works`/`done` confirms an item
+ * (attributed to the agent, so you can decline it) -- but it can NEVER set
  * `locked`. Those are the user's alone, so an agent cannot confirm its own work
  * or unprotect what it is about to change.
  */
@@ -83,6 +84,7 @@ function loadState(projectPath) {
     item.claimed_by ??= ''
     item.verified ??= false
     item.verified_at ??= ''
+    item.verified_by ??= ''
     item.locked ??= false
     item.locked_at ??= ''
     item.tags ??= []
@@ -221,7 +223,8 @@ const TOOLS = [
           id: newId('i_'), title, status,
           notes: str(args.notes), tags: arr(args.tags), priority: str(args.priority, 'normal'),
           created_at: nowIso(), updated_at: nowIso(),
-          claimed_by: agent, verified: false, verified_at: '', locked: false, locked_at: ''
+          claimed_by: agent, verified: false, verified_at: '', verified_by: '',
+          locked: false, locked_at: ''
         }
         state.items.push(item)
         logActivity(state, 'item-add', `added ${item.title} (${status})`, agent)
@@ -232,7 +235,7 @@ const TOOLS = [
   {
     name: 'set_item',
     description:
-      "Move an item as the work really changes: 'wip' when you start, 'works' when it works, 'done' when it is finished and you are not coming back to it, 'broken' when it fails. Do not leave finished work sitting in 'works' -- 'works' means it functions but is still in play, 'done' means closed out, and the board shows them in different columns. Cannot confirm or protect an item -- those stay the user's.",
+      "Move an item as the work really changes: 'wip' when you start, 'works' when it works, 'done' when it is finished and you are not coming back to it, 'broken' when it fails. Do not leave finished work sitting in 'works' -- 'works' means it functions but is still in play, 'done' means closed out, and the board shows them in different columns. Reporting 'works' or 'done' confirms the item under your name; the user can decline it. Cannot protect an item -- that stays the user's.",
     inputSchema: {
       type: 'object',
       properties: P({
@@ -254,8 +257,23 @@ const TOOLS = [
         const statusChanged = next && ITEM_STATUSES.includes(next) && next !== item.status
         // A status change drops the user's confirmation: what they confirmed is
         // no longer what the item says.
-        if (statusChanged && item.verified) { item.verified = false; item.verified_at = '' }
+        if (statusChanged && item.verified) {
+          item.verified = false; item.verified_at = ''; item.verified_by = ''
+        }
         if (statusChanged) item.status = next
+        // Reporting something working confirms it, attributed to this agent, so
+        // the board goes green as work lands. The user can decline it in the IDE.
+        // Must stay identical to store.ts's updateItem -- the parity test in
+        // ide/test/mcp-node.test.mjs loads what we write with the real store and
+        // compares, so the two cannot drift.
+        if (statusChanged && (next === 'works' || next === 'done')) {
+          const reporter = str(args.agent) || item.claimed_by || ''
+          if (reporter) {
+            item.verified = true
+            item.verified_at = nowIso()
+            item.verified_by = reporter
+          }
+        }
         if (typeof args.title === 'string') item.title = args.title
         if (typeof args.notes === 'string') item.notes = args.notes
         if (typeof args.agent === 'string') item.claimed_by = args.agent
@@ -270,7 +288,10 @@ const TOOLS = [
             who
           )
         }
-        return { id: item.id, title: item.title, status: item.status, verified: item.verified }
+        return {
+          id: item.id, title: item.title, status: item.status,
+          verified: item.verified, verified_by: item.verified_by
+        }
       })
     }
   },

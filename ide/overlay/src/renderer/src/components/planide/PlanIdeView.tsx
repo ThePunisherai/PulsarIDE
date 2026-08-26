@@ -52,7 +52,6 @@ import {
   markFixDone,
   onBoardChanged,
   openProject,
-  redetect,
   setItemStatus,
   toggleMilestone,
   updateItem,
@@ -322,7 +321,9 @@ function ItemBadges({ item }: { item: PlanIdeItem }): React.JSX.Element | null {
         key="v"
         className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-px text-[9px] font-bold tracking-wide text-emerald-500"
       >
-        <ShieldCheck size={8} /> CONFIRMED
+        {/* An agent's confirmation is still green -- work landed -- but it says
+            whose it is, because that is what makes declining it meaningful. */}
+        <ShieldCheck size={8} /> {item.verified_by ? `CONFIRMED · ${item.verified_by}` : 'CONFIRMED'}
       </span>
     )
   else if (item.claimed_by && (item.status === 'works' || item.status === 'done'))
@@ -437,10 +438,16 @@ function ItemCard({
                 ? 'border-emerald-500/40 text-emerald-500'
                 : 'border-border text-muted-foreground hover:border-emerald-500 hover:text-emerald-500'
             )}
-            title={translate('planide.view.confirmHint', 'Only you can confirm — an agent saying "works" is a claim')}
+            title={
+              item.verified_by
+                ? translate('planide.view.declineHint', 'Confirmed by an agent — decline it if it is not actually working')
+                : translate('planide.view.confirmHint', 'Confirm you saw this work yourself')
+            }
           >
             {item.verified
-              ? translate('planide.view.undoConfirm', 'undo confirm')
+              ? item.verified_by
+                ? translate('planide.view.decline', 'decline')
+                : translate('planide.view.undoConfirm', 'undo confirm')
               : translate('planide.view.confirm', 'confirm')}
           </button>
         )}
@@ -522,13 +529,12 @@ export default function PlanIdeView(): React.JSX.Element {
     if (!worktreePath) return
     setRefreshing(true)
     try {
-      // Re-scan, not just re-read. The board already updates itself the moment
-      // an agent writes to it, so a plain re-read had almost nothing left to do
-      // -- which is why this button felt like it did nothing. Redetect re-runs
-      // stack detection against the project as it is NOW, so pressing it picks
-      // up a language, framework or dependency that appeared since it was
-      // opened, and still returns the refreshed board.
-      setProject(await redetect(worktreePath))
+      // A plain re-read. This briefly called redetect() so the button would
+      // "do more", but re-running stack detection MUTATES the project -- the
+      // type and language chips could change under you on what is supposed to
+      // be a refresh. A refresh should show you the current truth, not rewrite
+      // it. Re-detection belongs on its own explicit action, not here.
+      setProject(await openProject(worktreePath))
       setLoadedAt(Date.now())
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))

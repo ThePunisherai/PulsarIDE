@@ -117,16 +117,32 @@ const run2d = await drive([
 ])
 ok('an item can be closed out to done', json(byId(run2d.replies, 26)).status === 'done')
 
-// --- the trust boundary: an agent can never confirm or protect ------------- //
+// --- the trust boundary, as it stands now ---------------------------------- //
+// Reporting `works`/`done` DOES confirm an item -- that is the point, the board
+// goes green as work lands. What stays true is that the confirmation is the
+// agent's and says so, and that `locked` is never the agent's to touch. A
+// payload field is still not a way in: confirmation only ever happens as a
+// consequence of a real status change.
 const run3 = await drive([
   { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
-  call(30, 'set_item', { project: proj, item_id: first.id, verified: true, locked: true, status: 'works' }),
+  call(30, 'set_item', { project: proj, item_id: first.id, verified: true, locked: true, status: 'works', agent: 'Codex' }),
   call(31, 'add_item', { project: proj, title: 'Sneaky', verified: true, locked: true })
 ])
 const afterSneak = store.loadState(proj)
 const moved = afterSneak.items.find((i) => i.id === first.id)
-ok('set_item cannot set verified/locked', moved.verified === false && moved.locked === false)
-ok('add_item cannot set verified/locked', afterSneak.items.every((i) => i.verified === false && i.locked === false))
+ok('reporting works confirms the item', moved.verified === true)
+ok('the confirmation is attributed to the agent, never to you',
+  moved.verified_by === 'Codex')
+ok('set_item still cannot protect an item', moved.locked === false)
+ok('add_item cannot confirm or protect via a payload field',
+  afterSneak.items.every((i) => (i.title !== 'Sneaky' || (i.verified === false && i.locked === false))))
+// A status change that is not works/done must NOT leave a stale confirmation.
+const run3b = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(32, 'set_item', { project: proj, item_id: first.id, status: 'broken', agent: 'Codex' })
+])
+const broke = store.loadState(proj).items.find((i) => i.id === first.id)
+ok('moving off works drops the confirmation', broke.verified === false && broke.verified_by === '')
 
 // a user confirmation is dropped when the agent changes the status again
 store.verifyItem(afterSneak, first.id, true)

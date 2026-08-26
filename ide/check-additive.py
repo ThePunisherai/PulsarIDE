@@ -33,6 +33,8 @@ BRANDING = {
     "src/main/agent-hooks/managed-hook-install-lock.ts",
     "src/main/runtime/claude-agent-teams-shim-env.ts",
     "src/relay/workspace-session-handler.ts",
+    "src/main/grok/grok-hook-owners.ts",
+    "src/main/orcad/orcad-app-paths.ts",
 }
 
 

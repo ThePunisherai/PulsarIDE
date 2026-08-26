@@ -6,6 +6,27 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.30.0] - 2026-08-26
+
+### Changed
+- **Works is confirmed now.** When an agent reports something working, the board
+  goes green straight away instead of waiting for you to tick every row. It says
+  who confirmed it — "CONFIRMED · Codex" — and the button on that card becomes
+  **decline**, so you can push back on anything that is not really working.
+- **Up to date with Orca again**, 50 commits on. Everything PulsarIDE adds still
+  applies cleanly and Orca's own full typecheck passes.
+
+### Fixed
+- **Clusters no longer read 0 on a real graph.** Older graphs have no cluster
+  labels, and showing "0" for a 2,000-node project reads as broken. Brain Graph
+  now works the grouping out from the connections themselves when the labels are
+  missing.
+- **Refresh stopped changing things.** It briefly re-ran project detection, which
+  could rewrite your project type and language chips — on a button whose whole
+  job is to show you what is there. It only reads again.
+- **Two more places PulsarIDE and Orca shared a folder**: Grok's hook ownership
+  and the background daemon's state. Both are ours now.
+
 ## [0.29.1] - 2026-08-26
 
 ### Fixed
