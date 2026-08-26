@@ -11,16 +11,15 @@
  * vault or note is a normal "not yet" state, never an error.
  */
 import React, { useCallback, useEffect, useState } from 'react'
-import { BookText, ExternalLink, FileText, Network, RefreshCw } from 'lucide-react'
+import { BookText, ExternalLink, Network, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { translate } from '@/i18n'
+import { translate } from '@/i18n/i18n'
 import { useActiveWorktree } from '@/store/selectors'
 import {
   memoryStatus as fetchMemoryStatus,
   type BrainGraph,
   type MemoryStatus,
-  type NamedCount,
   type ObsidianStatus
 } from '../right-sidebar/planide-engine-client'
 

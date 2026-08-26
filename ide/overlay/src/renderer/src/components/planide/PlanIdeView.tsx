@@ -21,7 +21,6 @@ import {
   History,
   Loader2,
   Lock,
-  ExternalLink,
   Map as MapIcon,
   Plus,
   RefreshCw,
@@ -58,9 +57,7 @@ import {
   toggleMilestone,
   updateItem,
   verifyItem,
-  type BrainGraph,
   type ItemStatus,
-  type ObsidianStatus,
   type PlanIdeItem,
   type PlanIdeProject
 } from '../right-sidebar/planide-engine-client'

@@ -68,6 +68,19 @@ done < <(find "$HERE/overlay/src" -name "*.ts" -o -name "*.tsx" | sort)
 [ "$unlisted" = 0 ] && ok "every overlay source file is in OVERLAY_FILES" \
                     || bad "an overlay source file would never be copied"
 
+# 2b. ...and every renderer component is actually TYPECHECKED here.
+# A component missing from tsconfig.check.json's include is silently skipped by
+# the local typecheck and only fails in CI, on a real build -- which is exactly
+# how PulseMemory.tsx shipped importing a module path that does not exist.
+missing_tc=0
+while read -r f; do
+  rel="../overlay/${f#$HERE/overlay/}"
+  grep -qF "\"$rel\"" "$HERE/design/tsconfig.check.json" \
+    || { echo "    not in tsconfig.check.json: $rel"; missing_tc=1; }
+done < <(find "$HERE/overlay/src/renderer" -name "*.tsx" -o -name "*.ts" | sort)
+[ "$missing_tc" = 0 ] && ok "every renderer component is in the typecheck" \
+                      || bad "a renderer component is never typechecked locally"
+
 # 3. TypeScript in the overlay is syntactically valid
 if command -v npx >/dev/null 2>&1; then
   # --noResolve keeps this dependency-free, at the cost of two known false

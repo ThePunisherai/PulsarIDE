@@ -6,6 +6,18 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.28.1] - 2026-08-26
+
+### Fixed
+- **v0.28.0 produced no installers.** The build failed on a bad import path and
+  a few unused imports in the new memory panel. Everything v0.28.0 describes is
+  in this release — that one just had nothing you could download.
+- **The local checks now catch this class before CI does.** A new component
+  could be left out of the typecheck entirely and nobody would notice, and the
+  check was not enforcing unused-import errors the way the real build does.
+  Both are fixed, and a new guard fails the suite if a component is ever left
+  untypechecked again.
+
 ## [0.28.0] - 2026-08-26
 
 ### Fixed
