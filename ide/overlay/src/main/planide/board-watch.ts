@@ -6,11 +6,11 @@
  * you reloaded — which is exactly the "I give it a task and nothing happens"
  * feeling, even once the agent really was writing.
  *
- * Watching the DIRECTORY, not the file, is deliberate: `saveState` writes
- * `state.json.tmp` and renames it over the target so a crash cannot truncate the
- * board. A watch on the file itself follows the replaced inode and goes silent
- * after the first save — the watch would appear to work once and then never
- * again. A directory watch sees every rename into it.
+ * Watching the DIRECTORY, not the file, is deliberate: `saveState` writes a
+ * per-process temp file and renames it over the target so a crash cannot
+ * truncate the board. A watch on the file itself follows the replaced inode and
+ * goes silent after the first save — the watch would appear to work once and
+ * then never again. A directory watch sees every rename into it.
  *
  * The project root is watched too, so a board created *after* you opened the tab
  * (the common case now that the first agent turn creates it) still registers.
@@ -87,7 +87,9 @@ export function watchBoard(projectPath: string, onChange: (path: string) => void
   }
 
   // The board itself, and the project root so a board created later is picked up.
-  add(join(projectPath, '.planide'), (name) => name.startsWith('state.json'))
+  // Exactly the board, not the temp files written beside it: a prefix match
+  // also caught `state.json.<pid>.tmp` and woke us twice per save.
+  add(join(projectPath, '.planide'), (name) => name === 'state.json')
   add(projectPath, (name) => name === '.planide')
 
   if (!w.watchers.length) return false

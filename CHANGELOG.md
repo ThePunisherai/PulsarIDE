@@ -6,6 +6,16 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.29.1] - 2026-08-26
+
+### Fixed
+- **The board could be corrupted when an agent wrote it while you had it open.**
+  The IDE and the agent both wrote through the same temporary file, so one could
+  rename it away while the other was still writing — and the rest of that write
+  landed inside your live board. Each now uses its own, so they never collide.
+- **The tracker woke up twice on every save**, because it was also watching the
+  temporary files written next to the board.
+
 ## [0.29.0] - 2026-08-26
 
 ### Added

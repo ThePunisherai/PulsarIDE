@@ -95,8 +95,16 @@ function saveState(projectPath, state) {
   state.updated_at = nowIso()
   mkdirSync(join(projectPath, '.planide'), { recursive: true })
   const file = statePath(projectPath)
-  // Write-then-rename, so a crash mid-write cannot truncate the board.
-  const tmp = `${file}.tmp`
+  // Write-then-rename so a crash mid-write cannot truncate the board.
+  //
+  // The temp name carries this process's pid ON PURPOSE. The IDE and an agent's
+  // MCP server both write this file, by design and at the same time -- that is
+  // the whole point of a live board. With a shared `state.json.tmp` they share
+  // an inode: one can truncate the other's half-written temp, or rename it away
+  // while the other still holds it open, at which point the loser's remaining
+  // writes land inside the live board. A pid-unique name means the two never
+  // touch the same temp, and rename stays atomic.
+  const tmp = `${file}.${process.pid}.tmp`
   writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
   renameSync(tmp, file)
 }
