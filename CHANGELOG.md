@@ -6,6 +6,22 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.32.0] - 2026-08-26
+
+### Added
+- **Brain Graph and Open Design are in the left sidebar**, under Tracker, as full
+  pages rather than only narrow side panels. The graph overview finally has room
+  to be read: the hubs, the relation mix, the node kinds and the confidence split
+  sit side by side instead of stacked in a column, with this project's Obsidian
+  note beside them. They stay available as sidebar tabs too.
+
+### Fixed
+- **No more graphify window sitting on top of your work.** Indexing runs a
+  console program, and Windows was giving it its own window for the whole run.
+  It runs out of sight now. The same went for git: every status and push could
+  flash a window. Nothing PulsarIDE starts in the background will open a window
+  again -- the build refuses to ship if one would.
+
 ## [0.31.0] - 2026-08-26
 
 ### Added

@@ -34,12 +34,22 @@ function configDir(home: string): string {
 
 /** The IDE venv python if provisioned (has graphify on its own path), else system. */
 function memoryPython(home: string): string {
-  const venv =
-    process.platform === 'win32'
-      ? join(configDir(home), 'pyenv', 'Scripts', 'python.exe')
-      : join(configDir(home), 'pyenv', 'bin', 'python')
-  if (existsSync(venv)) return venv
-  return process.platform === 'win32' ? 'python' : 'python3'
+  if (process.platform !== 'win32') {
+    const venv = join(configDir(home), 'pyenv', 'bin', 'python')
+    return existsSync(venv) ? venv : 'python3'
+  }
+  // pythonw.exe is the same interpreter built without a console subsystem --
+  // it ships beside python.exe in every venv and standard install for exactly
+  // this reason. Preferring it means there is no console window to suppress in
+  // the first place, rather than relying on a creation flag to hide one.
+  // python.exe stays the fallback: a stripped or embeddable install may not
+  // carry pythonw, and a working sync beats a hidden one.
+  const scripts = join(configDir(home), 'pyenv', 'Scripts')
+  for (const exe of ['pythonw.exe', 'python.exe']) {
+    const candidate = join(scripts, exe)
+    if (existsSync(candidate)) return candidate
+  }
+  return 'pythonw'
 }
 
 /**
