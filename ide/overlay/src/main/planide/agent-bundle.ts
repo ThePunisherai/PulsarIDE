@@ -883,7 +883,7 @@ function ensurePyEnv(home: string): boolean {
     if (existsSync(pyEnvPython(home))) return true // already provisioned
     const sysPy = process.platform === 'win32' ? 'python' : 'python3'
     try {
-      execFileSync(sysPy, ['--version'], { stdio: 'ignore', timeout: 5000 })
+      execFileSync(sysPy, ['--version'], { stdio: 'ignore', timeout: 5000, windowsHide: true })
     } catch {
       return false // no system python to build the venv from
     }
@@ -895,7 +895,11 @@ function ensurePyEnv(home: string): boolean {
     const shell = process.platform === 'win32' ? 'cmd' : '/bin/sh'
     const flag = process.platform === 'win32' ? '/c' : '-c'
     const cmd = `${sysPy} -m venv "${dir}" && "${pip}" install --disable-pip-version-check -q graphifyy fastmcp`
-    const child = spawn(shell, [flag, cmd], { detached: true, stdio: ['ignore', log, log] })
+    const child = spawn(shell, [flag, cmd], {
+      detached: true,
+      stdio: ['ignore', log, log],
+      windowsHide: true
+    })
     child.unref()
     return true
   } catch {
@@ -906,7 +910,7 @@ function ensurePyEnv(home: string): boolean {
 /** Best-effort: is graphify actually installed? (for a status line, not a gate) */
 export function graphifyAvailable(): boolean {
   try {
-    execFileSync('graphify', ['--version'], { stdio: 'ignore', timeout: 4000 })
+    execFileSync('graphify', ['--version'], { stdio: 'ignore', timeout: 4000, windowsHide: true })
     return true
   } catch {
     return false

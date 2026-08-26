@@ -32,6 +32,28 @@ python3 -m py_compile "$HERE/apply.py" 2>/dev/null \
 bash -n "$HERE/build.sh" 2>/dev/null \
   && ok "build.sh parses" || bad "build.sh parses"
 
+# 1a2. Every child process the main process launches must pass windowsHide.
+# Electron's main process has no console of its own, so on Windows a console
+# program launched without it gets a brand new console window on the user's
+# screen -- which is exactly what graphify.exe did, for the whole run.
+# Count real call sites, not lines: grep -c counts matching lines, and an import
+# line names these functions without calling them. Drop the imports first, then
+# count occurrences with -o. Longest alternative first, so execFileSync( is not
+# counted as execFile( plus a stray "Sync".
+missing=""
+for f in "$HERE"/overlay/src/main/planide/*.ts; do
+  calls=$(grep -vE "^import " "$f" \
+          | grep -oE "(execFileSync|execFile|spawn)\\(" | wc -l | tr -d ' ')
+  [ "$calls" -eq 0 ] && continue
+  hidden=$(grep -oE "windowsHide: true" "$f" | wc -l | tr -d ' ')
+  [ "$hidden" -lt "$calls" ] && missing="$missing $(basename "$f")($hidden/$calls)"
+done
+if [ -z "$missing" ]; then
+  ok "every child process is launched with windowsHide (no stray console windows)"
+else
+  bad "a child process would open a console window on Windows:$missing"
+fi
+
 # 1b. a release publishes CHANGELOG.md as its notes, so an entry for the current
 # version is part of shipping it, not an afterthought.
 ver=$(cat "$ROOT/agent-tools/VERSION" 2>/dev/null | tr -d '[:space:]')

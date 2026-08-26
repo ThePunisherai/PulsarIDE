@@ -307,7 +307,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/shared/ui-chrome-types.ts",
         "export type TopLevelView =\n  | 'terminal'",
-        "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'",
+        "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'\n  // The same two surfaces as the sidebar tabs of these names, opened full\n  // page from the left nav. Separate type from RightSidebarTab, so the\n  // shared ids are deliberate rather than a collision.\n  | 'pulse-brain'\n  | 'pulse-design'",
         "register 'planide' as a top-level view",
     ),
     # Eight hand-written unions in the UI slice enumerate every top-level view
@@ -317,49 +317,49 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/renderer/src/store/slices/ui.ts",
         "  previousViewBeforeTasks:\n    | 'terminal'",
-        "  previousViewBeforeTasks:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "  previousViewBeforeTasks:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'terminal'",
         "previousViewBeforeTasks accepts the tracker",
     ),
     (
         "src/renderer/src/store/slices/ui.ts",
         "  previousViewBeforeSettings:\n    | 'terminal'",
-        "  previousViewBeforeSettings:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "  previousViewBeforeSettings:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'terminal'",
         "previousViewBeforeSettings accepts the tracker",
     ),
     (
         "src/renderer/src/store/slices/ui.ts",
         "  previousViewBeforeActivity:\n    | 'terminal'",
-        "  previousViewBeforeActivity:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "  previousViewBeforeActivity:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'terminal'",
         "previousViewBeforeActivity accepts the tracker",
     ),
     (
         "src/renderer/src/store/slices/ui.ts",
         "  previousViewBeforeAutomations:\n    | 'terminal'",
-        "  previousViewBeforeAutomations:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "  previousViewBeforeAutomations:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'terminal'",
         "previousViewBeforeAutomations accepts the tracker",
     ),
     (
         "src/renderer/src/store/slices/ui.ts",
         "  previousViewBeforeSpace:\n    | 'terminal'",
-        "  previousViewBeforeSpace:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "  previousViewBeforeSpace:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'terminal'",
         "previousViewBeforeSpace accepts the tracker",
     ),
     (
         "src/renderer/src/store/slices/ui.ts",
         "  previousViewBeforeSkills:\n    | 'terminal'",
-        "  previousViewBeforeSkills:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "  previousViewBeforeSkills:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'terminal'",
         "previousViewBeforeSkills accepts the tracker",
     ),
     (
         "src/renderer/src/store/slices/ui.ts",
         "  previousViewBeforeMobile:\n    | 'terminal'",
-        "  previousViewBeforeMobile:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "  previousViewBeforeMobile:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'terminal'",
         "previousViewBeforeMobile accepts the tracker",
     ),
     (
         "src/renderer/src/store/slices/ui.ts",
         "  previousViewBeforeArtifacts:\n    | 'terminal'",
-        "  previousViewBeforeArtifacts:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'terminal'",
+        "  previousViewBeforeArtifacts:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'terminal'",
         "previousViewBeforeArtifacts accepts the tracker",
     ),
     # And the zod enum the persisted UI state is validated against: a compile-time
@@ -377,31 +377,34 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/main/runtime/rpc/methods/client-ui-schemas.ts",
         "const TopLevelViewSchema = z.enum([\n  'terminal',",
-        "const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker is a top-level view.\n  'planide',\n  'terminal',",
+        "const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker and the two full-page\n  // memory/design surfaces are top-level views.\n  'planide',\n  'pulse-brain',\n  'pulse-design',\n  'terminal',",
         "the tracker is a valid persisted view",
     ),
     (
         "src/shared/top-level-view.ts",
         "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,",
-        "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,\n  planide: true,",
+        "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,\n  planide: true,\n  'pulse-brain': true,\n  'pulse-design': true,",
         "allow 'planide' through the persistence guard",
     ),
     (
         "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
         "      {activeView === 'settings' ? <Settings /> : null}",
-        "      {activeView === 'planide' ? <PlanIdeView /> : null}\n      {activeView === 'settings' ? <Settings /> : null}",
+        "      {activeView === 'planide' ? <PlanIdeView /> : null}\n      {activeView === 'pulse-brain' ? <PulseMemoryPage /> : null}\n      {activeView === 'pulse-design' ? <PulseDesignPage /> : null}\n      {activeView === 'settings' ? <Settings /> : null}",
         "render the tracker workbench",
     ),
     (
         "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
         "function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
-        "const PlanIdeView = lazy(() => import('../components/planide/PlanIdeView'))\n\nfunction ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
+        "const PlanIdeView = lazy(() => import('../components/planide/PlanIdeView'))\n"
+        "const PulseMemoryPage = lazy(() => import('../components/planide/PulseMemoryPage'))\n"
+        "const PulseDesignPage = lazy(() => import('../components/planide/PulseDesignPage'))\n\n"
+        "function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
         "lazy-import the tracker workbench",
     ),
     (
         "src/renderer/src/components/sidebar/SidebarNav.tsx",
         "  const skillsActive = activeView === 'skills'",
-        "  const skillsActive = activeView === 'skills'\n  const planIdeActive = activeView === 'planide'\n  const setActiveView = useAppStore((s) => s.setActiveView)",
+        "  const skillsActive = activeView === 'skills'\n  const planIdeActive = activeView === 'planide'\n  const pulseBrainActive = activeView === 'pulse-brain'\n  const pulseDesignActive = activeView === 'pulse-design'\n  const setActiveView = useAppStore((s) => s.setActiveView)",
         "tracker nav state",
     ),
     (
@@ -427,6 +430,42 @@ EDITS: list[tuple[str, str, str, str]] = [
           strokeWidth={planIdeActive ? 2.25 : 1.75}
         />
         <span className="flex-1">{translate('planide.nav.tracker', 'Tracker')}</span>
+      </button>
+      {/* Brain Graph and Open Design sit under the tracker: same project, the
+          knowledge behind it and the design work on it. */}
+      <button
+        type="button"
+        onClick={() => setActiveView('pulse-brain')}
+        aria-current={pulseBrainActive ? 'page' : undefined}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium tracking-tight transition-colors',
+          pulseBrainActive
+            ? 'bg-worktree-sidebar-accent text-worktree-sidebar-accent-foreground'
+            : 'text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8'
+        )}
+      >
+        <Network
+          className={cn('size-4 shrink-0', !pulseBrainActive && 'text-worktree-sidebar-foreground/30')}
+          strokeWidth={pulseBrainActive ? 2.25 : 1.75}
+        />
+        <span className="flex-1">{translate('planide.nav.brain', 'Brain Graph')}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveView('pulse-design')}
+        aria-current={pulseDesignActive ? 'page' : undefined}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium tracking-tight transition-colors',
+          pulseDesignActive
+            ? 'bg-worktree-sidebar-accent text-worktree-sidebar-accent-foreground'
+            : 'text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8'
+        )}
+      >
+        <PenTool
+          className={cn('size-4 shrink-0', !pulseDesignActive && 'text-worktree-sidebar-foreground/30')}
+          strokeWidth={pulseDesignActive ? 2.25 : 1.75}
+        />
+        <span className="flex-1">{translate('planide.nav.design', 'Open Design')}</span>
       </button>""",
         "tracker entry in the left nav",
     ),
@@ -434,6 +473,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "src/renderer/src/components/sidebar/SidebarNav.tsx",
         "import { Bell, BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'",
         "import { Bell, BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'\n"
+        "import { Network, PenTool } from 'lucide-react'\n"
         "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker nav icon",
     ),
@@ -568,6 +608,9 @@ OVERLAY_FILES = [
     "src/renderer/src/components/planide/PlanIdeBackups.tsx",
     # Pulse memory (Brain Graph + Obsidian): shared by the two sidebar tabs.
     "src/renderer/src/components/planide/PulseMemory.tsx",
+    # Full-page versions of the two surfaces above, opened from the left nav.
+    "src/renderer/src/components/planide/PulseMemoryPage.tsx",
+    "src/renderer/src/components/planide/PulseDesignPage.tsx",
     # OpenDesign: the design engine, driven by whichever agent you are using.
     "src/renderer/src/components/planide/PulseDesign.tsx",
     "src/main/planide/open-design.ts",

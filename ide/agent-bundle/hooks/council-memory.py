@@ -11,6 +11,14 @@ import sys
 import time
 from pathlib import Path
 
+# Windows: graphify.exe is a console program. Launched from a parent with no
+# console of its own -- a hook, a service, the IDE's detached child -- Windows
+# gives it a brand new console window, which then sits on top of whatever the
+# user is doing for the whole run. CREATE_NO_WINDOW suppresses that; it is a
+# no-op flag name that does not exist off Windows, hence the platform guard.
+# Output is already captured through PIPE, so nothing is lost by hiding it.
+_NO_WINDOW = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
+
 MANAGED_BEGIN = "<!-- THEPUNISHER:MANAGED:BEGIN -->"
 MANAGED_END = "<!-- THEPUNISHER:MANAGED:END -->"
 
@@ -213,7 +221,7 @@ def graphify_sync(project, project_slug, force=False):
         extract = subprocess.run(
             extract_args, cwd=str(project),
             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, timeout=25, check=False,
+            text=True, timeout=25, check=False, **_NO_WINDOW,
         )
         if extract.returncode != 0 and has_llm_key:
             # A configured key can still fail at runtime (rate limit, network, revoked
@@ -222,7 +230,7 @@ def graphify_sync(project, project_slug, force=False):
             extract = subprocess.run(
                 [executable, "extract", ".", "--code-only"], cwd=str(project),
                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                text=True, timeout=25, check=False,
+                text=True, timeout=25, check=False, **_NO_WINDOW,
             )
             has_llm_key = False
         if extract.returncode != 0:
@@ -232,7 +240,7 @@ def graphify_sync(project, project_slug, force=False):
         register = subprocess.run(
             [executable, "global", "add", str(output), "--as", project_slug],
             cwd=str(project), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True, timeout=10, check=False,
+            stderr=subprocess.PIPE, text=True, timeout=10, check=False, **_NO_WINDOW,
         )
         receipt.update({
             "status": "synced" if register.returncode == 0 else "extracted",

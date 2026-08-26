@@ -57,7 +57,9 @@ function resolveBinary(home: string): string | null {
   // PATH first: if the user has it there, that is the one they mean.
   try {
     const which = process.platform === 'win32' ? 'where' : 'which'
-    const out = execFileSync(which, ['od'], { encoding: 'utf8', timeout: 4000 }).toString().trim()
+    const out = execFileSync(which, ['od'], { encoding: 'utf8', timeout: 4000, windowsHide: true })
+      .toString()
+      .trim()
     const first = out.split(/\r?\n/)[0]?.trim()
     if (first) return first
   } catch {
@@ -68,7 +70,7 @@ function resolveBinary(home: string): string | null {
 }
 
 function run(binary: string, args: string[], timeout = 8000): string {
-  return execFileSync(binary, args, { encoding: 'utf8', timeout }).toString()
+  return execFileSync(binary, args, { encoding: 'utf8', timeout, windowsHide: true }).toString()
 }
 
 /**
@@ -159,7 +161,7 @@ export function openDesignLaunch(home: string = homedir()): boolean {
   const binary = resolveBinary(home)
   if (!binary) return false
   try {
-    execFile(binary, ['open'], { timeout: 5000 }, () => {})
+    execFile(binary, ['open'], { timeout: 5000, windowsHide: true }, () => {})
     return true
   } catch {
     return false

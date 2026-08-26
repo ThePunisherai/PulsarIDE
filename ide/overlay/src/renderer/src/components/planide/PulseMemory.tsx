@@ -383,7 +383,7 @@ export function ObsidianPanel({
  * while it reads and stamps when it last read, because a refresh that finds
  * nothing new must still visibly have happened.
  */
-function useMemory(worktreePath: string | undefined): {
+export function useMemory(worktreePath: string | undefined): {
   status: MemoryStatus | null
   loading: boolean
   refresh: () => void
@@ -413,7 +413,7 @@ function useMemory(worktreePath: string | undefined): {
   return { status, loading, refresh }
 }
 
-function NoProject(): React.JSX.Element {
+export function NoProject(): React.JSX.Element {
   return (
     <div className="p-3 text-[11px] text-muted-foreground">
       {translate('planide.memory.noProject', 'Open a project to see its memory.')}

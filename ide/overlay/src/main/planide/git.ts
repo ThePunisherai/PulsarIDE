@@ -45,7 +45,10 @@ function git(
       {
         timeout,
         env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'echo' },
-        maxBuffer: 8 * 1024 * 1024
+        maxBuffer: 8 * 1024 * 1024,
+        // git is a console program and Electron's main process has no console,
+        // so without this every status/push flashes a window on Windows.
+        windowsHide: true
       },
       (error, stdout, stderr) => {
         const out = String(stdout ?? '').trim()

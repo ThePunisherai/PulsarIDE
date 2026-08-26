@@ -72,7 +72,12 @@ export function maybeSyncMemory(
     const child = spawn(
       memoryPython(home),
       [script, '--project', project, '--team', 'The Council', '--event', 'workspace-open'],
-      { detached: true, stdio: 'ignore' }
+      // windowsHide as well as detached: detached alone stops THIS child
+      // getting a console, but Windows ignores CREATE_NO_WINDOW when it is
+      // combined with DETACHED_PROCESS, so the flag is belt-and-braces here.
+      // The console window users actually saw came from graphify.exe, the
+      // grandchild -- council-memory.py passes CREATE_NO_WINDOW itself.
+      { detached: true, stdio: 'ignore', windowsHide: true }
     )
     child.unref()
     return true
