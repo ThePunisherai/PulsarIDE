@@ -211,7 +211,7 @@ export default function PlanIdeSync({
             <div className="text-[12px] text-amber-500">
               {scan.count} {translate('planide.sync.overThreshold', 'file(s) over')} {scan.threshold_mb} MB
             </div>
-            <div className="max-h-48 overflow-auto rounded-lg border border-border/60">
+            <div className="max-h-48 overflow-auto rounded-lg border border-border/60 scrollbar-sleek">
               {scan.files.slice(0, 40).map((f) => (
                 <div
                   key={f.path}
@@ -330,7 +330,7 @@ export default function PlanIdeSync({
           </span>
         </label>
         {log.length > 0 && (
-          <pre className="mt-3 max-h-40 overflow-auto rounded-lg border border-border/60 bg-background/60 p-2.5 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
+          <pre className="mt-3 max-h-40 overflow-auto rounded-lg border border-border/60 bg-background/60 p-2.5 font-mono text-[11px] leading-relaxed whitespace-pre-wrap scrollbar-sleek">
             {log.join('\n')}
           </pre>
         )}

@@ -6,6 +6,27 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.28.0] - 2026-08-26
+
+### Fixed
+- **PulsarIDE no longer shares a home directory with Orca.** Orca deliberately
+  shares `~/.orca` between its own instances, so running both meant both wrote
+  the same agent-hook launchers and whichever started last owned every agent's
+  hooks. That is the "it mixes with Orca" problem, and a good reason subagents
+  from one of them went unseen. Hook launchers, the install lock, the Claude
+  agent-teams shim and relay sessions now live under `~/.pulsar`. Logins stay
+  shared on purpose — one Jira or Linear sign-in for both is a feature.
+- **The tracker's scrollbars.** Orca ships a slim VS Code-style scrollbar and
+  the tracker page simply never used it, so it fell back to the chunky OS one.
+
+### Changed
+- **Brain Graph and Obsidian are their own sidebar tabs**, under Tracker,
+  instead of tabs inside the tracker. They are memory, not the board — you want
+  them open while you work rather than by leaving the board.
+- **Refresh re-scans instead of just re-reading.** The board already updates
+  itself, so re-reading had nothing to show. It now re-runs project detection
+  too, picking up a language or dependency added since you opened it.
+
 ## [0.27.0] - 2026-08-25
 
 ### Fixed

@@ -24,6 +24,15 @@ BRANDING = {
     # updater at Orca's releases would hand our users Orca builds.
     "src/shared/release-channel.ts",
     "src/main/updater-prerelease-feed.ts",
+    # Home-directory identity: which app's ~/.<name> this instance owns. Orca
+    # shares ~/.orca across its own instances on purpose; a DIFFERENT app doing
+    # the same silently takes over every agent's hook launchers. Swapping the
+    # directory is the same category as the app name -- there is nothing to keep
+    # verbatim, the whole point is that it must differ.
+    "src/main/agent-hooks/installer-utils.ts",
+    "src/main/agent-hooks/managed-hook-install-lock.ts",
+    "src/main/runtime/claude-agent-teams-shim-env.ts",
+    "src/relay/workspace-session-handler.ts",
 }
 
 

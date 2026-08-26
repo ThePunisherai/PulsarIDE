@@ -125,17 +125,62 @@ EDITS: list[tuple[str, str, str, str]] = [
         "import './assets/main.css'\nimport './assets/pulsar-theme.css'",
         "PulsarIDE theme (pop-out window)",
     ),
+    # ---- identity: our own home directory, not Orca's --------------------- #
+    # Orca deliberately shares ~/.orca across instances -- its own comment says
+    # "prod/dev/parallel Orca instances must write the same managed entry, not
+    # race between per-userData script paths". That assumes every instance IS
+    # Orca. PulsarIDE is a different app, so running both means both write the
+    # SAME agent-hook launcher scripts, and whichever started last silently
+    # owns every agent's hooks -- which is the "it mixes with Orca" report, and
+    # a plausible reason subagents launched from one of them go unobserved.
+    # userData is already separate (BASE_APP_NAME drives app.setName), so this
+    # closes the remaining shared state.
+    #
+    # Only the state that must not be shared: the hook launchers every agent
+    # config keeps invoking, the install lock two apps would contend on, the
+    # Claude agent-teams shim (subagents), and relay session state. Credential
+    # stores are deliberately left on ~/.orca -- sharing a Jira or Linear login
+    # between the two is a feature, not a collision.
+    (
+        "src/main/agent-hooks/installer-utils.ts",
+        "  return join(homedir(), '.orca', 'agent-hooks', scriptFileName)",
+        "  return join(homedir(), '.pulsar', 'agent-hooks', scriptFileName)",
+        "agent-hook launchers live under ~/.pulsar, not ~/.orca",
+    ),
+    (
+        "src/main/agent-hooks/managed-hook-install-lock.ts",
+        "  const lockParent = join(home, '.orca')",
+        "  const lockParent = join(home, '.pulsar')",
+        "hook install lock is ours, not contended with a real Orca",
+    ),
+    (
+        "src/main/runtime/claude-agent-teams-shim-env.ts",
+        "  return join(homedir(), '.orca', 'claude-agent-teams-bin')",
+        "  return join(homedir(), '.pulsar', 'claude-agent-teams-bin')",
+        "Claude agent-teams shim (subagents) is ours",
+    ),
+    (
+        "src/relay/workspace-session-handler.ts",
+        "    private baseDir = join(homedir(), '.orca', 'sessions')",
+        "    private baseDir = join(homedir(), '.pulsar', 'sessions')",
+        "relay session state is ours",
+    ),
     # ---- integration: the sidebar tab ------------------------------------ #
     (
         "src/shared/ui-chrome-types.ts",
         "  | 'source-control'\n  | 'checks'\n  | 'ports'",
-        "  | 'source-control'\n  | 'checks'\n  | 'ports'\n  // PlanIDE project tracker (board / fixes / roadmap).\n  | 'planide'",
+        "  | 'source-control'\n  | 'checks'\n  | 'ports'\n"
+        "  // PlanIDE project tracker (board / fixes / roadmap).\n  | 'planide'\n"
+        "  // Pulse memory: the knowledge graph and the Obsidian notes. Sidebar\n"
+        "  // tabs, not Tracker tabs -- you want them open WHILE you work.\n"
+        "  | 'pulse-brain'\n  | 'pulse-obsidian'",
         "register the 'planide' sidebar tab",
     ),
     (
         "src/renderer/src/components/right-sidebar/use-right-sidebar-activity-items.ts",
         "import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'",
         "import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'\n"
+        "import { BookText, Network } from 'lucide-react'\n"
         "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker tab icon import",
     ),
@@ -150,19 +195,41 @@ EDITS: list[tuple[str, str, str, str]] = [
         shortcut: ''
       },
       {
+        id: 'pulse-brain',
+        icon: Network,
+        title: translate('planide.memory.brainTab', 'Brain Graph'),
+        shortcut: ''
+      },
+      {
+        id: 'pulse-obsidian',
+        icon: BookText,
+        title: translate('planide.memory.obsidianTab', 'Obsidian'),
+        shortcut: ''
+      },
+      {
         id: 'explorer',""",
         "tracker tab in the activity bar",
     ),
     (
         "src/renderer/src/components/right-sidebar/right-sidebar-panel-content.tsx",
         "const PluginPanel = lazy(() => import('./PluginPanel'))",
-        "const PluginPanel = lazy(() => import('./PluginPanel'))\nconst PlanIdePanel = lazy(() => import('./PlanIdePanel'))",
+        "const PluginPanel = lazy(() => import('./PluginPanel'))\n"
+        "const PlanIdePanel = lazy(() => import('./PlanIdePanel'))\n"
+        "const BrainGraphSidebar = lazy(() =>\n"
+        "  import('../planide/PulseMemory').then((m) => ({ default: m.BrainGraphSidebar }))\n"
+        ")\n"
+        "const ObsidianSidebar = lazy(() =>\n"
+        "  import('../planide/PulseMemory').then((m) => ({ default: m.ObsidianSidebar }))\n"
+        ")",
         "tracker panel import",
     ),
     (
         "src/renderer/src/components/right-sidebar/right-sidebar-panel-content.tsx",
         "        {effectiveTab === 'explorer' && <FileExplorer />}",
-        "        {effectiveTab === 'planide' && <PlanIdePanel />}\n        {effectiveTab === 'explorer' && <FileExplorer />}",
+        "        {effectiveTab === 'planide' && <PlanIdePanel />}\n"
+        "        {effectiveTab === 'pulse-brain' && <BrainGraphSidebar />}\n"
+        "        {effectiveTab === 'pulse-obsidian' && <ObsidianSidebar />}\n"
+        "        {effectiveTab === 'explorer' && <FileExplorer />}",
         "render the tracker panel",
     ),
     (
@@ -171,7 +238,8 @@ EDITS: list[tuple[str, str, str, str]] = [
         # (it was typed + rendered + persistence-guarded, but never allowed here).
         "src/renderer/src/store/right-sidebar-route.ts",
         "    tab === 'explorer' ||\n    tab === 'vault' ||",
-        "    tab === 'planide' ||\n    tab === 'explorer' ||\n    tab === 'vault' ||",
+        "    tab === 'planide' ||\n    tab === 'pulse-brain' ||\n    tab === 'pulse-obsidian' ||\n"
+        "    tab === 'explorer' ||\n    tab === 'vault' ||",
         "let the tracker tab pass the route normalizer (else clicking it does nothing)",
     ),
     # ---- integration: start the tracker engine --------------------------- #
@@ -274,7 +342,10 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/main/runtime/rpc/methods/client-ui-schemas.ts",
         "const STATIC_RIGHT_SIDEBAR_TABS = [\n  'explorer',",
-        "const STATIC_RIGHT_SIDEBAR_TABS = [\n  // PlanIDE: the tracker tab is a real sidebar tab, so a client may persist it.\n  'planide',\n  'explorer',",
+        "const STATIC_RIGHT_SIDEBAR_TABS = [\n"
+        "  // PlanIDE: the tracker and the two memory tabs are real sidebar tabs,\n"
+        "  // so a client may persist any of them.\n"
+        "  'planide',\n  'pulse-brain',\n  'pulse-obsidian',\n  'explorer',",
         "the tracker is a valid persisted sidebar tab",
     ),
     (
@@ -444,6 +515,8 @@ OVERLAY_FILES = [
     "src/renderer/src/components/planide/PlanIdeMark.tsx",
     "src/renderer/src/components/planide/PlanIdeSync.tsx",
     "src/renderer/src/components/planide/PlanIdeBackups.tsx",
+    # Pulse memory (Brain Graph + Obsidian): shared by the two sidebar tabs.
+    "src/renderer/src/components/planide/PulseMemory.tsx",
     # The PulsarIDE theme: re-declares Orca's own design tokens (nothing
     # upstream is edited). Imported after main.css by the two renderer entry
     # points below, so the later declaration wins.
