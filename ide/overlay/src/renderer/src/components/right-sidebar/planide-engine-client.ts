@@ -303,6 +303,32 @@ export function aiReport(path: string, mode = 'full'): Promise<string> {
   return call<string>('report', path, mode)
 }
 
+// --------------------------------------------------------------------------- open design
+export type OpenDesignProject = { id: string; name: string; path: string; updatedAt: string }
+
+export type OpenDesignStatus = {
+  installed: boolean
+  binary: string | null
+  version: string | null
+  projects: OpenDesignProject[]
+  error: string | null
+}
+
+export type ConnectResult = { agent: string; ok: boolean; output: string }
+
+export function openDesignStatus(): Promise<OpenDesignStatus> {
+  return call<OpenDesignStatus>('openDesignStatus')
+}
+
+/** Runs OpenDesign's own `od mcp install <agent>`. User-triggered only. */
+export function openDesignConnect(agents: string[]): Promise<ConnectResult[]> {
+  return call<ConnectResult[]>('openDesignConnect', agents)
+}
+
+export function openDesignLaunch(): Promise<boolean> {
+  return call<boolean>('openDesignLaunch')
+}
+
 // --------------------------------------------------------------------------- memory
 export function memoryStatus(path: string): Promise<MemoryStatus> {
   return call<MemoryStatus>('memoryStatus', path)

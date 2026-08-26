@@ -82,7 +82,7 @@ def main():
         "entry": {"symbol": ep_name, "addr": ep_addr},
         "function_count": len(functions),
         "import_count": len(imports),
-        # keep the report compact -- Headroom-friendly
+        # keep the report compact -- it goes into an agent context
         "functions_sample": functions[:40],
         "imports_sample": imports[:60],
     }

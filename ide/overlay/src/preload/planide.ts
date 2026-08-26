@@ -54,6 +54,9 @@ export const planIdeApi = {
 
   // project memory (graphify graph + Obsidian note status)
   memoryStatus: <T>(path: string) => call<T>('planide:memory-status', path),
+  openDesignStatus: <T>() => call<T>('planide:open-design-status'),
+  openDesignConnect: <T>(agents: string[]) => call<T>('planide:open-design-connect', agents),
+  openDesignLaunch: <T>() => call<T>('planide:open-design-launch'),
 
   /**
    * Live board updates. The main process watches the project's state.json and

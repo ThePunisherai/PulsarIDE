@@ -173,14 +173,14 @@ EDITS: list[tuple[str, str, str, str]] = [
         "  // PlanIDE project tracker (board / fixes / roadmap).\n  | 'planide'\n"
         "  // Pulse memory: the knowledge graph and the Obsidian notes. Sidebar\n"
         "  // tabs, not Tracker tabs -- you want them open WHILE you work.\n"
-        "  | 'pulse-brain'\n  | 'pulse-obsidian'",
+        "  | 'pulse-brain'\n  | 'pulse-obsidian'\n  | 'pulse-design'",
         "register the 'planide' sidebar tab",
     ),
     (
         "src/renderer/src/components/right-sidebar/use-right-sidebar-activity-items.ts",
         "import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'",
         "import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'\n"
-        "import { BookText, Network } from 'lucide-react'\n"
+        "import { BookText, Network, PenTool } from 'lucide-react'\n"
         "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker tab icon import",
     ),
@@ -207,6 +207,12 @@ EDITS: list[tuple[str, str, str, str]] = [
         shortcut: ''
       },
       {
+        id: 'pulse-design',
+        icon: PenTool,
+        title: translate('planide.design.tab', 'Open Design'),
+        shortcut: ''
+      },
+      {
         id: 'explorer',""",
         "tracker tab in the activity bar",
     ),
@@ -220,6 +226,9 @@ EDITS: list[tuple[str, str, str, str]] = [
         ")\n"
         "const ObsidianSidebar = lazy(() =>\n"
         "  import('../planide/PulseMemory').then((m) => ({ default: m.ObsidianSidebar }))\n"
+        ")\n"
+        "const OpenDesignSidebar = lazy(() =>\n"
+        "  import('../planide/PulseDesign').then((m) => ({ default: m.OpenDesignSidebar }))\n"
         ")",
         "tracker panel import",
     ),
@@ -229,6 +238,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "        {effectiveTab === 'planide' && <PlanIdePanel />}\n"
         "        {effectiveTab === 'pulse-brain' && <BrainGraphSidebar />}\n"
         "        {effectiveTab === 'pulse-obsidian' && <ObsidianSidebar />}\n"
+        "        {effectiveTab === 'pulse-design' && <OpenDesignSidebar />}\n"
         "        {effectiveTab === 'explorer' && <FileExplorer />}",
         "render the tracker panel",
     ),
@@ -239,6 +249,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "src/renderer/src/store/right-sidebar-route.ts",
         "    tab === 'explorer' ||\n    tab === 'vault' ||",
         "    tab === 'planide' ||\n    tab === 'pulse-brain' ||\n    tab === 'pulse-obsidian' ||\n"
+        "    tab === 'pulse-design' ||\n"
         "    tab === 'explorer' ||\n    tab === 'vault' ||",
         "let the tracker tab pass the route normalizer (else clicking it does nothing)",
     ),
@@ -345,7 +356,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "const STATIC_RIGHT_SIDEBAR_TABS = [\n"
         "  // PlanIDE: the tracker and the two memory tabs are real sidebar tabs,\n"
         "  // so a client may persist any of them.\n"
-        "  'planide',\n  'pulse-brain',\n  'pulse-obsidian',\n  'explorer',",
+        "  'planide',\n  'pulse-brain',\n  'pulse-obsidian',\n  'pulse-design',\n  'explorer',",
         "the tracker is a valid persisted sidebar tab",
     ),
     (
@@ -517,6 +528,9 @@ OVERLAY_FILES = [
     "src/renderer/src/components/planide/PlanIdeBackups.tsx",
     # Pulse memory (Brain Graph + Obsidian): shared by the two sidebar tabs.
     "src/renderer/src/components/planide/PulseMemory.tsx",
+    # OpenDesign: the design engine, driven by whichever agent you are using.
+    "src/renderer/src/components/planide/PulseDesign.tsx",
+    "src/main/planide/open-design.ts",
     # The PulsarIDE theme: re-declares Orca's own design tokens (nothing
     # upstream is edited). Imported after main.css by the two renderer entry
     # points below, so the later declaration wins.

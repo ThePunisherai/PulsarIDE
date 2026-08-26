@@ -98,20 +98,13 @@ if command -v npx >/dev/null 2>&1; then
   else
     TSC=(npx --yes --package typescript@5 tsc)
   fi
+  # Every overlay source file, found rather than listed. A hardcoded list is how
+  # memory-status.ts, board-watch.ts and PulseMemory.tsx all ended up outside the
+  # syntax check without anyone noticing -- a new file simply never joined it.
+  mapfile -t TS_SOURCES < <(cd "$HERE/overlay" && find src -name '*.ts' -o -name '*.tsx' | sort)
   out=$(cd "$HERE/overlay" && "${TSC[@]}" --noEmit --noResolve \
         --jsx react-jsx --target es2022 --module esnext --moduleResolution bundler --skipLibCheck \
-        src/preload/planide.ts \
-        src/main/planide/store.ts src/main/planide/detect.ts \
-        src/main/planide/report.ts src/main/planide/git.ts \
-        src/main/planide/backup.ts src/main/planide/ipc.ts \
-        src/main/planide/agent-events.ts src/main/planide/agent-bundle.ts \
-        src/main/planide/memory-sync.ts src/main/planide/auto-push.ts \
-        src/renderer/src/components/right-sidebar/planide-engine-client.ts \
-        src/renderer/src/components/right-sidebar/PlanIdePanel.tsx \
-        src/renderer/src/components/planide/PlanIdeView.tsx \
-        src/renderer/src/components/planide/PlanIdeMark.tsx \
-        src/renderer/src/components/planide/PlanIdeSync.tsx \
-        src/renderer/src/components/planide/PlanIdeBackups.tsx 2>&1 \
+        "${TS_SOURCES[@]}" 2>&1 \
         | grep -vE "Cannot find module|Cannot find name|has no exported member|implicitly has an 'any'|Cannot find namespace|JSX element implicitly|react/jsx-runtime|Property 'key' does not exist|Type '\{ key:")
   [ -z "$out" ] && ok "overlay TypeScript has no syntax errors" \
                 || { bad "overlay TypeScript"; echo "$out" | head -5; }
@@ -286,6 +279,25 @@ if command -v npx >/dev/null 2>&1; then
   rm -rf "$work"
 else
   skip "memory status (npx unavailable)"
+fi
+
+# 4c. OpenDesign: the real module against a stand-in `od` on PATH.
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/overlay/src/main/planide/open-design.ts" --bundle --platform=node \
+      --format=cjs --outfile="$work/od.cjs" >/dev/null 2>&1; then
+    out=$(PULSAR_OPENDESIGN_CJS="$work/od.cjs" node "$HERE/test/open-design.test.mjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "open design: $(echo "$out" | grep -oE 'PASS=[0-9]+') checks"
+    else
+      bad "open design"; echo "$out" | grep "FAIL " | head -4
+    fi
+  else
+    bad "open design: test bundle failed to build"
+  fi
+  rm -rf "$work"
+else
+  skip "open design (npx unavailable)"
 fi
 
 # 5. the real test: does the overlay still apply to an Orca checkout?

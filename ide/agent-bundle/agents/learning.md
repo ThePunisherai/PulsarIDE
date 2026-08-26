@@ -14,8 +14,7 @@ After any failure or notable fix:
 2. **Detect patterns** — is this the Nth time a similar thing failed? If so, propose a systemic
    fix, not another point patch.
 3. **Persist it** — append the correction to `CLAUDE.local.md` (session-local, gitignored) or the
-   appropriate `AGENTS.md` / `GEMINI.md`. If Headroom is present, `headroom learn` mines failed
-   sessions into these files automatically.
+   appropriate `AGENTS.md` / `GEMINI.md`.
 4. **Feed the Failed Solutions Registry** so blocked approaches stay blocked for the session —
    use the real tool: `scripts/anti-loop.sh add "<problem>" "<approach>" "<error>"`, and
    `scripts/anti-loop.sh check "<approach>"` before retrying (exit 3 = blocked).

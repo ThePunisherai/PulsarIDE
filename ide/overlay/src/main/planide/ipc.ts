@@ -16,6 +16,7 @@ import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
 import { detect } from './detect'
 import { memoryStatus } from './memory-status'
+import { connectOpenDesignToAgents, openDesignLaunch, openDesignStatus } from './open-design'
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { deployCursorRule } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
@@ -201,6 +202,10 @@ export function registerPlanIdeIpc(): void {
   // project memory: graphify graph + Obsidian note status, so the Tracker tab
   // can show graphify/Obsidian actually working for this project (read-only).
   on('planide:memory-status', (path: string) => memoryStatus(path))
+  // OpenDesign: read-only status, plus two explicitly user-triggered actions.
+  on('planide:open-design-status', () => openDesignStatus())
+  on('planide:open-design-connect', (agents: string[]) => connectOpenDesignToAgents(agents))
+  on('planide:open-design-launch', () => openDesignLaunch())
 
   // ---- git --------------------------------------------------------------- //
   on('planide:git-status', (path: string) => git.status(path))

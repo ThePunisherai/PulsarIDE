@@ -6,6 +6,31 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.29.0] - 2026-08-26
+
+### Added
+- **Open Design in the sidebar, for every agent.** OpenDesign turns a coding
+  agent into a design engine — prototypes, dashboards, decks and documents,
+  exported as real HTML, PDF, PPTX or MP4 — and it reaches agents over MCP, so
+  one button wires Claude, Codex and Cursor at once. The tab shows whether it is
+  installed, lists your design projects, and connects it on request. PulsarIDE
+  never installs it and never writes its config: it runs OpenDesign's own
+  command and shows you its own output, failures included.
+
+### Fixed
+- **Ghidra never actually ran.** The installer wrote its environment file to the
+  wrong folder and then relied on Headroom's shell hook to load it — a hook
+  PulsarIDE does not install. So `GHIDRA_HOME` was never set, and reverse
+  engineering silently fell back to the basic tools instead of using the best
+  analyser we ship. It now loads Ghidra itself, with no shell setup at all.
+- **Headroom is gone.** Every reference to it has been removed from the bundled
+  agents and the RE toolkit, so nothing tells an agent it is running.
+
+### Changed
+- **Our own checks stop letting new files slip past.** The syntax check ran off
+  a hand-written file list, so anything added later was never checked. It now
+  finds every source file instead.
+
 ## [0.28.1] - 2026-08-26
 
 ### Fixed

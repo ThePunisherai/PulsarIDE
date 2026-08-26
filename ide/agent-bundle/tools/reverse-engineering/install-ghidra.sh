@@ -5,8 +5,8 @@
 # NSA open-source), verifies its published SHA-256 digest, extracts it, and writes
 # ~/.config/thepunisher/ghidra.env (GHIDRA_HOME + PATH) so `analyzeHeadless` — the tool
 # re-triage.sh and scripts/ghidra_triage.py already drive — works with zero manual setup in any
-# new shell (sourced by headroom/shell-hook.sh, already wired into .bashrc/.zshrc by
-# auto-headroom.sh). Fully headless: this script never opens a GUI, and neither does
+# new shell. re-triage.sh sources this file directly, so no shell integration is
+# needed. Fully headless: this script never opens a GUI, and neither does
 # analyzeHeadless itself.
 #
 # Requires a JDK 21 (64-bit) on PATH or JAVA_HOME -- verified against Ghidra's own
@@ -22,7 +22,7 @@ set -euo pipefail
 
 REPO="NationalSecurityAgency/ghidra"
 INSTALL_DIR="${GHIDRA_INSTALL_DIR:-$HOME/.config/thepunisher/ghidra}"
-STATE_DIR="$HOME/.config/thepunisher"
+STATE_DIR="$HOME/.config/pulsaride"
 ENV_FILE="$STATE_DIR/ghidra.env"
 VERIFY_ONLY=0
 case "${1:-}" in
@@ -126,9 +126,9 @@ chmod +x "$GHIDRA_HOME"/support/analyzeHeadless "$GHIDRA_HOME"/ghidraRun 2>/dev/
 
 mkdir -p "$STATE_DIR"
 cat > "$ENV_FILE" <<EOF
-# ThePunisher: written by tools/reverse-engineering/install-ghidra.sh. Sourced by
-# headroom/shell-hook.sh (already wired into .bashrc/.zshrc) -- do not hand-edit,
-# re-run the installer instead.
+# Pulse Agent: written by tools/reverse-engineering/install-ghidra.sh, and read
+# directly by re-triage.sh -- do not hand-edit, re-run the installer instead.
+# Source it yourself if you want GHIDRA_HOME in your own shell.
 export GHIDRA_HOME="$GHIDRA_HOME"
 export PATH="\$GHIDRA_HOME/support:\$PATH"
 EOF
@@ -144,5 +144,7 @@ info "Verifying analyzeHeadless responds..."
 
 ok "Ghidra $TAG installed headless -> $GHIDRA_HOME"
 echo
-echo "Open a new terminal (or 'source ~/.bashrc') so GHIDRA_HOME loads, then:"
+echo "re-triage.sh picks this up automatically. For your own shell:"
+echo "  source $ENV_FILE"
+echo "Then:"
 echo "  ./re-triage.sh /path/to/binary     # auto-uses Ghidra headless, no GUI, no manual setup"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ThePunisher :: cross-platform static RE triage driver (Linux/macOS)
+# Pulse Agent :: cross-platform static RE triage driver (Linux/macOS)
 # Picks the best available tool and produces a compact triage of a binary:
 #   Ghidra headless (best)  >  radare2  >  objdump + strings (always-available fallback)
 #
@@ -13,7 +13,23 @@ if [ -z "$BIN" ] || [ ! -f "$BIN" ]; then
 fi
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "==> ThePunisher RE triage: $BIN"
+# Load GHIDRA_HOME ourselves.
+#
+# install-ghidra.sh writes this env file, and it used to rely on a shell hook
+# sourcing it from .bashrc/.zshrc. PulsarIDE installs no such hook, so nothing
+# ever sourced it: GHIDRA_HOME stayed unset, this script silently fell through
+# to radare2/objdump, and the best analyser we ship was never actually used.
+# Sourcing it here needs no shell integration at all and works the same whether
+# an agent or a person runs it. The old path is read too, so a machine that
+# installed Ghidra before this still works.
+for _env in "$HOME/.config/pulsaride/ghidra.env" "$HOME/.config/thepunisher/ghidra.env"; do
+    if [ -z "${GHIDRA_HOME:-}" ] && [ -r "$_env" ]; then
+        # shellcheck disable=SC1090
+        . "$_env"
+    fi
+done
+
+echo "==> Pulse RE triage: $BIN"
 if command -v file >/dev/null 2>&1; then
     echo "--- file ---"; file "$BIN"
 fi

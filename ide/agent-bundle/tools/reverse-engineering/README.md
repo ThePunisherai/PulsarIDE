@@ -57,7 +57,7 @@ a JDK for you.
 
 ```bash
 ./install-ghidra.sh              # Linux/macOS — writes ~/.config/thepunisher/ghidra.env,
-                                  # auto-sourced by headroom/shell-hook.sh
+                                  # read directly by re-triage.sh
 ./install-ghidra.sh -Verify      # check an existing install only
 ```
 
