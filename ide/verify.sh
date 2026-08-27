@@ -145,6 +145,28 @@ else
   skip "real-types typecheck (run ide/design/setup.sh)"
 fi
 
+# 3c. ...and the MAIN-process sources, which nothing above covers. A type error
+# in main/planide/*.ts used to surface only in Orca's own CI typecheck, i.e.
+# after a push -- the same gap that once shipped a release with no installers.
+if [ -d "$HERE/design/.work/node_modules/typescript" ]; then
+  out=$(cd "$HERE/design" && ./.work/node_modules/.bin/tsc -p tsconfig.main.json 2>&1)
+  [ -z "$out" ] && ok "main-process TypeScript typechecks (strict, real node types)" \
+                || { bad "main-process TypeScript"; echo "$out" | head -5; }
+  # ...and no main-process file may quietly escape that check.
+  missing_mc=0
+  for f in "$HERE"/overlay/src/main/planide/*.ts; do
+    rel="../overlay/src/main/planide/$(basename "$f")"
+    # ipc.ts is knowingly out: it imports electron, whose types are not here.
+    [ "$(basename "$f")" = "ipc.ts" ] && continue
+    grep -qF "\"$rel\"" "$HERE/design/tsconfig.main.json" \
+      || { echo "    not in tsconfig.main.json: $rel"; missing_mc=1; }
+  done
+  [ "$missing_mc" = 0 ] && ok "every main-process source is in the typecheck" \
+                        || bad "a main-process source is never typechecked locally"
+else
+  skip "main-process typecheck (run ide/design/setup.sh)"
+fi
+
 # 4. the tracker itself: run the real main-process modules
 if command -v npx >/dev/null 2>&1; then
   work=$(mktemp -d)

@@ -1,0 +1,47 @@
+{
+  "_comment": [
+    "Strict typecheck for the MAIN-process overlay sources.",
+    "tsconfig.check.json covers the renderer; nothing covered these, so a type",
+    "error in main/planide/*.ts was only ever caught by Orca's own typecheck in",
+    "CI -- after a push. Same gap that shipped a release with no installers.",
+    "",
+    "ipc.ts is deliberately absent: it imports electron, whose types ship with",
+    "electron itself and are not installed here. Writing a stub for it would",
+    "assert signatures we cannot check against the real thing, which is worse",
+    "than a documented hole -- Orca's own typecheck in CI covers that file."
+  ],
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": [
+      "es2022"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "types": [
+      "node"
+    ],
+    "typeRoots": [
+      "./.work/node_modules/@types"
+    ]
+  },
+  "include": [
+    "../overlay/src/main/planide/agent-bundle.ts",
+    "../overlay/src/main/planide/agent-events.ts",
+    "../overlay/src/main/planide/auto-push.ts",
+    "../overlay/src/main/planide/backup.ts",
+    "../overlay/src/main/planide/board-watch.ts",
+    "../overlay/src/main/planide/detect.ts",
+    "../overlay/src/main/planide/doc-clean.ts",
+    "../overlay/src/main/planide/git.ts",
+    "../overlay/src/main/planide/memory-status.ts",
+    "../overlay/src/main/planide/memory-sync.ts",
+    "../overlay/src/main/planide/open-design.ts",
+    "../overlay/src/main/planide/report.ts",
+    "../overlay/src/main/planide/store.ts"
+  ]
+}
