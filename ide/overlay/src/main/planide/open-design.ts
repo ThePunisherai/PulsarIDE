@@ -53,19 +53,50 @@ function candidateBinaries(home: string): string[] {
   return dirs.flatMap((d) => names.map((n) => join(d, n)))
 }
 
+/**
+ * `od` is also GNU coreutils' octal-dump utility, which is on essentially every
+ * Linux and macOS machine -- so finding a binary named `od` on PATH says
+ * nothing about OpenDesign being installed.
+ *
+ * Seen for real in a running build: the panel reported OpenDesign INSTALLED at
+ * /usr/bin/od, then showed `od: unrecognized option '--json'` where the project
+ * list should be.
+ *
+ * This rejects what can actually be observed -- coreutils names itself in
+ * `--version` -- rather than asserting a positive OpenDesign signature that has
+ * not been confirmed against the real tool. Anything inconclusive (no
+ * `--version`, a non-zero exit) is kept: a false reject would hide a genuine
+ * install, which is the worse failure of the two.
+ */
+function isCoreutilsOd(binary: string): boolean {
+  try {
+    const out = execFileSync(binary, ['--version'], {
+      encoding: 'utf8',
+      timeout: 4000,
+      windowsHide: true
+    }).toString()
+    return /GNU coreutils/i.test(out)
+  } catch {
+    return false
+  }
+}
+
 function resolveBinary(home: string): string | null {
-  // PATH first: if the user has it there, that is the one they mean.
+  // PATH first: if the user has it there, that is the one they mean -- unless
+  // what PATH found is coreutils wearing the same name.
   try {
     const which = process.platform === 'win32' ? 'where' : 'which'
     const out = execFileSync(which, ['od'], { encoding: 'utf8', timeout: 4000, windowsHide: true })
       .toString()
       .trim()
     const first = out.split(/\r?\n/)[0]?.trim()
-    if (first) return first
+    if (first && !isCoreutilsOd(first)) return first
   } catch {
     /* not on PATH; fall through to the known install locations */
   }
-  for (const p of candidateBinaries(home)) if (existsSync(p)) return p
+  // A real OpenDesign install in one of its own directories still counts, even
+  // when coreutils won PATH.
+  for (const p of candidateBinaries(home)) if (existsSync(p) && !isCoreutilsOd(p)) return p
   return null
 }
 

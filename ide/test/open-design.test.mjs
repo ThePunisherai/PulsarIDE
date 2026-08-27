@@ -89,5 +89,35 @@ ok("a supported agent reports od's success output",
 ok('an unsupported agent fails VISIBLY with the real message, not silently skipped',
   res[1].agent === 'nope' && res[1].ok === false && res[1].output.includes('unknown agent'))
 
+// --- coreutils `od` must not be mistaken for OpenDesign ------------------- //
+// Found in a running build: `which od` returns /usr/bin/od on essentially every
+// Linux and macOS machine, so the panel reported OpenDesign INSTALLED and then
+// showed `od: unrecognized option '--json'` where the project list belongs.
+fakeOd(`
+case "$1" in
+  --version) echo "od (GNU coreutils) 9.4"; echo "Copyright (C) 2023 Free Software Foundation, Inc."; exit 0 ;;
+esac
+echo "od: unrecognized option '--json'" >&2; exit 1
+`)
+const coreutils = openDesignStatus(HOME)
+ok('coreutils od on PATH is not reported as OpenDesign',
+  coreutils.installed === false && coreutils.binary === null)
+ok('coreutils od does not produce a scary error either -- it is simply absent',
+  coreutils.error === null)
+ok('connect refuses cleanly when the only od is coreutils',
+  connectOpenDesignToAgents(['claude'], HOME).every((r) => !r.ok && /not installed/i.test(r.output)))
+
+// A real OpenDesign that has no --version at all must still be accepted: an
+// inconclusive probe may not reject, or a genuine install disappears.
+fakeOd(`
+case "$1 $2" in
+  "project list") echo '[]' ;;
+  *) echo "no such option" >&2; exit 2 ;;
+esac
+`)
+const quiet = openDesignStatus(HOME)
+ok('a binary with no --version is still accepted (inconclusive never rejects)',
+  quiet.installed === true)
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

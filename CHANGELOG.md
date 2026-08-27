@@ -6,6 +6,26 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.33.0] - 2026-08-27
+
+### Fixed
+- **The updater could still have installed Orca over PulsarIDE.** Two feed URLs
+  inside the updater were never repointed -- one of them the very first one set
+  at startup -- so a check could resolve an Orca release and install it. Found by
+  running the real build and reading what it logged. Everything the updater
+  reads is ours now, and the build refuses to ship if that ever stops being true.
+- **The window was still called "Orca"** in the title bar, the taskbar and the
+  pop-out dashboard. It says PulsarIDE.
+- **Open Design claimed to be installed when it wasn't.** `od` is also a standard
+  Unix tool that exists on every Linux and Mac, so the panel found that instead
+  and then showed a confusing error where your designs should be.
+
+### Changed
+- **Up to date with Orca again.**
+- **New screenshots**, taken from an ordinary web project instead of a niche one,
+  wide enough that the whole board fits, and now including the roadmap and the
+  IDE's own sidebar.
+
 ## [0.32.0] - 2026-08-26
 
 ### Added

@@ -46,10 +46,22 @@ PulsarIDE adds, in the sidebar, wired to the agents.
 | **Its own theme** | Blue-black space and the two beams from the logo, in light and dark — not Orca's grey |
 | **Updates itself** | Orca's own updater, pointed at PulsarIDE releases |
 
+<img src="assets/screenshot-nav.png" alt="PulsarIDE with Tracker, Brain Graph and Open Design in the left sidebar" />
+
+<sub>The IDE itself. **Tracker**, **Brain Graph** and **Open Design** sit
+together in the left sidebar -- each one a full page, and each also available as
+a side panel while you work.</sub>
+
 <img src="assets/screenshot-board.png" alt="The PulsarIDE tracker: board, protected work, and the sidebar panel" />
 
 <sub>The Tracker page and the sidebar panel, side by side. Green is what **you**
 confirmed; amber is what an agent merely claimed.</sub>
+
+<img src="assets/screenshot-roadmap.png" alt="The roadmap: milestones with target dates" />
+
+<sub>**Roadmap** is where the phases of a bigger plan live. Agents add
+milestones as they plan and tick them off as they land; you see how far the
+project actually is, not how busy it has been.</sub>
 
 ## Claimed vs. confirmed
 

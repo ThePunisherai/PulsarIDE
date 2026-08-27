@@ -32,6 +32,12 @@ await esbuild.build({
   target: 'es2022',
   logLevel: 'error',
   nodePaths: [join(WORK, 'node_modules')],
+  // store.ts names the writing process in its atomic-write temp file, which is
+  // right in the main process and undefined in a browser. Substituted rather
+  // than shimmed globally: injecting a whole fake `process` would also answer
+  // for process.env and change how bundled libraries behave. Any OTHER
+  // process.* that appears later still fails loudly here, which is the point.
+  define: { 'process.pid': '"harness"' },
   alias: {
     'node:fs': join(HERE, 'shims/fs.ts'),
     'node:path': join(HERE, 'shims/path.ts'),
@@ -122,22 +128,32 @@ for (const theme of ['dark', 'light']) {
   }
   await page.close()
 }
-// 5. two shots for the README, at 1x so they stay small enough to commit
+// 5. the README set, at 1x so they stay small enough to commit.
+//
+// Wide enough that the whole board fits: the board scrolls horizontally in the
+// app, which is fine to use and looks like a rendering fault in a screenshot --
+// the previous shots cut the last column through the middle of a card.
 {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 })
+  const page = await browser.newPage({ viewport: { width: 2040, height: 900 }, deviceScaleFactor: 1 })
   page.on('pageerror', (e) => problems.push(`[readme] ${e.message}`))
   await page.goto('file://' + join(WORK, 'harness.html'))
   await page.evaluate(() => {
     document.documentElement.classList.add('dark')
     document.documentElement.style.colorScheme = 'dark'
   })
-  await page.waitForTimeout(600)
+  await page.waitForTimeout(700)
   await page.screenshot({ path: join(HERE, '../../assets/screenshot-board.png') })
-  const activity = page.locator('button', { hasText: 'Activity' }).first()
-  if (await activity.count()) {
-    await activity.click()
-    await page.waitForTimeout(250)
-    await page.screenshot({ path: join(HERE, '../../assets/screenshot-activity.png') })
+  for (const [tab, file] of [
+    ['Roadmap', 'screenshot-roadmap.png'],
+    ['Brain Graph', 'screenshot-brain.png'],
+    ['Activity', 'screenshot-activity.png']
+  ]) {
+    const button = page.locator('button', { hasText: tab }).first()
+    if (await button.count()) {
+      await button.click()
+      await page.waitForTimeout(600)
+      await page.screenshot({ path: join(HERE, '../../assets', file) })
+    }
   }
   await page.close()
 }
