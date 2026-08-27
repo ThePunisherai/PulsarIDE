@@ -24,6 +24,15 @@ BRANDING = {
     # updater at Orca's releases would hand our users Orca builds.
     "src/shared/release-channel.ts",
     "src/main/updater-prerelease-feed.ts",
+    # updater.ts holds the two feed URLs electron-updater is actually pointed
+    # at -- the startup one and the no-newer-release fallback. Both are release
+    # identity, not behaviour: there is nothing upstream to keep verbatim,
+    # because keeping it verbatim is the bug.
+    "src/main/updater.ts",
+    # Window/taskbar titles: the product name, nothing else.
+    "src/renderer/index.html",
+    "src/renderer/popout.html",
+    "src/renderer/web-index.html",
     # Home-directory identity: which app's ~/.<name> this instance owns. Orca
     # shares ~/.orca across its own instances on purpose; a DIFFERENT app doing
     # the same silently takes over every agent's hook launchers. Swapping the

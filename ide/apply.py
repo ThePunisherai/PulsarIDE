@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "8d61cb8b771b7b658a5e1e2bb426c719644d09f3"  # 2026-08-26, upstream HEAD
+PINNED_COMMIT = "92536346bd414d37afeadb5b69c2171b1179cbd3"  # 2026-08-27, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -548,6 +548,54 @@ EDITS: list[tuple[str, str, str, str]] = [
         "const RELEASES_DOWNLOAD_BASE = 'https://github.com/stablyai/orca/releases/download'",
         f"const RELEASES_DOWNLOAD_BASE = 'https://github.com/{RELEASE_REPO}/releases/download'",
         "update feed: release asset download base",
+    ),
+    # The window title, and so the taskbar and window-switcher label. Three
+    # separate HTML entry points -- patch_source_strings only rewrites string
+    # literals in .ts, so nothing here was ever reached. A window titled "Orca"
+    # sitting next to a real Orca window is the plainest form of the two apps
+    # being mistaken for each other.
+    (
+        "src/renderer/index.html",
+        "<title>Orca</title>",
+        f"<title>{PRODUCT}</title>",
+        "window title",
+    ),
+    (
+        "src/renderer/popout.html",
+        "<title>Orca Agent Dashboard</title>",
+        f"<title>{PRODUCT} Agent Dashboard</title>",
+        "popout dashboard window title",
+    ),
+    (
+        "src/renderer/web-index.html",
+        "<title>Orca Web</title>",
+        f"<title>{PRODUCT} Web</title>",
+        "web build title",
+    ),
+    (
+        "src/main/updater-prerelease-feed.ts",
+        "const TAG_HREF_RE = /href=\"https:\\/\\/github\\.com\\/stablyai\\/orca\\/releases\\/tag\\/([^\"]+)\"/g",
+        "const TAG_HREF_RE = /href=\"https:\\/\\/github\\.com\\/"
+        + RELEASE_OWNER + "\\/" + RELEASE_NAME + "\\/releases\\/tag\\/([^\"]+)\"/g",
+        "update feed: the atom feed is ours, so the tag regex has to match ours",
+    ),
+    # The two live fallbacks electron-updater is actually pointed at. The atom
+    # resolver above is only the happy path; when it finds nothing the updater
+    # falls back to these, and the second one is set at startup before any
+    # channel logic runs. Left alone they hand a PulsarIDE user Orca's latest
+    # release and install it over PulsarIDE -- observed for real in a running
+    # v0.32.0 build, which logged the fallback URL on startup.
+    (
+        "src/main/updater.ts",
+        "    const url = 'https://github.com/stablyai/orca/releases/latest/download'",
+        f"    const url = 'https://github.com/{RELEASE_REPO}/releases/latest/download'",
+        "update feed: the no-newer-release fallback stays on our releases",
+    ),
+    (
+        "src/main/updater.ts",
+        "      url: 'https://github.com/stablyai/orca/releases/latest/download'",
+        f"      url: 'https://github.com/{RELEASE_REPO}/releases/latest/download'",
+        "update feed: the startup feed URL stays on our releases",
     ),
     (
         "config/electron-builder.config.cjs",

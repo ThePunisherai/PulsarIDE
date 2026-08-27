@@ -354,16 +354,28 @@ PY
     applied=$(echo "$result" | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
     done_already=$(echo "$result" | grep -oE 'already done  : [0-9]+' | grep -oE '[0-9]+')
     ok "overlay applies to the Orca checkout ($((applied + done_already)) edits resolve)$note"
-    # Every release channel must point at our repo. If an Orca bump adds a new
-    # channel constant we did not patch, a user switching to it would download
-    # and install Orca OVER PulsarIDE -- the worst way the two apps can mix.
-    stray=$(grep -oE "RELEASE_REPO = '[^']*'" "$tmp/src/shared/release-channel.ts" 2>/dev/null \
-            | grep -v "ThePunisherai/PulsarIDE" || true)
+    # Nothing that feeds the auto-updater may point at Orca. A user whose
+    # updater resolves an Orca release downloads and installs Orca OVER
+    # PulsarIDE -- the worst way the two apps can mix.
+    #
+    # This checks every updater source file, not just the channel constants:
+    # scoping it to release-channel.ts is exactly how two live fallbacks in
+    # updater.ts shipped in v0.32.0 still pointing at stablyai/orca, which a
+    # running build then logged on startup. Tests are excluded -- they assert
+    # against upstream's own fixtures and are not shipped.
+    stray=""
+    for uf in "$tmp/src/shared/release-channel.ts" "$tmp"/src/main/updater*.ts; do
+      case "$uf" in *.test.ts|*-test-harness.ts) continue ;; esac
+      [ -f "$uf" ] || continue
+      hit=$(grep -nE "stablyai/orca" "$uf" 2>/dev/null | grep -vE "^\s*[0-9]+:\s*(//|\*)" || true)
+      [ -n "$hit" ] && stray="$stray $(basename "$uf"):$(echo "$hit" | head -1 | cut -d: -f1)"
+    done
     if [ -z "$stray" ]; then
-      chans=$(grep -cE "RELEASE_REPO = 'ThePunisherai/PulsarIDE'" "$tmp/src/shared/release-channel.ts")
-      ok "every release channel ($chans) updates from PulsarIDE, not Orca"
+      feeds=$(grep -rhoE "ThePunisherai/PulsarIDE" "$tmp/src/shared/release-channel.ts" \
+              "$tmp"/src/main/updater.ts "$tmp"/src/main/updater-prerelease-feed.ts 2>/dev/null | wc -l | tr -d ' ')
+      ok "every updater feed ($feeds) resolves to PulsarIDE, not Orca"
     else
-      bad "a release channel still points at Orca: $stray"
+      bad "an updater feed still points at Orca:$stray"
     fi
     # re-run must be a no-op
     again=$(python3 "$HERE/apply.py" "$tmp" 2>&1 | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
