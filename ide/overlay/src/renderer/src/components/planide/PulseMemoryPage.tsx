@@ -25,7 +25,8 @@ import {
 export default function PulseMemoryPage(): React.JSX.Element {
   const worktree = useActiveWorktree()
   const worktreePath = worktree?.path ?? undefined
-  const { status, loading, refresh } = useMemory(worktreePath)
+  const { status, loading, refresh, report, rebuild, rebuilding, rebuildLog } =
+    useMemory(worktreePath)
 
   if (!worktreePath) {
     return (
@@ -62,7 +63,15 @@ export default function PulseMemoryPage(): React.JSX.Element {
           components the sidebar uses, so nothing here can drift from them. */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <section className="min-w-0">
-          <BrainGraphPanel graph={graph} loading={loading} onRefresh={refresh} />
+          <BrainGraphPanel
+            graph={graph}
+            loading={loading}
+            onRefresh={refresh}
+            report={report}
+            onRebuild={rebuild}
+            rebuilding={rebuilding}
+            rebuildLog={rebuildLog}
+          />
         </section>
         <section className="min-w-0">
           <ObsidianPanel status={status?.obsidian ?? null} loading={loading} onRefresh={refresh} />

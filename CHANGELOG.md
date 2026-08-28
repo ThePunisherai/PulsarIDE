@@ -6,6 +6,33 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.34.0] - 2026-08-28
+
+### Fixed
+- **PulsarIDE kept answering as "ThePunisher".** If you also ran ThePunisher-Agent's
+  own installer, PulsarIDE stepped aside and never deployed the agent it ships,
+  so none of the renaming or updates reached you. Worse, the two rosters
+  together are over Claude Code's budget for agent descriptions, which is what
+  makes subagents quietly stop working. PulsarIDE's own roster now wins and the
+  superseded copy is removed. An agent you wrote yourself is left alone.
+- **Refresh in Brain Graph did nothing.** It only ever re-read the same file off
+  disk, so it showed identical numbers every time. There is now a **Rebuild
+  graph** button that actually re-indexes the project, and when it fails you get
+  graphify's own words instead of silence.
+- **A `.cursor` folder appeared in every project**, whether or not you use
+  Cursor. Only written now if Cursor is actually installed.
+
+### Added
+- **The specialists are in the app.** Each team's named specialists — 5,372 of
+  them — now ship with PulsarIDE, so when routing picks one the agent can
+  actually become it. They were referenced but never included.
+- **Graphify's own report in Brain Graph**: the most connected pieces of your
+  code, connections you probably didn't know about, import cycles, what the
+  graph can't answer yet, and questions it is uniquely placed to answer.
+
+### Changed
+- **Up to date with Orca again** (60 upstream commits).
+
 ## [0.33.0] - 2026-08-27
 
 ### Fixed

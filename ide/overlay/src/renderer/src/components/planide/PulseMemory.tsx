@@ -11,14 +11,17 @@
  * vault or note is a normal "not yet" state, never an error.
  */
 import React, { useCallback, useEffect, useState } from 'react'
-import { BookText, ExternalLink, Network, RefreshCw } from 'lucide-react'
+import { BookText, ExternalLink, Hammer, Network, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { useActiveWorktree } from '@/store/selectors'
 import {
+  graphReport as fetchGraphReport,
+  reindexGraph as runReindexGraph,
   memoryStatus as fetchMemoryStatus,
   type BrainGraph,
+  type GraphReportSection,
   type MemoryStatus,
   type ObsidianStatus
 } from '../right-sidebar/planide-engine-client'
@@ -71,19 +74,34 @@ function MemoryStat({ value, label }: { value: React.ReactNode; label: string })
 function PanelHeader({
   hint,
   loading,
-  onRefresh
+  onRefresh,
+  onRebuild,
+  rebuilding
 }: {
   hint: string
   loading: boolean
   onRefresh: () => void
+  /** Only the graph can be rebuilt; the Obsidian panel passes nothing. */
+  onRebuild?: () => void
+  rebuilding?: boolean
 }): React.JSX.Element {
   return (
     <div className="flex items-center gap-2">
       <span className="text-[12px] text-muted-foreground">{hint}</span>
-      <Button size="sm" variant="outline" className="ml-auto" onClick={onRefresh} disabled={loading}>
-        <RefreshCw size={13} className={cn(loading && 'animate-spin')} />{' '}
-        {translate('planide.memory.refresh', 'Refresh')}
-      </Button>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {onRebuild ? (
+          <Button size="sm" onClick={onRebuild} disabled={rebuilding || loading}>
+            <Hammer size={13} className={cn(rebuilding && 'animate-pulse')} />{' '}
+            {rebuilding
+              ? translate('planide.brain.rebuilding', 'Rebuilding…')
+              : translate('planide.brain.rebuild', 'Rebuild graph')}
+          </Button>
+        ) : null}
+        <Button size="sm" variant="outline" onClick={onRefresh} disabled={loading || rebuilding}>
+          <RefreshCw size={13} className={cn(loading && 'animate-spin')} />{' '}
+          {translate('planide.memory.refresh', 'Refresh')}
+        </Button>
+      </div>
     </div>
   )
 }
@@ -99,11 +117,21 @@ function PanelHeader({
 export function BrainGraphPanel({
   graph,
   loading,
-  onRefresh
+  onRefresh,
+  report,
+  onRebuild,
+  rebuilding,
+  rebuildLog
 }: {
   graph: BrainGraph | null
   loading: boolean
   onRefresh: () => void
+  /** graphify's own report, section by section. Empty until a rebuild runs. */
+  report?: GraphReportSection[]
+  onRebuild?: () => void
+  rebuilding?: boolean
+  /** graphify's own words when a rebuild fails -- shown rather than swallowed. */
+  rebuildLog?: string
 }): React.JSX.Element {
   const CONFIDENCE_TONE: Record<string, string> = {
     EXTRACTED: 'bg-emerald-500/80',
@@ -119,7 +147,17 @@ export function BrainGraphPanel({
         )}
         loading={loading}
         onRefresh={onRefresh}
+        onRebuild={onRebuild}
+        rebuilding={rebuilding}
       />
+
+      {/* graphify's own words. Only ever shown when a rebuild actually failed:
+          a silent no-op is what made Refresh feel broken in the first place. */}
+      {rebuildLog ? (
+        <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 text-[11px] text-muted-foreground">
+          {rebuildLog}
+        </pre>
+      ) : null}
 
       {!graph?.available ? (
         <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center">
@@ -242,6 +280,34 @@ export function BrainGraphPanel({
               </span>
             )}
           </div>
+
+          {/* graphify's own report, verbatim. The headings are its, not ours,
+              so a section a future version adds shows up on its own instead of
+              being dropped by a parser that only knows today's set. This is the
+              half of the graph the IDE never showed: god nodes, the connections
+              you did not know about, import cycles, and what it cannot answer. */}
+          {report && report.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {translate('planide.brain.report', "Graphify's report")}
+              </div>
+              {report.map((section) => (
+                <div key={section.heading} className="rounded-lg border border-border p-3">
+                  <div className="mb-1.5 text-[12px] font-medium">{section.heading}</div>
+                  <div className="flex flex-col gap-1">
+                    {section.lines.map((line, i) => (
+                      <div
+                        key={i}
+                        className="text-[11.5px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere]"
+                      >
+                        {line.replace(/^[-*]\s+/, '• ')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </>
       )}
     </div>
@@ -387,30 +453,64 @@ export function useMemory(worktreePath: string | undefined): {
   status: MemoryStatus | null
   loading: boolean
   refresh: () => void
+  report: GraphReportSection[]
+  rebuild: () => void
+  rebuilding: boolean
+  rebuildLog: string
 } {
   const [status, setStatus] = useState<MemoryStatus | null>(null)
+  const [report, setReport] = useState<GraphReportSection[]>([])
   const [loading, setLoading] = useState(false)
+  const [rebuilding, setRebuilding] = useState(false)
+  const [rebuildLog, setRebuildLog] = useState('')
 
   const refresh = useCallback(() => {
     if (!worktreePath) return
     setLoading(true)
-    void fetchMemoryStatus(worktreePath)
-      .then((s) => {
+    void Promise.all([
+      fetchMemoryStatus(worktreePath).catch(() => null),
+      // Best-effort: a project with no report yet is a normal state, not an error.
+      fetchGraphReport(worktreePath).catch(() => [] as GraphReportSection[])
+    ])
+      .then(([s, r]) => {
         setStatus(s)
+        setReport(r ?? [])
       })
-      .catch(() => setStatus(null))
       .finally(() => setLoading(false))
   }, [worktreePath])
+
+  /**
+   * Actually rebuild, then re-read. Refresh alone only ever re-read what was on
+   * disk, so it returned identical numbers every time and looked like it did
+   * nothing -- which is exactly how it was reported.
+   */
+  const rebuild = useCallback(() => {
+    if (!worktreePath) return
+    setRebuilding(true)
+    setRebuildLog('')
+    void runReindexGraph(worktreePath)
+      .then((r) => {
+        // Only surface the log on failure; a successful build speaks through
+        // the numbers and the report that follow it.
+        if (!r?.ok) setRebuildLog(r?.log || 'Could not rebuild the graph.')
+      })
+      .catch((e) => setRebuildLog(e instanceof Error ? e.message : String(e)))
+      .finally(() => {
+        setRebuilding(false)
+        refresh()
+      })
+  }, [worktreePath, refresh])
 
   useEffect(() => {
     if (!worktreePath) {
       setStatus(null)
+      setReport([])
       return
     }
     refresh()
   }, [worktreePath, refresh])
 
-  return { status, loading, refresh }
+  return { status, loading, refresh, report, rebuild, rebuilding, rebuildLog }
 }
 
 export function NoProject(): React.JSX.Element {
@@ -429,11 +529,20 @@ function SidebarScroll({ children }: { children: React.ReactNode }): React.JSX.E
 /** The Brain Graph, as its own right-sidebar tab. */
 export function BrainGraphSidebar(): React.JSX.Element {
   const worktreePath = useActiveWorktree()?.path ?? undefined
-  const { status, loading, refresh } = useMemory(worktreePath)
+  const { status, loading, refresh, report, rebuild, rebuilding, rebuildLog } =
+    useMemory(worktreePath)
   if (!worktreePath) return <NoProject />
   return (
     <SidebarScroll>
-      <BrainGraphPanel graph={status?.graphify ?? null} loading={loading} onRefresh={refresh} />
+      <BrainGraphPanel
+        graph={status?.graphify ?? null}
+        loading={loading}
+        onRefresh={refresh}
+        report={report}
+        onRebuild={rebuild}
+        rebuilding={rebuilding}
+        rebuildLog={rebuildLog}
+      />
     </SidebarScroll>
   )
 }

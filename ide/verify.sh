@@ -304,6 +304,27 @@ else
   skip "tracker MCP server (npx unavailable)"
 fi
 
+# 4c2. the Brain Graph's rebuild path: the button that used to only re-read.
+# Runs the real graphify when it is installed, and skips those checks when it
+# is not -- a machine without it is a normal state, not a failure.
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/overlay/src/main/planide/graphify-run.ts" --bundle --platform=node \
+       --format=cjs --outfile="$work/gr.cjs" --external:electron --log-level=error >/dev/null 2>&1; then
+    out=$(PULSAR_GRAPHIFYRUN_CJS="$work/gr.cjs" node "$HERE/test/graphify-run.test.mjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "graph rebuild: $(echo "$out" | grep -oE 'PASS=[0-9]+') checks"
+    else
+      bad "graph rebuild"; echo "$out" | grep "FAIL " | head -4
+    fi
+  else
+    bad "graph rebuild: test bundle failed to build"
+  fi
+  rm -rf "$work"
+else
+  skip "graph rebuild (npx unavailable)"
+fi
+
 # 4d. per-project memory status: graphify graph + Obsidian note detection reads
 # the same layout council-memory.py writes (same slug, same vault-resolution
 # order), so the Tracker's Memory panel and the hook never disagree.
