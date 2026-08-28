@@ -415,6 +415,19 @@ PY
     applied=$(echo "$result" | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
     done_already=$(echo "$result" | grep -oE 'already done  : [0-9]+' | grep -oE '[0-9]+')
     ok "overlay applies to the Orca checkout ($((applied + done_already)) edits resolve)$note"
+    # The agent hooks must be written and invoked at the SAME home directory.
+    # We rename ~/.orca to ~/.pulsar so a real Orca install is not disturbed;
+    # miss one half and the scripts land in one place while the agent CLI is
+    # told to run the other, so the hook never fires and a busy agent shows as
+    # a dead grey dot. That shipped once.
+    hookmix=$(grep -rn "\.orca/agent-hooks\|\.orca\\\\agent-hooks" "$tmp/src" 2>/dev/null \
+              | grep -v "\.test\." | grep -vE "^\s*[0-9]+:\s*(//|\*)" | head -3 || true)
+    if [ -z "$hookmix" ]; then
+      ok "agent hooks are written and invoked at the same home (~/.pulsar)"
+    else
+      bad "an agent-hook path still points at ~/.orca: $(echo "$hookmix" | head -1 | cut -c1-90)"
+    fi
+
     # Nothing that feeds the auto-updater may point at Orca. A user whose
     # updater resolves an Orca release downloads and installs Orca OVER
     # PulsarIDE -- the worst way the two apps can mix.

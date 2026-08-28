@@ -40,6 +40,9 @@ BRANDING = {
     # verbatim, the whole point is that it must differ.
     "src/main/agent-hooks/installer-utils.ts",
     "src/main/agent-hooks/managed-hook-install-lock.ts",
+    # Same rename, the invoke half: the command the agent CLI is told to run
+    # has to name the same directory installer-utils.ts writes to.
+    "src/main/agent-hooks/runtime-home-hook-command.ts",
     "src/main/runtime/claude-agent-teams-shim-env.ts",
     "src/relay/workspace-session-handler.ts",
     "src/main/grok/grok-hook-owners.ts",

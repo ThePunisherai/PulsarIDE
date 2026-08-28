@@ -6,6 +6,15 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.36.0] - 2026-08-28
+
+### Fixed
+- **A busy agent shows as busy again.** Claude and Codex report what they are
+  doing through a hook script, and PulsarIDE was saving that script in one place
+  while telling the agent to run it from another — so it never ran, nothing was
+  ever reported, and an agent working away sat in the sidebar as a dead grey dot.
+  The build now refuses to ship if those two ever disagree again.
+
 ## [0.35.0] - 2026-08-28
 
 ### Added

@@ -147,6 +147,33 @@ EDITS: list[tuple[str, str, str, str]] = [
         "  return join(homedir(), '.pulsar', 'agent-hooks', scriptFileName)",
         "agent-hook launchers live under ~/.pulsar, not ~/.orca",
     ),
+    # The other half of the same rename, and the one that actually broke
+    # something. installer-utils.ts (above) decides where the hook scripts are
+    # WRITTEN; this file builds the command the agent CLI is told to RUN. We
+    # wrote to ~/.pulsar while still telling Claude/Codex to run
+    # ~/.orca/agent-hooks/<script>.sh -- a path that does not exist on a
+    # PulsarIDE-only machine, so the hook never fired, no status was ever
+    # reported, and a busy agent sat in the sidebar as a dead grey dot instead
+    # of showing it was working. Confirmed against a real run: the scripts were
+    # on disk under ~/.pulsar/agent-hooks/ the whole time.
+    (
+        "src/main/agent-hooks/runtime-home-hook-command.ts",
+        '  const windowsScript = `"\\${HOME-}/.orca/agent-hooks/${scriptBaseName}.cmd"`',
+        '  const windowsScript = `"\\${HOME-}/.pulsar/agent-hooks/${scriptBaseName}.cmd"`',
+        'agent-hook command points at ~/.pulsar (Windows launcher)',
+    ),
+    (
+        "src/main/agent-hooks/runtime-home-hook-command.ts",
+        '  const posixScript = `"\\${HOME-}/.orca/agent-hooks/${scriptBaseName}.sh"`',
+        '  const posixScript = `"\\${HOME-}/.pulsar/agent-hooks/${scriptBaseName}.sh"`',
+        'agent-hook command points at ~/.pulsar (POSIX launcher)',
+    ),
+    (
+        "src/main/agent-hooks/runtime-home-hook-command.ts",
+        "  const powershellCommand = `$homePath = $env:HOME -replace '^/([A-Za-z])/', '$1:/'; $scriptPath = Join-Path $homePath '.orca\\\\agent-hooks\\\\${scriptBaseName}.cmd'; if (Test-Path -LiteralPath $scriptPath -PathType Leaf) { & $scriptPath; exit $LASTEXITCODE }; [Console]::In.ReadToEnd() | Out-Null${powershellFallback}; exit 0`",
+        "  const powershellCommand = `$homePath = $env:HOME -replace '^/([A-Za-z])/', '$1:/'; $scriptPath = Join-Path $homePath '.pulsar\\\\agent-hooks\\\\${scriptBaseName}.cmd'; if (Test-Path -LiteralPath $scriptPath -PathType Leaf) { & $scriptPath; exit $LASTEXITCODE }; [Console]::In.ReadToEnd() | Out-Null${powershellFallback}; exit 0`",
+        'agent-hook command points at ~/.pulsar (Git Bash PowerShell branch)',
+    ),
     (
         "src/main/agent-hooks/managed-hook-install-lock.ts",
         "  const lockParent = join(home, '.orca')",
