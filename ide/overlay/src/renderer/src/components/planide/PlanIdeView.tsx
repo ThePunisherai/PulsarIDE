@@ -650,10 +650,27 @@ export default function PlanIdeView(): React.JSX.Element {
     )
   }
   if (loading && !project) {
+    // The shape of the board, not a spinner in the middle of an empty page:
+    // showing where things are about to land reads as fast, and the layout does
+    // not jump when the real data replaces it.
     return (
-      <div className="flex flex-1 items-center justify-center gap-2 p-10 text-sm text-muted-foreground">
-        <Loader2 className="animate-spin" size={16} />
-        {translate('planide.view.loading', 'Reading tracker…')}
+      <div className="flex flex-1 flex-col gap-4 p-6" aria-busy="true" aria-live="polite">
+        <span className="sr-only">{translate('planide.view.loading', 'Reading tracker…')}</span>
+        <div className="pulsar-progress" />
+        <div className="flex items-center gap-3">
+          <div className="pulsar-skeleton h-9 w-9 rounded-xl" />
+          <div className="pulsar-skeleton h-5 w-48" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="pulsar-skeleton h-[68px] rounded-xl" />
+          ))}
+        </div>
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="pulsar-skeleton h-52 rounded-xl" />
+          ))}
+        </div>
       </div>
     )
   }

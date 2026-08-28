@@ -14,7 +14,6 @@ import {
   Check,
   CircleDot,
   ClipboardCopy,
-  Loader2,
   ShieldCheck,
   Lock,
   ShieldAlert,
@@ -272,9 +271,18 @@ export default function PlanIdePanel(): React.JSX.Element {
 
   if (loading && !project) {
     return (
-      <div className="flex flex-1 items-center justify-center gap-2 p-6 text-xs text-muted-foreground">
-        <Loader2 className="animate-spin" size={14} />
-        {translate('planide.panel.loading', 'Reading tracker…')}
+      <div className="flex flex-1 flex-col gap-3 p-3" aria-busy="true" aria-live="polite">
+        <span className="sr-only">{translate('planide.panel.loading', 'Reading tracker…')}</span>
+        <div className="pulsar-progress" />
+        <div className="pulsar-skeleton h-4 w-32" />
+        <div className="grid grid-cols-3 gap-2">
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="pulsar-skeleton h-12 rounded-lg" />
+          ))}
+        </div>
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="pulsar-skeleton h-8 rounded-md" />
+        ))}
       </div>
     )
   }

@@ -151,6 +151,18 @@ export function BrainGraphPanel({
         rebuilding={rebuilding}
       />
 
+      {/* Indexing reads the whole project, so it takes real time with no
+          percentage to report. A travelling bar says "running"; the spinner on
+          the button alone left it ambiguous whether anything had started. */}
+      {rebuilding ? (
+        <div aria-busy="true" aria-live="polite">
+          <div className="pulsar-progress" />
+          <div className="mt-1.5 text-[11px] text-muted-foreground">
+            {translate('planide.brain.rebuildingHint', 'Reading the project and rebuilding the graph…')}
+          </div>
+        </div>
+      ) : null}
+
       {/* graphify's own words. Only ever shown when a rebuild actually failed:
           a silent no-op is what made Refresh feel broken in the first place. */}
       {rebuildLog ? (

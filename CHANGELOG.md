@@ -6,6 +6,15 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.37.0] - 2026-08-28
+
+### Changed
+- **Loading looks like the thing that is loading.** Opening the Tracker now
+  shows the board's own shape filling in — tiles and columns — instead of a
+  spinner on an empty page, so the layout does not jump when the data lands.
+  Rebuilding the graph gets a real moving bar, because reading a whole project
+  takes long enough that a still screen looks broken.
+
 ## [0.36.0] - 2026-08-28
 
 ### Fixed
