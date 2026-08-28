@@ -13,7 +13,7 @@
  *     what keeps the two implementations from drifting apart.
  */
 import { spawn } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,6 +37,21 @@ function drive(frames) {
       const replies = out.split('\n').filter(Boolean).map((l) => JSON.parse(l))
       resolve({ replies, stderr: err })
     })
+    for (const f of frames) child.stdin.write(JSON.stringify(f) + '\n')
+    child.stdin.end()
+    setTimeout(() => child.kill(), 15000).unref?.()
+  })
+}
+
+/** Same as drive, but from a chosen cwd -- how an agent's own directory reaches the server. */
+function driveIn(cwd, frames) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [SERVER], { cwd, stdio: ['pipe', 'pipe', 'pipe'] })
+    let out = '', err = ''
+    child.stdout.on('data', (d) => (out += d))
+    child.stderr.on('data', (d) => (err += d))
+    child.on('error', reject)
+    child.on('close', () => resolve({ replies: out.split('\n').filter(Boolean).map((l) => JSON.parse(l)), stderr: err }))
     for (const f of frames) child.stdin.write(JSON.stringify(f) + '\n')
     child.stdin.end()
     setTimeout(() => child.kill(), 15000).unref?.()
@@ -172,14 +187,15 @@ const run5 = await drive([
   { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
   call(50, 'set_item', { project: proj, item_id: 'i_nope' }),
   call(51, 'add_item', { project: join(tmpdir(), 'definitely-not-here-' + Date.now()), title: 'x' }),
-  call(52, 'nonexistent_tool', { project: proj }),
-  { jsonrpc: '2.0', id: 53, method: 'tools/call', params: { name: 'get_board', arguments: {} } }
+  call(52, 'nonexistent_tool', { project: proj })
 ])
+// A missing `project` argument is covered separately below, where the cwd is
+// controlled -- it now falls back to the cwd project, so it cannot be asserted
+// from here, where the runner's own cwd happens to be a real project.
 ok('an unknown item id is a correctable tool error', byId(run5.replies, 50).result.isError === true && text(byId(run5.replies, 50)).includes('i_nope'))
 ok('a missing project path is refused', byId(run5.replies, 51).result.isError === true)
 ok('an unknown tool is a protocol error', Boolean(byId(run5.replies, 52).error))
-ok('a missing project argument is refused', byId(run5.replies, 53).result.isError === true)
-ok('the server survived every bad call', run5.replies.length === 5)
+ok('the server survived every bad call', run5.replies.length === 4)
 
 // --- a malformed frame must not kill the server ---------------------------- //
 const run6 = await new Promise((resolve) => {
@@ -232,6 +248,34 @@ ok('a sibling directory cannot be reached through the project root',
   byId(run7.replies, 73).result.isError === true &&
   readFileSync(join(sibling, 'secret.md'), 'utf8').includes('\u200B'))
 ok('a missing document is a correctable tool error', byId(run7.replies, 74).result.isError === true)
+
+// --- a forgotten `project` must not lose the write ------------------------- //
+// The tools ask for `project`, but an agent that omits it used to get a bare
+// error and the board silently never moved -- the "agents write nothing" report.
+// The server now falls back to its own cwd, which for an agent working in the
+// IDE terminal is the project, and refuses only when cwd is not a project.
+const cwdProj = mkdtempSync(join(tmpdir(), 'pulsar-cwd-'))
+mkdirSync(join(cwdProj, '.git'))
+const fb = await driveIn(cwdProj, [
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(80, 'add_item', { title: 'no project argument', status: 'todo' }),
+  call(81, 'get_board', {})
+])
+ok('add_item with no project falls back to the cwd project and writes',
+  byId(fb.replies, 80).result.isError !== true &&
+  existsSync(join(cwdProj, '.planide', 'state.json')))
+ok('get_board with no project reads that same cwd board',
+  json(byId(fb.replies, 81)).progress.total_items === 1)
+ok('the fallback says so on stderr, never on the protocol stream',
+  fb.stderr.includes('defaulting to cwd') && !fb.stderr.includes('{"jsonrpc'))
+
+const bareCwd = mkdtempSync(join(tmpdir(), 'pulsar-bare-'))
+const noFb = await driveIn(bareCwd, [
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(82, 'add_item', { title: 'x', status: 'todo' })
+])
+ok('a cwd that is not a project is refused, never scattered with a .planide',
+  byId(noFb.replies, 82).result.isError === true && !existsSync(join(bareCwd, '.planide')))
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

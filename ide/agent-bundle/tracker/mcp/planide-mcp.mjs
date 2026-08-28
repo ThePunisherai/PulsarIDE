@@ -29,6 +29,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { basename, isAbsolute, join, resolve, sep } from 'node:path'
 
 const SERVER_NAME = 'planide'
@@ -141,11 +142,41 @@ function progress(state) {
 
 // --------------------------------------------------------------------------- helpers
 
-/** Resolve + validate the `project` argument every tool takes. */
+// A directory that carries one of these is a real project, not a stray cwd.
+// Used only for the fallback below, never to reject an explicit `project`.
+const PROJECT_MARKERS = ['.planide', '.git', 'package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod', 'pom.xml', 'build.gradle', '.hg', '.svn']
+
+/**
+ * Resolve + validate the `project` argument every tool takes.
+ *
+ * The tools ask for `project` and the schema marks it required, so a
+ * well-behaved agent always sends it. But agents forget, and until now a
+ * missing `project` threw — which the model saw as a tool error and, often,
+ * simply moved on from, so the board silently never moved. That is exactly the
+ * "agents write nothing to the tracker" report, and it needs no reproduction to
+ * be worth closing: a forgotten argument should not lose the write.
+ *
+ * The fallback is the agent's own working directory. Claude Code and Codex spawn
+ * a stdio MCP server as a child of the agent, which inherits the agent's cwd,
+ * and for a task run in the IDE's terminal that cwd IS the project. Two guards
+ * keep a stray cwd from scattering a `.planide` where it does not belong: never
+ * the home directory, and only a directory that actually looks like a project.
+ */
 function resolveProject(args) {
   const raw = typeof args?.project === 'string' ? args.project.trim() : ''
-  if (!raw) throw new Error('project is required: pass the absolute path of the project directory')
-  const path = isAbsolute(raw) ? raw : resolve(raw)
+  let path
+  if (raw) {
+    path = isAbsolute(raw) ? raw : resolve(raw)
+  } else {
+    const cwd = process.cwd()
+    const isHome = resolve(cwd) === resolve(homedir())
+    const looksLikeProject = !isHome && PROJECT_MARKERS.some((m) => existsSync(join(cwd, m)))
+    if (!looksLikeProject) {
+      throw new Error('project is required: pass the absolute path of the project directory')
+    }
+    process.stderr.write(`[planide-mcp] no project argument given; defaulting to cwd ${cwd}\n`)
+    path = cwd
+  }
   if (!existsSync(path)) throw new Error(`project path does not exist: ${path}`)
   return path
 }
@@ -564,8 +595,13 @@ function handle(msg) {
       } catch (err) {
         // A tool failure is a result, not a transport error: the model should
         // see what went wrong and correct itself.
+        const message = err instanceof Error ? err.message : String(err)
+        // Also to stderr: MCP clients capture it, so when a board stays empty
+        // the reason ("project path does not exist", a bad id) is on record
+        // instead of having to be guessed at from "nothing happened".
+        process.stderr.write(`[planide-mcp] ${params?.name ?? 'tool'} failed: ${message}\n`)
         reply(id, {
-          content: [{ type: 'text', text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
+          content: [{ type: 'text', text: `Error: ${message}` }],
           isError: true
         })
       }

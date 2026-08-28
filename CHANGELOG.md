@@ -6,6 +6,27 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.39.0] - 2026-08-28
+
+### Fixed
+- **A forgotten project name no longer loses the update.** Every tracker tool
+  asks the agent which project to write to; when an agent left that out, the
+  whole write was dropped and the board never moved. It now falls back to the
+  directory the agent is working in — which, for a task run from the IDE's
+  terminal, is the project — so the update lands anyway. It still refuses when
+  that directory is not a project, so a stray board is never created where it
+  does not belong.
+- **The tracker works from a terminal even when the app is closed (Linux).** A
+  Linux AppImage's own path changes every launch and is gone once the app is
+  closed, so an agent started from your own terminal was pointed at a runtime
+  that no longer existed and its tracker tools quietly did nothing. It now uses
+  a stable system Node when one is installed, so the board updates whether or
+  not the app is running.
+- **A refused write now says why.** When a tracker call is rejected — a bad id,
+  a path that does not exist — the reason is written to the agent's log instead
+  of the write simply vanishing, so an empty board can be diagnosed rather than
+  guessed at.
+
 ## [0.38.0] - 2026-08-28
 
 ### Fixed

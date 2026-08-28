@@ -611,12 +611,52 @@ type McpLaunch = { command: string; args: string[]; env?: Record<string, string>
 function mcpLaunch(home: string): McpLaunch {
   const nodeServer = join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs')
   if (existsSync(nodeServer)) {
+    // On Linux the app almost always runs as an AppImage, whose process.execPath
+    // is an ephemeral `/tmp/.mount_*` path: it changes every launch and does not
+    // exist at all once the app is closed. An agent run from a terminal -- or the
+    // same terminal after the app restarts under a new mount -- would then be
+    // told to launch a runtime that is gone, so the tracker tools silently do
+    // nothing. A stable system `node` survives both; the server is
+    // zero-dependency pure Node, so any modern node runs it. Only when we are an
+    // AppImage, and only if a suitable node is actually found -- otherwise the
+    // app's own binary as Node is already stable on Windows/macOS and a correct
+    // fallback everywhere.
+    if (process.env.APPIMAGE) {
+      const stableNode = findStableNode()
+      if (stableNode) return { command: stableNode, args: [nodeServer] }
+    }
     return { command: process.execPath, args: [nodeServer], env: { ELECTRON_RUN_AS_NODE: '1' } }
   }
   // Only reachable before the bundle has ever deployed (or if it was deleted).
   const venvPy = pyEnvPython(home)
   const py = existsSync(venvPy) ? venvPy : process.platform === 'win32' ? 'python' : 'python3'
   return { command: py, args: [join(configDir(home), 'tracker', 'mcp', 'planide_mcp.py')] }
+}
+
+/**
+ * A stable absolute `node` on PATH, new enough to run the tracker server, or
+ * null. Only used on an AppImage, where the app's own execPath is an ephemeral
+ * mount (see mcpLaunch). Verified rather than trusted: an absolute path that
+ * exists and reports a major version >= 18, so a `node` shim or an ancient one
+ * can never be handed to an agent as the tracker runtime.
+ */
+function findStableNode(): string | null {
+  try {
+    const finder = process.platform === 'win32' ? 'where' : 'which'
+    const found = execFileSync(finder, ['node'], { encoding: 'utf8', timeout: 4000, windowsHide: true })
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+    for (const cand of found) {
+      if (!existsSync(cand)) continue
+      const version = execFileSync(cand, ['--version'], { encoding: 'utf8', timeout: 4000, windowsHide: true }).trim()
+      const major = Number.parseInt(version.replace(/^v/, ''), 10)
+      if (Number.isFinite(major) && major >= 18) return cand
+    }
+  } catch {
+    /* no usable node on PATH -- fall back to the app binary as Node */
+  }
+  return null
 }
 
 /**
