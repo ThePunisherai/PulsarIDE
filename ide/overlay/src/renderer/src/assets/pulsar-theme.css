@@ -1,59 +1,67 @@
 /*
- * PulsarIDE's own theme.
+ * PulsarIDE's own theme: red on near-black, the palette the Pulse mark is drawn
+ * in.
  *
- * Orca ships a neutral grey/blue palette. This is the identity the app is
- * actually named for: a neutron star — near-black space, and two beams (blue
- * #8ab4ff, violet #b39bff) that the logo, the tracker accents and the charts
- * all share.
+ * The values are ThePunisher's own design tokens, not an approximation of them
+ * -- #08090d ground, #ff453a accent, #b39bff second accent, taken from that
+ * project's stylesheet so the IDE and the agent look like one product.
  *
  * How this works, and why it is safe: it only re-declares Orca's own design
- * tokens. Nothing upstream is edited or removed — this file is imported *after*
+ * tokens. Nothing upstream is edited or removed -- this file is imported *after*
  * `main.css`, and because `:root` and `.dark` have identical specificity, the
  * later declaration wins. The block order here mirrors Orca's (`:root` then
  * `.dark`) so dark mode still overrides light, exactly as before.
  *
- * Deliberately NOT re-declared: the semantic colours Orca tuned for meaning and
- * contrast — git decoration colours, status-success, agent-question, the
- * security-mode palette, terminal title bars. Those encode information, not
- * branding, and repainting them would cost legibility for no identity gain.
+ * A red brand costs you the obvious danger colour, so destructive is pulled to
+ * a deeper crimson than the accent and always arrives with an icon and words --
+ * hue alone is not carrying that meaning here. Every foreground/background pair
+ * below is contrast-checked in ide/test/theme-contrast.test.mjs rather than
+ * eyeballed.
+ *
+ * Deliberately NOT re-declared: the semantic colours Orca tuned for meaning --
+ * git decoration colours, status-success, agent-question, the security-mode
+ * palette, terminal title bars. Those encode information, not branding, and
+ * repainting them would cost legibility for no identity gain.
  */
 
 /* ── Light ───────────────────────────────────────────── */
 :root {
-  --background: #fafbff;
+  --background: #fbf9f9;
   --editor-surface: #ffffff;
-  --foreground: #101320;
+  --foreground: #171213;
   --card: #ffffff;
-  --card-foreground: #101320;
+  --card-foreground: #171213;
   --popover: #ffffff;
-  --popover-foreground: #101320;
-  --primary: #3055c8;
+  --popover-foreground: #171213;
+  /* Darker than the dark-mode accent: #ff453a on white is 2.5:1, which fails
+     text contrast outright. This is the same hue at a weight that passes. */
+  --primary: #c81f22;
   --primary-foreground: #ffffff;
-  --secondary: #eef1fb;
-  --secondary-foreground: #1b2233;
-  --muted: #f1f4fc;
-  --muted-foreground: #5f6879;
-  --accent: #e7edfc;
-  --accent-foreground: #1b2233;
-  --border: #e0e6f5;
-  --input: #d9e1f2;
-  --ring: #7592d8;
+  --secondary: #f6eeee;
+  --secondary-foreground: #2a1e1f;
+  --muted: #f5efef;
+  --muted-foreground: #6b5c5d;
+  --accent: #fbe7e6;
+  --accent-foreground: #2a1e1f;
+  --border: #ecdfdf;
+  --input: #e3d3d3;
+  --ring: #d8615f;
 
-  --sidebar: #f3f6fd;
-  --sidebar-foreground: #101320;
-  --sidebar-primary: #3055c8;
+  --sidebar: #f7f2f2;
+  --sidebar-foreground: #171213;
+  --sidebar-primary: #c81f22;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e7edfc;
-  --sidebar-accent-foreground: #1b2233;
-  --sidebar-border: #e0e6f5;
-  --sidebar-ring: #7592d8;
+  --sidebar-accent: #fbe7e6;
+  --sidebar-accent-foreground: #2a1e1f;
+  --sidebar-border: #ecdfdf;
+  --sidebar-ring: #d8615f;
 
-  --worktree-sidebar: #eef2fc;
-  --worktree-sidebar-foreground: #101320;
-  --worktree-sidebar-accent: #e2eafb;
-  --worktree-sidebar-accent-foreground: #1b2233;
-  --worktree-sidebar-border: #e0e6f5;
-  --worktree-sidebar-ring: #7592d8;
+  --worktree-sidebar: #f4eeee;
+  --worktree-sidebar-foreground: #171213;
+  --worktree-sidebar-accent: #fadedd;
+  --worktree-sidebar-accent-foreground: #2a1e1f;
+  --worktree-sidebar-border: #ecdfdf;
+  --worktree-sidebar-ring: #d8615f;
 
   /* Corner radius, IDE-wide. Orca derives its whole scale from this one value
      (--radius-sm/md/lg/xl are all calc() off it), so this is the single knob
@@ -62,74 +70,186 @@
      precision rather than consumer-app softness. */
   --radius: 0.5rem;
 
-  /* Danger, in this palette's own red rather than a borrowed orange-red. Still
-     unmistakably danger -- the point is that an error looks like part of the
-     design instead of an alien element. */
-  --destructive: #d81b3f;
-  --destructive-foreground: #fff5f7;
+  /* Deeper than --primary so "delete" never looks like "confirm". */
+  --destructive: #8f1220;
+  --destructive-foreground: #fff5f6;
 
-  /* The violet beam: Orca uses this for AI-initiated actions. */
-  --ai-action-accent: #7c5cf0;
+  /* The violet second accent: Orca uses this for AI-initiated actions. */
+  --ai-action-accent: #6d4fe0;
 
-  /* Charts ramp along the two beams instead of a single blue. */
-  --chart-1: #9cc0ff;
-  --chart-2: #6f9df6;
-  --chart-3: #3055c8;
-  --chart-4: #7c5cf0;
+  /* Charts ramp red -> violet, the mark's own two colours. */
+  --chart-1: #ff8a80;
+  --chart-2: #ef4b45;
+  --chart-3: #c81f22;
+  --chart-4: #8b6ff0;
   --chart-5: #5b3fc4;
 }
 
 /* ── Dark: the identity ──────────────────────────────── */
 .dark {
-  --background: #080a11;
-  --editor-surface: #0b0e17;
-  --foreground: #e6e9f2;
-  --card: #10131e;
-  --card-foreground: #e6e9f2;
-  --popover: #141826;
-  --popover-foreground: #e6e9f2;
-  --primary: #8ab4ff;
-  --primary-foreground: #08111f;
-  --secondary: #1a1f30;
-  --secondary-foreground: #dfe4f0;
-  --muted: #171b28;
-  --muted-foreground: #8d95aa;
-  --accent: #232939;
-  --accent-foreground: #f0f2f8;
-  --border: rgb(158 178 255 / 0.11);
-  --input: rgb(158 178 255 / 0.14);
-  --ring: #6f8fd8;
+  --background: #08090d;
+  --editor-surface: #0b0d13;
+  --foreground: #eef1f6;
+  --card: #14161f;
+  --card-foreground: #eef1f6;
+  --popover: #171a24;
+  --popover-foreground: #eef1f6;
+  --primary: #ff453a;
+  --primary-foreground: #1a0405;
+  --secondary: #1c1a20;
+  --secondary-foreground: #e7e2e3;
+  --muted: #18171d;
+  --muted-foreground: #a8afbe;
+  --accent: #2a2228;
+  --accent-foreground: #f6f2f3;
+  --border: rgb(255 255 255 / 0.07);
+  --input: rgb(255 255 255 / 0.11);
+  --ring: #ff453a;
 
-  --sidebar: #0b0e18;
-  --sidebar-foreground: #e6e9f2;
-  --sidebar-primary: #8ab4ff;
-  --sidebar-primary-foreground: #08111f;
-  --sidebar-accent: #1b2030;
-  --sidebar-accent-foreground: #f0f2f8;
-  --sidebar-border: rgb(158 178 255 / 0.10);
-  --sidebar-ring: #5f7cc0;
+  --sidebar: #0a0b11;
+  --sidebar-foreground: #eef1f6;
+  --sidebar-primary: #ff453a;
+  --sidebar-primary-foreground: #1a0405;
+  --sidebar-accent: #1e1a20;
+  --sidebar-accent-foreground: #f6f2f3;
+  --sidebar-border: rgb(255 255 255 / 0.07);
+  --sidebar-ring: #ff453a;
 
-  --worktree-sidebar: #0e121c;
-  --worktree-sidebar-foreground: #e6e9f2;
-  --worktree-sidebar-accent: #1b2030;
-  --worktree-sidebar-accent-foreground: #f0f2f8;
-  --worktree-sidebar-border: rgb(158 178 255 / 0.10);
-  --worktree-sidebar-ring: #5f7cc0;
+  --worktree-sidebar: #0c0d14;
+  --worktree-sidebar-foreground: #eef1f6;
+  --worktree-sidebar-accent: #241d23;
+  --worktree-sidebar-accent-foreground: #f6f2f3;
+  --worktree-sidebar-border: rgb(255 255 255 / 0.07);
+  --worktree-sidebar-ring: #ff453a;
 
   /* Orca's dark destructive is a bright surface with deep red text, not the
-     inverse -- that relationship is kept, only the hue moves into our palette. */
-  --destructive: #ff5f7a;
-  --destructive-foreground: #4a0c1c;
+     inverse -- that relationship is kept. Pushed toward crimson so it separates
+     from the coral accent instead of reading as the same button. */
+  --destructive: #ff6b8a;
+  --destructive-foreground: #40060f;
 
   --ai-action-accent: #b39bff;
 
-  --chart-1: #c3d5ff;
-  --chart-2: #8ab4ff;
-  --chart-3: #6f8fd8;
+  --chart-1: #ff9d94;
+  --chart-2: #ff453a;
+  --chart-3: #d1332b;
   --chart-4: #b39bff;
   --chart-5: #8a6ff0;
 
-  /* Pane dividers read as structure, not dirt, on a blue-black ground. */
-  --tab-group-split-divider: #414d68;
-  --tab-group-split-divider-strong: #55617e;
+  /* Pane dividers read as structure, not dirt, on a red-black ground. */
+  --tab-group-split-divider: #4a3c42;
+  --tab-group-split-divider-strong: #62505a;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * Motion and depth.
+ *
+ * Everything below is additive: new classes and one hover/press treatment on
+ * Orca's existing buttons. No upstream rule is overridden away, so a button
+ * that never opts in still looks and behaves exactly as Orca drew it.
+ *
+ * All of it is inside a reduced-motion guard at the bottom: an IDE runs for
+ * hours, and motion someone did not ask for is a liability, not polish.
+ * ───────────────────────────────────────────────────────── */
+
+/* Buttons: a press should feel like a press. 90ms is under the ~100ms threshold
+   where a UI stops feeling instant, so this reads as physical rather than slow. */
+button:not(:disabled) {
+  transition:
+    transform 90ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+button:not(:disabled):active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
+/* An indeterminate bar, for work with no percentage to report -- rebuilding a
+   graph, deploying the bundle. A sliding highlight rather than a full-width
+   pulse: a pulse reads as "stalled", a travelling band reads as "running". */
+.pulsar-progress {
+  position: relative;
+  overflow: hidden;
+  height: 2px;
+  width: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.pulsar-progress::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: pulsar-progress-slide 1.15s ease-in-out infinite;
+}
+@keyframes pulsar-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* A live dot for "this is happening now" -- the running agent, a rebuild in
+   flight. Breathes rather than blinks: blinking demands attention it has not
+   earned, breathing just says it is alive. */
+.pulsar-live-dot {
+  position: relative;
+  display: inline-block;
+  height: 7px;
+  width: 7px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+.pulsar-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: pulsar-live-ring 1.6s ease-out infinite;
+}
+@keyframes pulsar-live-ring {
+  0% { opacity: 0.55; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.8); }
+}
+
+/* Skeletons, while a panel's first read is in flight. Sweeps in the brand red
+   at low alpha so a loading surface still belongs to this app. */
+.pulsar-skeleton {
+  border-radius: var(--radius-sm, 0.375rem);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--foreground) 6%, transparent) 25%,
+    color-mix(in srgb, var(--primary) 14%, transparent) 37%,
+    color-mix(in srgb, var(--foreground) 6%, transparent) 63%
+  );
+  background-size: 400% 100%;
+  animation: pulsar-skeleton-sweep 1.4s ease infinite;
+}
+@keyframes pulsar-skeleton-sweep {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* Rows that appear as data arrives, instead of snapping in. */
+.pulsar-rise {
+  animation: pulsar-rise 220ms ease-out both;
+}
+@keyframes pulsar-rise {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled) { transition: none; }
+  button:not(:disabled):active { transform: none; }
+  .pulsar-progress::after,
+  .pulsar-live-dot::after,
+  .pulsar-skeleton,
+  .pulsar-rise {
+    animation: none;
+  }
+  /* Still legible with motion off: a static band rather than a blank track. */
+  .pulsar-progress::after { width: 100%; opacity: 0.5; }
 }

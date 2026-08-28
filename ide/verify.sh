@@ -325,6 +325,16 @@ else
   skip "graph rebuild (npx unavailable)"
 fi
 
+# 4c3. the theme: real WCAG contrast on every foreground/background pair, in
+# BOTH blocks. A brand red is easy to get wrong -- #ff453a is a fine accent on
+# near-black and 2.5:1 on white, which is unreadable as text.
+out=$(node "$HERE/test/theme-contrast.test.mjs" 2>&1)
+if echo "$out" | grep -q "FAIL=0"; then
+  ok "theme contrast: $(echo "$out" | grep -oE 'PASS=[0-9]+') checks"
+else
+  bad "theme contrast"; echo "$out" | grep "FAIL " | head -4
+fi
+
 # 4d. per-project memory status: graphify graph + Obsidian note detection reads
 # the same layout council-memory.py writes (same slug, same vault-resolution
 # order), so the Tracker's Memory panel and the hook never disagree.
