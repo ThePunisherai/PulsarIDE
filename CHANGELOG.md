@@ -6,6 +6,26 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.35.0] - 2026-08-28
+
+### Added
+- **A red-on-black IDE.** The whole interface now wears the palette the Pulse
+  mark is drawn in — near-black, red, violet — with the icon to match. Every
+  text colour is contrast-checked in both light and dark, so it is readable as
+  well as dark.
+- **Buttons and progress that respond.** Presses feel like presses, loading bars
+  travel instead of sitting there, and anything live has a quiet pulse. All of it
+  switches off if your system asks for reduced motion.
+- **The Pulse Agent's own tools reach every agent.** Your agents were told to
+  call a router, an anti-loop check and a binary-triage tool that were never
+  actually installed. They are now, and they work in Codex and Cursor too, not
+  just Claude Code.
+
+### Fixed
+- **Routing picks the right team.** "Write unit tests" reached a design-systems
+  team instead of Testing & QA, because a large team could win on sheer volume of
+  words. It now uses the same scoring as the standalone agent.
+
 ## [0.34.0] - 2026-08-28
 
 ### Fixed

@@ -1,0 +1,142 @@
+/**
+ * pulsar-tools over the real MCP stdio protocol.
+ *
+ * The team-lead files already told agents to call these tools; the server they
+ * named was never shipped or registered, so on Codex or Cursor the instruction
+ * pointed at nothing. This drives the actual binary the way an agent does.
+ *
+ * The routing cases are the interesting half. A first version scored raw term
+ * frequency over the whole team file and got 4 of 7 wrong -- a 100-agent sector
+ * team beats a focused one on volume alone. These pin the behaviour of the
+ * algorithm ported from ThePunisher-Agent's router.py: sublinear TF so
+ * repetition cannot carry a team, and a bonus for a query word that IS the
+ * team's own name, gated to near-unique names so "engineering" does not tilt
+ * everything.
+ */
+import { spawn } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const SERVER = join(HERE, '..', 'agent-bundle', 'tracker', 'mcp', 'pulsar-tools-mcp.mjs')
+
+let pass = 0
+let fail = 0
+const ok = (n, c) => (c ? (pass++, console.log('  PASS ' + n)) : (fail++, console.log('  FAIL ' + n)))
+
+function drive(frames) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [SERVER], { stdio: ['pipe', 'pipe', 'pipe'] })
+    let out = ''
+    child.stdout.on('data', (d) => (out += d))
+    child.on('error', reject)
+    child.on('close', () =>
+      resolve(out.split('\n').filter(Boolean).map((l) => JSON.parse(l)))
+    )
+    for (const f of frames) child.stdin.write(JSON.stringify(f) + '\n')
+    child.stdin.end()
+    setTimeout(() => child.kill(), 20000).unref?.()
+  })
+}
+const call = (id, name, args) => ({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } })
+const byId = (rs, id) => rs.find((r) => r.id === id)
+const json = (r) => JSON.parse(r.result.content[0].text)
+
+// --- handshake and surface -------------------------------------------------- //
+const hs = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2026-06-18' } },
+  { jsonrpc: '2.0', method: 'notifications/initialized' },
+  { jsonrpc: '2.0', id: 2, method: 'tools/list' }
+])
+ok('it identifies itself as pulsar-tools', byId(hs, 1).result.serverInfo.name === 'pulsar-tools')
+ok('it echoes the protocol version the client asked for',
+  byId(hs, 1).result.protocolVersion === '2026-06-18')
+const names = byId(hs, 2).result.tools.map((t) => t.name).sort()
+ok('it offers exactly the four tools the agents are told to call',
+  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 're_triage', 'record_anti_loop_failure', 'route_task']))
+ok('an initialized notification is never answered', !hs.some((r) => r.id === undefined && r.result))
+
+// --- routing: the cases the first implementation got wrong ------------------ //
+// Every expectation here was checked against the real roster before being
+// written down, not assumed from the team's name.
+const ROUTES = [
+  ['write unit tests for this react component', 'Testing & Quality Assurance'],
+  ['debug why this api keeps crashing', 'Debug & Diagnosis'],
+  ['reverse engineer this packed binary', 'Reverse Engineering Command'],
+  ['review this pull request for bugs', 'Code Review & Quality'],
+  ['brainstorm three architectures for a chat app', 'Brainstorm & Ideation'],
+  ['set up a ci pipeline and deploy to kubernetes', 'DevOps & Automation']
+]
+const routeFrames = [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }]
+ROUTES.forEach(([q], i) => routeFrames.push(call(100 + i, 'route_task', { query: q })))
+const routed = await drive(routeFrames)
+ROUTES.forEach(([q, expected], i) => {
+  const r = json(byId(routed, 100 + i))
+  const top = r.matches[0]?.team
+  ok(`routes "${q.slice(0, 38)}…" to ${expected}`, top === expected)
+})
+const withAgents = json(byId(routed, 102))
+ok('and names real specialists inside the matched team, not just the team',
+  Array.isArray(withAgents.matches[0]?.agents) && withAgents.matches[0].agents.length > 0 &&
+  typeof withAgents.matches[0].agents[0].name === 'string')
+
+const nonsense = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(20, 'route_task', { query: 'the and of to with' })
+])
+ok('a query of nothing but stopwords routes nowhere rather than guessing',
+  json(byId(nonsense, 20)).matches.length === 0)
+
+// --- anti-loop -------------------------------------------------------------- //
+const proj = mkdtempSync(join(tmpdir(), 'pulsar-loop-'))
+const loop = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(30, 'check_anti_loop', { approach: 'patch the loader in place', cwd: proj }),
+  call(31, 'record_anti_loop_failure', { problem: 'crash on boot', approach: 'patch the loader in place', error: 'segfault', cwd: proj }),
+  call(32, 'check_anti_loop', { approach: 'patch the loader in place', cwd: proj }),
+  call(33, 'check_anti_loop', { approach: 'Patch  The  Loader  In  Place', cwd: proj }),
+  call(34, 'check_anti_loop', { approach: 'rebuild from source', cwd: proj }),
+  call(35, 'record_anti_loop_failure', { problem: 'crash on boot', approach: 'patch the loader in place', error: 'again', cwd: proj }),
+  call(36, 'check_anti_loop', { cwd: proj })
+])
+ok('a novel approach is not blocked', json(byId(loop, 30)).blocked === false)
+ok('recording a failure reports it was written', json(byId(loop, 31)).recorded === true)
+ok('the same approach is then blocked', json(byId(loop, 32)).blocked === true)
+ok('a reworded repeat is blocked too -- spacing and case are not a new idea',
+  json(byId(loop, 33)).blocked === true)
+ok('an unrelated approach stays open', json(byId(loop, 34)).blocked === false)
+ok('recording the same failure twice does not duplicate it',
+  json(byId(loop, 35)).recorded === false && json(byId(loop, 35)).total === 1)
+ok('a missing required argument is a correctable tool error, not a crash',
+  byId(loop, 36).result.isError === true)
+
+const registry = join(proj, '.thepunisher', 'failed-registry.json')
+ok('it writes the same registry file the CLI anti-loop uses', existsSync(registry))
+const reg = JSON.parse(readFileSync(registry, 'utf8'))
+ok('with the shape that file is expected to have',
+  Array.isArray(reg.failed) && reg.failed.length === 1 && typeof reg.failed[0].at === 'string')
+
+// --- re_triage -------------------------------------------------------------- //
+const triage = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(40, 're_triage', { binary_path: join(tmpdir(), 'definitely-not-here-' + Date.now()) }),
+  call(41, 're_triage', {})
+])
+const t40 = byId(triage, 40)
+ok('a binary that is not there is reported, never thrown',
+  t40.result.isError === true || json(t40).ok === false)
+ok('a missing path is a correctable tool error', byId(triage, 41).result.isError === true)
+
+// --- the server survives bad input ------------------------------------------ //
+const survived = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(50, 'no_such_tool', {}),
+  { jsonrpc: '2.0', id: 51, method: 'ping' }
+])
+ok('an unknown tool is a protocol error', Boolean(byId(survived, 50).error))
+ok('and the server keeps serving afterwards', Boolean(byId(survived, 51)))
+
+console.log(`\nPASS=${pass} FAIL=${fail}`)
+process.exit(fail ? 1 : 0)

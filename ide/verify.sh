@@ -304,6 +304,14 @@ else
   skip "tracker MCP server (npx unavailable)"
 fi
 
+# 4c1. pulsar-tools: the server the team leads already tell agents to call.
+out=$(node "$HERE/test/pulsar-tools-mcp.test.mjs" 2>&1)
+if echo "$out" | grep -q "FAIL=0"; then
+  ok "pulsar-tools MCP: $(echo "$out" | grep -oE 'PASS=[0-9]+') protocol + routing checks"
+else
+  bad "pulsar-tools MCP"; echo "$out" | grep "FAIL " | head -4
+fi
+
 # 4c2. the Brain Graph's rebuild path: the button that used to only re-read.
 # Runs the real graphify when it is installed, and skips those checks when it
 # is not -- a machine without it is a normal state, not a failure.

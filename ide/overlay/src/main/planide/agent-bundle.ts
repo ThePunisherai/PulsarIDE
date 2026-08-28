@@ -578,6 +578,12 @@ function registerPlanideMcp(home: string): boolean {
   const servers = (config.mcpServers ??= {}) as Record<string, unknown>
   const launch = mcpLaunch(home)
   servers.planide = { type: 'stdio', command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
+  // The team leads already tell agents to call these; without registration the
+  // instruction pointed at a server that did not exist.
+  const tools = toolsMcpLaunch(home)
+  if (tools) {
+    servers['pulsar-tools'] = { type: 'stdio', command: tools.command, args: tools.args, env: tools.env }
+  }
   writeConfigAtomic(path, JSON.stringify(config, null, 2))
   return true
 }
@@ -611,6 +617,19 @@ function mcpLaunch(home: string): McpLaunch {
   const venvPy = pyEnvPython(home)
   const py = existsSync(venvPy) ? venvPy : process.platform === 'win32' ? 'python' : 'python3'
   return { command: py, args: [join(configDir(home), 'tracker', 'mcp', 'planide_mcp.py')] }
+}
+
+/**
+ * How an agent should launch the pulsar-tools MCP server.
+ *
+ * Same Electron-as-Node trick as the tracker: zero install steps, cannot be
+ * broken by the user's Python. Returns null when the file is not deployed yet,
+ * so a caller registers nothing rather than a command that cannot start.
+ */
+function toolsMcpLaunch(home: string): McpLaunch | null {
+  const server = join(configDir(home), 'tracker', 'mcp', 'pulsar-tools-mcp.mjs')
+  if (!existsSync(server)) return null
+  return { command: process.execPath, args: [server], env: { ELECTRON_RUN_AS_NODE: '1' } }
 }
 
 /**
@@ -675,6 +694,10 @@ function registerPlanideMcpCursor(home: string): boolean {
     const servers = (config.mcpServers ??= {}) as Record<string, unknown>
     const launch = mcpLaunch(home)
     servers.planide = { command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
+    const tools = toolsMcpLaunch(home)
+    if (tools) {
+      servers['pulsar-tools'] = { command: tools.command, args: tools.args, env: tools.env }
+    }
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
@@ -709,6 +732,10 @@ function registerPlanideMcpGemini(home: string): boolean {
     const servers = (config.mcpServers ??= {}) as Record<string, unknown>
     const launch = mcpLaunch(home)
     servers.planide = { command: launch.command, args: launch.args, ...(launch.env ? { env: launch.env } : {}) }
+    const tools = toolsMcpLaunch(home)
+    if (tools) {
+      servers['pulsar-tools'] = { command: tools.command, args: tools.args, env: tools.env }
+    }
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
