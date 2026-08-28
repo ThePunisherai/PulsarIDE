@@ -6,6 +6,14 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.38.0] - 2026-08-28
+
+### Fixed
+- **More agents can work at once.** PulsarIDE tracked at most 32 subagents per
+  pane; past that, a newly started one was silently dropped — it kept running,
+  but you could not see it. With a hundred teams to route across that ceiling
+  was easy to hit. It is 128 now.
+
 ## [0.37.0] - 2026-08-28
 
 ### Changed

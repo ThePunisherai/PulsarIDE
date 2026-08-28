@@ -147,6 +147,21 @@ EDITS: list[tuple[str, str, str, str]] = [
         "  return join(homedir(), '.pulsar', 'agent-hooks', scriptFileName)",
         "agent-hook launchers live under ~/.pulsar, not ~/.orca",
     ),
+    # Room for a real roster. Upstream bounds per-pane subagent rows at 32 to
+    # protect the status cache and IPC fanout from a runaway spawner -- a sound
+    # limit for one agent with a handful of helpers, and too low here: Pulse
+    # Agent routes across 100 teams, and the Codex path silently DROPS a new
+    # subagent past the cap (it still runs, it just stops being tracked or
+    # shown), so a wide fan-out goes partly invisible. 128 keeps the guard
+    # against a runaway spawner -- the rows are small and bounded (id 64 chars,
+    # type 40, model 120), so four times as many is tens of KB per pane, not a
+    # payload problem -- while leaving room for the roster this app ships.
+    (
+        "src/shared/agent-status-types.ts",
+        "export const AGENT_STATUS_MAX_SUBAGENTS = 32",
+        "export const AGENT_STATUS_MAX_SUBAGENTS = 128",
+        "track a full roster's worth of subagents, not 32",
+    ),
     # The other half of the same rename, and the one that actually broke
     # something. installer-utils.ts (above) decides where the hook scripts are
     # WRITTEN; this file builds the command the agent CLI is told to RUN. We
