@@ -198,13 +198,25 @@ for (const d of ['.claude/agents', '.gemini/agents', '.codex/agents']) {
 writeFileSync(join(HOME2, '.claude/agents/thepunisher-council.md'), '---\nname: thepunisher-council\ndescription: x\n---\n')
 writeFileSync(join(HOME2, '.gemini/agents/thepunisher-council.md'), '---\nname: thepunisher-council\ndescription: x\n---\n')
 writeFileSync(join(HOME2, '.codex/agents/thepunisher-council.toml'), 'name = "thepunisher-council"\n')
+// An agent the USER wrote that happens to share the prefix. It is not the
+// generated roster, so it must survive.
+writeFileSync(join(HOME2, '.claude/agents/thepunisher-mine.md'), '---\nname: my-own-agent\ndescription: hand written\n---\nmine\n')
 deployAgentBundle({ home: HOME2, resourcesPath: res, force: true, provisionPyEnv: false })
 const dupPulse = (d, ext) => readdirSync(join(HOME2, d)).filter((f) => f.startsWith('pulse-') && f.endsWith(ext)).length
-ok('roster NOT duplicated when ThePunisher-Agent already provides it (Claude)', dupPulse('.claude/agents', '.md') === 0)
-ok('roster NOT duplicated (Gemini)', dupPulse('.gemini/agents', '.md') === 0)
-ok('roster NOT duplicated (Codex)', dupPulse('.codex/agents', '.toml') === 0)
-ok("the other install's own files are left untouched (never ours to delete)",
-  existsSync(join(HOME2, '.claude/agents/thepunisher-council.md')))
+// Ours is the roster this app ships, so ours is the one that must be there.
+// Keeping theirs and skipping ours meant PulsarIDE never deployed its own agent
+// and kept answering as "ThePunisher" -- reported exactly that way.
+ok('our roster IS deployed even when the older one is present (Claude)', dupPulse('.claude/agents', '.md') > 50)
+ok('our roster is deployed (Gemini)', dupPulse('.gemini/agents', '.md') > 50)
+ok('our roster is deployed (Codex)', dupPulse('.codex/agents', '.toml') > 50)
+ok('the superseded roster is removed, so only one copy is loaded',
+  !existsSync(join(HOME2, '.claude/agents/thepunisher-council.md')) &&
+  !existsSync(join(HOME2, '.gemini/agents/thepunisher-council.md')) &&
+  !existsSync(join(HOME2, '.codex/agents/thepunisher-council.toml')))
+ok('a hand-written agent sharing the prefix is NOT removed',
+  existsSync(join(HOME2, '.claude/agents/thepunisher-mine.md')))
+ok('and what remains still fits the description budget',
+  descTokens(join(HOME2, '.claude/agents'), 'pulse-') < 15000)
 ok('the tracker still reaches the main session in that case (managed block)',
   readFileSync(join(HOME2, '.claude/CLAUDE.md'), 'utf8').includes('get_board'))
 

@@ -16,10 +16,10 @@ Three jobs:
 2. **Route (start of task).** Decompose the request into atomic sub-tasks with dependencies.
    Name which team(s) should act (Council, Brainstorm, Task Management, Coding, RE, Debug,
    Testing, Learning, Web, Backend, Security, DevOps, Code Review, AI/ML, Specialized) — but
-   don't stop at the team name. Each team now holds 50-100 named specialists
-   (`agents/roster.json`, `scripts/router.py`), not a handful — naming only the team and
-   leaving the specific agent implicit wastes that roster. Use the router's actual
-   term-overlap ranking (`router.py "<task>"` / the dashboard's `/api/route`) to name the 1-3
+   don't stop at the team name. Each team holds 50-100 named specialists, listed in that
+   team's own file under the specialists directory (see the path in your main-session
+   instructions) — naming only the team and leaving the specific agent implicit wastes that
+   roster. Read the matched team's specialist file and name the 1-3
    specific agents within the matched team(s) best suited to the task, and say why each one
    fits — a named agent, not a category. For a task that spans more than one team, name the
    lead agent per team and how they hand off. **Don't trust the top score blindly:** this
@@ -45,10 +45,10 @@ Three jobs:
    subagents blew Claude Code's own ~15k-token subagent-description budget by over 20x,
    breaking every prompt in an affected session with "Context limit reached"). A named
    specialist beyond the team lead is therefore NOT separately spawnable via the Agent/Task
-   tool by name — instead, `Read` that specialist's file directly
-   (`agents/subagents/<team-slug>/<file>.md`, or `agents/subagents-growth/<team-slug>/<file>.md`
-   for a growth-pool agent) and adopt its role/persona content inline before proceeding, rather
-   than assuming it exists as a separate registered subagent. **Product Management and
+   tool by name — instead, `Read` that team's specialist file (`<specialists>/<team-slug>.md`,
+   where `<specialists>` is the directory named in your main-session instructions; core roster
+   and growth pool are both in it) and adopt that specialist's role inline before proceeding,
+   rather than assuming it exists as a separate registered subagent. **Product Management and
    Developer Relations are real, named coverage too**, not gaps to route around a generic
    team for: Product Management (roadmaps, PRDs, prioritization frameworks, stakeholder
    alignment, product discovery, OKRs) lives as Task Management's growth pool, and Developer

@@ -16,6 +16,7 @@ import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
 import { detect } from './detect'
 import { memoryStatus } from './memory-status'
+import { readGraphReport, reindexGraph } from './graphify-run'
 import { connectOpenDesignToAgents, openDesignLaunch, openDesignStatus } from './open-design'
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { deployCursorRule } from './agent-bundle'
@@ -202,6 +203,10 @@ export function registerPlanIdeIpc(): void {
   // project memory: graphify graph + Obsidian note status, so the Tracker tab
   // can show graphify/Obsidian actually working for this project (read-only).
   on('planide:memory-status', (path: string) => memoryStatus(path))
+  // Reading the graph and building it are different actions: Refresh only
+  // ever re-read, which is why it looked like it did nothing.
+  on('planide:graph-report', (path: string) => readGraphReport(path))
+  on('planide:reindex-graph', (path: string) => reindexGraph(path))
   // OpenDesign: read-only status, plus two explicitly user-triggered actions.
   on('planide:open-design-status', () => openDesignStatus())
   on('planide:open-design-connect', (agents: string[]) => connectOpenDesignToAgents(agents))

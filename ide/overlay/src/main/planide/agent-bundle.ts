@@ -275,41 +275,66 @@ export function deployAgentBundle(
     mkdirSync(codexAgents, { recursive: true })
 
     /**
-     * Do not deploy a second copy of the same roster.
+     * Exactly one copy of this roster, and it is the one this app ships.
      *
-     * PulsarIDE's bundle IS ThePunisher-Agent's roster. Someone who also runs
-     * that project's standalone installer already has the identical 100 team
-     * leads in these very directories, under a `thepunisher-` prefix -- and
-     * because our prefix is `pulse-`, the two do not overwrite, they ADD.
+     * PulsarIDE's bundle IS ThePunisher-Agent's roster, renamed to Pulse Agent
+     * and kept current with the app. Someone who also ran that project's
+     * standalone installer has the identical 101 team leads in these very
+     * directories under a `thepunisher-` prefix -- and because our prefix is
+     * `pulse-`, the two do not overwrite, they ADD.
      *
      * Claude Code budgets ~15k tokens for agent descriptions. One roster costs
-     * ~10.5k (measured off these files). Two costs ~21k, which puts Claude Code
-     * over the limit and is exactly how "subagents suddenly stopped working"
-     * happens -- the roster is not broken, it is too big to load.
+     * ~10.1k (measured off these files). Two costs ~20.3k, which puts Claude
+     * Code over the limit -- that is how "subagents suddenly stopped working"
+     * happens: the roster is not broken, it is too big to load.
      *
-     * So: if a tool's directory already carries that roster, we skip our own
-     * copies there rather than doubling it. Never by deleting theirs -- that is
-     * another product's install, not ours to remove. Nothing is lost either:
-     * the tracker instruction our copies carry in the body also reaches the main
-     * session through the managed block in CLAUDE.md / AGENTS.md / GEMINI.md.
+     * This used to keep theirs and skip OURS. That held the budget but was the
+     * wrong way round: PulsarIDE then never deployed the agent it ships, so the
+     * app kept answering as "ThePunisher" and no rename or update we made ever
+     * reached the user. Reported exactly that way, and it is why this changed.
+     *
+     * So we supersede: drop the older roster, write ours. Only a file whose
+     * NAME carries that prefix AND whose CONTENT is that generated roster is
+     * touched, so a hand-written agent that happens to share the prefix
+     * survives. Nothing is lost -- it is the same roster under a new name, and
+     * re-running ThePunisher-Agent's own installer restores its copies.
      */
-    const hasForeignRoster = (dir: string): boolean => {
+    const supersedeForeignRoster = (dir: string): number => {
+      let names: string[]
       try {
-        return readdirSync(dir).some((f) => f.startsWith('thepunisher-'))
+        names = readdirSync(dir)
       } catch {
-        return false
+        return 0
       }
+      let removed = 0
+      for (const name of names) {
+        if (!/^thepunisher-.+\.(md|toml)$/.test(name)) continue
+        const file = join(dir, name)
+        try {
+          const body = readFileSync(file, 'utf8')
+          // The generated roster names itself two ways: the activation banner it
+          // instructs the persona to print, and its own frontmatter/TOML name.
+          const isGeneratedRoster =
+            body.includes('ThePunisher —') ||
+            /^name:\s*thepunisher-/m.test(body) ||
+            /^name\s*=\s*"thepunisher-/m.test(body)
+          if (!isGeneratedRoster) continue
+          rmSync(file)
+          removed += 1
+        } catch {
+          /* unreadable or already gone -- leave it alone */
+        }
+      }
+      return removed
     }
-    const skipClaude = hasForeignRoster(claudeAgents)
-    const skipGemini = hasForeignRoster(geminiAgents)
-    const skipCodex = hasForeignRoster(codexAgents)
-    if (skipClaude || skipGemini || skipCodex) {
-      console.warn(
-        '[pulsar] ThePunisher-Agent already provides this roster in ' +
-          [skipClaude && 'claude', skipGemini && 'gemini', skipCodex && 'codex']
-            .filter(Boolean)
-            .join('/') +
-          ' -- skipping our duplicate copies to stay inside the agent-description budget'
+    const superseded =
+      supersedeForeignRoster(claudeAgents) +
+      supersedeForeignRoster(geminiAgents) +
+      supersedeForeignRoster(codexAgents)
+    if (superseded > 0) {
+      console.info(
+        `[pulsar] replaced ${superseded} older ThePunisher-Agent roster file(s) with the Pulse ` +
+          'Agent roster this app ships -- two copies of one roster exceed the description budget'
       )
     }
 
@@ -322,18 +347,12 @@ export function deployAgentBundle(
       const claudePath = join(claudeAgents, base)
       const geminiPath = join(geminiAgents, base)
       const codexPath = join(codexAgents, `pulse-${file.replace(/\.md$/, '.toml')}`)
-      if (!skipClaude) {
-        writeFileSync(claudePath, mdOut)
-        wroteAgents.push(claudePath)
-      }
-      if (!skipGemini) {
-        writeFileSync(geminiPath, mdOut)
-        wroteAgents.push(geminiPath)
-      }
-      if (!skipCodex) {
-        writeFileSync(codexPath, toToml(mdOut))
-        wroteAgents.push(codexPath)
-      }
+      writeFileSync(claudePath, mdOut)
+      wroteAgents.push(claudePath)
+      writeFileSync(geminiPath, mdOut)
+      wroteAgents.push(geminiPath)
+      writeFileSync(codexPath, toToml(mdOut))
+      wroteAgents.push(codexPath)
     }
 
     // --- skills: curated set incl. orchestration -> Claude Code ----------- //
@@ -360,6 +379,7 @@ export function deployAgentBundle(
     const trackerRoot = deployTrackerFiles(home, root)
     if (trackerRoot) mcpWired = registerTrackerForAllAgents(home)
     deployToolsFiles(home, root)
+    deploySpecialists(home, root)
 
     const marker: Marker = {
       bundle_version: manifest.bundle_version,
@@ -503,6 +523,25 @@ function deployToolsFiles(home: string, root: string): string | null {
   const src = join(root, 'tools')
   if (!existsSync(src)) return null
   const dest = join(configDir(home), 'tools')
+  rmSync(dest, { recursive: true, force: true })
+  cpSync(src, dest, { recursive: true })
+  return dest
+}
+
+/**
+ * Deploy the specialist roster, one file per team.
+ *
+ * The team leads carry an instruction that a named specialist is not separately
+ * spawnable and must be read off disk and adopted inline -- 5,050 descriptions
+ * are over 20x Claude Code's budget, so only the 101 leads are registered. That
+ * instruction needs something to point at: without this, routing names a
+ * specialist that the lead then cannot find, and the whole layer is
+ * documentation for a thing that is not on the machine.
+ */
+function deploySpecialists(home: string, root: string): string | null {
+  const src = join(root, 'specialists')
+  if (!existsSync(src)) return null
+  const dest = join(configDir(home), 'specialists')
   rmSync(dest, { recursive: true, force: true })
   cpSync(src, dest, { recursive: true })
   return dest
@@ -718,6 +757,12 @@ function mainSessionBlock(home: string): string {
     'real HTML/PDF/PPTX/MP4. The IDE\'s Open Design sidebar tab wires it into your agent over',
     'MCP. If `od` is missing, say so instead of pretending; do not install it yourself.',
     '',
+    'Specialists: each of the 100 teams lists its named specialists (core roster + growth',
+    'pool, 5,372 in total) in `' + join(configDir(home), 'specialists') + '/<team-slug>.md`.',
+    'Only the 101 team leads are registered as native subagents -- 5,050 descriptions are',
+    'over 20x the budget -- so to act as a specialist, read its team file and take that role',
+    'inline, printing that name in the activation banner. `README.md` there indexes the teams.',
+    '',
     'Reverse-engineering toolkit is installed at `' + join(configDir(home), 'tools', 'reverse-engineering') + '`',
     '(re-triage.sh, ghidra/frida/x64dbg drivers, fuzz-driver.sh, linux-unpack.sh) — use it for',
     'binary/RE work.',
@@ -801,13 +846,21 @@ function deployAntigravitySkill(home: string, block: string): string | null {
  * makes it load without being @-mentioned, which matters because Cursor has no
  * task-based auto-routing at all.
  *
- * Gated on the project already having a board, exactly like agent-events.ts:
- * this writes into the user's own repository, so a project they never tracked is
- * left completely alone rather than gaining a file they did not ask for.
+ * Gated twice, because this writes into the user's own repository.
+ *
+ * On the project already having a board, exactly like agent-events.ts: a
+ * project they never tracked is left alone rather than gaining a file they did
+ * not ask for.
+ *
+ * And on Cursor actually being installed. `~/.cursor` is Cursor's own user
+ * directory -- it exists once Cursor has run, and not otherwise. Without this
+ * check every tracked project grew a `.cursor/` folder whether or not the user
+ * had ever opened Cursor, which is litter in someone else's repository.
  */
 export function deployCursorRule(projectPath: string, home: string = homedir()): boolean {
   try {
     if (!existsSync(join(projectPath, '.planide', 'state.json'))) return false
+    if (!existsSync(join(home, '.cursor'))) return false
     const dir = join(projectPath, '.cursor', 'rules')
     mkdirSync(dir, { recursive: true })
     writeFileSync(

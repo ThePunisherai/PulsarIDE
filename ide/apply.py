@@ -642,6 +642,8 @@ OVERLAY_FILES = [
     "src/main/planide/agent-events.ts",
     "src/main/planide/memory-sync.ts",
     "src/main/planide/memory-status.ts",
+    # Builds the graph and reads graphify's own report about it.
+    "src/main/planide/graphify-run.ts",
     # Strips invisible AI watermarks out of docs the agents write.
     "src/main/planide/doc-clean.ts",
     "src/main/planide/board-watch.ts",

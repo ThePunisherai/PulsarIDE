@@ -332,6 +332,19 @@ export function openDesignLaunch(): Promise<boolean> {
 }
 
 // --------------------------------------------------------------------------- memory
+export type GraphReportSection = { heading: string; lines: string[] }
+export type ReindexResult = { ok: boolean; log: string; missing: boolean }
+
+/** graphify's own report about the graph, section by section. */
+export function graphReport(path: string): Promise<GraphReportSection[]> {
+  return call<GraphReportSection[]>('graphReport', path)
+}
+
+/** Actually rebuild the graph. Slow by nature -- it reads the whole project. */
+export function reindexGraph(path: string): Promise<ReindexResult> {
+  return call<ReindexResult>('reindexGraph', path)
+}
+
 export function memoryStatus(path: string): Promise<MemoryStatus> {
   return call<MemoryStatus>('memoryStatus', path)
 }
