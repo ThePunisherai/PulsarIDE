@@ -31,15 +31,15 @@ Three jobs:
    though it scored highest, or the top two teams' scores are close, say so explicitly and
    either pick the one that's the better semantic fit or ask — a confident wrong guess is
    worse than a two-second check. Check the session's Failed Solutions Registry and refuse
-   any approach already tried and failed. **This is no longer advisory-only for Claude
-   Code:** a real PreToolUse hook (`scripts/anti-loop-hook.py`, wired by
-   `deploy_anti_loop_hook()`/`Deploy-AntiLoopHook`) now actually BLOCKS (exit code 2, not
-   just a prompt-level reminder) an exact repeat of a Bash command already recorded as
-   failed via `anti-loop.sh add` — this session, or a durable earlier session on the same
-   project via the dashboard's cross-session log. It only catches an exact/near-exact
-   repeat, never a differently-worded retry of the same bad idea — that judgment call is
-   still yours, and recording a failure via `anti-loop.sh add` the moment one happens is
-   still required for the hook to have anything to enforce.
+   any approach already tried and failed. **In PulsarIDE this is a real tool, not a
+   note to yourself:** the `pulsar-tools` MCP server is registered for every agent the IDE
+   runs. Call `check_anti_loop` BEFORE proposing a fix, and `record_anti_loop_failure` the
+   moment one fails — it has nothing to go on otherwise. The first failure of an approach
+   comes back as a warning, a genuine repeat comes back blocked, and a record older than a
+   week stops blocking on its own. If you have actually fixed what made an approach fail,
+   call `clear_anti_loop` for it and proceed; do not use that to walk past a block you have
+   not addressed. It matches on the approach text, so it never catches a differently-worded
+   retry of the same bad idea — that judgment call is still yours.
    **Only team leads are individually registered with Claude Code/Gemini CLI/Codex** (a hard
    fix for a real, live-observed bug: the full specialist roster deployed as individual native
    subagents blew Claude Code's own ~15k-token subagent-description budget by over 20x,
@@ -71,24 +71,34 @@ Three jobs:
    Devil/Innovator. Read the relevant one's file and adopt it inline (per the rule above)
    when a request specifically calls for that named technique, rather than defaulting to
    the generic team persona for something a real, more specific specialist already covers.
+   **Run them at once, not one after another.** Naming three specialists and then working
+   through them serially wastes the thing this IDE is for: PulsarIDE runs parallel agents,
+   and the sub-tasks you just decomposed are usually independent. When two or more sub-tasks
+   do not depend on each other, dispatch them together — in Claude Code that means several
+   Task calls in a SINGLE message (issued in one block they run in parallel; issued in
+   separate messages they queue), and in the IDE's own orchestrator it means letting each
+   worktree pane take one. Then wait for all of them and reconcile the results yourself.
+   Keep sequential only what genuinely is: a step that needs an earlier step's output, or a
+   write that two agents would race on. Say which sub-tasks you are running in parallel and
+   which you are holding back, so the plan is legible while it runs. If a host has no way to
+   run more than one at a time, say so and go in dependency order rather than pretending.
+
 3. **Validate (end of task).** For every technical claim, demand a source: a URL, a doc, or a
    `file:line`. If a claim is unverifiable, mark it `UNVERIFIED` and require research before it
    ships. Never let a guessed API name, signature, or behavior pass.
    **A code change is itself a claim, and "I fixed it" without running this repo's own
    verification is exactly the kind of unverified claim rule 3 exists to block.** If the task
    touched any file this repo has a real check for, run that check before calling the task
-   done — `scripts/verify.sh` for anything under version control here (bash syntax, JSON/
-   PowerShell structural validity, subagent frontmatter, a live dashboard boot, installer
-   dry-runs), plus whatever narrower test/compile step actually exercises the changed code
-   (`python3 -m py_compile`, `claude plugin validate`, etc.) — and report the actual
-   pass/fail result, not an assumption that it would pass. A change that "should work" but was
+   done — the project's own test, lint, typecheck or build step, plus whatever narrower
+   compile step actually exercises the changed code — and report the actual pass/fail
+   result, not an assumption that it would pass. A change that "should work" but was
    never run through the project's own verification is `UNVERIFIED`, same as a guessed API
-   signature — say so rather than reporting success on faith. **On Codex/Cursor (no native
-   `Bash` the way Claude Code has it, or a client where shelling out isn't the natural path):
-   call the `pulsar-tools` MCP server's `run_verify()` tool** — same `scripts/verify.sh`,
-   returned as a structured `{"passed", "summary", "failures"}` result instead of raw terminal
-   output, so this rule is a real callable check on every MCP client, not just something the
-   model has to remember to shell out to by name on Claude Code specifically.
+   signature — say so rather than reporting success on faith. **Run the checks THIS project
+   actually has**, which you find by looking rather than assuming: its test and lint scripts
+   in `package.json`/`Makefile`/`pyproject.toml`, its typecheck, its build. Do not invoke a
+   command because another project had it — a verification step that does not exist here
+   fails and tells you nothing about your change. If the project genuinely has no automated
+   check, say that plainly and describe what you exercised by hand instead.
    **Cross-tool second opinion, when the stakes justify it (architecture decisions, pre-merge
    review, disagreement between two approaches).** The `dispatch` skill (Claude Code, real —
    see `integrations/skills.json`) can delegate to Codex CLI or Antigravity CLI (Gemini/Claude/

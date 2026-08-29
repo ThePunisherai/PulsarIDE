@@ -6,6 +6,28 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.41.0] - 2026-08-28
+
+### Fixed
+- **Your agents were told to run tools that do not exist.** Every team lead was
+  instructed to call a `run_verify()` tool that was never shipped and to run
+  ThePunisher-Agent's own `scripts/verify.sh` and `anti-loop.sh` — in whatever
+  project you happened to be in. Those calls could only fail, and a failure then
+  got recorded as a failed approach and started blocking real work. They now
+  point at the tools PulsarIDE actually ships, and the build refuses to ship if
+  an agent ever names one that does not exist again.
+- **Refresh looks like it did something.** Reading a board takes a few
+  milliseconds, so the spinner turned on and off inside one frame and pressing
+  Refresh felt like pressing nothing. The icon now visibly turns on every
+  refresh — the board, the sidebar, Brain Graph, Open Design, and the repository
+  panel, which never spun at all.
+
+### Changed
+- **The Council runs agents side by side.** It named the right specialists and
+  then worked through them one at a time, which wastes an IDE built to run
+  agents in parallel. It now dispatches independent sub-tasks together and keeps
+  in sequence only what truly depends on something earlier, saying which is which.
+
 ## [0.40.0] - 2026-08-28
 
 ### Fixed

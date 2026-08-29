@@ -22,6 +22,7 @@ import {
   gitSetRemote,
   gitStatus,
   gitSync,
+  withVisibleSpin,
   type GitStatus,
   type LargeFileScan
 } from '../right-sidebar/planide-engine-client'
@@ -67,6 +68,7 @@ export default function PlanIdeSync({
   const [remote, setRemote] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
   const [log, setLog] = useState<string[]>([])
 
   const refresh = useCallback(async () => {
@@ -105,8 +107,14 @@ export default function PlanIdeSync({
         title={translate('planide.sync.repo', 'Repository')}
         icon={GitBranch}
         action={
-          <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => void refresh()}>
-            <RefreshCw size={12} />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={() => void withVisibleSpin(setRefreshing, refresh)}
+            disabled={refreshing}
+          >
+            <RefreshCw size={12} className={cn(refreshing && 'animate-spin')} />
           </Button>
         }
       >

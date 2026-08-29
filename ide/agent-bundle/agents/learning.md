@@ -16,8 +16,9 @@ After any failure or notable fix:
 3. **Persist it** — append the correction to `CLAUDE.local.md` (session-local, gitignored) or the
    appropriate `AGENTS.md` / `GEMINI.md`.
 4. **Feed the Failed Solutions Registry** so blocked approaches stay blocked for the session —
-   use the real tool: `scripts/anti-loop.sh add "<problem>" "<approach>" "<error>"`, and
-   `scripts/anti-loop.sh check "<approach>"` before retrying (exit 3 = blocked).
+   use the real tool: the `pulsar-tools` MCP server's `record_anti_loop_failure` when one
+   fails, and `check_anti_loop` before retrying (a `blocked` result means pivot, not retry;
+   `clear_anti_loop` once you have genuinely fixed the cause).
 
 Keep entries short and actionable: "When X, don't Y because Z; do W instead."
 

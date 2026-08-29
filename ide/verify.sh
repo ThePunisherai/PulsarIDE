@@ -312,6 +312,41 @@ else
   bad "pulsar-tools MCP"; echo "$out" | grep "FAIL " | head -4
 fi
 
+# 4c1b. What the bundled agents are TOLD to call must actually exist.
+# A team lead that names a tool or a script we do not ship sends the agent to a
+# guaranteed failure, which then gets recorded as a failed approach and starts
+# blocking real work. council.md really did tell every agent to run
+# ThePunisher-Agent's own scripts/verify.sh and a run_verify() tool that was
+# never ported, in whatever project the user happened to be in.
+missing_refs=$(grep -rnoE "run_verify\(\)|scripts/(verify|anti-loop)\.sh" \
+  "$ROOT/ide/agent-bundle/agents" "$ROOT/ide/agent-bundle/specialists" 2>/dev/null || true)
+if [ -z "$missing_refs" ]; then
+  ok "bundled agents only name tooling that ships with them"
+else
+  bad "a bundled agent names tooling that does not ship: $(echo "$missing_refs" | head -1 | cut -c1-100)"
+fi
+
+# Every pulsar-tools tool a bundled agent names must be one the server offers.
+tool_gap=$(python3 - "$ROOT" <<'PY_TOOLS'
+import re, sys, pathlib
+root = pathlib.Path(sys.argv[1])
+server = (root / 'ide/agent-bundle/tracker/mcp/pulsar-tools-mcp.mjs').read_text(encoding='utf-8')
+have = set(re.findall(r"name: '([a-z_]+)'", server))
+named = set()
+for d in ('ide/agent-bundle/agents', 'ide/agent-bundle/specialists'):
+    for f in (root / d).rglob('*.md'):
+        body = f.read_text(encoding='utf-8', errors='replace')
+        for m in re.finditer(r'`(check_anti_loop|record_anti_loop_failure|clear_anti_loop|route_task|re_triage|run_verify|council_memory_overview)`', body):
+            named.add(m.group(1))
+print(','.join(sorted(named - have)))
+PY_TOOLS
+)
+if [ -z "$tool_gap" ]; then
+  ok "every pulsar-tools tool the agents name is one the server offers"
+else
+  bad "agents name pulsar-tools tools that do not exist: $tool_gap"
+fi
+
 # 4c2. the Brain Graph's rebuild path: the button that used to only re-read.
 # Runs the real graphify when it is installed, and skips those checks when it
 # is not -- a machine without it is a normal state, not a failure.

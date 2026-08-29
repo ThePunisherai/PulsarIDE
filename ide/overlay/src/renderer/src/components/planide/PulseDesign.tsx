@@ -22,7 +22,8 @@ import {
   openDesignLaunch,
   openDesignStatus,
   type ConnectResult,
-  type OpenDesignStatus
+  type OpenDesignStatus,
+  withVisibleSpin
 } from '../right-sidebar/planide-engine-client'
 
 /** The agents this IDE deploys Pulse Agent to, in OpenDesign's own naming. */
@@ -35,11 +36,13 @@ export function OpenDesignSidebar(): React.JSX.Element {
   const [results, setResults] = useState<ConnectResult[] | null>(null)
 
   const refresh = useCallback(() => {
-    setLoading(true)
-    void openDesignStatus()
-      .then(setStatus)
-      .catch(() => setStatus(null))
-      .finally(() => setLoading(false))
+    void withVisibleSpin(setLoading, async () => {
+      try {
+        setStatus(await openDesignStatus())
+      } catch {
+        setStatus(null)
+      }
+    })
   }, [])
 
   useEffect(() => refresh(), [refresh])

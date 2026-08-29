@@ -23,7 +23,8 @@ import {
   type BrainGraph,
   type GraphReportSection,
   type MemoryStatus,
-  type ObsidianStatus
+  type ObsidianStatus,
+  withVisibleSpin
 } from '../right-sidebar/planide-engine-client'
 
 /** relTime for an epoch-ms timestamp (memory-status uses file mtimes, not ISO). */
@@ -478,17 +479,15 @@ export function useMemory(worktreePath: string | undefined): {
 
   const refresh = useCallback(() => {
     if (!worktreePath) return
-    setLoading(true)
-    void Promise.all([
-      fetchMemoryStatus(worktreePath).catch(() => null),
-      // Best-effort: a project with no report yet is a normal state, not an error.
-      fetchGraphReport(worktreePath).catch(() => [] as GraphReportSection[])
-    ])
-      .then(([s, r]) => {
-        setStatus(s)
-        setReport(r ?? [])
-      })
-      .finally(() => setLoading(false))
+    void withVisibleSpin(setLoading, async () => {
+      const [s, r] = await Promise.all([
+        fetchMemoryStatus(worktreePath).catch(() => null),
+        // Best-effort: a project with no report yet is a normal state, not an error.
+        fetchGraphReport(worktreePath).catch(() => [] as GraphReportSection[])
+      ])
+      setStatus(s)
+      setReport(r ?? [])
+    })
   }, [worktreePath])
 
   /**

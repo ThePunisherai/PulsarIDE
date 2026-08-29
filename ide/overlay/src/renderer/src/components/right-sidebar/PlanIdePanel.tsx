@@ -38,7 +38,8 @@ import {
   verifyItem,
   type ItemStatus,
   type PlanIdeItem,
-  type PlanIdeProject
+  type PlanIdeProject,
+  withVisibleSpin
 } from './planide-engine-client'
 
 const STATUS_ORDER: ItemStatus[] = [
@@ -161,14 +162,13 @@ export default function PlanIdePanel(): React.JSX.Element {
    */
   const refresh = useCallback(async () => {
     if (!worktreePath) return
-    setRefreshing(true)
-    try {
-      setProject(await openProject(worktreePath))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setRefreshing(false)
-    }
+    await withVisibleSpin(setRefreshing, async () => {
+      try {
+        setProject(await openProject(worktreePath))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+      }
+    })
   }, [worktreePath])
 
   // Live: an agent writing this project's board updates the panel by itself.

@@ -16,7 +16,7 @@ working under that name, printing it in the activation banner.
 - **Pulse-LessonsLearned** — After every failure, writes a lesson to CLAUDE.local.md.
 - **Pulse-PatternRecognizer** — Identifies patterns in repeated failures. Suggests systemic fixes.
 - **Pulse-KnowledgeBase** — Maintains a session knowledge base of what works and what doesn't.
-- **Pulse-AntiLoopGuard** — Real-time monitor. Blocks repeated failed approaches (scripts/anti-loop.sh).
+- **Pulse-AntiLoopGuard** — Real-time monitor. Blocks repeated failed approaches (the `pulsar-tools` MCP anti-loop tools).
 - **Pulse-FailureCategorizer** — Sorts failures into consistent categories so patterns become visible.
 - **Pulse-RootCauseArchivist** — Keeps a searchable archive of confirmed root causes for past bugs.
 - **Pulse-MistakeReplayPreventer** — Checks a new plan against past mistakes before it's attempted again.

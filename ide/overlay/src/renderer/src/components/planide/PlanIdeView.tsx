@@ -58,7 +58,8 @@ import {
   verifyItem,
   type ItemStatus,
   type PlanIdeItem,
-  type PlanIdeProject
+  type PlanIdeProject,
+  withVisibleSpin
 } from '../right-sidebar/planide-engine-client'
 
 type Tab =
@@ -527,20 +528,19 @@ export default function PlanIdeView(): React.JSX.Element {
    */
   const refresh = useCallback(async () => {
     if (!worktreePath) return
-    setRefreshing(true)
-    try {
+    await withVisibleSpin(setRefreshing, async () => {
       // A plain re-read. This briefly called redetect() so the button would
       // "do more", but re-running stack detection MUTATES the project -- the
       // type and language chips could change under you on what is supposed to
       // be a refresh. A refresh should show you the current truth, not rewrite
       // it. Re-detection belongs on its own explicit action, not here.
-      setProject(await openProject(worktreePath))
-      setLoadedAt(Date.now())
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
-    } finally {
-      setRefreshing(false)
-    }
+      try {
+        setProject(await openProject(worktreePath))
+        setLoadedAt(Date.now())
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err))
+      }
+    })
   }, [worktreePath])
 
   // Re-tick the "updated" label so it ages in place instead of freezing at

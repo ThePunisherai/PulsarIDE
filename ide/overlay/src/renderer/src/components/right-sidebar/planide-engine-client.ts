@@ -412,3 +412,34 @@ export function backupList(path: string): Promise<BackupInfo[]> {
 export function backupDelete(path: string, file: string): Promise<{ ok: boolean }> {
   return call<{ ok: boolean }>('backupDelete', path, file)
 }
+
+/**
+ * Run a refresh so that its spinner is actually seen.
+ *
+ * Reading a board or a git status off local disk takes a few milliseconds, so
+ * the spinning state flipped on and back off inside a single frame: the icon
+ * never visibly turned, and pressing Refresh felt like pressing nothing --
+ * reported more than once, most recently as wanting the circle to turn on
+ * click. Holding the state for a short floor makes the work visible without
+ * making it slower: the refresh itself still finishes as fast as it can, and
+ * only the animation waits.
+ */
+export const MIN_SPIN_MS = 450
+
+export async function withVisibleSpin<T>(
+  setSpinning: (on: boolean) => void,
+  work: () => Promise<T>,
+  minMs: number = MIN_SPIN_MS
+): Promise<T> {
+  setSpinning(true)
+  const floor = new Promise<void>((resolve) => setTimeout(resolve, minMs))
+  try {
+    // Settle the floor even when the work throws, so a failed refresh cannot
+    // leave the icon spinning forever.
+    const [result] = await Promise.all([work(), floor])
+    return result
+  } finally {
+    await floor
+    setSpinning(false)
+  }
+}
