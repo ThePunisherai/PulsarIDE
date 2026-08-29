@@ -6,6 +6,14 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.43.0] - 2026-08-29
+
+### Added
+- **Prompt Master ships with the IDE.** A prompt-engineering skill (MIT,
+  nidhinjs/prompt-master) with templates for 30+ AI tools, now installed
+  alongside the other skills so any agent can use it. It only activates when you
+  actually ask for a prompt to be written or improved, so it stays out of the way.
+
 ## [0.42.0] - 2026-08-29
 
 ### Fixed

@@ -40,7 +40,15 @@ writeFileSync(join(HOME, '.gemini/settings.json'), JSON.stringify({ theme: 'Defa
 const r1 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('deploys on first run', r1.deployed === true)
 ok('100 team leads (README excluded)', r1.agents === 100)
-ok('48 skills incl. orchestration', r1.skills === 48 && existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) && existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')))
+// Counted from the bundle rather than written down here: a hardcoded number is
+// how the deploy gate went stale in the first place.
+const bundledSkills = readdirSync(join(REPO, 'ide/agent-bundle/skills'))
+  .filter((d) => existsSync(join(REPO, 'ide/agent-bundle/skills', d, 'SKILL.md'))).length
+ok(`every bundled skill deploys (${bundledSkills}), orchestration included`,
+  r1.skills === bundledSkills &&
+  existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) &&
+  existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')) &&
+  existsSync(join(HOME, '.claude/skills/prompt-master/SKILL.md')))
 ok('claude/gemini/codex all get the roster', readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulse-')).length === 100 && readdirSync(join(HOME, '.gemini/agents')).length === 100 && readdirSync(join(HOME, '.codex/agents')).filter(f => f.endsWith('.toml')).length === 100)
 try { execSync('python3 -c "import tomllib,sys;[tomllib.load(open(f,\'rb\')) for f in sys.argv[1:]]" ' + readdirSync(join(HOME, '.codex/agents')).map(f => join(HOME, '.codex/agents', f)).join(' ')); ok('every codex toml parses', true) } catch { ok('every codex toml parses', false) }
 ok('README.md is NOT deployed as an agent (would break Codex agent loading)',
