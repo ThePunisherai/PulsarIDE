@@ -38,18 +38,21 @@ PulsarIDE adds, in the sidebar, wired to the agents.
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
-| **Pulse Agent, pre-installed** | 100 team leads + **5,372 named specialists** + 48 skills ship inside the app and deploy on launch — Claude Code, Codex and Gemini CLI as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule — with graphify + Obsidian wired per project and the `planide` and `pulsar-tools` MCP servers registered, so every agent updates the board out of the box |
+| **Pulse Agent, pre-installed** | 100 team leads + **5,372 named specialists** + 51 skills ship inside the app and deploy on launch — Claude Code, Codex and Gemini CLI as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule, opencode through its own config — with graphify + Obsidian wired per project and the `planide` and `pulsar-tools` MCP servers registered, so every agent updates the board out of the box |
 | **The agent's own tools, everywhere** | `pulsar-tools` gives any agent — Codex and Cursor included, not just Claude Code — task routing across the whole roster, an anti-loop check so a failed approach is never retried, and binary triage through the bundled RE toolkit |
 | **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
 | **Live board** | The tracker watches the project, so an agent writing to the board updates what you are looking at — no refreshing |
 | **Brain Graph** | What the project's knowledge graph actually holds: size, the pieces everything hangs off, how things relate, and how much was read from the code versus inferred — plus **Rebuild**, which re-indexes the project for real and surfaces graphify's own report: god nodes, connections you did not know about, import cycles, and what it still cannot answer |
 | **Obsidian** | The vault, this project's note with a preview, and every project the agent has remembered |
+| **Archify** | Ask an agent to diagram the project and it appears here: architecture, workflow, sequence, data-flow and lifecycle diagrams as interactive HTML, drawn from the real code rather than invented. Kept in `.planide/diagrams` beside the board, with a re-render when the source moves on |
+| **Spec-driven development** | GitHub's Spec Kit workflow, bundled: specification, then plan, then task breakdown, then code — each stage landing on the board as it goes. Nothing to install |
+| **Better prompts** | Prompt Master ships with the app, so any agent can write a proper prompt for another tool instead of guessing at one |
 | **Its own theme** | Red on near-black — the palette the Pulse mark is drawn in — in light and dark, with every text pair contrast-checked in both. Not Orca's grey |
-| **Updates itself** | Orca's own updater, pointed at PulsarIDE releases |
+| **Updates itself** | Orca's own updater, pointed at PulsarIDE releases: it checks every two hours and fetches a new version in the background, so it is ready the moment you agree to install it |
 
 <img src="assets/screenshot-nav.png" alt="PulsarIDE with Tracker, Brain Graph and Open Design in the left sidebar" />
 
-<sub>The IDE itself. **Tracker**, **Brain Graph** and **Open Design** sit
+<sub>The IDE itself. **Tracker**, **Brain Graph**, **Open Design** and **Archify** sit
 together in the left sidebar -- each one a full page, and each also available as
 a side panel while you work.</sub>
 
@@ -166,7 +169,7 @@ PlanIDE/
 │   │                                store · detect · report · git · backup · ipc
 │   ├── overlay/src/preload/         the typed IPC bridge
 │   ├── overlay/src/renderer/…       the Tracker page + sidebar panel
-│   ├── agent-bundle/       Pulse Agent itself: 100 team leads, 48 skills, the
+│   ├── agent-bundle/       Pulse Agent itself: 100 team leads, 51 skills, the
 │   │                       memory hooks, the RE toolkit, and the tracker MCP
 │   ├── design/             the harness that renders the real surfaces in a
 │   │                       browser, so a design change is checked, not guessed
