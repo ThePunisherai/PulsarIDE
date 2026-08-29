@@ -475,3 +475,18 @@ export function archifyStatus(path: string): Promise<ArchifyStatus> {
 export function archifyRender(path: string, name: string, type: string): Promise<ArchifyRenderResult> {
   return call<ArchifyRenderResult>('archifyRender', path, name, type)
 }
+
+// ---- the graph, drawn ------------------------------------------------------- //
+
+export type GraphPictureNode = { id: string; label: string; degree: number; kind: string }
+export type GraphPictureEdge = { source: number; target: number; relation: string }
+export type GraphPicture = {
+  available: boolean
+  nodes: GraphPictureNode[]
+  edges: GraphPictureEdge[]
+  shownOf: { nodes: number; edges: number; totalNodes: number; totalEdges: number }
+}
+
+export function graphPicture(path: string): Promise<GraphPicture> {
+  return call<GraphPicture>('graphPicture', path)
+}

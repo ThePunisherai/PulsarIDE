@@ -15,7 +15,7 @@ import * as backup from './backup'
 import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
 import { detect } from './detect'
-import { memoryStatus } from './memory-status'
+import { graphPicture, memoryStatus } from './memory-status'
 import { readGraphReport, reindexGraph } from './graphify-run'
 import { connectOpenDesignToAgents, openDesignLaunch, openDesignStatus } from './open-design'
 import { archifyRender, archifyStatus } from './archify-run'
@@ -207,6 +207,7 @@ export function registerPlanIdeIpc(): void {
   // Reading the graph and building it are different actions: Refresh only
   // ever re-read, which is why it looked like it did nothing.
   on('planide:graph-report', (path: string) => readGraphReport(path))
+  on('planide:graph-picture', (path: string) => graphPicture(path))
   on('planide:reindex-graph', (path: string) => reindexGraph(path))
   // OpenDesign: read-only status, plus two explicitly user-triggered actions.
   on('planide:open-design-status', () => openDesignStatus())

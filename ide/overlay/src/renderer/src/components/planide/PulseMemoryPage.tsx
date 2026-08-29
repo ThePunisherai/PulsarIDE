@@ -25,7 +25,7 @@ import {
 export default function PulseMemoryPage(): React.JSX.Element {
   const worktree = useActiveWorktree()
   const worktreePath = worktree?.path ?? undefined
-  const { status, loading, refresh, report, rebuild, rebuilding, rebuildLog } =
+  const { status, loading, refresh, report, rebuild, rebuilding, rebuildLog, picture } =
     useMemory(worktreePath)
 
   if (!worktreePath) {
@@ -71,6 +71,7 @@ export default function PulseMemoryPage(): React.JSX.Element {
             onRebuild={rebuild}
             rebuilding={rebuilding}
             rebuildLog={rebuildLog}
+            picture={picture}
           />
         </section>
         <section className="min-w-0">

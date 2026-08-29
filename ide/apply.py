@@ -754,6 +754,7 @@ OVERLAY_FILES = [
     # Full-page versions of the two surfaces above, opened from the left nav.
     "src/renderer/src/components/planide/PulseMemoryPage.tsx",
     "src/renderer/src/components/planide/PulseDesignPage.tsx",
+    "src/renderer/src/components/planide/GraphCanvas.tsx",
     "src/renderer/src/components/planide/PulseArchify.tsx",
     "src/renderer/src/components/planide/PulseArchifyPage.tsx",
     "src/renderer/src/components/planide/PulseArchifyTab.tsx",

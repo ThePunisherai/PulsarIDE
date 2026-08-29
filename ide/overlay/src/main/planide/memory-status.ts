@@ -348,3 +348,111 @@ function obsidianStatus(projectPath: string, home: string): ObsidianStatus {
 export function memoryStatus(projectPath: string, home: string = homedir()): MemoryStatus {
   return { graphify: brainGraph(projectPath), obsidian: obsidianStatus(projectPath, home) }
 }
+
+// --------------------------------------------------------------------------- graph picture
+
+/**
+ * A drawable slice of the graph: the busiest nodes and the edges between them.
+ *
+ * The panel showed counts and bar charts but never a graph, which is the one
+ * thing a knowledge graph is for -- reported as "I see no graph". Drawing all
+ * of it is not the answer either: a real project here is ~2,000 nodes and
+ * ~4,900 edges, which renders as a hairball and costs a second of layout.
+ *
+ * So this returns the top `limit` nodes by degree and only the edges whose BOTH
+ * ends survive that cut. That is the same thing the hub list already claims is
+ * important, drawn instead of listed, and it stays honest about being a slice:
+ * `shownOf` reports what was kept against the real totals so the panel can say so.
+ */
+export type GraphPictureNode = {
+  id: string
+  label: string
+  degree: number
+  /** code / external / concept / doc ... whatever graphify tagged it. */
+  kind: string
+}
+
+export type GraphPictureEdge = {
+  /** Index into `nodes`, not an id: the renderer draws by position. */
+  source: number
+  target: number
+  relation: string
+}
+
+export type GraphPicture = {
+  available: boolean
+  nodes: GraphPictureNode[]
+  edges: GraphPictureEdge[]
+  /** How much of the whole graph this slice is. */
+  shownOf: { nodes: number; edges: number; totalNodes: number; totalEdges: number }
+}
+
+const EMPTY_PICTURE: GraphPicture = {
+  available: false,
+  nodes: [],
+  edges: [],
+  shownOf: { nodes: 0, edges: 0, totalNodes: 0, totalEdges: 0 }
+}
+
+export function graphPicture(projectPath: string, limit = 60): GraphPicture {
+  const graphPath = join(projectPath, 'graphify-out', 'graph.json')
+  if (!existsSync(graphPath)) return EMPTY_PICTURE
+  if (sizeOf(graphPath) > MAX_GRAPH_BYTES) return EMPTY_PICTURE
+
+  const data = readJson(graphPath) as { nodes?: RawNode[]; links?: RawLink[]; edges?: RawLink[] } | null
+  const rawNodes = Array.isArray(data?.nodes) ? data!.nodes : []
+  const rawLinks = Array.isArray(data?.links) ? data!.links : Array.isArray(data?.edges) ? data!.edges : []
+  if (!rawNodes.length) return EMPTY_PICTURE
+
+  const degree = new Map<string, number>()
+  for (const l of rawLinks) {
+    for (const end of [l.source, l.target]) {
+      if (typeof end === 'string') degree.set(end, (degree.get(end) ?? 0) + 1)
+    }
+  }
+
+  const byId = new Map<string, RawNode>()
+  for (const n of rawNodes) if (typeof n.id === 'string') byId.set(n.id, n)
+
+  const top = [...byId.keys()]
+    .sort((a, b) => (degree.get(b) ?? 0) - (degree.get(a) ?? 0) || a.localeCompare(b))
+    .slice(0, Math.max(1, limit))
+  const index = new Map(top.map((id, i) => [id, i]))
+
+  const nodes: GraphPictureNode[] = top.map((id) => {
+    const n = byId.get(id)!
+    return {
+      id,
+      label: typeof n.label === 'string' && n.label ? n.label : id,
+      degree: degree.get(id) ?? 0,
+      kind: typeof n.file_type === 'string' && n.file_type ? n.file_type : 'code'
+    }
+  })
+
+  // Only edges wholly inside the slice, and only one line per pair: the picture
+  // is about which pieces are connected, not how many times.
+  const seen = new Set<string>()
+  const edges: GraphPictureEdge[] = []
+  for (const l of rawLinks) {
+    if (typeof l.source !== 'string' || typeof l.target !== 'string') continue
+    const s = index.get(l.source)
+    const t = index.get(l.target)
+    if (s === undefined || t === undefined || s === t) continue
+    const key = s < t ? `${s}-${t}` : `${t}-${s}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    edges.push({ source: s, target: t, relation: typeof l.relation === 'string' ? l.relation : '' })
+  }
+
+  return {
+    available: true,
+    nodes,
+    edges,
+    shownOf: {
+      nodes: nodes.length,
+      edges: edges.length,
+      totalNodes: rawNodes.length,
+      totalEdges: rawLinks.length
+    }
+  }
+}

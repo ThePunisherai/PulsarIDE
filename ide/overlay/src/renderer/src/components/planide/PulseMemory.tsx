@@ -10,17 +10,20 @@
  * tracker's memory-sync have already written for this project. A missing graph,
  * vault or note is a normal "not yet" state, never an error.
  */
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { BookText, ExternalLink, Hammer, Network, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { useActiveWorktree } from '@/store/selectors'
+import { GraphCanvas } from './GraphCanvas'
 import {
   graphReport as fetchGraphReport,
+  graphPicture as fetchGraphPicture,
   reindexGraph as runReindexGraph,
   memoryStatus as fetchMemoryStatus,
   type BrainGraph,
+  type GraphPicture,
   type GraphReportSection,
   type MemoryStatus,
   type ObsidianStatus,
@@ -122,7 +125,8 @@ export function BrainGraphPanel({
   report,
   onRebuild,
   rebuilding,
-  rebuildLog
+  rebuildLog,
+  picture
 }: {
   graph: BrainGraph | null
   loading: boolean
@@ -133,6 +137,8 @@ export function BrainGraphPanel({
   rebuilding?: boolean
   /** graphify's own words when a rebuild fails -- shown rather than swallowed. */
   rebuildLog?: string
+  /** The drawable slice of the graph. Null until it has been read. */
+  picture?: GraphPicture | null
 }): React.JSX.Element {
   const CONFIDENCE_TONE: Record<string, string> = {
     EXTRACTED: 'bg-emerald-500/80',
@@ -207,6 +213,15 @@ export function BrainGraphPanel({
               label={translate('planide.brain.files', 'Files indexed')}
             />
           </div>
+
+          {picture?.available && (
+            <div className="rounded-xl border border-border bg-card/40 p-3.5">
+              <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {translate('planide.brain.shape', 'The shape of this project')}
+              </div>
+              <GraphCanvas picture={picture} />
+            </div>
+          )}
 
           {graph.hubs.length > 0 && (
             <div className="rounded-xl border border-border bg-card/40 p-3.5">
@@ -462,6 +477,13 @@ export function ObsidianPanel({
  * while it reads and stamps when it last read, because a refresh that finds
  * nothing new must still visibly have happened.
  */
+/**
+ * How old a graph may get before the panel refreshes it on its own. A day is
+ * long enough that a normal working session never triggers it, and short enough
+ * that the graph is not describing last week's code.
+ */
+const STALE_AFTER_MS = 24 * 60 * 60 * 1000
+
 export function useMemory(worktreePath: string | undefined): {
   status: MemoryStatus | null
   loading: boolean
@@ -470,23 +492,33 @@ export function useMemory(worktreePath: string | undefined): {
   rebuild: () => void
   rebuilding: boolean
   rebuildLog: string
+  picture: GraphPicture | null
+  autoRebuilt: boolean
 } {
   const [status, setStatus] = useState<MemoryStatus | null>(null)
   const [report, setReport] = useState<GraphReportSection[]>([])
   const [loading, setLoading] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
   const [rebuildLog, setRebuildLog] = useState('')
+  const [picture, setPicture] = useState<GraphPicture | null>(null)
+  const [autoRebuilt, setAutoRebuilt] = useState(false)
+  // One automatic rebuild per project per session. Rebuilding reads the whole
+  // project, so doing it on every visit would be a tax; never doing it is how
+  // the graph sat four days stale while agents worked in here daily.
+  const autoTried = useRef<string | null>(null)
 
   const refresh = useCallback(() => {
     if (!worktreePath) return
     void withVisibleSpin(setLoading, async () => {
-      const [s, r] = await Promise.all([
+      const [s, r, p] = await Promise.all([
         fetchMemoryStatus(worktreePath).catch(() => null),
         // Best-effort: a project with no report yet is a normal state, not an error.
-        fetchGraphReport(worktreePath).catch(() => [] as GraphReportSection[])
+        fetchGraphReport(worktreePath).catch(() => [] as GraphReportSection[]),
+        fetchGraphPicture(worktreePath).catch(() => null)
       ])
       setStatus(s)
       setReport(r ?? [])
+      setPicture(p)
     })
   }, [worktreePath])
 
@@ -516,12 +548,35 @@ export function useMemory(worktreePath: string | undefined): {
     if (!worktreePath) {
       setStatus(null)
       setReport([])
+      setPicture(null)
       return
     }
     refresh()
   }, [worktreePath, refresh])
 
-  return { status, loading, refresh, report, rebuild, rebuilding, rebuildLog }
+  /**
+   * Keep it current on its own.
+   *
+   * The graph only ever moved when someone pressed Rebuild, so in a project
+   * agents touch every day it read "updated 4 days ago" -- stale enough to be
+   * misleading rather than merely old. When the graph exists and is older than
+   * a day, rebuild it once, in the background, the first time this project is
+   * opened in this session. Bounded on purpose: never for a project with no
+   * graph yet (that is a deliberate first run, not a refresh), never twice, and
+   * never while one is already running.
+   */
+  useEffect(() => {
+    if (!worktreePath || rebuilding) return
+    if (autoTried.current === worktreePath) return
+    const graph = status?.graphify
+    if (!graph?.available || graph.updatedAt === null) return
+    if (Date.now() - graph.updatedAt < STALE_AFTER_MS) return
+    autoTried.current = worktreePath
+    setAutoRebuilt(true)
+    rebuild()
+  }, [worktreePath, status, rebuilding, rebuild])
+
+  return { status, loading, refresh, report, rebuild, rebuilding, rebuildLog, picture, autoRebuilt }
 }
 
 export function NoProject(): React.JSX.Element {
@@ -540,7 +595,7 @@ function SidebarScroll({ children }: { children: React.ReactNode }): React.JSX.E
 /** The Brain Graph, as its own right-sidebar tab. */
 export function BrainGraphSidebar(): React.JSX.Element {
   const worktreePath = useActiveWorktree()?.path ?? undefined
-  const { status, loading, refresh, report, rebuild, rebuilding, rebuildLog } =
+  const { status, loading, refresh, report, rebuild, rebuilding, rebuildLog, picture } =
     useMemory(worktreePath)
   if (!worktreePath) return <NoProject />
   return (
@@ -553,6 +608,7 @@ export function BrainGraphSidebar(): React.JSX.Element {
         onRebuild={rebuild}
         rebuilding={rebuilding}
         rebuildLog={rebuildLog}
+        picture={picture}
       />
     </SidebarScroll>
   )

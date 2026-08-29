@@ -6,6 +6,23 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.49.0] - 2026-08-29
+
+### Added
+- **Brain Graph finally shows a graph.** It reported counts, hubs and bars but
+  never drew the thing it is named after. It now draws the most connected pieces
+  of your project and the links between them — hover a node to light up what it
+  touches, sized by how connected it is and coloured by what it is. It shows the
+  busiest slice rather than all ~2,000 nodes, and says so, because the whole
+  thing at once is a hairball nobody can read.
+
+### Fixed
+- **The graph keeps itself current.** It only ever moved when you pressed
+  Rebuild, so in a project agents work in daily it sat reading "updated 4 days
+  ago". When it is more than a day old it now rebuilds itself once in the
+  background the first time you open that project — never for a project with no
+  graph yet, and never twice in a session.
+
 ## [0.48.0] - 2026-08-29
 
 ### Changed
