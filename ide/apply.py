@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "4bb337741c335cfcc428d3b4271023566e2dadb8"  # 2026-08-28, upstream HEAD
+PINNED_COMMIT = "51ed7d4f678de68b38eef14c79b473b84a6e55bc"  # 2026-08-28, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")

@@ -6,6 +6,12 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.46.0] - 2026-08-29
+
+### Changed
+- **Up to date with Orca again.** Everything PulsarIDE adds still applies cleanly
+  on top, checked before shipping rather than after.
+
 ## [0.45.0] - 2026-08-29
 
 ### Added
