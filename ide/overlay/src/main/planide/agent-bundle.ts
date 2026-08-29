@@ -14,8 +14,8 @@
  *    specialists. Deploying all of them blows Claude Code's ~15k-token
  *    agent-description budget; that is ThePunisher-Agent's own documented lesson.
  *    A team lead reads and adopts a specialist on demand.
- *  * Version-gated: it redeploys only when the bundled version changes, so a
- *    normal launch pays nothing.
+ *  * Content-gated: it redeploys only when the shipped bundle actually differs
+ *    from what was last written, so a normal launch pays nothing.
  *  * Reconcile-not-accumulate: it tracks exactly what it wrote in a marker file
  *    and removes only those on redeploy. It never touches an agent, skill or hook
  *    the user configured themselves.
@@ -24,6 +24,7 @@
  */
 
 import { execFileSync, spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   chmodSync,
   cpSync,
@@ -34,6 +35,7 @@ import {
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync
 } from 'node:fs'
 import { homedir } from 'node:os'
@@ -48,6 +50,12 @@ type Manifest = {
 
 type Marker = {
   bundle_version: string
+  /**
+   * Fingerprint of the bundle that was actually deployed. See bundleSignature.
+   * Optional because a marker written before this existed has none -- which is
+   * exactly the stale case it fixes, so its absence forces one redeploy.
+   */
+  signature?: string
   agents: string[] // absolute paths we wrote
   skills: string[] // skill names we deployed into ~/.claude/skills
   hooks: string[] // absolute hook-script paths we wrote
@@ -127,6 +135,52 @@ export function bundleRoot(opts: { resourcesPath?: string; appPath?: string } = 
 
 function readManifest(root: string): Manifest {
   return JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as Manifest
+}
+
+/**
+ * A fingerprint of what this app actually ships, used to decide whether a
+ * redeploy is needed.
+ *
+ * This replaces comparing `manifest.bundle_version`, which was a number someone
+ * had to remember to bump -- and did not. It was last raised for v0.22.0, so
+ * every bundle change after that (most visibly the 100 specialist files added
+ * in v0.34.0) was gated behind a version that never moved: an existing install
+ * hit `already at 2.0.0`, returned early, and never wrote them. Users then had
+ * agents pointed at a specialists directory that did not exist on their disk,
+ * which is exactly how it was reported. A forgotten constant should not be able
+ * to do that, so freshness is now derived from the content itself.
+ *
+ * Cheap on purpose: name + size of each file in the directories that matter,
+ * plus the manifest's own bytes. That catches an added, removed or edited file
+ * without reading a few hundred files in full at every launch.
+ */
+function bundleSignature(root: string): string {
+  const parts: string[] = []
+  try {
+    parts.push(readFileSync(join(root, 'manifest.json'), 'utf8'))
+  } catch {
+    /* no manifest -- the other entries still fingerprint the bundle */
+  }
+  for (const dir of ['agents', 'specialists', 'skills', 'tracker', 'hooks', 'tools']) {
+    const abs = join(root, dir)
+    let names: string[]
+    try {
+      names = readdirSync(abs).sort()
+    } catch {
+      parts.push(`${dir}:absent`)
+      continue
+    }
+    for (const name of names) {
+      let size = -1
+      try {
+        size = statSync(join(abs, name)).size
+      } catch {
+        /* vanished mid-scan -- record it as unreadable rather than fail */
+      }
+      parts.push(`${dir}/${name}:${size}`)
+    }
+  }
+  return createHash('sha1').update(parts.join('\n')).digest('hex')
 }
 
 /**
@@ -240,7 +294,10 @@ export function deployAgentBundle(
     const alreadyTracked = existsSync(join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs'))
     let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home) : false
 
-    if (!opts.force && prev && prev.bundle_version === manifest.bundle_version) {
+    // Redeploy whenever the shipped bundle differs from what was last written --
+    // by content, not by a version constant someone has to remember to bump.
+    const signature = bundleSignature(root)
+    if (!opts.force && prev && prev.signature === signature) {
       return skip(`already at ${manifest.bundle_version}`, mcpWired, alreadyTracked)
     }
 
@@ -383,6 +440,7 @@ export function deployAgentBundle(
 
     const marker: Marker = {
       bundle_version: manifest.bundle_version,
+      signature,
       agents: wroteAgents,
       skills: skillNames,
       hooks: hookWired ? [join(configDir(home), 'hooks')] : [],
@@ -949,9 +1007,35 @@ export function deployCursorRule(projectPath: string, home: string = homedir()):
 }
 
 /** Merge our managed block into a main-session context file, reconcile-not-accumulate. */
+/**
+ * ThePunisher-Agent's own installer merges a delimited block into these very
+ * files, and that block tells the model to answer as "ThePunisher". A user who
+ * ran both installers therefore kept seeing `ThePunisher — <team>` in PulsarIDE
+ * no matter how thoroughly the bundle was renamed to Pulse Agent -- reported
+ * exactly that way, with a screenshot -- because this file is always-loaded
+ * context for the MAIN session, which is not a subagent and so was never covered
+ * by superseding the roster files.
+ *
+ * Same rule as supersedeForeignRoster: PulsarIDE's copy wins, and only the other
+ * installer's own delimited block is removed. Anything the user wrote themselves
+ * is outside those markers and is kept verbatim. Nothing is lost either -- it is
+ * the same content under the new name, and re-running that installer restores it.
+ */
+const FOREIGN_BEGIN = '<!-- >>> ThePunisher (auto-managed installer block; edits below are replaced on reinstall) >>> -->'
+const FOREIGN_END = '<!-- <<< ThePunisher <<< -->'
+
+function dropForeignManagedBlock(text: string): string {
+  const start = text.indexOf(FOREIGN_BEGIN)
+  if (start === -1) return text
+  const end = text.indexOf(FOREIGN_END, start)
+  if (end === -1) return text
+  return (text.slice(0, start) + text.slice(end + FOREIGN_END.length)).replace(/\n{3,}/g, '\n\n')
+}
+
 function mergeManagedBlock(path: string, block: string): boolean {
   try {
     let text = existsSync(path) ? readFileSync(path, 'utf8') : ''
+    text = dropForeignManagedBlock(text)
     const managed = `${MANAGED_BEGIN}\n${block}\n${MANAGED_END}`
     if (text.includes(MANAGED_BEGIN) && text.includes(MANAGED_END)) {
       text = text.split(MANAGED_BEGIN)[0] + managed + (text.split(MANAGED_END)[1] ?? '')

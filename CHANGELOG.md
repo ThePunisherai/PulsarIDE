@@ -6,6 +6,27 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.40.0] - 2026-08-28
+
+### Fixed
+- **The specialists your agents were told to read were never installed.** Since
+  v0.22.0 the bundled agents, skills and the 100 specialist files only updated
+  when an internal version number changed — and it never did, so an existing
+  install skipped every update and agents pointed at a
+  `.config\pulsaride\specialists` folder that was not on disk. That is
+  where the errors and the repeated HALTs came from. PulsarIDE now decides by
+  what it actually ships, so it can no longer be forgotten.
+- **PulsarIDE stopped answering as "ThePunisher".** If you also ran
+  ThePunisher-Agent's installer, its block sat in the file every session loads
+  and told the model to sign as ThePunisher — so renaming the agent never
+  reached you. PulsarIDE's own block wins now. Anything you wrote yourself is
+  untouched, and re-running that installer restores its copy.
+- **The anti-loop stops fighting you.** One failure blocked an approach forever,
+  even after you fixed the cause, and a short note like "add a guard" blocked
+  everything containing those words. It now warns on the first failure and only
+  blocks on a genuine repeat, stops blocking on records older than a week, and
+  there is a way to clear one once the cause is fixed.
+
 ## [0.39.0] - 2026-08-28
 
 ### Fixed

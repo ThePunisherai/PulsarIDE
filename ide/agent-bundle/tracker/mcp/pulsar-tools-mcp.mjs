@@ -275,12 +275,41 @@ function writeRegistry(cwd, data) {
 
 const normalize = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim()
 
-/** Exact or containment either way -- a reworded repeat of the same approach. */
+/**
+ * A reworded repeat of the same approach.
+ *
+ * Containment is how a rewording is caught ("patch the loader" vs "patch the
+ * loader in place"), but it was applied to any length, so recording a short
+ * approach such as "add a guard" blocked every future approach whose text
+ * happened to contain it. That over-blocking is a large part of why this fired
+ * far more often than it should. Containment now needs both sides to be
+ * substantial; short approaches must match exactly.
+ */
+const MIN_CONTAINMENT_CHARS = 16
+
 function matches(prev, candidate) {
   const a = normalize(prev)
   const b = normalize(candidate)
   if (!a || !b) return false
-  return a === b || a.includes(b) || b.includes(a)
+  if (a === b) return true
+  const shorter = a.length < b.length ? a : b
+  if (shorter.length < MIN_CONTAINMENT_CHARS) return false
+  return a.includes(b) || b.includes(a)
+}
+
+/**
+ * How long a recorded failure keeps blocking.
+ *
+ * A failure is evidence about the code as it was that day. Environments change,
+ * dependencies get installed, a missing directory appears -- and an approach
+ * that failed then can be the right one now. Past this window the record stays
+ * as advice but stops refusing the work.
+ */
+const BLOCK_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+const ageMs = (iso) => {
+  const t = Date.parse(iso ?? '')
+  return Number.isFinite(t) ? Date.now() - t : Infinity
 }
 
 // --------------------------------------------------------------------------- RE triage
@@ -349,16 +378,39 @@ const TOOLS = [
       if (!approach) throw new Error('approach is required')
       const reg = readRegistry(str(args.cwd) || '.')
       const hit = reg.failed.find((f) => matches(f.approach, approach))
-      return hit
-        ? {
-            blocked: true,
-            approach: hit.approach,
-            problem: hit.problem ?? '',
-            error: hit.error ?? '',
-            recorded_at: hit.at ?? '',
-            guidance: 'This already failed here. Choose a different approach.'
-          }
-        : { blocked: false, guidance: 'Not tried before. Record it if it fails.' }
+      if (!hit) return { blocked: false, guidance: 'Not tried before. Record it if it fails.' }
+
+      const attempts = Number(hit.count) || 1
+      const stale = ageMs(hit.at) > BLOCK_TTL_MS
+      // One failure is not a loop -- it can be a transient or a since-fixed
+      // cause, and refusing on it made this halt work that would have
+      // succeeded. Blocking starts at the second failure of the same approach,
+      // and lapses once the record is old enough to no longer be evidence.
+      const blocked = attempts >= 2 && !stale
+      const shared = {
+        approach: hit.approach,
+        problem: hit.problem ?? '',
+        error: hit.error ?? '',
+        recorded_at: hit.at ?? '',
+        attempts
+      }
+      if (blocked) {
+        return {
+          ...shared,
+          blocked: true,
+          guidance:
+            'This approach failed ' + attempts + ' times here. Pivot rather than retry. ' +
+            'If you have since fixed what made it fail, call clear_anti_loop and try again.'
+        }
+      }
+      return {
+        ...shared,
+        blocked: false,
+        warning: stale
+          ? 'Tried before and failed, but that record is over a week old, so it is advice rather than a block.'
+          : 'Tried once before and failed. Proceed only if you are addressing the reason it failed.',
+        guidance: 'Not blocked. Record it again if it fails, which does block it.'
+      }
     }
   },
   {
@@ -380,17 +432,65 @@ const TOOLS = [
       if (!approach) throw new Error('approach is required')
       const cwd = str(args.cwd) || '.'
       const reg = readRegistry(cwd)
-      if (reg.failed.some((f) => matches(f.approach, approach))) {
-        return { recorded: false, note: 'Already recorded.', total: reg.failed.length }
+      const hit = reg.failed.find((f) => matches(f.approach, approach))
+      if (hit) {
+        // A repeat is the signal this exists to catch, so count it rather than
+        // discarding it: the second failure is what turns a warning into a block.
+        hit.count = (Number(hit.count) || 1) + 1
+        hit.at = new Date().toISOString()
+        if (str(args.error)) hit.error = str(args.error)
+        writeRegistry(cwd, reg)
+        return {
+          recorded: false,
+          note: 'Already recorded; counted as another failure of the same approach.',
+          attempts: hit.count,
+          blocking: hit.count >= 2,
+          total: reg.failed.length
+        }
       }
       reg.failed.push({
         problem: str(args.problem),
         approach,
         error: str(args.error),
-        at: new Date().toISOString()
+        at: new Date().toISOString(),
+        count: 1
       })
       writeRegistry(cwd, reg)
-      return { recorded: true, total: reg.failed.length }
+      return { recorded: true, attempts: 1, blocking: false, total: reg.failed.length }
+    }
+  },
+  {
+    name: 'clear_anti_loop',
+    description:
+      'Clear a recorded failure once you have fixed what made it fail, so that approach is allowed again. Use it when the cause is genuinely gone (a missing file now exists, a dependency is installed), never to get past a block you have not addressed.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        approach: { type: 'string', description: 'The approach to unblock. Omit with all=true to clear every record.' },
+        all: { type: 'boolean', description: 'Clear every recorded failure in this project.' },
+        cwd: { type: 'string', description: 'Project directory (default: current).' }
+      },
+      required: []
+    },
+    run: (args) => {
+      const cwd = str(args.cwd) || '.'
+      const reg = readRegistry(cwd)
+      const before = reg.failed.length
+      if (args.all === true) {
+        reg.failed = []
+        writeRegistry(cwd, reg)
+        return { cleared: before, remaining: 0 }
+      }
+      const approach = str(args.approach)
+      if (!approach) throw new Error('approach is required (or pass all: true)')
+      reg.failed = reg.failed.filter((f) => !matches(f.approach, approach))
+      const cleared = before - reg.failed.length
+      writeRegistry(cwd, reg)
+      return {
+        cleared,
+        remaining: reg.failed.length,
+        note: cleared ? 'That approach is allowed again.' : 'Nothing matched; nothing was blocking it.'
+      }
     }
   },
   {

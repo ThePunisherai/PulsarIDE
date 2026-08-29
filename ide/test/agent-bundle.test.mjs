@@ -255,5 +255,44 @@ ok("someone else's SessionStart hook survives alongside ours",
 ok('no temp file is left behind by the atomic write',
   readdirSync(join(HOME4, '.claude')).every((f) => !f.includes('.tmp')))
 
+// --- a stale install must catch up ----------------------------------------- //
+// This is the bug that made agents point at a specialists directory that was not
+// on disk. bundle_version was last raised for v0.22.0, so every later change --
+// including the 100 specialist files -- sat behind a version that never moved:
+// an existing install returned "already at 2.0.0" and wrote nothing, forever.
+// Freshness now comes from the bundle's own content, so a forgotten constant
+// cannot strand anyone again.
+const HOME5 = join(work, 'home-stale')
+mkdirSync(join(HOME5, '.config/pulsaride'), { recursive: true })
+writeFileSync(join(HOME5, '.config/pulsaride/agent-bundle.json'),
+  JSON.stringify({ bundle_version: '2.0.0', agents: [], skills: [], hooks: [] }))
+const stale = deployAgentBundle({ home: HOME5, resourcesPath: res, provisionPyEnv: false })
+ok('an install marked with the current bundle_version but missing content redeploys',
+  stale.deployed === true)
+ok('and the specialists the team leads are told to read actually land',
+  existsSync(join(HOME5, '.config/pulsaride/specialists')) &&
+  readdirSync(join(HOME5, '.config/pulsaride/specialists')).length > 50)
+const settled = deployAgentBundle({ home: HOME5, resourcesPath: res, provisionPyEnv: false })
+ok('once it matches, a normal launch still costs nothing', settled.deployed === false)
+
+// --- the other installer's block must not keep speaking for us -------------- //
+// ThePunisher-Agent's installer merges its own delimited block into these files,
+// and that block tells the model to answer as "ThePunisher". It is always-loaded
+// main-session context, so renaming the roster never silenced it.
+const HOME6 = join(work, 'home-foreign')
+mkdirSync(join(HOME6, '.claude'), { recursive: true })
+writeFileSync(join(HOME6, '.claude/CLAUDE.md'),
+  '# My own notes\n\nkeep me\n\n' +
+  '<!-- >>> ThePunisher (auto-managed installer block; edits below are replaced on reinstall) >>> -->\n' +
+  'Begin every reply with the ThePunisher banner.\n' +
+  '<!-- <<< ThePunisher <<< -->\n')
+deployAgentBundle({ home: HOME6, resourcesPath: res, force: true, provisionPyEnv: false })
+const merged = readFileSync(join(HOME6, '.claude/CLAUDE.md'), 'utf8')
+ok("the other installer's managed block is superseded, not left to answer as ThePunisher",
+  !merged.includes('>>> ThePunisher') && !merged.includes('ThePunisher banner'))
+ok('everything the user wrote themselves is kept verbatim',
+  merged.includes('# My own notes') && merged.includes('keep me'))
+ok('and our own block is what speaks now', merged.includes('PULSAR:MAIN:BEGIN'))
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

@@ -54,8 +54,8 @@ ok('it identifies itself as pulsar-tools', byId(hs, 1).result.serverInfo.name ==
 ok('it echoes the protocol version the client asked for',
   byId(hs, 1).result.protocolVersion === '2026-06-18')
 const names = byId(hs, 2).result.tools.map((t) => t.name).sort()
-ok('it offers exactly the four tools the agents are told to call',
-  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 're_triage', 'record_anti_loop_failure', 'route_task']))
+ok('it offers exactly the tools the agents are told to call',
+  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 're_triage', 'record_anti_loop_failure', 'route_task']))
 ok('an initialized notification is never answered', !hs.some((r) => r.id === undefined && r.result))
 
 // --- routing: the cases the first implementation got wrong ------------------ //
@@ -99,16 +99,23 @@ const loop = await drive([
   call(33, 'check_anti_loop', { approach: 'Patch  The  Loader  In  Place', cwd: proj }),
   call(34, 'check_anti_loop', { approach: 'rebuild from source', cwd: proj }),
   call(35, 'record_anti_loop_failure', { problem: 'crash on boot', approach: 'patch the loader in place', error: 'again', cwd: proj }),
+  call(37, 'check_anti_loop', { approach: 'patch the loader in place', cwd: proj }),
   call(36, 'check_anti_loop', { cwd: proj })
 ])
 ok('a novel approach is not blocked', json(byId(loop, 30)).blocked === false)
 ok('recording a failure reports it was written', json(byId(loop, 31)).recorded === true)
-ok('the same approach is then blocked', json(byId(loop, 32)).blocked === true)
-ok('a reworded repeat is blocked too -- spacing and case are not a new idea',
-  json(byId(loop, 33)).blocked === true)
+// One failure is not a loop: it warns and lets the work proceed. Refusing on a
+// single failure halted work that would have succeeded once its cause was fixed.
+ok('one failure warns rather than blocks',
+  json(byId(loop, 32)).blocked === false && typeof json(byId(loop, 32)).warning === 'string')
+ok('the second failure of the same approach is what blocks it',
+  json(byId(loop, 37)).blocked === true && json(byId(loop, 37)).attempts === 2)
+ok('a reworded repeat is recognised as the same approach -- spacing and case are not a new idea',
+  json(byId(loop, 33)).attempts >= 1)
 ok('an unrelated approach stays open', json(byId(loop, 34)).blocked === false)
-ok('recording the same failure twice does not duplicate it',
-  json(byId(loop, 35)).recorded === false && json(byId(loop, 35)).total === 1)
+ok('a repeat is counted rather than discarded -- the count is what escalates',
+  json(byId(loop, 35)).recorded === false && json(byId(loop, 35)).attempts === 2 &&
+  json(byId(loop, 35)).blocking === true && json(byId(loop, 35)).total === 1)
 ok('a missing required argument is a correctable tool error, not a crash',
   byId(loop, 36).result.isError === true)
 
@@ -116,7 +123,24 @@ const registry = join(proj, '.thepunisher', 'failed-registry.json')
 ok('it writes the same registry file the CLI anti-loop uses', existsSync(registry))
 const reg = JSON.parse(readFileSync(registry, 'utf8'))
 ok('with the shape that file is expected to have',
-  Array.isArray(reg.failed) && reg.failed.length === 1 && typeof reg.failed[0].at === 'string')
+  Array.isArray(reg.failed) && reg.failed.length === 1 && typeof reg.failed[0].at === 'string' &&
+  reg.failed[0].count === 2)
+
+// Clearing gets its own project: it empties the registry, which would pull the
+// file-shape assertions above out from under themselves.
+const cleared = mkdtempSync(join(tmpdir(), 'pulsar-clear-'))
+const clr = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(60, 'record_anti_loop_failure', { problem: 'p', approach: 'rewrite the parser by hand', error: 'e', cwd: cleared }),
+  call(61, 'record_anti_loop_failure', { problem: 'p', approach: 'rewrite the parser by hand', error: 'e', cwd: cleared }),
+  call(62, 'check_anti_loop', { approach: 'rewrite the parser by hand', cwd: cleared }),
+  call(63, 'clear_anti_loop', { approach: 'rewrite the parser by hand', cwd: cleared }),
+  call(64, 'check_anti_loop', { approach: 'rewrite the parser by hand', cwd: cleared })
+])
+ok('a blocked approach can be cleared once its cause is fixed',
+  json(byId(clr, 62)).blocked === true &&
+  json(byId(clr, 63)).cleared === 1 &&
+  json(byId(clr, 64)).blocked === false)
 
 // --- re_triage -------------------------------------------------------------- //
 const triage = await drive([
