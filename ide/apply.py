@@ -581,6 +581,30 @@ EDITS: list[tuple[str, str, str, str]] = [
     # PulsarIDE user who switches channel would have Orca builds downloaded and
     # installed OVER PulsarIDE -- the worst version of the two apps mixing. We
     # publish one repo, so every channel resolves to it.
+    #
+    # Upstream checks once every 24 hours, and the focus/wake re-check only fires
+    # once that day has passed. For an app that ships several releases in an
+    # afternoon a fix can sit unseen until tomorrow -- reported as wanting the
+    # IDE to pick up a release when one is made. Two hours is still one cheap
+    # request against a static feed.
+    (
+        "src/main/updater.ts",
+        "const AUTO_UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000",
+        "const AUTO_UPDATE_CHECK_INTERVAL_MS = 2 * 60 * 60 * 1000",
+        "check for updates every 2h, not once a day",
+    ),
+    # And fetch it once found. With autoDownload off you are told an update
+    # exists and then have to ask for it, so nothing happens until two separate
+    # decisions have been made. Downloading is the slow part, so doing it in the
+    # background means the update is ready the moment you agree to install it.
+    # Installing stays explicit -- autoInstallOnAppQuit is untouched, so nothing
+    # is applied under you mid-session.
+    (
+        "src/main/updater.ts",
+        "  autoUpdater.autoDownload = false",
+        "  autoUpdater.autoDownload = true",
+        "download a found update in the background",
+    ),
     (
         "src/shared/release-channel.ts",
         "export const HOURLY_RELEASE_REPO = 'stablyai/orca-hourly'",
