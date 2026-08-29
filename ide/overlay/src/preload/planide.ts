@@ -59,6 +59,9 @@ export const planIdeApi = {
   openDesignStatus: <T>() => call<T>('planide:open-design-status'),
   openDesignConnect: <T>(agents: string[]) => call<T>('planide:open-design-connect', agents),
   openDesignLaunch: <T>() => call<T>('planide:open-design-launch'),
+  archifyStatus: <T>(path: string) => call<T>('planide:archify-status', path),
+  archifyRender: <T>(path: string, name: string, type: string) =>
+    call<T>('planide:archify-render', path, name, type),
 
   /**
    * Live board updates. The main process watches the project's state.json and

@@ -443,3 +443,35 @@ export async function withVisibleSpin<T>(
     setSpinning(false)
   }
 }
+
+// ---- archify: the project's diagrams ---------------------------------------- //
+
+export type ArchifyDiagram = {
+  name: string
+  type: string
+  source: string
+  html?: string
+  stale: boolean
+  updatedAt: number
+}
+
+export type ArchifyStatus = {
+  available: boolean
+  dir: string
+  diagrams: ArchifyDiagram[]
+}
+
+export type ArchifyRenderResult = {
+  ok: boolean
+  html?: string
+  log: string
+  missing: boolean
+}
+
+export function archifyStatus(path: string): Promise<ArchifyStatus> {
+  return call<ArchifyStatus>('archifyStatus', path)
+}
+
+export function archifyRender(path: string, name: string, type: string): Promise<ArchifyRenderResult> {
+  return call<ArchifyRenderResult>('archifyRender', path, name, type)
+}

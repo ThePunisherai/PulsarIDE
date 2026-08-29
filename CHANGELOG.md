@@ -6,6 +6,21 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.45.0] - 2026-08-29
+
+### Added
+- **Archify, in the left sidebar.** Ask an agent to diagram this project and the
+  result appears under Archify — architecture, workflow, sequence, data-flow and
+  lifecycle diagrams as interactive HTML you can open. Diagrams live in
+  `.planide/diagrams` beside the board, the panel shows when one is out of date
+  with its source, and re-rendering is one click. It is bundled (MIT,
+  tt-a1i/archify) and runs on the IDE's own Node, so there is nothing to install.
+- **Spec-driven development.** GitHub's Spec Kit workflow (MIT) ships as a skill:
+  specification first, then a technical plan, then a task breakdown, then the
+  code. The agents put each stage on the board as they go, so you can see where a
+  feature is without reading the documents. No install — the Python CLI is not
+  needed for the workflow itself.
+
 ## [0.44.0] - 2026-08-29
 
 ### Added

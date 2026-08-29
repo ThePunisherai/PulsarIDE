@@ -18,6 +18,7 @@ import { detect } from './detect'
 import { memoryStatus } from './memory-status'
 import { readGraphReport, reindexGraph } from './graphify-run'
 import { connectOpenDesignToAgents, openDesignLaunch, openDesignStatus } from './open-design'
+import { archifyRender, archifyStatus } from './archify-run'
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { deployCursorRule } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
@@ -211,6 +212,12 @@ export function registerPlanIdeIpc(): void {
   on('planide:open-design-status', () => openDesignStatus())
   on('planide:open-design-connect', (agents: string[]) => connectOpenDesignToAgents(agents))
   on('planide:open-design-launch', () => openDesignLaunch())
+  // Archify: list this project's diagrams, and render one on request. The
+  // render takes a name and a type rather than a path, so nothing from the
+  // renderer is ever joined onto disk.
+  on('planide:archify-status', (path: string) => archifyStatus(path))
+  on('planide:archify-render', (path: string, name: string, type: string) =>
+    archifyRender(path, name, type))
 
   // ---- git --------------------------------------------------------------- //
   on('planide:git-status', (path: string) => git.status(path))

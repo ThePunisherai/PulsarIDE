@@ -39,6 +39,7 @@
     "../overlay/src/main/planide/doc-clean.ts",
     "../overlay/src/main/planide/git.ts",
     "../overlay/src/main/planide/graphify-run.ts",
+    "../overlay/src/main/planide/archify-run.ts",
     "../overlay/src/main/planide/memory-status.ts",
     "../overlay/src/main/planide/memory-sync.ts",
     "../overlay/src/main/planide/open-design.ts",
