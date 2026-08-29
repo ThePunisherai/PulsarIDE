@@ -6,6 +6,15 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.42.0] - 2026-08-29
+
+### Fixed
+- **The logo inside the app matches the icon now.** The app icon was repainted
+  red-on-black, but the logo the interface itself uses — landing screen, title
+  bar, onboarding, settings — was never repainted with it, so it stayed
+  blue-violet and clashed with the theme everywhere it appeared. The alternate
+  icons under Settings had the same problem and were regenerated too.
+
 ## [0.41.0] - 2026-08-28
 
 ### Fixed

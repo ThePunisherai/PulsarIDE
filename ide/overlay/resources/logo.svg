@@ -1,17 +1,25 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PulsarIDE">
+  <!--
+    The in-app logo: the same mark as the app icon (assets/icon.svg), in the same
+    red-on-black palette, but with no background plate so it sits on any surface.
+    It is imported by the landing screen, the title bar, onboarding and settings.
+    Keep it in step with assets/icon.svg: it was left on the old blue/violet
+    palette when the icon was repainted, so the whole UI showed a logo that
+    clashed with its own theme.
+  -->
   <defs>
     <radialGradient id="lg-core" cx="0.5" cy="0.5" r="0.5">
       <stop stop-color="#ffffff"/>
-      <stop offset="0.45" stop-color="#c9d8ff"/>
-      <stop offset="1" stop-color="#6d4fe0"/>
+      <stop offset="0.45" stop-color="#ffd9d6"/>
+      <stop offset="1" stop-color="#c81f22"/>
     </radialGradient>
     <radialGradient id="lg-halo" cx="0.5" cy="0.5" r="0.5">
-      <stop stop-color="#8ab4ff" stop-opacity="0.55"/>
-      <stop offset="1" stop-color="#6d4fe0" stop-opacity="0"/>
+      <stop stop-color="#ff453a" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#c81f22" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="lg-beamA" x1="64" y1="64" x2="118" y2="18" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8ab4ff" stop-opacity="0.85"/>
-      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+      <stop stop-color="#ff453a" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#ff453a" stop-opacity="0"/>
     </linearGradient>
     <linearGradient id="lg-beamB" x1="64" y1="64" x2="10" y2="110" gradientUnits="userSpaceOnUse">
       <stop stop-color="#b39bff" stop-opacity="0.8"/>
@@ -22,13 +30,13 @@
   <!-- pulse rings: the star's beat, seen edge-on as an ellipse -->
   <g stroke-linecap="round" fill="none">
     <ellipse cx="64" cy="64" rx="46" ry="16" transform="rotate(-38 64 64)" stroke="#b39bff" stroke-opacity="0.20" stroke-width="2.5"/>
-    <ellipse cx="64" cy="64" rx="31" ry="10.5" transform="rotate(-38 64 64)" stroke="#8ab4ff" stroke-opacity="0.28" stroke-width="2.5"/>
+    <ellipse cx="64" cy="64" rx="31" ry="10.5" transform="rotate(-38 64 64)" stroke="#ff453a" stroke-opacity="0.28" stroke-width="2.5"/>
   </g>
 
   <!-- the two relativistic beams sweeping from the poles -->
   <path d="M64 64 L122 12 L108 38 Z" fill="url(#lg-beamA)"/>
   <path d="M64 64 L6 116 L20 90 Z" fill="url(#lg-beamB)"/>
-  <line x1="64" y1="64" x2="118" y2="14" stroke="#8ab4ff" stroke-width="3.5" stroke-linecap="round" stroke-opacity="0.9"/>
+  <line x1="64" y1="64" x2="118" y2="14" stroke="#ff453a" stroke-width="3.5" stroke-linecap="round" stroke-opacity="0.9"/>
   <line x1="64" y1="64" x2="10" y2="114" stroke="#b39bff" stroke-width="3.5" stroke-linecap="round" stroke-opacity="0.85"/>
 
   <!-- the neutron-star core -->
