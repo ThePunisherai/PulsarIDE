@@ -6,6 +6,16 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.48.0] - 2026-08-29
+
+### Changed
+- **The rest of the IDE looks like the rest of the IDE.** The theme dressed
+  PulsarIDE's own panels, but the editor, settings and dialogs still used browser
+  defaults: text selected in blue, scrollbars in the platform's light grey on a
+  near-black window, and keyboard focus you had to hunt for. Selection, carets,
+  focus rings, scrollbars and plain links now follow the same palette everywhere,
+  including on screens PulsarIDE did not build.
+
 ## [0.47.0] - 2026-08-29
 
 ### Fixed
