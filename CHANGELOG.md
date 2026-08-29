@@ -6,6 +6,16 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.44.0] - 2026-08-29
+
+### Added
+- **opencode gets the tracker too.** It is one of the agents PulsarIDE runs, and
+  it was the only one with no tracker tools. Its config is a different shape from
+  the others, so this was written against opencode's own documentation rather
+  than assumed. If you keep your own global rules file it gets the Pulse Agent
+  block added to it; if you do not, nothing is created, because opencode already
+  falls back to the Claude file that has it.
+
 ## [0.43.0] - 2026-08-29
 
 ### Added

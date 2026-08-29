@@ -302,5 +302,39 @@ ok('everything the user wrote themselves is kept verbatim',
   merged.includes('# My own notes') && merged.includes('keep me'))
 ok('and our own block is what speaks now', merged.includes('PULSAR:MAIN:BEGIN'))
 
+// --- opencode: a genuinely different config shape ---------------------------- //
+// Verified against opencode's own docs source, not assumed to be Claude-shaped:
+// servers live under `mcp`, a local one is typed, command and args are ONE array,
+// and the environment key is `environment`.
+const oc = JSON.parse(readFileSync(join(HOME, '.config/opencode/opencode.json'), 'utf8'))
+ok('opencode gets the tracker under its own `mcp` key', Boolean(oc.mcp?.planide))
+ok('as a typed local server with command and args in one array',
+  oc.mcp.planide.type === 'local' && Array.isArray(oc.mcp.planide.command) &&
+  oc.mcp.planide.command.length >= 2 && oc.mcp.planide.enabled === true)
+ok('and env under `environment`, which is what opencode reads',
+  oc.mcp.planide.environment === undefined || typeof oc.mcp.planide.environment === 'object')
+
+// opencode falls back to ~/.claude/CLAUDE.md when it has no global AGENTS.md, and
+// our block is already there. Creating one would switch that fallback off and
+// silently drop whatever else the user keeps in the Claude file.
+ok('no global AGENTS.md is invented for opencode -- its fallback already has us',
+  !existsSync(join(HOME, '.config/opencode/AGENTS.md')))
+const HOME7 = join(work, 'home-opencode')
+mkdirSync(join(HOME7, '.config/opencode'), { recursive: true })
+writeFileSync(join(HOME7, '.config/opencode/AGENTS.md'), '# mine\n\nkeep this\n')
+deployAgentBundle({ home: HOME7, resourcesPath: res, force: true, provisionPyEnv: false })
+const ocRules = readFileSync(join(HOME7, '.config/opencode/AGENTS.md'), 'utf8')
+ok('but a global AGENTS.md the user already keeps does get the block, additively',
+  ocRules.includes('PULSAR:MAIN:BEGIN') && ocRules.includes('keep this'))
+
+// An unparseable config is opencode's own state, never ours to rewrite.
+const HOME8 = join(work, 'home-opencode-jsonc')
+mkdirSync(join(HOME8, '.config/opencode'), { recursive: true })
+const jsonc = '{\n  // opencode config may legally carry comments\n  "theme": "mine"\n}\n'
+writeFileSync(join(HOME8, '.config/opencode/opencode.json'), jsonc)
+deployAgentBundle({ home: HOME8, resourcesPath: res, force: true, provisionPyEnv: false })
+ok('a config with comments is left exactly as it was, not clobbered',
+  readFileSync(join(HOME8, '.config/opencode/opencode.json'), 'utf8') === jsonc)
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

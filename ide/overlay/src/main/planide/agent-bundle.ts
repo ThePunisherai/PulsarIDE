@@ -805,6 +805,74 @@ function registerPlanideMcpCursor(home: string): boolean {
 }
 
 /**
+ * Register the `planide` MCP for opencode in `~/.config/opencode/opencode.json`.
+ *
+ * opencode is one of the agents Orca runs, and its config is genuinely NOT the
+ * Claude shape -- verified against opencode's own docs source
+ * (packages/web/src/content/docs/mcp-servers.mdx and config.mdx) rather than
+ * assumed: servers live under `mcp` (not `mcpServers`), a local one is typed
+ * `"type": "local"`, the command and its arguments are ONE array, and the
+ * environment key is `environment` (not `env`). Global config is
+ * `~/.config/opencode/opencode.json`.
+ *
+ * Reconcile-not-accumulate, same as every other agent here: only our own keys
+ * are written, and an unparseable config (it may legally be JSONC with comments)
+ * is left completely alone rather than clobbered.
+ */
+function registerPlanideMcpOpenCode(home: string): boolean {
+  try {
+    const path = join(home, '.config', 'opencode', 'opencode.json')
+    let config: Record<string, unknown> = {}
+    if (existsSync(path)) {
+      try {
+        config = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+      } catch {
+        // Comments are legal here; a file we cannot parse is not ours to rewrite.
+        return false
+      }
+    }
+    const servers = (config.mcp ??= {}) as Record<string, unknown>
+    const launch = mcpLaunch(home)
+    servers.planide = {
+      type: 'local',
+      command: [launch.command, ...launch.args],
+      enabled: true,
+      ...(launch.env ? { environment: launch.env } : {})
+    }
+    const tools = toolsMcpLaunch(home)
+    if (tools) {
+      servers['pulsar-tools'] = {
+        type: 'local',
+        command: [tools.command, ...tools.args],
+        enabled: true,
+        ...(tools.env ? { environment: tools.env } : {})
+      }
+    }
+    mkdirSync(dirname(path), { recursive: true })
+    writeConfigAtomic(path, JSON.stringify(config, null, 2))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * opencode's global rules file, but only when the user already has one.
+ *
+ * opencode reads `~/.config/opencode/AGENTS.md` and, per its own docs, falls
+ * back to `~/.claude/CLAUDE.md` when that file does not exist. Our block is
+ * already in the latter, so creating the former would gain nothing and would
+ * actively COST the user: it would switch opencode off the Claude file and
+ * silently drop everything else they keep there. So we only merge into it when
+ * it already exists, and otherwise leave the fallback doing its job.
+ */
+function mergeOpenCodeRules(home: string, block: string): void {
+  const path = join(home, '.config', 'opencode', 'AGENTS.md')
+  if (!existsSync(path)) return
+  mergeManagedBlock(path, block)
+}
+
+/**
  * Register the `planide` MCP for Gemini CLI and Antigravity in
  * `~/.gemini/settings.json` (user scope). Both are Gemini-based and read this
  * same file's `mcpServers` map — verified against google-gemini/gemini-cli's own
@@ -1062,13 +1130,18 @@ function registerTrackerForAllAgents(home: string): boolean {
   const codex = registerPlanideMcpCodex(home)
   registerPlanideMcpCursor(home)
   const gemini = registerPlanideMcpGemini(home)
+  const opencode = registerPlanideMcpOpenCode(home)
   const block = mainSessionBlock(home)
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
   mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)
   mergeManagedBlock(join(home, '.gemini', 'GEMINI.md'), block)
+  // opencode reads ~/.claude/CLAUDE.md and ~/.claude/skills when it has no
+  // global AGENTS.md of its own, so it already has the block above. This only
+  // adds it where the user keeps their own file, which turns that fallback off.
+  mergeOpenCodeRules(home, block)
   // Antigravity's own native surface, on top of the shared GEMINI.md block.
   deployAntigravitySkill(home, block)
-  return claude || codex || gemini
+  return claude || codex || gemini || opencode
 }
 
 /**
