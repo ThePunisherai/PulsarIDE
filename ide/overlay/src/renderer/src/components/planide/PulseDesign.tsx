@@ -88,7 +88,25 @@ export function OpenDesignSidebar(): React.JSX.Element {
               'An open-source design engine your agents can drive: prototypes, dashboards, decks and documents, exported as real HTML, PDF, PPTX or MP4. Install the desktop app, then come back here to connect it to your agents.'
             )}
           </p>
-          <div className="mt-2 font-mono text-[10.5px] text-muted-foreground/80">open-design.ai</div>
+          {/* A real link, not a string to retype. OpenDesign is a separate desktop
+              app -- it publishes no npm package, so it genuinely cannot be
+              bundled the way the ThreeUI components are -- which makes getting
+              there in one click the most this panel can honestly do. */}
+          <a
+            href="https://open-design.ai"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1 font-mono text-[10.5px] text-muted-foreground/80 underline underline-offset-2 hover:text-foreground"
+          >
+            open-design.ai
+            <ExternalLink size={10} />
+          </a>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            {translate(
+              'planide.design.threeuiHint',
+              'For design work that needs nothing installed, 44 ThreeUI components (React + three.js backgrounds, shaders and 3D UI) already ship with PulsarIDE — ask an agent for one and it will adapt it into your project.'
+            )}
+          </p>
         </div>
       )}
 

@@ -35,6 +35,13 @@ is broken, what must not be touched, and what the agents have been doing.
   fits beside the numbers; graphify also writes a full explorable view of the
   same graph, and there was no way to reach it. Now there is.
 
+### Changed
+- **The Open Design panel is honest and reachable.** Open Design is a separate
+  desktop app that publishes no package we can install for you, so it cannot be
+  bundled the way the ThreeUI components are. The panel now at least gets you
+  there in one click instead of printing an address to retype, and points at the
+  44 design components that are already installed.
+
 ## [0.50.0] - 2026-08-30
 
 ### Added
