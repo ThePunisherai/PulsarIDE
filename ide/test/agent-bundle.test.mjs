@@ -6,7 +6,7 @@
  * can find ide/agent-bundle.
  */
 import { execSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
+import { cpSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -282,6 +282,47 @@ ok('and the specialists the team leads are told to read actually land',
   readdirSync(join(HOME5, '.config/pulsaride/specialists')).length > 50)
 const settled = deployAgentBundle({ home: HOME5, resourcesPath: res, provisionPyEnv: false })
 ok('once it matches, a normal launch still costs nothing', settled.deployed === false)
+
+// --- the vendored libraries: pre-installed, and still there after an update -- //
+// agency-agents (296 roles) and the ThreeUI design components are read off disk
+// by whichever agent needs one, so "installed" has to mean really on disk -- and
+// has to stay true after an update, which is what the signature is for.
+ok('the agency-agents role library is deployed',
+  existsSync(join(HOME, '.config/pulsaride/agency-agents')) &&
+  existsSync(join(HOME, '.config/pulsaride/agency-agents/divisions.json')) &&
+  readdirSync(join(HOME, '.config/pulsaride/agency-agents/engineering')).length > 20)
+ok('the ThreeUI design components are deployed, with their index',
+  existsSync(join(HOME, '.config/pulsaride/design/threeui/INDEX.md')) &&
+  readdirSync(join(HOME, '.config/pulsaride/design/threeui')).length > 20)
+ok('their licences travel with them',
+  existsSync(join(HOME, '.config/pulsaride/agency-agents/LICENSE')) &&
+  existsSync(join(HOME, '.config/pulsaride/design/threeui/LICENSE')))
+// The budget rule these libraries exist under: they are read inline, never
+// registered, because 296 more descriptions would break subagent dispatch.
+ok('none of the 274 roles is registered as a Claude Code subagent',
+  !readdirSync(join(HOME, '.claude/agents')).some((f) => /incident-response-commander/i.test(f)))
+
+// An update that only changes a library must still reach an existing install.
+// Built against a COPY of the bundle, so the real one is never touched.
+const mutable = join(work, 'bundle-copy')
+mkdirSync(mutable, { recursive: true })
+cpSync(join(REPO, 'ide/agent-bundle'), join(mutable, 'pulsar-agents'), { recursive: true })
+const HOMELIB = join(work, 'home-libupdate')
+mkdirSync(HOMELIB, { recursive: true })
+deployAgentBundle({ home: HOMELIB, resourcesPath: mutable, provisionPyEnv: false })
+const settledLib = deployAgentBundle({ home: HOMELIB, resourcesPath: mutable, provisionPyEnv: false })
+ok('an unchanged bundle still costs nothing', settledLib.deployed === false)
+writeFileSync(join(mutable, 'pulsar-agents/agency-agents/engineering/brand-new-role.md'),
+  '---\nname: Brand New Role\ndescription: added by an update\n---\nbody\n')
+const libUpdate = deployAgentBundle({ home: HOMELIB, resourcesPath: mutable, provisionPyEnv: false })
+ok('a library-only change is enough to trigger a redeploy', libUpdate.deployed === true)
+ok('and the new role is on disk afterwards',
+  existsSync(join(HOMELIB, '.config/pulsaride/agency-agents/engineering/brand-new-role.md')))
+// ...and a role dropped upstream must not linger on the user's disk.
+rmSync(join(mutable, 'pulsar-agents/agency-agents/engineering/brand-new-role.md'))
+deployAgentBundle({ home: HOMELIB, resourcesPath: mutable, provisionPyEnv: false })
+ok('a role removed upstream is reconciled away, not left behind',
+  !existsSync(join(HOMELIB, '.config/pulsaride/agency-agents/engineering/brand-new-role.md')))
 
 // --- the other installer's block must not keep speaking for us -------------- //
 // ThePunisher-Agent's installer merges its own delimited block into these files,

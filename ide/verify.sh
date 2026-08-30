@@ -399,6 +399,27 @@ else
   skip "memory status (npx unavailable)"
 fi
 
+# 4c1. Archify: the real module driving the real bundled archify, every type.
+# Renders one diagram of each kind, because the bug that reached a user was a
+# CLI flag that only architecture accepts -- a mocked CLI would have taken it.
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/overlay/src/main/planide/archify-run.ts" --bundle --platform=node \
+      --format=cjs --outfile="$work/ar.cjs" --external:electron --log-level=error >/dev/null 2>&1; then
+    out=$(PULSAR_ARCHIFYRUN_CJS="$work/ar.cjs" node "$HERE/test/archify-run.test.mjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "archify: $(echo "$out" | grep -oE 'PASS=[0-9]+') render checks (every diagram type)"
+    else
+      bad "archify render"; echo "$out" | grep -A1 "FAIL " | head -6
+    fi
+  else
+    bad "archify-run.ts does not bundle"
+  fi
+  rm -rf "$work"
+else
+  skip "archify render (needs npx)"
+fi
+
 # 4c. OpenDesign: the real module against a stand-in `od` on PATH.
 if command -v npx >/dev/null 2>&1; then
   work=$(mktemp -d)

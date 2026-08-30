@@ -216,8 +216,25 @@ export function BrainGraphPanel({
 
           {picture?.available && (
             <div className="rounded-xl border border-border bg-card/40 p-3.5">
-              <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {translate('planide.brain.shape', 'The shape of this project')}
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {translate('planide.brain.shape', 'The shape of this project')}
+                </span>
+                {/* graphify writes its own full, explorable view of the same
+                    graph. This picture is the one that fits beside the numbers;
+                    that one is the whole thing, so link to it rather than
+                    reimplementing it. */}
+                {graph.htmlPath ? (
+                  <a
+                    href={`file://${graph.htmlPath}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    <ExternalLink size={11} />
+                    {translate('planide.brain.openFull', "Open graphify's full view")}
+                  </a>
+                ) : null}
               </div>
               <GraphCanvas picture={picture} />
             </div>
@@ -301,7 +318,20 @@ export function BrainGraphPanel({
             {graph.hasReport && (
               <span className="rounded-md border border-border px-2 py-0.5">GRAPH_REPORT.md</span>
             )}
-            {graph.hasHtml && <span className="rounded-md border border-border px-2 py-0.5">graph.html</span>}
+            {graph.hasHtml &&
+              (graph.htmlPath ? (
+                <a
+                  href={`file://${graph.htmlPath}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 hover:border-primary/50 hover:text-foreground"
+                >
+                  <ExternalLink size={10} />
+                  graph.html
+                </a>
+              ) : (
+                <span className="rounded-md border border-border px-2 py-0.5">graph.html</span>
+              ))}
             {graph.updatedAt && (
               <span className="ml-auto">
                 {translate('planide.memory.updated', 'updated')} {relTimeMs(graph.updatedAt)}

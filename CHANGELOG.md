@@ -6,6 +6,35 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.51.0] - 2026-08-30
+
+### Fixed
+- **Archify diagrams render again.** Every diagram that was not an *architecture*
+  diagram failed silently: the IDE passed archify a `--repo-root` flag that only
+  architecture accepts, so data-flow, workflow, sequence and lifecycle renders
+  were rejected before they started. All five types render now, and each one is
+  tested against the real archify on every build so this cannot come back.
+- **Updates reach nested files.** The check that decides whether your installed
+  agent files are current only looked at the top level of each folder, so a
+  change *inside* one — a skill, a tracker module, a role in a library — left
+  everything looking up to date and was never written to your machine. It now
+  looks at the whole tree.
+
+### Added
+- **274 role agents, pre-installed.** An MIT-licensed library of specialised
+  roles across 19 divisions — engineering, design, marketing, security, product,
+  testing, game development, GIS, finance and more — installed with the app and
+  used when a task needs a specialisation the teams do not cover. Read inline
+  rather than registered, so they cost nothing from the subagent budget that
+  broke dispatch once before.
+- **44 ThreeUI components for real design work.** MIT React + three.js shader and
+  3D UI components ship with the app, indexed, so an agent asked for an animated
+  background or a 3D hero adapts a real component instead of writing WebGL from
+  scratch.
+- **graphify's own view, one click away.** The Brain Graph draws the slice that
+  fits beside the numbers; graphify also writes a full explorable view of the
+  same graph, and there was no way to reach it. Now there is.
+
 ## [0.50.0] - 2026-08-30
 
 ### Added

@@ -185,7 +185,17 @@ export async function archifyRender(
   } catch {
     /* already there */
   }
-  const res = await run(bin, ['render', type, source, html, '--repo-root', projectPath], projectPath)
+  // `--repo-root` is architecture-only. archify rejects the whole render with
+  // "--repo-root is currently supported for architecture diagrams only" when it
+  // is passed for any other type -- so passing it unconditionally, as this did,
+  // meant EVERY dataflow, workflow, sequence and lifecycle diagram failed to
+  // render, which is exactly how it was reported ("render niet eens", on a data
+  // flow). Architecture still gets it: that is the type that reads the repo.
+  const args =
+    type === 'architecture'
+      ? ['render', type, source, html, '--repo-root', projectPath]
+      : ['render', type, source, html]
+  const res = await run(bin, args, projectPath)
   if (res.code !== 0 || !existsSync(html)) {
     return { ok: false, missing: false, log: res.out || 'archify render failed' }
   }

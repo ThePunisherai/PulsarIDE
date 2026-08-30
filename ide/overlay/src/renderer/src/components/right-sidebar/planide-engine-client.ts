@@ -170,6 +170,8 @@ export type BrainGraph = {
   updatedAt: number | null
   hasReport: boolean
   hasHtml: boolean
+  /** Absolute path of graphify's own interactive graph.html, when it wrote one. */
+  htmlPath: string | null
   tooLarge: boolean
   sizeBytes: number
 }

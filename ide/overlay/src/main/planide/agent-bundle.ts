@@ -61,6 +61,8 @@ type Marker = {
   hooks: string[] // absolute hook-script paths we wrote
   tracker?: string // deployed tracker root we own
   mcp?: string[] // MCP server names we registered at user scope
+  /** Vendored libraries we deployed (agency-agents, design/threeui). */
+  libraries?: string[]
 }
 
 export type DeployResult = {
@@ -150,9 +152,18 @@ function readManifest(root: string): Manifest {
  * which is exactly how it was reported. A forgotten constant should not be able
  * to do that, so freshness is now derived from the content itself.
  *
- * Cheap on purpose: name + size of each file in the directories that matter,
+ * Cheap on purpose: path + size of every file in the directories that matter,
  * plus the manifest's own bytes. That catches an added, removed or edited file
- * without reading a few hundred files in full at every launch.
+ * without reading any of them in full at every launch.
+ *
+ * It walks the whole tree rather than each directory's top level, which is the
+ * fix for a second, quieter version of the same bug: the shallow listing could
+ * only see `skills/<name>` and `tracker/mcp` as entries, never what changed
+ * INSIDE them. A new file in a nested directory -- a skill's own SKILL.md, a new
+ * module beside the tracker's MCP server, one more role in a division of the
+ * agency-agents library -- left the signature identical, so an existing install
+ * decided it was current and never wrote it. Measured at 913 files in 5 ms, so
+ * walking it all costs nothing worth trading correctness for.
  */
 function bundleSignature(root: string): string {
   const parts: string[] = []
@@ -161,24 +172,36 @@ function bundleSignature(root: string): string {
   } catch {
     /* no manifest -- the other entries still fingerprint the bundle */
   }
-  for (const dir of ['agents', 'specialists', 'skills', 'tracker', 'hooks', 'tools']) {
-    const abs = join(root, dir)
-    let names: string[]
+  /** Every file under `abs`, as `relative/path:size`, sorted so it is stable. */
+  const walk = (abs: string, rel: string, depth: number): void => {
+    // Depth cap: a symlink loop inside a vendored library must not hang startup.
+    if (depth > 12) return
+    // Explicitly Dirent[]: inferring from readdirSync picks its Buffer overload.
+    let entries: import('node:fs').Dirent[]
     try {
-      names = readdirSync(abs).sort()
+      entries = readdirSync(abs, { withFileTypes: true })
     } catch {
-      parts.push(`${dir}:absent`)
-      continue
+      parts.push(`${rel}:absent`)
+      return
     }
-    for (const name of names) {
+    for (const entry of [...entries].sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      const childAbs = join(abs, entry.name)
+      const childRel = `${rel}/${entry.name}`
+      if (entry.isDirectory()) {
+        walk(childAbs, childRel, depth + 1)
+        continue
+      }
       let size = -1
       try {
-        size = statSync(join(abs, name)).size
+        size = statSync(childAbs).size
       } catch {
         /* vanished mid-scan -- record it as unreadable rather than fail */
       }
-      parts.push(`${dir}/${name}:${size}`)
+      parts.push(`${childRel}:${size}`)
     }
+  }
+  for (const dir of ['agents', 'specialists', 'skills', 'tracker', 'hooks', 'tools', 'agency-agents', 'design']) {
+    walk(join(root, dir), dir, 0)
   }
   return createHash('sha1').update(parts.join('\n')).digest('hex')
 }
@@ -306,6 +329,7 @@ export function deployAgentBundle(
       for (const p of prev.agents) rmSync(p, { force: true })
       for (const name of prev.skills) rmSync(join(home, '.claude', 'skills', name), { recursive: true, force: true })
       if (prev.tracker) rmSync(prev.tracker, { recursive: true, force: true })
+      for (const lib of prev.libraries ?? []) rmSync(lib, { recursive: true, force: true })
     }
 
     // --- agents: team leads -> Claude Code, Gemini CLI, Codex ------------- //
@@ -437,6 +461,13 @@ export function deployAgentBundle(
     if (trackerRoot) mcpWired = registerTrackerForAllAgents(home)
     deployToolsFiles(home, root)
     deploySpecialists(home, root)
+    // Vendored libraries: the agency-agents role library and the ThreeUI design
+    // components. Deployed on every real deploy, so an update that changes them
+    // lands too -- bundleSignature covers both directories, so a change to either
+    // is itself what triggers the redeploy.
+    const libraries = ['agency-agents', join('design', 'threeui')]
+      .map((rel) => deployLibrary(home, root, rel))
+      .filter((p): p is string => p !== null)
 
     const marker: Marker = {
       bundle_version: manifest.bundle_version,
@@ -445,7 +476,8 @@ export function deployAgentBundle(
       skills: skillNames,
       hooks: hookWired ? [join(configDir(home), 'hooks')] : [],
       tracker: trackerRoot ?? undefined,
-      mcp: mcpWired ? ['planide'] : []
+      mcp: mcpWired ? ['planide'] : [],
+      libraries
     }
     mkdirSync(configDir(home), { recursive: true })
     writeFileSync(join(configDir(home), 'agent-bundle.json'), JSON.stringify(marker, null, 2))
@@ -601,6 +633,29 @@ function deploySpecialists(home: string, root: string): string | null {
   if (!existsSync(src)) return null
   const dest = join(configDir(home), 'specialists')
   rmSync(dest, { recursive: true, force: true })
+  cpSync(src, dest, { recursive: true })
+  return dest
+}
+
+/**
+ * Deploy a vendored library directory verbatim (agency-agents, design/threeui).
+ *
+ * Same shape as the specialists deploy: a straight mirror to a stable path the
+ * agents are told about, replaced wholesale each time so a removed upstream file
+ * does not linger. Returns the destination, or null when the bundle does not
+ * carry it (an older bundle, or a partial one).
+ *
+ * These are read off disk and adopted inline. They are deliberately NOT
+ * registered as individual subagents -- 274 more `description` fields would blow
+ * Claude Code's ~15k budget and break subagents everywhere, which this project
+ * has already shipped once (v0.26.0). See agency-agents/ATTRIBUTION.md.
+ */
+function deployLibrary(home: string, root: string, rel: string): string | null {
+  const src = join(root, rel)
+  if (!existsSync(src)) return null
+  const dest = join(configDir(home), rel)
+  rmSync(dest, { recursive: true, force: true })
+  mkdirSync(dirname(dest), { recursive: true })
   cpSync(src, dest, { recursive: true })
   return dest
 }
@@ -959,6 +1014,31 @@ function mainSessionBlock(home: string): string {
     'Reverse-engineering toolkit is installed at `' + join(configDir(home), 'tools', 'reverse-engineering') + '`',
     '(re-triage.sh, ghidra/frida/x64dbg drivers, fuzz-driver.sh, linux-unpack.sh) — use it for',
     'binary/RE work.',
+    '',
+    '## The agency-agents role library (274 roles, 19 divisions)',
+    '',
+    'Installed at `' + join(configDir(home), 'agency-agents') + '`, one `.md` per role',
+    'across engineering, design, marketing, security, product, testing, game development,',
+    'GIS, healthcare, finance, spatial computing and more (`divisions.json` indexes them).',
+    'Use one when a task calls for a specialisation the team leads do not cover -- an',
+    'incident commander, a pricing strategist, a level designer. Read that role file and',
+    'adopt it inline for the task; they are NOT separately spawnable subagents (274 more',
+    'descriptions would blow the subagent budget and break dispatch for everything, which',
+    'this project has shipped once already). Same rule as the specialist roster.',
+    'Reach for one when it genuinely fits the work -- not as a ceremony on every task.',
+    '',
+    '## Design: ThreeUI components',
+    '',
+    '44 self-contained React + three.js shader/3D UI components are installed at',
+    '`' + join(configDir(home), 'design', 'threeui') + '`; `INDEX.md` lists every one with',
+    'its entry file. Use them when a user wants real visual work -- an animated background,',
+    'a 3D hero, a shader effect -- instead of writing WebGL from scratch: read the',
+    'component, copy it into their project, adapt it. It needs `three` as a dependency.',
+    'Some components reference demo assets that were not vendored; substitute the',
+    "project's own. Two upstream routes exist but are deliberately not wired in: ThreeUI's",
+    'remote MCP server (`https://threeui.com/api/mcp`) and `npx @designcodeio/threeui-cli',
+    'add <name>`, which needs a paid account and a browser sign-in. Offer either only if',
+    'the user asks for the live catalog or Pro components.',
     '',
     '## Diagrams: Archify',
     '',

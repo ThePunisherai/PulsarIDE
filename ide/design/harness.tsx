@@ -156,6 +156,7 @@ const after = <T,>(result: T): unknown => ok({ result, payload: rollups() })
           updatedAt: Date.now() - 1000 * 60 * 12,
           hasReport: true,
           hasHtml: true,
+          htmlPath: '/home/you/projects/acme-storefront/graphify-out/graph.html',
           tooLarge: false,
           sizeBytes: 6_412_880
         },

@@ -38,7 +38,7 @@ PulsarIDE adds, in the sidebar, wired to the agents.
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
-| **Pulse Agent, pre-installed** | 100 team leads + **5,372 named specialists** + 51 skills ship inside the app and deploy on launch — Claude Code, Codex and Gemini CLI as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule, opencode through its own config — with graphify + Obsidian wired per project and the `planide` and `pulsar-tools` MCP servers registered, so every agent updates the board out of the box |
+| **Pulse Agent, pre-installed** | 100 team leads + **5,372 named specialists** + 51 skills + a **274-role agency library** and **44 ThreeUI 3D/design components** ship inside the app and deploy on launch — Claude Code, Codex and Gemini CLI as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule, opencode through its own config — with graphify + Obsidian wired per project and the `planide` and `pulsar-tools` MCP servers registered, so every agent updates the board out of the box |
 | **The agent's own tools, everywhere** | `pulsar-tools` gives any agent — Codex and Cursor included, not just Claude Code — task routing across the whole roster, an anti-loop check so a failed approach is never retried, and binary triage through the bundled RE toolkit |
 | **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
 | **Live board** | The tracker watches the project, so an agent writing to the board updates what you are looking at — no refreshing |
@@ -171,6 +171,9 @@ PlanIDE/
 │   ├── overlay/src/renderer/…       the Tracker page + sidebar panel
 │   ├── agent-bundle/       Pulse Agent itself: 100 team leads, 51 skills, the
 │   │                       memory hooks, the RE toolkit, and the tracker MCP
+│   │   ├── agency-agents/  274 role agents, 19 divisions (MIT, vendored) — read
+│   │   │                   inline, never registered, so the subagent budget holds
+│   │   └── design/threeui/ 44 React + three.js components (MIT, source only)
 │   ├── design/             the harness that renders the real surfaces in a
 │   │                       browser, so a design change is checked, not guessed
 │   ├── apply.py            anchored, verified, idempotent integration + branding

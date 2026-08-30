@@ -47,6 +47,15 @@ export type BrainGraph = {
   updatedAt: number | null
   hasReport: boolean
   hasHtml: boolean
+  /**
+   * Absolute path of graphify's OWN interactive `graph.html`, when it wrote one.
+   * The panel draws its own picture of the graph, which is the one that fits
+   * beside the numbers -- but graphify ships a full explorable view of the same
+   * data, and there was no way to reach it from here. Resolved in the main
+   * process rather than joined together in the renderer, so a Windows path is
+   * built with Windows separators.
+   */
+  htmlPath: string | null
   /** Set when the graph is too big to analyse without stalling the UI. */
   tooLarge: boolean
   sizeBytes: number
@@ -135,6 +144,7 @@ const EMPTY_GRAPH: BrainGraph = {
   updatedAt: null,
   hasReport: false,
   hasHtml: false,
+  htmlPath: null,
   tooLarge: false,
   sizeBytes: 0
 }
@@ -193,6 +203,7 @@ function brainGraph(projectPath: string): BrainGraph {
     updatedAt: mtimeMs(graphPath),
     hasReport: existsSync(join(out, 'GRAPH_REPORT.md')),
     hasHtml: existsSync(join(out, 'graph.html')),
+    htmlPath: existsSync(join(out, 'graph.html')) ? join(out, 'graph.html') : null,
     sizeBytes: sizeOf(graphPath),
     indexedFiles: Object.keys((readJson(join(out, 'manifest.json')) as object) ?? {}).length
   }

@@ -194,5 +194,23 @@
   ],
   "tools": [
     "reverse-engineering"
-  ]
+  ],
+  "libraries": {
+    "note": "Read off disk and adopted inline by whichever agent needs one. Deliberately NOT registered as individual subagents: their descriptions would blow Claude Code's ~15k-token budget and break dispatch, the same lesson the specialist roster already encodes.",
+    "agency-agents": {
+      "upstream": "https://github.com/msitarzewski/agency-agents",
+      "license": "MIT",
+      "files": 274,
+      "deployed_to": "~/.config/pulsaride/agency-agents",
+      "what": "Role agents across 22 divisions (engineering, design, marketing, security, ...).",
+      "divisions": 19
+    },
+    "design/threeui": {
+      "upstream": "https://github.com/MengTo/threeui",
+      "license": "MIT",
+      "components": 44,
+      "deployed_to": "~/.config/pulsaride/design/threeui",
+      "what": "Self-contained React + three.js shader/3D UI components, source only."
+    }
+  }
 }
