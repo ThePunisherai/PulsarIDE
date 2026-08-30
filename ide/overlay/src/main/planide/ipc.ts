@@ -20,6 +20,7 @@ import { readGraphReport, reindexGraph } from './graphify-run'
 import { connectOpenDesignToAgents, openDesignLaunch, openDesignStatus } from './open-design'
 import { archifyRender, archifyStatus } from './archify-run'
 import { stopWatchingBoard, watchBoard } from './board-watch'
+import { historySnapshot, readProjectHistory, recordHistory } from './history'
 import { deployCursorRule } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
 import {
@@ -53,8 +54,12 @@ export type ProjectPayload = ProjectState & {
 
 function mutate<T>(path: string, fn: (state: ProjectState) => T): { result: T; payload: ProjectPayload } {
   const state = loadState(path)
+  const before = historySnapshot(state)
   const result = fn(state)
   saveState(path, state)
+  // Append this change to the per-project history DB. Best-effort: it never
+  // throws, and the board write above has already succeeded regardless.
+  recordHistory(path, before, state, 'you')
   // Every change funnels through here, so this is the one place auto-push has
   // to be armed from. It is a no-op unless the project has it switched on.
   scheduleAutoPush(path, state)
@@ -204,6 +209,8 @@ export function registerPlanIdeIpc(): void {
   // project memory: graphify graph + Obsidian note status, so the Tracker tab
   // can show graphify/Obsidian actually working for this project (read-only).
   on('planide:memory-status', (path: string) => memoryStatus(path))
+  // Per-project history DB: the full, uncapped record of board changes.
+  on('planide:history', (path: string, limit?: number) => readProjectHistory(path, limit ?? 500))
   // Reading the graph and building it are different actions: Refresh only
   // ever re-read, which is why it looked like it did nothing.
   on('planide:graph-report', (path: string) => readGraphReport(path))

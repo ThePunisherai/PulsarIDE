@@ -26,7 +26,8 @@
  */
 
 import { existsSync } from 'node:fs'
-import { loadState, logActivity, saveState, statePath } from './store'
+import { addItem, loadState, logActivity, nowIso, saveState, statePath } from './store'
+import { historySnapshot, recordHistory } from './history'
 
 /** What the caller passes through from Orca's agent hook listener. */
 export type AgentTurn = {
@@ -106,6 +107,70 @@ function isDuplicate(paneKey: string, fingerprint: string, authoritative: boolea
   return duplicate
 }
 
+/** The board columns that count as "still open" for dedup. */
+const OPEN_STATUSES = ['todo', 'wip', 'broken']
+/** Never grow the board past this many auto-captured items -- a runaway guard. */
+const MAX_AGENT_ITEMS = 60
+
+/** Normalise a title for dedup: lowercase, punctuation to spaces, collapsed. */
+function normalizeTitle(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+/**
+ * Put the agent's work on the board, honestly.
+ *
+ * The passive trail above records that an agent finished a turn, but it only
+ * ever wrote the Activity log -- so the board's own columns never moved unless
+ * the agent chose to call the MCP, which models do inconsistently. Reported, in
+ * as many words and more than once: "agents write nothing to the tracker, I see
+ * no changes." This closes that gap from the side the IDE actually controls: the
+ * same hook that already fires reliably (it drives the memory graph) now also
+ * reflects the work as a board item.
+ *
+ * Kept deliberately honest and quiet:
+ *  - The title is the user's OWN prompt, so this is a faithful record of what was
+ *    asked, never a guess about what works. Status is `wip` (in progress) and
+ *    never `works`/`done` -- confirming something functions stays the agent's or
+ *    the user's explicit call, so this can never green-wash the board.
+ *  - Deduped against the open board by normalised title, so a multi-turn task on
+ *    the same prompt is one item, and an existing `todo` an agent starts working
+ *    is advanced to `wip` rather than duplicated.
+ *  - Only a real task-shaped prompt (two+ words) qualifies, and creation stops
+ *    at MAX_AGENT_ITEMS, so idle chatter and long sessions cannot flood it.
+ */
+function reflectPromptOnBoard(state: ReturnType<typeof loadState>, prompt: string, agent: string): void {
+  const title = prompt.trim()
+  const norm = normalizeTitle(title)
+  // A task, not a greeting: at least two words and enough substance to matter.
+  if (norm.length < 10 || norm.split(' ').length < 2) return
+
+  const open = (state.items ?? []).filter((i) => OPEN_STATUSES.includes(i.status))
+  const match = open.find((i) => {
+    const n = normalizeTitle(i.title)
+    if (n === norm) return true
+    // Strong containment only, and only for titles long enough that containment
+    // is meaningful -- so "fix" does not swallow "fix the login form".
+    return n.length >= 12 && norm.length >= 12 && (n.includes(norm) || norm.includes(n))
+  })
+  if (match) {
+    // An agent is actively working a planned item -> move it into `wip`.
+    if (match.status === 'todo') {
+      match.status = 'wip'
+      match.updated_at = nowIso()
+      if (!match.claimed_by) match.claimed_by = agent
+    }
+    return
+  }
+  if (open.filter((i) => (i.tags ?? []).includes('agent')).length >= MAX_AGENT_ITEMS) return
+  addItem(state, {
+    title: title.length > 120 ? `${title.slice(0, 119)}…` : title,
+    status: 'wip',
+    tags: ['agent'],
+    claimedBy: agent
+  })
+}
+
 /**
  * Record a finished agent turn in its project's tracker.
  * Returns true when something was written — the rest of the time this is a
@@ -148,13 +213,22 @@ export function recordAgentTurn(turn: AgentTurn): boolean {
     const verb = payload.interrupted ? 'turn interrupted' : 'finished a turn'
     const detail = prompt ? `: ${prompt}` : ''
     const state = loadState(path)
+    const before = historySnapshot(state)
     logActivity(state, payload.interrupted ? 'agent-interrupted' : 'agent-turn', `${verb}${detail}`, agent)
     // The agent's own closing summary is the most useful line it produces; keep
     // it as a separate entry so the trail reads as a conversation, not a blob.
     if (summary && !payload.interrupted) {
       logActivity(state, 'agent-said', summary, agent)
     }
+    // A finished, uninterrupted turn on a real prompt also moves the board, so
+    // agent work is visible as a card and not only as a line in the trail.
+    if (prompt && !payload.interrupted) {
+      reflectPromptOnBoard(state, prompt, agent)
+    }
     saveState(path, state)
+    // Record any board change this turn made (a new/advanced card) in the
+    // per-project history DB, attributed to the agent. Best-effort, never throws.
+    recordHistory(path, before, state, agent)
     return true
   } catch {
     // A tracker problem must never disturb Orca's agent pipeline.

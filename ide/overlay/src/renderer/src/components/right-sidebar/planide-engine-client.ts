@@ -490,3 +490,24 @@ export type GraphPicture = {
 export function graphPicture(path: string): Promise<GraphPicture> {
   return call<GraphPicture>('graphPicture', path)
 }
+
+// --------------------------------------------------------------------------- history
+/** One recorded change on the board, from the per-project history DB. */
+export type HistoryEvent = {
+  ts: string
+  kind: string
+  entity: string
+  itemId: string | null
+  title: string | null
+  field: string | null
+  old: string | null
+  neu: string | null
+  actor: string | null
+}
+
+export type ProjectHistory = { available: boolean; events: HistoryEvent[]; total: number }
+
+/** The full, uncapped record of board changes -- newest first, bounded by limit. */
+export function projectHistory(path: string, limit = 500): Promise<ProjectHistory> {
+  return call<ProjectHistory>('history', path, limit)
+}

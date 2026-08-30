@@ -131,7 +131,16 @@ ok('a repeat of the same turn key is one entry',
 ok('a new turn key is a new entry', recordAgentTurn(turn({ promptInteractionKey: 'k2' })) === true)
 
 const agentState = store.loadState(proj)
-ok('activity grew, board did not', agentState.activity.length > before && agentState.items.length === st.items.length)
+// The board now reflects agent work too: a real prompt lands one honest `wip`
+// card (deduped across the many same-prompt turns above), attributed to the
+// agent, tagged `agent`, and never auto-confirmed. This is the direct answer to
+// "agents write nothing to the tracker, I see no changes".
+ok('activity grew', agentState.activity.length > before)
+const auto = agentState.items.filter((i) => (i.tags ?? []).includes('agent'))
+ok('a real prompt lands exactly one deduped wip card', auto.length === 1)
+ok('the card is the prompt, in wip, by the agent, never auto-confirmed',
+   auto[0].title === 'wire the PPU' && auto[0].status === 'wip' &&
+   auto[0].claimed_by === 'claude' && auto[0].verified === false)
 ok('attributed to the agent that ran it', agentState.activity.some((x) => x.who === 'claude' && x.kind === 'agent-turn'))
 ok('the closing summary is its own line',
    recordAgentTurn(turn({ promptInteractionKey: 'k3' }, { lastAssistantMessage: 'PPU scanline fixed' })) === true &&
@@ -139,6 +148,11 @@ ok('the closing summary is its own line',
 ok('an interrupted turn says so',
    recordAgentTurn(turn({ promptInteractionKey: 'k4' }, { interrupted: true })) === true &&
    store.loadState(proj).activity.some((x) => x.kind === 'agent-interrupted'))
+// A greeting is not a task: a one-word prompt logs activity but adds no card.
+const cardsBefore = store.loadState(proj).items.filter((i) => (i.tags ?? []).includes('agent')).length
+recordAgentTurn(turn({ promptInteractionKey: 'k5' }, { prompt: 'hi' }))
+ok('a trivial prompt makes no card',
+   store.loadState(proj).items.filter((i) => (i.tags ?? []).includes('agent')).length === cardsBefore)
 
 console.log('== backup (own zip writer) ==')
 store.saveState(proj, st)

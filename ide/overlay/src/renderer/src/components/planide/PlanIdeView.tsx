@@ -16,6 +16,7 @@ import {
   Archive,
   Check,
   ClipboardCopy,
+  Database,
   Flag,
   GitBranch,
   History,
@@ -52,10 +53,12 @@ import {
   markFixDone,
   onBoardChanged,
   openProject,
+  projectHistory,
   setItemStatus,
   toggleMilestone,
   updateItem,
   verifyItem,
+  type HistoryEvent,
   type ItemStatus,
   type PlanIdeItem,
   type PlanIdeProject,
@@ -71,6 +74,7 @@ type Tab =
   | 'sync'
   | 'backups'
   | 'activity'
+  | 'history'
   | 'ai'
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
@@ -82,6 +86,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: 'sync', label: 'GitHub', icon: GitBranch },
   { id: 'backups', label: 'Backups', icon: Archive },
   { id: 'activity', label: 'Activity', icon: History },
+  { id: 'history', label: 'History', icon: Database },
   { id: 'ai', label: 'AI briefing', icon: Sparkles }
 ]
 
@@ -272,6 +277,58 @@ function ActivityRow({ entry }: { entry: PlanIdeProject['activity'][number] }): 
 /** relTime for an epoch-ms timestamp (memory-status uses file mtimes, not ISO). */
 function relTimeMs(ms: number | null): string {
   return ms ? relTime(new Date(ms).toISOString()) : ''
+}
+
+/** Tone for a status word, matching the board's own column colours. */
+function statusTone(status: string): string {
+  if (status === 'works' || status === 'done') return 'text-emerald-400'
+  if (status === 'broken') return 'text-red-400'
+  if (status === 'wip') return 'text-amber-400'
+  if (status === 'blocked') return 'text-orange-400'
+  return 'text-muted-foreground'
+}
+
+/** Describe one history event in a line a person can read at a glance. */
+function describeChange(e: HistoryEvent): { verb: string; from?: string; to?: string } {
+  const kind = e.kind
+  if (kind.endsWith('_added')) return { verb: 'added', to: e.neu ?? undefined }
+  if (kind.endsWith('_removed')) return { verb: 'removed' }
+  if (kind === 'version_changed') return { verb: 'released', from: e.old ?? undefined, to: e.neu ?? undefined }
+  if (kind.endsWith('_changed')) {
+    if (e.field === 'status') return { verb: 'moved', from: e.old ?? undefined, to: e.neu ?? undefined }
+    if (e.field === 'verified') return { verb: e.neu === 'true' ? 'confirmed' : 'unconfirmed' }
+    if (e.field === 'locked') return { verb: e.neu === 'true' ? 'protected' : 'unprotected' }
+    return { verb: `edited ${e.field ?? 'a field'}` }
+  }
+  return { verb: kind.replace(/_/g, ' ') }
+}
+
+function HistoryRow({ e }: { e: HistoryEvent }): React.JSX.Element {
+  const { verb, from, to } = describeChange(e)
+  const isAgent = !!e.actor && e.actor !== 'you'
+  return (
+    <div className="flex items-start gap-2.5 border-b border-border/30 py-2 last:border-b-0">
+      <span
+        className={cn('mt-1.5 size-1.5 shrink-0 rounded-full', isAgent ? 'bg-primary' : 'bg-muted-foreground/60')}
+        aria-hidden
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-1.5 text-[12.5px]">
+          <span className="text-muted-foreground">{verb}</span>
+          {e.title ? <span className="font-medium">{e.title}</span> : null}
+          {from || to ? (
+            <span className="font-mono text-[11px]">
+              {from ? <span className={statusTone(from)}>{from}</span> : null}
+              {from && to ? <span className="text-muted-foreground/60"> → </span> : null}
+              {to ? <span className={statusTone(to)}>{to}</span> : null}
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <span className="shrink-0 text-[10.5px] capitalize text-muted-foreground">{e.actor ?? 'you'}</span>
+      <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70">{relTime(e.ts)}</span>
+    </div>
+  )
 }
 
 /** A labelled proportion bar — one row of a breakdown. */
@@ -483,6 +540,7 @@ export default function PlanIdeView(): React.JSX.Element {
   const [tab, setTab] = useState<Tab>('board')
   const [filter, setFilter] = useState('')
   const [briefing, setBriefing] = useState('')
+  const [history, setHistory] = useState<HistoryEvent[] | null>(null)
   // Refresh feedback: see refresh() below for why a no-op refresh still has to
   // show something.
   const [refreshing, setRefreshing] = useState(false)
@@ -610,6 +668,27 @@ export default function PlanIdeView(): React.JSX.Element {
       .catch((err) => !cancelled && setBriefing(String(err)))
     return () => {
       cancelled = true
+    }
+  }, [tab, worktreePath])
+
+  // The History tab reads the per-project SQLite DB on demand -- the full,
+  // uncapped record of board changes, refreshed whenever the board changes on
+  // disk (so an agent's write shows up without leaving the tab).
+  useEffect(() => {
+    if (tab !== 'history' || !worktreePath) return
+    let cancelled = false
+    const load = (): void => {
+      void projectHistory(worktreePath, 500)
+        .then((h) => !cancelled && setHistory(h.events))
+        .catch(() => !cancelled && setHistory([]))
+    }
+    load()
+    const off = onBoardChanged((changed) => {
+      if (changed === worktreePath) load()
+    })
+    return () => {
+      cancelled = true
+      off()
     }
   }, [tab, worktreePath])
 
@@ -1260,6 +1339,42 @@ export default function PlanIdeView(): React.JSX.Element {
               <pre className="max-h-[60vh] overflow-auto rounded-lg border border-border bg-card/40 p-4 font-mono text-[11.5px] leading-relaxed whitespace-pre-wrap scrollbar-sleek">
                 {briefing || translate('planide.view.generating', 'Generating…')}
               </pre>
+            </div>
+          )}
+
+          {tab === 'history' && (
+            <div className="flex flex-col">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-[12px] text-muted-foreground">
+                  {translate(
+                    'planide.view.historyHint',
+                    'Every change to this board, kept in full beside it — agents and you, newest first.'
+                  )}
+                </span>
+                {history && history.length > 0 ? (
+                  <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[10.5px] tabular-nums text-muted-foreground">
+                    {history.length} {translate('planide.view.changes', 'changes')}
+                  </span>
+                ) : null}
+              </div>
+              {history === null ? (
+                <div className="py-10 text-center text-[12px] text-muted-foreground">
+                  {translate('planide.view.loading', 'Loading…')}
+                </div>
+              ) : history.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border py-10 text-center text-[12px] text-muted-foreground">
+                  {translate(
+                    'planide.view.noHistory',
+                    'No board changes recorded yet. As you and your agents move the board, every change lands here.'
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border/60 bg-card/30 px-3">
+                  {history.map((e, i) => (
+                    <HistoryRow key={`${e.ts}-${i}`} e={e} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

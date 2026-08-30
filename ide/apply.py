@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "51ed7d4f678de68b38eef14c79b473b84a6e55bc"  # 2026-08-28, upstream HEAD
+PINNED_COMMIT = "a1f198be0d96c7152997a1fd178ad4f201fa7e67"  # 2026-08-29, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -734,6 +734,8 @@ OVERLAY_FILES = [
     "src/main/planide/agent-events.ts",
     "src/main/planide/memory-sync.ts",
     "src/main/planide/memory-status.ts",
+    # Per-project history DB (node:sqlite): the uncapped record of board changes.
+    "src/main/planide/history.ts",
     # Builds the graph and reads graphify's own report about it.
     "src/main/planide/graphify-run.ts",
     "src/main/planide/archify-run.ts",

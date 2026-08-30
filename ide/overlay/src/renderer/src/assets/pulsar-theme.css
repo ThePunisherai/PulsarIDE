@@ -165,6 +165,28 @@ button:not(:disabled):active {
   transform: translateY(0.5px) scale(0.985);
 }
 
+/* Depth on the solid buttons -- Orca's default (bg-primary), secondary and
+   destructive variants. A resting shadow lifts the primary actions off the
+   surface, and a deeper, faintly branded one on hover makes the main action
+   feel lit rather than flat. Deliberately box-shadow ONLY: the transform press
+   above stays the press, and Orca's own hover colour change (hover:bg-primary/90)
+   is left intact -- this only adds depth on top. Scoped by utility class so the
+   flat variants (ghost, outline, link and icon buttons) stay flat, as they
+   should. `?asChild` buttons that render as another element simply miss out,
+   which is a no-op, never a break. */
+button.bg-primary:not(:disabled),
+button.bg-secondary:not(:disabled),
+button.bg-destructive:not(:disabled) {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.16);
+}
+button.bg-primary:not(:disabled):hover {
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--primary) 32%, rgb(0 0 0 / 0.22));
+}
+button.bg-secondary:not(:disabled):hover,
+button.bg-destructive:not(:disabled):hover {
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.26);
+}
+
 /* An indeterminate bar, for work with no percentage to report -- rebuilding a
    graph, deploying the bundle. A sliding highlight rather than a full-width
    pulse: a pulse reads as "stalled", a travelling band reads as "running". */

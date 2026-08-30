@@ -37,6 +37,41 @@ const SERVER_VERSION = '2.0.0'
 /** Spoken if the client does not name one. Echoing the client's is preferred. */
 const FALLBACK_PROTOCOL = '2026-06-18'
 
+/**
+ * Who is at the keyboard, for the history log. Set from the MCP client's own
+ * name at `initialize` (Claude Code, Codex, Cursor, ... each send one); left as
+ * a plain 'agent' when a client does not identify itself. Never affects the
+ * board -- it is only the `actor` column of the per-project history DB.
+ */
+let CLIENT_ACTOR = 'agent'
+
+/**
+ * The per-project history recorder, loaded lazily and defensively.
+ *
+ * It lives in a sibling module that imports `node:sqlite`. If that module is
+ * ever missing from a deploy, or this app's Node lacks `node:sqlite`, the import
+ * simply fails and history is skipped -- it must never stop the tracker itself
+ * from working, which is the whole board. A static import could not offer that
+ * guarantee: a missing sibling would break the server on load. So it is a
+ * dynamic import, tried once, and every call is fire-and-forget and swallowed.
+ * `undefined` = not yet tried, `null` = tried and unavailable, function = ready.
+ */
+let _recordDiff
+async function recordHistorySafe(path, before, after, actor) {
+  try {
+    if (_recordDiff === undefined) {
+      try {
+        _recordDiff = (await import('./history-db.mjs')).recordDiff
+      } catch {
+        _recordDiff = null
+      }
+    }
+    if (_recordDiff) _recordDiff(path, before, after, actor)
+  } catch {
+    /* history is best-effort memory; never let it affect the board */
+  }
+}
+
 const ITEM_STATUSES = ['todo', 'wip', 'works', 'broken', 'blocked', 'done']
 const FIX_STATUSES = ['open', 'fixed', 'wontfix']
 
@@ -187,8 +222,22 @@ const arr = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : 
 /** Read board, apply fn, write board. Every mutating tool goes through here. */
 function mutate(path, fn) {
   const state = loadState(path)
+  // A deep snapshot of just the collections history diffs, taken before `fn`
+  // mutates them in place, so the diff below sees a real before/after. Only
+  // these four -- cloning the whole board every write would be wasteful and
+  // history does not track the rest.
+  const before = {
+    items: structuredClone(state.items ?? []),
+    fixes: structuredClone(state.fixes ?? []),
+    milestones: structuredClone(state.milestones ?? []),
+    version: state.version
+  }
   const result = fn(state)
   saveState(path, state)
+  // Best-effort, and only after the board is safely written: the history DB is
+  // memory, not the ledger, so a failure here must never cost the board update.
+  // Fire-and-forget -- not awaited, and it cannot throw into this path.
+  void recordHistorySafe(path, before, state, CLIENT_ACTOR)
   return result
 }
 
@@ -570,6 +619,8 @@ function handle(msg) {
   switch (method) {
     case 'initialize': {
       const asked = params?.protocolVersion
+      const who = params?.clientInfo?.name
+      if (typeof who === 'string' && who.trim()) CLIENT_ACTOR = who.trim().slice(0, 60)
       reply(id, {
         protocolVersion: typeof asked === 'string' && asked ? asked : FALLBACK_PROTOCOL,
         capabilities: { tools: { listChanged: false } },

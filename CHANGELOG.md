@@ -6,6 +6,39 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.50.0] - 2026-08-30
+
+### Added
+- **The board now shows what your agents are doing.** Codex, Claude, Antigravity
+  and the rest write to the tracker inconsistently on their own, so a project
+  they worked all day could still show an empty board — "I see no changes". The
+  IDE now puts the work on the board itself: when an agent finishes a real turn,
+  the thing you asked for lands as a `wip` card, attributed to that agent. It is
+  deduped so one task is one card, never marked done for you, and driven by the
+  IDE's own signal — so it shows up even for an agent that never calls a tool.
+- **History: every change to a board, kept in full beside it.** A new tab on the
+  Tracker, backed by a real per-project database (`.planide/history.db`). The
+  board's own activity is capped; this is not — it is the complete record of what
+  moved and when, agents and you, newest first, so you can see exactly what an
+  agent did to a project over days, not just its last few lines.
+
+### Fixed
+- **Archify diagrams that actually render.** Its schema is strict, so agents that
+  invented the shape produced files that silently failed to draw — "archify werkt
+  niet helemaal". Agents are now told to copy a real example as their exact
+  starting shape and to validate before rendering, so what they write lands as a
+  diagram instead of a validation error.
+- **The dev-build icon is a dev icon again.** The amber tint that tells a `dev`
+  window apart from the shipped app pointed at colours the mark no longer uses, so
+  the two looked identical. It wears the amber pulsar again.
+
+### Changed
+- **Buttons with a little depth.** The primary actions sit on a soft shadow and
+  lift, faintly lit in the brand red, when you hover — the flat variants stay
+  flat, and nothing else about how a button behaves changed.
+- **Up to date with Orca.** Picks up the latest upstream Orca with no change to
+  how anything works.
+
 ## [0.49.0] - 2026-08-29
 
 ### Added

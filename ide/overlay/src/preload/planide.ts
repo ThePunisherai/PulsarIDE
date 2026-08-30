@@ -54,6 +54,7 @@ export const planIdeApi = {
 
   // project memory (graphify graph + Obsidian note status)
   memoryStatus: <T>(path: string) => call<T>('planide:memory-status', path),
+  history: <T>(path: string, limit?: number) => call<T>('planide:history', path, limit),
   graphReport: <T>(path: string) => call<T>('planide:graph-report', path),
   graphPicture: <T>(path: string) => call<T>('planide:graph-picture', path),
   reindexGraph: <T>(path: string) => call<T>('planide:reindex-graph', path),

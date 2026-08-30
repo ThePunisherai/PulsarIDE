@@ -174,6 +174,19 @@ const after = <T,>(result: T): unknown => ok({ result, payload: rollups() })
           ]
         }
       }),
+    history: async () =>
+      ok({
+        available: true,
+        total: 6,
+        events: [
+          { ts: new Date(Date.now() - 1000 * 60 * 2).toISOString(), kind: 'item_changed', entity: 'item', itemId: 'i1', title: 'Checkout session refactor', field: 'status', old: 'wip', neu: 'done', actor: 'claude' },
+          { ts: new Date(Date.now() - 1000 * 60 * 9).toISOString(), kind: 'item_changed', entity: 'item', itemId: 'i1', title: 'Checkout session refactor', field: 'verified', old: 'false', neu: 'true', actor: 'claude' },
+          { ts: new Date(Date.now() - 1000 * 60 * 31).toISOString(), kind: 'item_added', entity: 'item', itemId: 'i2', title: 'Rate-limit the search endpoint', field: '', old: '', neu: 'wip', actor: 'codex' },
+          { ts: new Date(Date.now() - 1000 * 60 * 60).toISOString(), kind: 'item_changed', entity: 'item', itemId: 'i3', title: 'Cart totals off by a cent', field: 'status', old: 'todo', neu: 'broken', actor: 'you' },
+          { ts: new Date(Date.now() - 1000 * 60 * 95).toISOString(), kind: 'fix_added', entity: 'fix', itemId: 'f1', title: 'Rounding in tax calc', field: '', old: '', neu: 'open', actor: 'gemini' },
+          { ts: new Date(Date.now() - 1000 * 60 * 140).toISOString(), kind: 'version_changed', entity: 'project', itemId: '', title: 'version', field: 'version', old: '0.3.1', neu: '0.4.0', actor: 'you' }
+        ]
+      }),
     onBoardChanged: () => () => {},
     // Git and backups are real subprocess/filesystem work in the app; here they
     // are plausible answers so the two tabs can be looked at.

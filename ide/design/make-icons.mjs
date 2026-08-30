@@ -50,12 +50,17 @@ for (const s of SIZES) shots.set(s, await png(s))
 // the real app. Keep that: same mark, amber where the brand red is.
 // Dev build wears an amber pulsar so a `pnpm dev` window is never mistaken for
 // the real app: swap the cyan/violet beams for warm amber tones.
+// Swap the brand reds/violet for warm ambers. These target the colours that are
+// actually in assets/icon.svg today (#ff453a/#c81f22/#ff8a80/#ffd9d6/#b39bff) --
+// an earlier version referenced blue tones the mark no longer uses, so the dev
+// icon came out identical to the real one and a `pnpm dev` window was
+// indistinguishable from the shipped app.
 const devArt = svg
-  .replaceAll('#8ab4ff', '#f59e0b')
-  .replaceAll('#38bdf8', '#f59e0b')
+  .replaceAll('#ff453a', '#f59e0b')
+  .replaceAll('#c81f22', '#b45309')
+  .replaceAll('#ff8a80', '#fbbf24')
+  .replaceAll('#ffd9d6', '#fde68a')
   .replaceAll('#b39bff', '#fbbf24')
-  .replaceAll('#6d4fe0', '#b45309')
-  .replaceAll('#c9d8ff', '#fde68a')
 const devIcon = await png(256, devArt)
 await browser.close()
 
