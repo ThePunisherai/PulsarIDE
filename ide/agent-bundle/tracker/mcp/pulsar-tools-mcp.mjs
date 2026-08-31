@@ -307,6 +307,49 @@ function matches(prev, candidate) {
  */
 const BLOCK_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
+/**
+ * How many DIFFERENT approaches may fail on one problem before this stops
+ * suggesting another and tells the agent to go back to the user.
+ *
+ * The check below only ever catches a repeat of the same approach, so an agent
+ * that keeps inventing new ones for the same broken thing is never stopped --
+ * it just churns, which is the loop people actually complain about. That
+ * failure mode is named well by `Ranteck/graph-engineer` (MIT): its cycle stops
+ * and escalates when consecutive passes produce no net progress, on the grounds
+ * that more attempts are not the answer once nothing is moving. Its rule is per
+ * review-cycle and in-memory; ours is per project and durable. The judgement is
+ * the same one, and it is the piece we were missing.
+ *
+ * Four, deliberately not two: trying a couple of things before one works is
+ * ordinary problem-solving, not a loop. Four distinct dead ends on one problem
+ * says the problem is not understood -- which a person can fix and another
+ * attempt cannot.
+ */
+const DISTINCT_APPROACH_ESCALATION = 4
+
+/** Two records about the same underlying problem, allowing for rewording. */
+function sameProblem(a, b) {
+  const x = normalize(a)
+  const y = normalize(b)
+  if (!x || !y) return false
+  if (x === y) return true
+  const shorter = x.length < y.length ? x : y
+  if (shorter.length < MIN_CONTAINMENT_CHARS) return false
+  return x.includes(y) || y.includes(x)
+}
+
+/**
+ * Distinct, still-current approaches already recorded against this problem.
+ * Stale ones are left out for the same reason they stop blocking: they are
+ * evidence about a codebase that may not exist any more.
+ */
+function deadEndsFor(reg, problem) {
+  if (!normalize(problem)) return []
+  return (reg.failed ?? []).filter(
+    (f) => ageMs(f.at) <= BLOCK_TTL_MS && sameProblem(f.problem, problem)
+  )
+}
+
 const ageMs = (iso) => {
   const t = Date.parse(iso ?? '')
   return Number.isFinite(t) ? Date.now() - t : Infinity
@@ -378,7 +421,29 @@ const TOOLS = [
       if (!approach) throw new Error('approach is required')
       const reg = readRegistry(str(args.cwd) || '.')
       const hit = reg.failed.find((f) => matches(f.approach, approach))
-      if (!hit) return { blocked: false, guidance: 'Not tried before. Record it if it fails.' }
+      // Even a brand-new approach is worth stopping if several others have
+      // already died on this same problem: that is churn, not progress.
+      const deadEnds = deadEndsFor(reg, str(args.problem))
+      const escalation =
+        deadEnds.length >= DISTINCT_APPROACH_ESCALATION
+          ? {
+              escalate: true,
+              deadEnds: deadEnds.length,
+              escalation:
+                deadEnds.length +
+                ' different approaches to this same problem have already failed here. ' +
+                'Stop proposing another one: tell the user what you have ruled out and ask ' +
+                'what they want or what you are missing. More attempts are not the answer ' +
+                'once nothing is moving.'
+            }
+          : {}
+      if (!hit) {
+        return {
+          ...escalation,
+          blocked: false,
+          guidance: 'Not tried before. Record it if it fails.'
+        }
+      }
 
       const attempts = Number(hit.count) || 1
       const stale = ageMs(hit.at) > BLOCK_TTL_MS
@@ -397,6 +462,7 @@ const TOOLS = [
       if (blocked) {
         return {
           ...shared,
+          ...escalation,
           blocked: true,
           guidance:
             'This approach failed ' + attempts + ' times here. Pivot rather than retry. ' +
@@ -405,6 +471,7 @@ const TOOLS = [
       }
       return {
         ...shared,
+        ...escalation,
         blocked: false,
         warning: stale
           ? 'Tried before and failed, but that record is over a week old, so it is advice rather than a block.'
@@ -456,7 +523,26 @@ const TOOLS = [
         count: 1
       })
       writeRegistry(cwd, reg)
-      return { recorded: true, attempts: 1, blocking: false, total: reg.failed.length }
+      const deadEnds = deadEndsFor(reg, str(args.problem)).length
+      return {
+        recorded: true,
+        attempts: 1,
+        blocking: false,
+        total: reg.failed.length,
+        deadEnds,
+        // Said here as well as at check time: this is the moment the agent
+        // learns the attempt failed, and the moment it reaches for another.
+        ...(deadEnds >= DISTINCT_APPROACH_ESCALATION
+          ? {
+              escalate: true,
+              escalation:
+                deadEnds +
+                ' different approaches to this problem have now failed. Stop and take it ' +
+                'back to the user with what you have ruled out, rather than trying a ' +
+                (deadEnds + 1) + 'th.'
+            }
+          : {})
+      }
     }
   },
   {

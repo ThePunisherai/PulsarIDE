@@ -162,5 +162,31 @@ const survived = await drive([
 ok('an unknown tool is a protocol error', Boolean(byId(survived, 50).error))
 ok('and the server keeps serving afterwards', Boolean(byId(survived, 51)))
 
+// --- churn on one problem, not just a repeated approach --------------------- //
+// The rest of the anti-loop only catches a REPEAT of one approach, so an agent
+// that keeps inventing new ones for the same broken thing was never stopped --
+// it just churned, which is the loop people actually notice. Four distinct dead
+// ends on one problem now says so and sends it back to the user.
+const churn = mkdtempSync(join(tmpdir(), 'pulsar-churn-'))
+const P = 'login redirect loops forever'
+const churnReplies = await drive([
+  call(70, 'record_anti_loop_failure', { problem: P, approach: 'clear the session cookie on mount', error: 'still loops', cwd: churn }),
+  call(71, 'record_anti_loop_failure', { problem: P, approach: 'add a guard on the router beforeEach hook', error: 'still loops', cwd: churn }),
+  call(72, 'record_anti_loop_failure', { problem: P, approach: 'disable the auth middleware for the login route', error: 'still loops', cwd: churn }),
+  call(73, 'record_anti_loop_failure', { problem: P, approach: 'return early when the token is absent', error: 'still loops', cwd: churn }),
+  call(74, 'check_anti_loop', { problem: P, approach: 'rewrite the whole auth layer from scratch', cwd: churn }),
+  call(75, 'check_anti_loop', { problem: 'csv export drops the header row', approach: 'write the header before the rows', cwd: churn })
+])
+const j = (id) => JSON.parse(byId(churnReplies, id).result.content[0].text)
+ok('three dead ends is still ordinary problem-solving, not a loop', j(72).escalate === undefined)
+ok('the fourth distinct failure escalates at record time',
+   j(73).escalate === true && j(73).deadEnds === 4)
+ok('a brand-new fifth approach is escalated instead of waved through',
+   j(74).escalate === true && j(74).blocked === false && j(74).deadEnds === 4)
+ok('and it says to go back to the user rather than propose another',
+   /ask|user/i.test(String(j(74).escalation)))
+ok('an unrelated problem in the same project is untouched',
+   j(75).escalate === undefined && j(75).blocked === false)
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

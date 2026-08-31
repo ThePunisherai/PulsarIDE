@@ -6,6 +6,32 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.52.0] - 2026-08-30
+
+### Fixed
+- **Auto-update works again on Windows.** Every downloaded update was refused
+  with *"not signed by the application owner: publisherNames: SignPath
+  Foundation"* — the app claimed the upstream project's signing identity while
+  our own builds ship unsigned, so it rejected its own updates and no fix could
+  ever reach you. It no longer claims a publisher it does not have.
+  **One manual install is needed to escape it:** the check is made by the
+  *installed* app, so your current copy will refuse this update too. Install
+  v0.52.0 by hand once from the releases page; updates work by themselves after
+  that.
+
+### Added
+- **The loop guard now catches churn, not just repeats.** It already refused to
+  retry an approach that had failed. It never noticed an agent inventing a *new*
+  approach every time for the same broken thing — which is the loop you actually
+  see. Four different dead ends on one problem now stop the suggestions and send
+  it back to you with what has been ruled out. The idea is taken from
+  `Ranteck/graph-engineer`, which stops when passes stop making progress.
+- **graph-engineer, pre-installed.** The skill itself ships too: one model
+  orchestrates while another writes and adversarially reviews, as a
+  self-correcting cycle. Its author calls it design-stage rather than
+  battle-tested, so it is offered for work that warrants a second opinion — not
+  as the default path.
+
 ## [0.51.0] - 2026-08-30
 
 ### Fixed

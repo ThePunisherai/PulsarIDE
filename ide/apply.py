@@ -62,6 +62,28 @@ EDITS: list[tuple[str, str, str, str]] = [
     ),
     (
         "config/electron-builder.config.cjs",
+        """    ...(isWinDevChannel
+      ? { verifyUpdateCodeSignature: false }
+      : { signtoolOptions: { publisherName: 'SignPath Foundation' } }),""",
+        """    // PulsarIDE ships unsigned on Windows, on every channel, so the
+    // publisherName branch upstream takes for its own release builds can never
+    // be satisfied here. electron-updater Authenticode-verifies each installer
+    // it downloads against the publisherName baked into the INSTALLED app's
+    // app-update.yml, so claiming 'SignPath Foundation' while signing nothing
+    // made the app reject every update it fetched:
+    //
+    //   "New version X is not signed by the application owner:
+    //    publisherNames: SignPath Foundation ... is not digitally signed"
+    //
+    // which is not a warning -- it aborts the install, so no update could ever
+    // land. Upstream documents the fix in the comment just above: verification
+    // is skipped when that name is absent, which is exactly what their unsigned
+    // dev channels do. We are unsigned always, so we take that branch always.
+    verifyUpdateCodeSignature: false,""",
+        "unsigned Windows builds: skip the Authenticode publisher check that blocked every update",
+    ),
+    (
+        "config/electron-builder.config.cjs",
         "const appId = 'com.stablyai.orca'",
         f"const appId = '{APP_ID}'",
         "bundle id",
