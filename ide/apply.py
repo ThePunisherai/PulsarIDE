@@ -541,13 +541,15 @@ EDITS: list[tuple[str, str, str, str]] = [
     ),
     # Upstream declares the whole preload surface as a PreloadApi type and checks
     # the object literal against it, so a key it has never heard of is a type
-    # error rather than a widened inference. The tracker's key is declared there
-    # too, typed from the bridge itself so the two can never drift.
+    # error rather than a widened inference. api-types.ts is compiled into the
+    # renderer project too, whose file list covers src/preload/api/ but not the
+    # bridge implementations, so the tracker's contract lives under api/ like
+    # every upstream one -- the bridge satisfies it, so the two cannot drift.
     (
         "src/preload/api-types.ts",
         "import type { GitLabApi } from './api/gitlab-api'",
         "import type { GitLabApi } from './api/gitlab-api'\n"
-        "import type { PlanIdeApi } from './planide'",
+        "import type { PlanIdeApi } from './api/planide-api'",
         "declare the tracker bridge on PreloadApi (import)",
     ),
     (
@@ -747,6 +749,7 @@ OVERLAY_FILES = [
     "src/main/planide/board-watch.ts",
     "src/main/planide/auto-push.ts",
     "src/main/planide/agent-bundle.ts",
+    "src/preload/api/planide-api.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",
     "src/renderer/src/components/right-sidebar/planide-engine-client.ts",
