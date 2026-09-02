@@ -24,6 +24,9 @@ BRANDING = {
     # updater at Orca's releases would hand our users Orca builds.
     "src/shared/release-channel.ts",
     "src/main/updater-prerelease-feed.ts",
+    # The packaged AppImage's filename contract: it keys off the artifact name,
+    # which IS the product identity. Keeping Orca's name here is the bug.
+    "config/scripts/static-appimage-package-contract.cjs",
     # These hold the two feed URLs electron-updater is actually pointed at --
     # the startup one and the no-newer-release fallback. Both are release
     # identity, not behaviour: there is nothing upstream to keep verbatim,

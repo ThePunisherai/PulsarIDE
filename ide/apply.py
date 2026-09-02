@@ -119,6 +119,17 @@ EDITS: list[tuple[str, str, str, str]] = [
         "    artifactName: 'pulsar-windows-setup.${ext}',",
         "Windows installer filename",
     ),
+    # Upstream verifies the packaged AppImage against a contract that keys off
+    # the artifact's own filename, and that map is spelled with Orca's names --
+    # so renaming the artifact just above makes the build reject its own output
+    # ("unsupported artifact name"). Same release-identity category as the name
+    # itself: keeping Orca's filename here is the bug, not the fix.
+    (
+        "config/scripts/static-appimage-package-contract.cjs",
+        "  ['orca-linux.AppImage', 'x64'],\n  ['orca-linux-arm64.AppImage', 'arm64']",
+        "  ['pulsar-linux.AppImage', 'x64'],\n  ['pulsar-linux-arm64.AppImage', 'arm64']",
+        "the AppImage contract expects OUR artifact names",
+    ),
     (
         "config/electron-builder.config.cjs",
         "    artifactName: isLinuxArm64Release ? 'orca-linux-arm64.${ext}' : 'orca-linux.${ext}'",
