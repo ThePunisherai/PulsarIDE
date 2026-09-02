@@ -493,8 +493,14 @@ PY
     # updater.ts shipped in v0.32.0 still pointing at stablyai/orca, which a
     # running build then logged on startup. Tests are excluded -- they assert
     # against upstream's own fixtures and are not shipped.
+    #
+    # Enumerated with find, not a glob: upstream split updater.ts into
+    # src/main/updater/*.ts, and `src/main/updater*.ts` does not descend into
+    # that directory -- so the modules holding the live feed URLs went unscanned
+    # the moment they moved. Same failure this check already exists to catch.
     stray=""
-    for uf in "$tmp/src/shared/release-channel.ts" "$tmp"/src/main/updater*.ts; do
+    updater_files=$(find "$tmp/src/main" -name 'updater*' -name '*.ts' -type f 2>/dev/null | sort)
+    for uf in "$tmp/src/shared/release-channel.ts" $updater_files; do
       case "$uf" in *.test.ts|*-test-harness.ts) continue ;; esac
       [ -f "$uf" ] || continue
       hit=$(grep -nE "stablyai/orca" "$uf" 2>/dev/null | grep -vE "^\s*[0-9]+:\s*(//|\*)" || true)
@@ -502,7 +508,7 @@ PY
     done
     if [ -z "$stray" ]; then
       feeds=$(grep -rhoE "ThePunisherai/PulsarIDE" "$tmp/src/shared/release-channel.ts" \
-              "$tmp"/src/main/updater.ts "$tmp"/src/main/updater-prerelease-feed.ts 2>/dev/null | wc -l | tr -d ' ')
+              $updater_files 2>/dev/null | wc -l | tr -d ' ')
       ok "every updater feed ($feeds) resolves to PulsarIDE, not Orca"
     else
       bad "an updater feed still points at Orca:$stray"

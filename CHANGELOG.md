@@ -6,6 +6,23 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.54.0] - 2026-09-02
+
+### Changed
+- **Rebuilt on the newest Orca.** PulsarIDE now tracks upstream at `61e0100`,
+  which brings Orca's new agent dashboard and a large internal reorganisation --
+  the 3,000-line UI store and the entry point were each split into modules. The
+  tracker, the board, the brain and every agent integration ride on top of it
+  unchanged.
+
+### Fixed
+- **A blind spot in the update-safety check.** PulsarIDE has a guard that refuses
+  to ship if anything feeding the auto-updater still points at Orca's releases --
+  the check that exists because a build once shipped doing exactly that, which
+  would install Orca over PulsarIDE. Upstream moved those URLs into a new folder
+  that the guard's file pattern did not reach, so it had quietly stopped checking
+  the files that matter. It now looks in the whole updater tree.
+
 ## [0.53.0] - 2026-09-02
 
 ### Added

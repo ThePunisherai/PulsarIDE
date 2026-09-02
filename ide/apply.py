@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "a1f198be0d96c7152997a1fd178ad4f201fa7e67"  # 2026-08-29, upstream HEAD
+PINNED_COMMIT = "61e010079f769f40cff39aef09f9788c13c3257d"  # 2026-09-02, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -341,36 +341,50 @@ EDITS: list[tuple[str, str, str, str]] = [
         "let the tracker tab pass the route normalizer (else clicking it does nothing)",
     ),
     # ---- integration: start the tracker engine --------------------------- #
+    # Upstream's entry point is now a thin orchestrator: the ready phase is one
+    # call into startup/main-process-ready. Both of our launch steps go in ahead
+    # of it, in one edit -- they used to be two, with the second anchored on the
+    # first's output, and that daisy-chain is what broke idempotency before.
     (
         "src/main/index.ts",
-        "void app.whenReady().then(async () => {\n  logStartupMilestone('app-ready')",
-        "void app.whenReady().then(async () => {\n  logStartupMilestone('app-ready')\n"
-        "  // PlanIDE: the tracker is main-process code -- registering its IPC is\n"
-        "  // all there is to start. No server, no port, no child process.\n"
-        "  registerPlanIdeIpc()",
-        "register the tracker IPC on launch",
+        "  void app.whenReady().then(async () => {\n    await initializeMainProcessReady({",
+        "  void app.whenReady().then(async () => {\n"
+        "    // PlanIDE: the tracker is main-process code -- registering its IPC is\n"
+        "    // all there is to start. No server, no port, no child process.\n"
+        "    registerPlanIdeIpc()\n"
+        "    // PulsarIDE: pre-install ThePunisher's team leads + skills + memory\n"
+        "    // hooks into the shared agent locations, so every CLI agent running\n"
+        "    // inside the IDE has them for every project. Deferred so it never delays\n"
+        "    // the first window; version-gated so a normal launch pays nothing.\n"
+        "    setTimeout(() => {\n"
+        "      try {\n"
+        "        deployAgentBundle({ resourcesPath: process.resourcesPath, appPath: app.getAppPath() })\n"
+        "      } catch {\n"
+        "        /* the bundle can never break startup */\n"
+        "      }\n"
+        "    }, 0)\n"
+        "    await initializeMainProcessReady({",
+        "register the tracker IPC and deploy the agent bundle on launch",
     ),
-    # All four main-process imports go in as ONE block, on purpose. They used to
-    # be separate edits chained onto each other's output; that daisy-chain broke
-    # idempotency, because a later edit split an earlier one's replacement so its
-    # "already applied?" check could no longer find it. One block cannot desync
-    # with itself. Anchored on the node:fs import: upstream keeps it single-line
-    # (the electron import next to it has already been reflowed once).
+    # These imports go in as blocks, on purpose. They used to be separate edits
+    # chained onto each other's output; that daisy-chain broke idempotency,
+    # because a later edit split an earlier one's replacement so its "already
+    # applied?" check could no longer find it. One block cannot desync with
+    # itself. Upstream split the old monolithic entry point, so the launch pair
+    # and the agent-turn pair now belong to two different files.
     (
         "src/main/index.ts",
-        "import { existsSync, statSync } from 'node:fs'",
-        "import { existsSync, statSync } from 'node:fs'\n"
+        "import { parseSkillShareId } from '../shared/skill-share-link'",
+        "import { parseSkillShareId } from '../shared/skill-share-link'\n"
         "import { deployAgentBundle } from './planide/agent-bundle'\n"
-        "import { recordAgentTurn } from './planide/agent-events'\n"
-        "import { maybeSyncMemory } from './planide/memory-sync'\n"
         "import { registerPlanIdeIpc } from './planide/ipc'",
         "tracker + agent-bundle main-process imports",
     ),
     # ---- integration: the renderer bridge --------------------------------- #
     (
         "src/preload/index.ts",
-        "import { glApi } from './gitlab'",
-        "import { glApi } from './gitlab'\nimport { planIdeApi } from './planide'",
+        "import { glApiBridge } from './api/gl-bridge'",
+        "import { glApiBridge } from './api/gl-bridge'\nimport { planIdeApi } from './planide'",
         "tracker bridge import (preload)",
     ),
     # ---- integration: the full-page tracker view ------------------------- #
@@ -382,57 +396,15 @@ EDITS: list[tuple[str, str, str, str]] = [
         "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'\n  // The same two surfaces as the sidebar tabs of these names, opened full\n  // page from the left nav. Separate type from RightSidebarTab, so the\n  // shared ids are deliberate rather than a collision.\n  | 'pulse-brain'\n  | 'pulse-design'\n  | 'pulse-archify'",
         "register 'planide' as a top-level view",
     ),
-    # Eight hand-written unions in the UI slice enumerate every top-level view
-    # except their own -- they are not derived from TopLevelView, so a new view
-    # has to be added to each by hand. Orca's own typecheck catches this; the
-    # bundler does not, which is why it only showed up in a full build.
+    # Upstream used to hand-write eight unions here, one per view, each
+    # enumerating every top-level view except its own -- so a new view had to be
+    # added to all eight. They now derive from one UiViewHistory alias, so the
+    # tracker's views are added once and every previousViewBefore* follows.
     (
-        "src/renderer/src/store/slices/ui.ts",
-        "  previousViewBeforeTasks:\n    | 'terminal'",
-        "  previousViewBeforeTasks:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'pulse-archify'\n    | 'terminal'",
-        "previousViewBeforeTasks accepts the tracker",
-    ),
-    (
-        "src/renderer/src/store/slices/ui.ts",
-        "  previousViewBeforeSettings:\n    | 'terminal'",
-        "  previousViewBeforeSettings:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'pulse-archify'\n    | 'terminal'",
-        "previousViewBeforeSettings accepts the tracker",
-    ),
-    (
-        "src/renderer/src/store/slices/ui.ts",
-        "  previousViewBeforeActivity:\n    | 'terminal'",
-        "  previousViewBeforeActivity:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'pulse-archify'\n    | 'terminal'",
-        "previousViewBeforeActivity accepts the tracker",
-    ),
-    (
-        "src/renderer/src/store/slices/ui.ts",
-        "  previousViewBeforeAutomations:\n    | 'terminal'",
-        "  previousViewBeforeAutomations:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'pulse-archify'\n    | 'terminal'",
-        "previousViewBeforeAutomations accepts the tracker",
-    ),
-    (
-        "src/renderer/src/store/slices/ui.ts",
-        "  previousViewBeforeSpace:\n    | 'terminal'",
-        "  previousViewBeforeSpace:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'pulse-archify'\n    | 'terminal'",
-        "previousViewBeforeSpace accepts the tracker",
-    ),
-    (
-        "src/renderer/src/store/slices/ui.ts",
-        "  previousViewBeforeSkills:\n    | 'terminal'",
-        "  previousViewBeforeSkills:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'pulse-archify'\n    | 'terminal'",
-        "previousViewBeforeSkills accepts the tracker",
-    ),
-    (
-        "src/renderer/src/store/slices/ui.ts",
-        "  previousViewBeforeMobile:\n    | 'terminal'",
-        "  previousViewBeforeMobile:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'pulse-archify'\n    | 'terminal'",
-        "previousViewBeforeMobile accepts the tracker",
-    ),
-    (
-        "src/renderer/src/store/slices/ui.ts",
-        "  previousViewBeforeArtifacts:\n    | 'terminal'",
-        "  previousViewBeforeArtifacts:\n    // PlanIDE: the tracker is a top-level view too.\n    | 'planide'\n    | 'pulse-brain'\n    | 'pulse-design'\n    | 'pulse-archify'\n    | 'terminal'",
-        "previousViewBeforeArtifacts accepts the tracker",
+        "src/renderer/src/store/slices/ui/ui-slice-contract-core.ts",
+        "export type UiViewHistory =\n  | 'terminal'",
+        "export type UiViewHistory =\n  // PlanIDE: the tracker surfaces are top-level views too, so they are\n  // valid history entries for every previousViewBefore* field.\n  | 'planide'\n  | 'pulse-brain'\n  | 'pulse-design'\n  | 'pulse-archify'\n  | 'terminal'",
+        "the view history accepts the tracker",
     ),
     # And the zod enum the persisted UI state is validated against: a compile-time
     # parity assertion in ui-state-schema-parity-checks.ts fails if the schema
@@ -561,29 +533,38 @@ EDITS: list[tuple[str, str, str, str]] = [
     ),
     (
         "src/renderer/src/components/sidebar/SidebarNav.tsx",
-        "import { Bell, BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'",
-        "import { Bell, BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'\n"
+        "import { BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'",
+        "import { BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'\n"
         "import { Network, PenTool, Workflow } from 'lucide-react'\n"
         "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker nav icon",
     ),
     (
         "src/preload/index.ts",
-        "  gl: glApi,",
-        "  gl: glApi,\n\n  // PlanIDE tracker bridge; see src/preload/planide.ts for why this is IPC\n  // rather than a direct renderer fetch.\n  planide: planIdeApi,",
+        "  gl: glApiBridge,",
+        "  gl: glApiBridge,\n\n  // PlanIDE tracker bridge; see src/preload/planide.ts for why this is IPC\n  // rather than a direct renderer fetch.\n  planide: planIdeApi,",
         "expose window.api.planide",
     ),
     # ---- integration: agents write their own trail --------------------------- #
     # Orca already knows when an agent finishes a turn; the tracker listens to the
     # same signal so the Activity trail is complete even for agents that never
-    # call the CLI or MCP. (Its import ships in the block above.)
+    # call the CLI or MCP. Upstream moved this listener out of the entry point
+    # into startup/, and now passes the branch-rename hook in via options.
     (
-        "src/main/index.ts",
+        "src/main/startup/main-window-agent-status.ts",
+        "import { mainProcessState as state } from './main-process-state'",
+        "import { mainProcessState as state } from './main-process-state'\n"
+        "import { recordAgentTurn } from '../planide/agent-events'\n"
+        "import { maybeSyncMemory } from '../planide/memory-sync'",
+        "tracker imports at the agent-status listener",
+    ),
+    (
+        "src/main/startup/main-window-agent-status.ts",
         "      if (!restoredUnconfirmed) {\n"
-        "        maybeAutoRenameBranchOnFirstWorkFromHook({ paneKey, tabId, worktreeId, payload, isReplay })\n"
+        "        options.maybeAutoRenameBranchOnFirstWork({ paneKey, tabId, worktreeId, payload, isReplay })\n"
         "      }",
         "      if (!restoredUnconfirmed) {\n"
-        "        maybeAutoRenameBranchOnFirstWorkFromHook({ paneKey, tabId, worktreeId, payload, isReplay })\n"
+        "        options.maybeAutoRenameBranchOnFirstWork({ paneKey, tabId, worktreeId, payload, isReplay })\n"
         "        // PlanIDE: log the finished turn in that project's tracker. Everything\n"
         "        // it needs to ignore (replays, session boundaries, duplicates, untracked\n"
         "        // projects) is decided inside, and it can never throw into this pipeline.\n"
@@ -610,7 +591,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     # IDE to pick up a release when one is made. Two hours is still one cheap
     # request against a static feed.
     (
-        "src/main/updater.ts",
+        "src/main/updater/updater-state.ts",
         "const AUTO_UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000",
         "const AUTO_UPDATE_CHECK_INTERVAL_MS = 2 * 60 * 60 * 1000",
         "check for updates every 2h, not once a day",
@@ -622,7 +603,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     # Installing stays explicit -- autoInstallOnAppQuit is untouched, so nothing
     # is applied under you mid-session.
     (
-        "src/main/updater.ts",
+        "src/main/updater/updater-setup.ts",
         "  autoUpdater.autoDownload = false",
         "  autoUpdater.autoDownload = true",
         "download a found update in the background",
@@ -700,13 +681,13 @@ EDITS: list[tuple[str, str, str, str]] = [
     # release and install it over PulsarIDE -- observed for real in a running
     # v0.32.0 build, which logged the fallback URL on startup.
     (
-        "src/main/updater.ts",
+        "src/main/updater/updater-release-feed.ts",
         "    const url = 'https://github.com/stablyai/orca/releases/latest/download'",
         f"    const url = 'https://github.com/{RELEASE_REPO}/releases/latest/download'",
         "update feed: the no-newer-release fallback stays on our releases",
     ),
     (
-        "src/main/updater.ts",
+        "src/main/updater/updater-setup.ts",
         "      url: 'https://github.com/stablyai/orca/releases/latest/download'",
         f"      url: 'https://github.com/{RELEASE_REPO}/releases/latest/download'",
         "update feed: the startup feed URL stays on our releases",
@@ -725,23 +706,6 @@ EDITS: list[tuple[str, str, str, str]] = [
         "const pulsarAgentsResource = { from: 'resources/pulsar-agents', to: 'pulsar-agents' }\n"
         "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources, pulsarAgentsResource]",
         "ship the ThePunisher agent bundle inside the app",
-    ),
-    (
-        "src/main/index.ts",
-        "  registerPlanIdeIpc()",
-        "  registerPlanIdeIpc()\n"
-        "  // PulsarIDE: pre-install ThePunisher's team leads + skills + memory\n"
-        "  // hooks into the shared agent locations, so every CLI agent running\n"
-        "  // inside the IDE has them for every project. Deferred so it never delays\n"
-        "  // the first window; version-gated so a normal launch pays nothing.\n"
-        "  setTimeout(() => {\n"
-        "    try {\n"
-        "      deployAgentBundle({ resourcesPath: process.resourcesPath, appPath: app.getAppPath() })\n"
-        "    } catch {\n"
-        "      /* the bundle can never break startup */\n"
-        "    }\n"
-        "  }, 0)",
-        "deploy the agent bundle on launch",
     ),
 ]
 
