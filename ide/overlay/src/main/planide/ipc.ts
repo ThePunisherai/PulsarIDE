@@ -10,14 +10,15 @@
  * is no registry to keep in sync.
  */
 
-import { ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { existsSync } from 'node:fs'
+import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import * as backup from './backup'
 import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
 import { detect } from './detect'
 import { graphPicture, memoryStatus } from './memory-status'
 import { readGraphReport, reindexGraph } from './graphify-run'
-import { connectOpenDesignToAgents, openDesignLaunch, openDesignStatus } from './open-design'
+import { connectOpenDesignToAgents, openDesignInstall, openDesignLaunch, openDesignStatus } from './open-design'
 import { archifyRender, archifyStatus } from './archify-run'
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { historySnapshot, readProjectHistory, recordHistory } from './history'
@@ -216,10 +217,35 @@ export function registerPlanIdeIpc(): void {
   on('planide:graph-report', (path: string) => readGraphReport(path))
   on('planide:graph-picture', (path: string) => graphPicture(path))
   on('planide:reindex-graph', (path: string) => reindexGraph(path))
+  /**
+   * graphify's OWN graph, opened inside the app.
+   *
+   * The panel draws the busiest slice, which is what fits beside the numbers --
+   * but graphify writes a full, explorable view of the same graph, and asked for
+   * "1 op 1" that IS the answer: show graphify's own page rather than a second
+   * rendering of it that can drift. Opened in a plain window with node
+   * integration off; it is a local file of someone else's HTML and gets no more
+   * privilege than a web page would.
+   */
+  on('planide:open-graph-window', (htmlPath: string, title?: string) => {
+    if (!htmlPath || !existsSync(htmlPath)) return { opened: false, reason: 'no graph on disk yet' }
+    const win = new BrowserWindow({
+      width: 1280,
+      height: 860,
+      title: title ? `${title} — graph` : 'graph',
+      backgroundColor: '#08090d',
+      webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true }
+    })
+    win.setMenuBarVisibility(false)
+    void win.loadFile(htmlPath)
+    return { opened: true }
+  })
   // OpenDesign: read-only status, plus two explicitly user-triggered actions.
   on('planide:open-design-status', () => openDesignStatus())
   on('planide:open-design-connect', (agents: string[]) => connectOpenDesignToAgents(agents))
   on('planide:open-design-launch', () => openDesignLaunch())
+  // Fetches the right release for this machine and opens the vendor's installer.
+  on('planide:open-design-install', () => openDesignInstall())
   // Archify: list this project's diagrams, and render one on request. The
   // render takes a name and a type rather than a path, so nothing from the
   // renderer is ever joined onto disk.

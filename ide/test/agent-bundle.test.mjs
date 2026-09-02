@@ -283,6 +283,23 @@ ok('and the specialists the team leads are told to read actually land',
 const settled = deployAgentBundle({ home: HOME5, resourcesPath: res, provisionPyEnv: false })
 ok('once it matches, a normal launch still costs nothing', settled.deployed === false)
 
+// --- the agent's plan reaches the board ------------------------------------ //
+// PostToolUse + an exact TodoWrite matcher is what lets the board show the steps
+// an agent means to take, and show them being worked off.
+const settingsAfter = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
+const postHooks = settingsAfter.hooks?.PostToolUse ?? []
+const todoEntry = postHooks.find((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync')))
+ok('the plan hook is wired on TodoWrite specifically',
+   Boolean(todoEntry) && todoEntry.matcher === 'TodoWrite')
+ok('its launcher and script are both on disk',
+   existsSync(join(HOME, '.config/pulsaride/hooks/todo-sync.mjs')) &&
+   existsSync(todoEntry.hooks[0].command))
+// Reconcile, not accumulate: a second deploy must not stack a second entry.
+deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
+const postAgain = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8')).hooks.PostToolUse
+ok('a redeploy leaves exactly one plan hook',
+   postAgain.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync'))).length === 1)
+
 // --- the vendored libraries: pre-installed, and still there after an update -- //
 // agency-agents (296 roles) and the ThreeUI design components are read off disk
 // by whichever agent needs one, so "installed" has to mean really on disk -- and

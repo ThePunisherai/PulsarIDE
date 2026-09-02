@@ -6,6 +6,31 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.53.0] - 2026-09-02
+
+### Added
+- **The agent's plan is on the board.** Claude Code works from a step-by-step
+  todo list, and it lived only in the chat. Those steps now appear on the board
+  as it plans, move to in-progress as it starts each one, and land in `works`
+  when it finishes — with the whole run kept in the project's local database. It
+  never marks anything confirmed for you, and never touches a step you have
+  protected.
+- **It remembers what fixed things, not just what failed.** A new
+  `record_solution` records the actual fix. After that, any later session asking
+  about the same problem is told it is already solved and how — so settled work
+  does not get quietly re-solved or undone — and the dead ends it went through
+  stop blocking further work in that area.
+- **Install OpenDesign from inside the IDE.** It is a separate desktop app with
+  no installable package, so it cannot ride along inside PulsarIDE — but the
+  panel now fetches the right build for your machine and starts its installer,
+  which was the tedious part.
+
+### Changed
+- **graphify's own graph, inside the app.** The panel draws the busiest slice
+  that fits beside the numbers; graphify writes a full explorable view of the
+  same graph. That view now opens in a window in the IDE instead of being
+  handed to your browser — the same picture graphify makes, not a second one.
+
 ## [0.52.0] - 2026-08-30
 
 ### Fixed

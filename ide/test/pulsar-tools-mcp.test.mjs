@@ -55,7 +55,7 @@ ok('it echoes the protocol version the client asked for',
   byId(hs, 1).result.protocolVersion === '2026-06-18')
 const names = byId(hs, 2).result.tools.map((t) => t.name).sort()
 ok('it offers exactly the tools the agents are told to call',
-  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 're_triage', 'record_anti_loop_failure', 'route_task']))
+  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 're_triage', 'record_anti_loop_failure', 'record_solution', 'route_task']))
 ok('an initialized notification is never answered', !hs.some((r) => r.id === undefined && r.result))
 
 // --- routing: the cases the first implementation got wrong ------------------ //
@@ -187,6 +187,34 @@ ok('and it says to go back to the user rather than propose another',
    /ask|user/i.test(String(j(74).escalation)))
 ok('an unrelated problem in the same project is untouched',
    j(75).escalate === undefined && j(75).blocked === false)
+
+// --- what was solved stays solved ------------------------------------------ //
+// The registry could only ever say "do not do that again". It could not say
+// "this was already fixed, here is how", so a later session re-solved settled
+// work and sometimes undid it. Asked for directly: remember the fixes too.
+const solvedDir = mkdtempSync(join(tmpdir(), 'pulsar-solved-'))
+const SP = 'session cookie is dropped on refresh'
+const solvedReplies = await drive([
+  call(80, 'record_anti_loop_failure', { problem: SP, approach: 'widen the cookie max-age setting', error: 'still dropped', cwd: solvedDir }),
+  call(81, 'record_anti_loop_failure', { problem: SP, approach: 'widen the cookie max-age setting', error: 'still dropped', cwd: solvedDir }),
+  call(82, 'check_anti_loop', { problem: SP, approach: 'widen the cookie max-age setting', cwd: solvedDir }),
+  call(83, 'record_solution', { problem: SP, solution: 'set SameSite=Lax; Strict dropped it on cross-site refresh', cwd: solvedDir }),
+  call(84, 'check_anti_loop', { problem: SP, approach: 'widen the cookie max-age setting', cwd: solvedDir }),
+  call(85, 'check_anti_loop', { problem: SP, approach: 'rip out the session layer and rewrite it', cwd: solvedDir }),
+  call(86, 'check_anti_loop', { problem: 'something else entirely', approach: 'a fresh idea', cwd: solvedDir })
+])
+const k = (id) => JSON.parse(byId(solvedReplies, id).result.content[0].text)
+ok('a repeated approach still blocks before it is solved', k(82).blocked === true)
+ok('recording the fix clears the dead ends it went through',
+   k(83).recorded === true && k(83).clearedDeadEnds === 1)
+ok('the same approach stops being blocked once the problem is solved', k(84).blocked === false)
+ok('and the fix itself is recalled, not just the fact that it was fixed',
+   k(84).alreadySolved === true && /SameSite=Lax/.test(String(k(84).solution)))
+ok('a DIFFERENT approach to solved work is warned not to undo it',
+   k(85).alreadySolved === true && /do not undo/i.test(String(k(85).settled)))
+ok('an unrelated problem is not told anything was solved', k(86).alreadySolved === undefined)
+ok('record_solution refuses a solution it cannot act on',
+   Boolean(byId(await drive([call(87, 'record_solution', { problem: 'x', cwd: solvedDir })]), 87).result.isError))
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

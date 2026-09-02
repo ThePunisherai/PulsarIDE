@@ -574,6 +574,60 @@ function wireHooks(home: string, root: string): boolean {
   })
   kept.push({ hooks: [{ type: 'command', command, timeout: 30 }] })
   hooks.SessionStart = kept
+
+  // --- the agent's own plan, onto the board ------------------------------- //
+  // `PostToolUse` with an exact `TodoWrite` matcher: verified against
+  // code.claude.com/docs/en/hooks.md, that event hands the hook `tool_name`,
+  // `tool_input` (the whole revised list) and the session's `cwd`. So each time
+  // the agent re-plans, the board can be brought level with it.
+  const todoScript = join(hookSrc, 'todo-sync.mjs')
+  if (existsSync(todoScript)) {
+    const todoDest = join(hookDir, 'todo-sync.mjs')
+    cpSync(todoScript, todoDest)
+    // A launcher rather than an inline command: the runner needs environment
+    // (Electron has to be told to behave as Node), and quoting that inside a
+    // JSON command string differs per platform and is easy to get subtly wrong.
+    // A one-line script keeps settings.json holding nothing but a path.
+    const stable = findStableNode()
+    const runner = stable ?? process.execPath
+    const asNode = stable ? '' : 'ELECTRON_RUN_AS_NODE=1 '
+    let launcher: string
+    if (onWindows) {
+      launcher = join(hookDir, 'todo-sync.cmd')
+      writeFileSync(
+        launcher,
+        '@echo off\r\n' +
+          (stable ? '' : 'set ELECTRON_RUN_AS_NODE=1\r\n') +
+          'set NODE_NO_WARNINGS=1\r\n' +
+          `"${runner}" "${todoDest}"\r\n`
+      )
+    } else {
+      launcher = join(hookDir, 'todo-sync.sh')
+      writeFileSync(
+        launcher,
+        `#!/usr/bin/env bash\nexec env ${asNode}NODE_NO_WARNINGS=1 "${runner}" "${todoDest}"\n`
+      )
+      try {
+        chmodSync(launcher, 0o755)
+      } catch {
+        /* non-fatal on filesystems without exec bits */
+      }
+    }
+    const post = (hooks.PostToolUse ?? []) as unknown[]
+    const keptPost = post.filter((entry) => {
+      if (typeof entry !== 'object' || entry === null) return true
+      const inner = (entry as { hooks?: unknown[] }).hooks ?? []
+      return !inner.some(
+        (h) =>
+          typeof h === 'object' &&
+          h !== null &&
+          String((h as { command?: string }).command ?? '').includes('todo-sync')
+      )
+    })
+    keptPost.push({ matcher: 'TodoWrite', hooks: [{ type: 'command', command: launcher, timeout: 15 }] })
+    hooks.PostToolUse = keptPost
+  }
+
   writeConfigAtomic(settingsPath, JSON.stringify(settings, null, 2))
   return true
 }
@@ -1025,6 +1079,19 @@ function mainSessionBlock(home: string): string {
     'means the problem is not understood, and a person can fix that where another attempt',
     'cannot. Call `record_anti_loop_failure` the moment something fails, or none of this',
     'can see anything.',
+    '',
+    'The other half of that memory is `record_solution`. Call it the moment something',
+    'actually starts working, with what fixed it. Two things follow: the dead ends this',
+    'problem went through stop blocking future work in that area, and every later session',
+    'that asks about the same problem is told it is already solved and how -- so settled',
+    'work does not get re-solved, and does not get quietly undone. `check_anti_loop`',
+    'returns that as `alreadySolved`; when you see it, confirm the thing is genuinely',
+    'broken again before you change anything.',
+    '',
+    'Your own plan is on the board too. The step list you build to work through a task is',
+    'mirrored into the project board as it changes -- planned steps appear, the one you are',
+    'on shows as in progress, finished ones move to `works` (never confirmed for you). So',
+    'keep the plan honest and current, because it is now what the user watches.',
     '',
     'For work that genuinely warrants an adversarial second opinion -- a risky refactor, a',
     'fix that keeps coming back -- the bundled `graph-engineer` skill runs one model as',

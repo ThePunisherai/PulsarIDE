@@ -256,12 +256,19 @@ function registryPath(cwd) {
 
 function readRegistry(cwd) {
   const p = registryPath(cwd)
-  if (!existsSync(p)) return { failed: [] }
+  // `solved` is the other half of this memory: what actually fixed something.
+  // Without it the registry could only ever say "do not do that again", never
+  // "this was already solved, here is how" -- so a later session happily
+  // re-solved settled work, and sometimes undid it on the way.
+  if (!existsSync(p)) return { failed: [], solved: [] }
   try {
     const d = JSON.parse(readFileSync(p, 'utf8'))
-    return { failed: Array.isArray(d.failed) ? d.failed : [] }
+    return {
+      failed: Array.isArray(d.failed) ? d.failed : [],
+      solved: Array.isArray(d.solved) ? d.solved : []
+    }
   } catch {
-    return { failed: [] }
+    return { failed: [], solved: [] }
   }
 }
 
@@ -421,6 +428,21 @@ const TOOLS = [
       if (!approach) throw new Error('approach is required')
       const reg = readRegistry(str(args.cwd) || '.')
       const hit = reg.failed.find((f) => matches(f.approach, approach))
+      // Settled work, recalled before anything is touched. This is what stops a
+      // later session re-solving what already works -- or quietly undoing it.
+      const known = (reg.solved ?? []).filter((x) => sameProblem(x.problem, str(args.problem)))
+      const last = known.length ? known[known.length - 1] : null
+      const settled = last
+        ? {
+            alreadySolved: true,
+            solvedAt: last.at ?? '',
+            solution: last.solution ?? '',
+            settled:
+              'This problem was already solved here (' + String(last.at ?? '').slice(0, 10) + '): ' +
+              (last.solution ?? '') +
+              ' -- check it is genuinely broken again before changing anything, and do not undo that fix.'
+          }
+        : {}
       // Even a brand-new approach is worth stopping if several others have
       // already died on this same problem: that is churn, not progress.
       const deadEnds = deadEndsFor(reg, str(args.problem))
@@ -439,6 +461,7 @@ const TOOLS = [
           : {}
       if (!hit) {
         return {
+          ...settled,
           ...escalation,
           blocked: false,
           guidance: 'Not tried before. Record it if it fails.'
@@ -462,6 +485,7 @@ const TOOLS = [
       if (blocked) {
         return {
           ...shared,
+          ...settled,
           ...escalation,
           blocked: true,
           guidance:
@@ -471,6 +495,7 @@ const TOOLS = [
       }
       return {
         ...shared,
+        ...settled,
         ...escalation,
         blocked: false,
         warning: stale
@@ -542,6 +567,48 @@ const TOOLS = [
                 (deadEnds + 1) + 'th.'
             }
           : {})
+      }
+    }
+  },
+  {
+    name: 'record_solution',
+    description:
+      'Record what actually FIXED a problem, so a later turn or session does not re-solve it or undo it. Call it when something starts working, not when you hope it will.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        problem: { type: 'string' },
+        solution: { type: 'string', description: 'What fixed it, concretely enough to act on.' },
+        cwd: { type: 'string' }
+      },
+      required: ['problem', 'solution']
+    },
+    run: (args) => {
+      const problem = str(args.problem)
+      const solution = str(args.solution)
+      if (!problem || !solution) throw new Error('problem and solution are both required')
+      const cwd = str(args.cwd) || '.'
+      const reg = readRegistry(cwd)
+      reg.solved ??= []
+      const prior = reg.solved.find((x) => sameProblem(x.problem, problem))
+      if (prior) {
+        prior.solution = solution
+        prior.at = new Date().toISOString()
+      } else {
+        reg.solved.push({ problem, solution, at: new Date().toISOString() })
+      }
+      // The approaches that failed on the way here are history now, not advice:
+      // the problem is solved, so they must stop blocking future work in the
+      // same area. Clearing them is what keeps this memory from calcifying into
+      // a set of refusals nobody can get past.
+      const before = reg.failed.length
+      reg.failed = reg.failed.filter((f) => !sameProblem(f.problem, problem))
+      writeRegistry(cwd, reg)
+      return {
+        recorded: true,
+        updated: Boolean(prior),
+        clearedDeadEnds: before - reg.failed.length,
+        solved: reg.solved.length
       }
     }
   },

@@ -333,6 +333,19 @@ export function openDesignLaunch(): Promise<boolean> {
   return call<boolean>('openDesignLaunch')
 }
 
+export type OpenDesignInstall = {
+  ok: boolean
+  file?: string
+  version?: string
+  launched: boolean
+  message: string
+}
+
+/** Download the right OpenDesign release for this machine and open its installer. */
+export function openDesignInstall(): Promise<OpenDesignInstall> {
+  return call<OpenDesignInstall>('openDesignInstall')
+}
+
 // --------------------------------------------------------------------------- memory
 export type GraphReportSection = { heading: string; lines: string[] }
 export type ReindexResult = { ok: boolean; log: string; missing: boolean }
@@ -491,6 +504,11 @@ export type GraphPicture = {
 
 export function graphPicture(path: string): Promise<GraphPicture> {
   return call<GraphPicture>('graphPicture', path)
+}
+
+/** Open graphify's own graph.html in a window inside the IDE. */
+export function openGraphWindow(htmlPath: string, title?: string): Promise<{ opened: boolean }> {
+  return call<{ opened: boolean }>('openGraphWindow', htmlPath, title)
 }
 
 // --------------------------------------------------------------------------- history

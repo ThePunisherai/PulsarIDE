@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const MOD = process.env.PULSAR_OPENDESIGN_CJS
-const { openDesignStatus, connectOpenDesignToAgents } = await import(MOD)
+const { openDesignStatus, connectOpenDesignToAgents, pickOpenDesignAsset} = await import(MOD)
 
 let pass = 0, fail = 0
 const ok = (n, c) => c ? (pass++, console.log('  PASS ' + n)) : (fail++, console.log('  FAIL ' + n))
@@ -118,6 +118,29 @@ esac
 const quiet = openDesignStatus(HOME)
 ok('a binary with no --version is still accepted (inconclusive never rejects)',
   quiet.installed === true)
+
+// --- picking the right download ------------------------------------------- //
+// OpenDesign publishes several assets per release. Handing macOS an .exe, or an
+// Apple Silicon machine the Intel build, installs something that cannot run --
+// so the choice is worth pinning down.
+const assets = [
+  { name: 'OpenDesign-0.21.1-win-x64.exe', browser_download_url: 'u1' },
+  { name: 'OpenDesign-0.21.1-mac-arm64.dmg', browser_download_url: 'u2' },
+  { name: 'OpenDesign-0.21.1-mac-x64.dmg', browser_download_url: 'u3' },
+  { name: 'OpenDesign-0.21.1-linux-x86_64.AppImage', browser_download_url: 'u4' },
+  { name: 'OpenDesign-0.21.1-sources.tar.gz', browser_download_url: 'u5' }
+]
+ok('windows takes the .exe', pickOpenDesignAsset(assets, 'win32', 'x64').name.endsWith('.exe'))
+ok('linux takes the AppImage', pickOpenDesignAsset(assets, 'linux', 'x64').name.endsWith('.AppImage'))
+ok('apple silicon takes the arm64 dmg',
+   pickOpenDesignAsset(assets, 'darwin', 'arm64').name.includes('arm64'))
+ok('an intel mac takes the x64 dmg, not the arm one',
+   pickOpenDesignAsset(assets, 'darwin', 'x64').name.includes('x64'))
+// A release that does not split the architectures must still install.
+const oneDmg = [{ name: 'OpenDesign.dmg', browser_download_url: 'u' }]
+ok('one undifferentiated dmg is still picked', pickOpenDesignAsset(oneDmg, 'darwin', 'arm64').name === 'OpenDesign.dmg')
+ok('a release with nothing for this platform is refused, not guessed',
+   pickOpenDesignAsset([{ name: 'notes.txt', browser_download_url: 'u' }], 'win32', 'x64') === null)
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

@@ -27,7 +27,8 @@ import {
   type GraphReportSection,
   type MemoryStatus,
   type ObsidianStatus,
-  withVisibleSpin
+  withVisibleSpin,
+  openGraphWindow
 } from '../right-sidebar/planide-engine-client'
 
 /** relTime for an epoch-ms timestamp (memory-status uses file mtimes, not ISO). */
@@ -225,15 +226,14 @@ export function BrainGraphPanel({
                     that one is the whole thing, so link to it rather than
                     reimplementing it. */}
                 {graph.htmlPath ? (
-                  <a
-                    href={`file://${graph.htmlPath}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => void openGraphWindow(graph.htmlPath as string)}
                     className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
                   >
                     <ExternalLink size={11} />
                     {translate('planide.brain.openFull', "Open graphify's full view")}
-                  </a>
+                  </button>
                 ) : null}
               </div>
               <GraphCanvas picture={picture} />

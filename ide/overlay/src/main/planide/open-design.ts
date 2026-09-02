@@ -21,7 +21,7 @@
  */
 
 import { execFile, execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -196,5 +196,146 @@ export function openDesignLaunch(home: string = homedir()): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+// --------------------------------------------------------------------------- install
+
+/**
+ * Fetch and start OpenDesign's own installer, so nobody has to go find it.
+ *
+ * Asked for twice: "die moet ik nog steeds installeren ... ik zei dat je die
+ * pre-installed moest doen." The honest constraint is that OpenDesign is a
+ * separate desktop application, not a library: it publishes no npm package (the
+ * `opendesign` name on npm is an unrelated .octopus CLI), and its repo is a
+ * ~600 MB pnpm monorepo requiring Node ~24 to build. Embedding another vendor's
+ * desktop app inside our installer is not something to do quietly either -- it
+ * would multiply our download and redistribute their signed binaries.
+ *
+ * What it DOES publish is prebuilt releases, per platform, which its own README
+ * calls "the fastest way to use OpenDesign. No Node, no pnpm, no clone." So the
+ * install is a real thing we can do FOR the user: pick the asset that matches
+ * this machine, download it, and hand it to the OS. That removes every step
+ * except the vendor's own installer window.
+ *
+ * Nothing is silently executed: the downloaded file is opened the way a
+ * double-click would open it, so the user still sees and approves the install.
+ */
+const OD_RELEASES_API = 'https://api.github.com/repos/nexu-io/open-design/releases/latest'
+/** A download that hangs must not leave the panel spinning for ever. */
+const OD_DOWNLOAD_TIMEOUT_MS = 15 * 60 * 1000
+
+export type OpenDesignInstall = {
+  ok: boolean
+  /** Where the downloaded installer landed, when it got that far. */
+  file?: string
+  /** The release we picked, for the panel to name. */
+  version?: string
+  /** True once the OS has been asked to open it. */
+  launched: boolean
+  message: string
+}
+
+/** The asset that fits this platform, or null when the release has none. */
+export function pickOpenDesignAsset(
+  assets: { name: string; browser_download_url: string }[],
+  platform: string = process.platform,
+  arch: string = process.arch
+): { name: string; browser_download_url: string } | null {
+  const lower = (a: { name: string }): string => a.name.toLowerCase()
+  if (platform === 'win32') {
+    return assets.find((a) => lower(a).endsWith('.exe')) ?? null
+  }
+  if (platform === 'darwin') {
+    const dmgs = assets.filter((a) => lower(a).endsWith('.dmg'))
+    // Apple Silicon and Intel builds ship side by side; picking the wrong one
+    // installs an app that will not start, so match the architecture first and
+    // only fall back to "any .dmg" when a release does not split them.
+    const wanted = arch === 'arm64' ? ['arm64', 'aarch64', 'apple'] : ['x64', 'x86_64', 'intel']
+    return dmgs.find((a) => wanted.some((w) => lower(a).includes(w))) ?? dmgs[0] ?? null
+  }
+  return assets.find((a) => lower(a).endsWith('.appimage')) ?? null
+}
+
+export async function openDesignInstall(home: string = homedir()): Promise<OpenDesignInstall> {
+  if (openDesignStatus(home).installed) {
+    return { ok: true, launched: false, message: 'OpenDesign is already installed.' }
+  }
+  let release: { tag_name?: string; assets?: { name: string; browser_download_url: string }[] }
+  try {
+    const res = await fetch(OD_RELEASES_API, {
+      headers: { accept: 'application/vnd.github+json', 'user-agent': 'PulsarIDE' },
+      signal: AbortSignal.timeout(30_000)
+    })
+    if (!res.ok) throw new Error(`GitHub answered ${res.status}`)
+    release = (await res.json()) as typeof release
+  } catch (err) {
+    return {
+      ok: false,
+      launched: false,
+      message: `Could not reach OpenDesign's releases: ${err instanceof Error ? err.message : String(err)}`
+    }
+  }
+
+  const asset = pickOpenDesignAsset(release.assets ?? [])
+  if (!asset) {
+    return {
+      ok: false,
+      launched: false,
+      message: `That release has no download for ${process.platform}. Open open-design.ai to pick one by hand.`
+    }
+  }
+
+  const dir = join(home, '.config', 'pulsaride', 'downloads')
+  const file = join(dir, asset.name)
+  try {
+    mkdirSync(dir, { recursive: true })
+    const res = await fetch(asset.browser_download_url, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(OD_DOWNLOAD_TIMEOUT_MS)
+    })
+    if (!res.ok) throw new Error(`download answered ${res.status}`)
+    writeFileSync(file, Buffer.from(await res.arrayBuffer()))
+    // An AppImage is only useful once it is allowed to run.
+    if (process.platform === 'linux') {
+      try {
+        chmodSync(file, 0o755)
+      } catch {
+        /* a filesystem without exec bits -- the user can still run it */
+      }
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      launched: false,
+      message: `Downloading ${asset.name} failed: ${err instanceof Error ? err.message : String(err)}`
+    }
+  }
+
+  // Handed to the OS the way a double-click would be -- deliberately not run
+  // silently: this is the vendor's installer and the user should see it ask for
+  // what it wants. Done with the platform opener rather than electron's `shell`
+  // so this module stays free of electron and keeps its own typecheck.
+  let launched = false
+  try {
+    const [cmd, args] =
+      process.platform === 'win32'
+        ? ['cmd', ['/c', 'start', '', file]]
+        : process.platform === 'darwin'
+          ? ['open', [file]]
+          : ['xdg-open', [file]]
+    execFileSync(cmd, args, { stdio: 'ignore', timeout: 10_000, windowsHide: true })
+    launched = true
+  } catch {
+    /* no opener here -- the file is downloaded either way, and we say so */
+  }
+  return {
+    ok: true,
+    file,
+    version: release.tag_name,
+    launched,
+    message: launched
+      ? `Downloaded ${asset.name} and opened it. Finish OpenDesign's own installer, then come back and connect it.`
+      : `Downloaded ${asset.name} to ${file}. Open it to finish installing OpenDesign.`
   }
 }

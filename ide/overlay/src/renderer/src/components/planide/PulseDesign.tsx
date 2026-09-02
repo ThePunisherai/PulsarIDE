@@ -13,7 +13,7 @@
  * visibly here rather than being quietly dropped.
  */
 import React, { useCallback, useEffect, useState } from 'react'
-import { ExternalLink, PenTool, RefreshCw } from 'lucide-react'
+import { Download, ExternalLink, PenTool, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
@@ -23,7 +23,8 @@ import {
   openDesignStatus,
   type ConnectResult,
   type OpenDesignStatus,
-  withVisibleSpin
+  withVisibleSpin,
+  openDesignInstall
 } from '../right-sidebar/planide-engine-client'
 
 /** The agents this IDE deploys Pulse Agent to, in OpenDesign's own naming. */
@@ -31,6 +32,8 @@ const AGENTS = ['claude', 'codex', 'cursor']
 
 export function OpenDesignSidebar(): React.JSX.Element {
   const [status, setStatus] = useState<OpenDesignStatus | null>(null)
+  const [installing, setInstalling] = useState(false)
+  const [installMsg, setInstallMsg] = useState('')
   const [loading, setLoading] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [results, setResults] = useState<ConnectResult[] | null>(null)
@@ -92,15 +95,41 @@ export function OpenDesignSidebar(): React.JSX.Element {
               app -- it publishes no npm package, so it genuinely cannot be
               bundled the way the ThreeUI components are -- which makes getting
               there in one click the most this panel can honestly do. */}
-          <a
-            href="https://open-design.ai"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-1 font-mono text-[10.5px] text-muted-foreground/80 underline underline-offset-2 hover:text-foreground"
-          >
-            open-design.ai
-            <ExternalLink size={10} />
-          </a>
+          {/* The install, done here. OpenDesign is a separate desktop app with no
+              installable package, so it cannot ride along inside PulsarIDE -- but
+              fetching the right build for this machine and starting its installer
+              is something we can do, and it is the part that was tedious. */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              disabled={installing}
+              onClick={() => {
+                setInstalling(true)
+                setInstallMsg('')
+                void openDesignInstall()
+                  .then((r) => setInstallMsg(r.message))
+                  .catch((err) => setInstallMsg(String(err)))
+                  .finally(() => setInstalling(false))
+              }}
+            >
+              <Download size={13} />
+              {installing
+                ? translate('planide.design.installing', 'Downloading OpenDesign…')
+                : translate('planide.design.install', 'Install OpenDesign for me')}
+            </Button>
+            <a
+              href="https://open-design.ai"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 font-mono text-[10.5px] text-muted-foreground/80 underline underline-offset-2 hover:text-foreground"
+            >
+              open-design.ai
+              <ExternalLink size={10} />
+            </a>
+          </div>
+          {installMsg ? (
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{installMsg}</p>
+          ) : null}
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
             {translate(
               'planide.design.threeuiHint',
