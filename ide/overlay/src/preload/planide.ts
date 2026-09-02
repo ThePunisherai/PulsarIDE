@@ -96,3 +96,12 @@ export const planIdeApi = {
   backupList: <T>(path: string) => call<T>('planide:backup-list', path),
   backupDelete: <T>(path: string, file: string) => call<T>('planide:backup-delete', path, file)
 }
+
+/**
+ * The bridge's own shape, so upstream's PreloadApi can name it.
+ *
+ * Upstream types `window.api` against a declared PreloadApi rather than
+ * inferring it, so a key it does not know about is a type error at the
+ * object literal -- adding the key there needs a type to give it.
+ */
+export type PlanIdeApi = typeof planIdeApi

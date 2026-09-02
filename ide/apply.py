@@ -539,6 +539,23 @@ EDITS: list[tuple[str, str, str, str]] = [
         "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker nav icon",
     ),
+    # Upstream declares the whole preload surface as a PreloadApi type and checks
+    # the object literal against it, so a key it has never heard of is a type
+    # error rather than a widened inference. The tracker's key is declared there
+    # too, typed from the bridge itself so the two can never drift.
+    (
+        "src/preload/api-types.ts",
+        "import type { GitLabApi } from './api/gitlab-api'",
+        "import type { GitLabApi } from './api/gitlab-api'\n"
+        "import type { PlanIdeApi } from './planide'",
+        "declare the tracker bridge on PreloadApi (import)",
+    ),
+    (
+        "src/preload/api-types.ts",
+        "  gl: GitLabApi\n",
+        "  gl: GitLabApi\n  planide: PlanIdeApi\n",
+        "declare the tracker bridge on PreloadApi (key)",
+    ),
     (
         "src/preload/index.ts",
         "  gl: glApiBridge,",
