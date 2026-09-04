@@ -107,6 +107,31 @@ ok('coreutils od does not produce a scary error either -- it is simply absent',
 ok('connect refuses cleanly when the only od is coreutils',
   connectOpenDesignToAgents(['claude'], HOME).every((r) => !r.ok && /not installed/i.test(r.output)))
 
+// --- coreutils SHADOWS a real OpenDesign further down PATH ------------------ //
+// The reported bug: "installed OpenDesign but it says not detected." OpenDesign's
+// own README says the desktop app "installs the od command on the system PATH"
+// AND that coreutils' /usr/bin/od "can shadow OpenDesign's od" -- so the real od
+// is the SECOND entry, behind coreutils. Taking only the first `which` match
+// found coreutils, rejected it, and reported "not detected". Detection must walk
+// EVERY od on PATH and pick the OpenDesign one.
+const coreDir = join(work, 'coreutils'); mkdirSync(coreDir)
+const realDir = join(work, 'opendesign'); mkdirSync(realDir)
+writeFileSync(join(coreDir, 'od'),
+  `#!/usr/bin/env bash\ncase "$1" in --version) echo "od (GNU coreutils) 9.4"; exit 0 ;; esac\necho "od: unrecognized option" >&2; exit 1\n`)
+chmodSync(join(coreDir, 'od'), 0o755)
+writeFileSync(join(realDir, 'od'),
+  `#!/usr/bin/env bash\ncase "$1 $2" in\n  "--version ") echo "od 0.21.1" ;;\n  "project list") echo '[{"id":"g1","name":"Game HUD"}]' ;;\nesac\n`)
+chmodSync(join(realDir, 'od'), 0o755)
+process.env.PATH = `${coreDir}:${realDir}:${away.PATH}`
+const shadowed = openDesignStatus(HOME)
+ok('coreutils first on PATH, real od second -> the real OpenDesign is found',
+  shadowed.installed === true && String(shadowed.binary) === join(realDir, 'od'))
+ok('the shadowed real od still reports its own version, not coreutils',
+  shadowed.version === 'od 0.21.1')
+ok('the shadowed real od still lists its projects',
+  shadowed.projects.length === 1 && shadowed.projects[0].name === 'Game HUD')
+process.env.PATH = `${bin}:${away.PATH}`
+
 // A real OpenDesign that has no --version at all must still be accepted: an
 // inconclusive probe may not reject, or a genuine install disappears.
 fakeOd(`

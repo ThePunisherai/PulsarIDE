@@ -6,6 +6,23 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.55.0] - 2026-09-04
+
+### Changed
+- **On the newest Orca again.** PulsarIDE now tracks upstream at `b0df874`, the
+  build that adds Orca's computer-use and orchestration work. All 64 overlay
+  edits still apply -- only one anchor needed re-homing (upstream reflowed one
+  build-config array), so the tracker, the board, the brain and every agent
+  integration ride on top of it unchanged.
+
+### Fixed
+- **"OpenDesign installed but not detected."** OpenDesign's desktop app puts its
+  `od` command on your PATH, but so does GNU coreutils (`/usr/bin/od`, the
+  octal-dump tool) -- and OpenDesign's own README warns coreutils can shadow it.
+  We only checked the first `od` on PATH, found coreutils, and reported nothing
+  installed. Now every `od` on PATH is checked and the real OpenDesign one is
+  used even when coreutils sits in front of it.
+
 ## [0.54.0] - 2026-09-02
 
 ### Changed

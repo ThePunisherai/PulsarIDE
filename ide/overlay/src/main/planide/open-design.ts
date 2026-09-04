@@ -82,15 +82,27 @@ function isCoreutilsOd(binary: string): boolean {
 }
 
 function resolveBinary(home: string): string | null {
-  // PATH first: if the user has it there, that is the one they mean -- unless
-  // what PATH found is coreutils wearing the same name.
+  // Enumerate EVERY `od` on PATH, not just the first. OpenDesign's own README
+  // says the desktop app "installs the od command on the system PATH", and in
+  // the same breath warns that coreutils' /usr/bin/od "can shadow OpenDesign's
+  // od command" -- so on a real install the OpenDesign one is frequently the
+  // SECOND entry, sitting behind coreutils in PATH order. Taking only the first
+  // match (the old behaviour) found coreutils, rejected it, and then reported
+  // "not detected" even though OpenDesign was installed and one entry further
+  // down. `which -a` / `where` list them all; we take the first that is not
+  // coreutils.
   try {
-    const which = process.platform === 'win32' ? 'where' : 'which'
-    const out = execFileSync(which, ['od'], { encoding: 'utf8', timeout: 4000, windowsHide: true })
-      .toString()
-      .trim()
-    const first = out.split(/\r?\n/)[0]?.trim()
-    if (first && !isCoreutilsOd(first)) return first
+    const [which, args]: [string, string[]] =
+      process.platform === 'win32' ? ['where', ['od']] : ['which', ['-a', 'od']]
+    const out = execFileSync(which, args, {
+      encoding: 'utf8',
+      timeout: 4000,
+      windowsHide: true
+    }).toString()
+    for (const line of out.split(/\r?\n/)) {
+      const p = line.trim()
+      if (p && !isCoreutilsOd(p)) return p
+    }
   } catch {
     /* not on PATH; fall through to the known install locations */
   }

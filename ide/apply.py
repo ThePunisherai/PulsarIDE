@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "61e010079f769f40cff39aef09f9788c13c3257d"  # 2026-09-02, upstream HEAD
+PINNED_COMMIT = "b0df874b7b8a2c59a418313b50a1e30c69828c45"  # 2026-09-04, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -732,9 +732,22 @@ EDITS: list[tuple[str, str, str, str]] = [
     # ---- the agent bundle: ThePunisher agents + skills, packaged ---------- #
     (
         "config/electron-builder.config.cjs",
-        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources]",
+        # Upstream reflowed this to a multi-line array and added the emoji
+        # dataset; we append our resource to the list's tail.
+        "const commonExtraResources = [\n"
+        "  relayExtraResource,\n"
+        "  bundledPluginResources,\n"
+        "  skillFreshnessResources,\n"
+        "  emojiShortcodeDatasetResource\n"
+        "]",
         "const pulsarAgentsResource = { from: 'resources/pulsar-agents', to: 'pulsar-agents' }\n"
-        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources, pulsarAgentsResource]",
+        "const commonExtraResources = [\n"
+        "  relayExtraResource,\n"
+        "  bundledPluginResources,\n"
+        "  skillFreshnessResources,\n"
+        "  emojiShortcodeDatasetResource,\n"
+        "  pulsarAgentsResource\n"
+        "]",
         "ship the ThePunisher agent bundle inside the app",
     ),
 ]
