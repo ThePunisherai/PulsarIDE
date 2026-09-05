@@ -6,6 +6,24 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.55.1] - 2026-09-05
+
+### Fixed
+- **The app no longer trips a render loop a few seconds after opening.** A real
+  Windows install on 0.55.0 hit React's "maximum update depth" error at boot.
+  0.55.0's only renderer change was the jump to a newer Orca (201 upstream
+  commits, several of them reworking exactly that area) -- our own part of that
+  release never touched a single renderer file. PulsarIDE is pinned back to the
+  Orca it ran on in 0.54.0, which had no such report.
+- The OpenDesign detection fix from 0.55.0 is **kept** -- it lives in the main
+  process and had nothing to do with the crash.
+
+### Known
+- This holds PulsarIDE on the older Orca for now, so Orca's newest work is not
+  in this build. Moving forward again needs a real boot test on Windows: both
+  our checks and Orca's own typecheck passed on the newer revision and neither
+  could catch this, because a render loop only shows up at runtime.
+
 ## [0.55.0] - 2026-09-04
 
 ### Changed

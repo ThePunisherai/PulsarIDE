@@ -29,7 +29,27 @@ import shutil
 import sys
 
 # Upstream revision this overlay was written against and verified on.
-PINNED_COMMIT = "b0df874b7b8a2c59a418313b50a1e30c69828c45"  # 2026-09-04, upstream HEAD
+#
+# HELD BACK ON PURPOSE -- do not bump past this without reading the note below.
+#
+# v0.55.0 moved this to b0df874 (+201 upstream commits) and a real Windows
+# install came back with a React #185 crash -- the "maximum update depth"
+# render loop -- about three seconds into boot, caught by an error boundary.
+# The crash report's own attribution is unreliable by design (#185 throws on
+# whichever component calls setState next, so its boundary_id named the status
+# bar, a bystander). What made the call was the diff: v0.55.0 touched ZERO
+# renderer files -- only this pin, one build-config anchor, a main-process
+# module and a test -- so nothing of ours could have introduced a render loop.
+# The only renderer change in that release was upstream's, and that window
+# includes several commits reworking exactly this area, two of them explicitly
+# render-loop fixes ("add equality bailouts to the tab pane-expansion actions",
+# "fix the orchestration batch's self-invalidating cache").
+#
+# So this is pinned back to the last revision shipped without that report.
+# Before moving it again: reproduce a real boot on Windows, not just a green
+# typecheck -- ide/verify.sh and Orca's own tsc both passed on b0df874 and
+# neither could see this, because a render loop is a runtime fault.
+PINNED_COMMIT = "61e010079f769f40cff39aef09f9788c13c3257d"  # 2026-09-02, last revision with no #185 report
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -732,22 +752,9 @@ EDITS: list[tuple[str, str, str, str]] = [
     # ---- the agent bundle: ThePunisher agents + skills, packaged ---------- #
     (
         "config/electron-builder.config.cjs",
-        # Upstream reflowed this to a multi-line array and added the emoji
-        # dataset; we append our resource to the list's tail.
-        "const commonExtraResources = [\n"
-        "  relayExtraResource,\n"
-        "  bundledPluginResources,\n"
-        "  skillFreshnessResources,\n"
-        "  emojiShortcodeDatasetResource\n"
-        "]",
+        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources]",
         "const pulsarAgentsResource = { from: 'resources/pulsar-agents', to: 'pulsar-agents' }\n"
-        "const commonExtraResources = [\n"
-        "  relayExtraResource,\n"
-        "  bundledPluginResources,\n"
-        "  skillFreshnessResources,\n"
-        "  emojiShortcodeDatasetResource,\n"
-        "  pulsarAgentsResource\n"
-        "]",
+        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources, pulsarAgentsResource]",
         "ship the ThePunisher agent bundle inside the app",
     ),
 ]
