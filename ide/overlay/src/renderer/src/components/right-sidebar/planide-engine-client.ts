@@ -307,45 +307,6 @@ export function aiReport(path: string, mode = 'full'): Promise<string> {
   return call<string>('report', path, mode)
 }
 
-// --------------------------------------------------------------------------- open design
-export type OpenDesignProject = { id: string; name: string; path: string; updatedAt: string }
-
-export type OpenDesignStatus = {
-  installed: boolean
-  binary: string | null
-  version: string | null
-  projects: OpenDesignProject[]
-  error: string | null
-}
-
-export type ConnectResult = { agent: string; ok: boolean; output: string }
-
-export function openDesignStatus(): Promise<OpenDesignStatus> {
-  return call<OpenDesignStatus>('openDesignStatus')
-}
-
-/** Runs OpenDesign's own `od mcp install <agent>`. User-triggered only. */
-export function openDesignConnect(agents: string[]): Promise<ConnectResult[]> {
-  return call<ConnectResult[]>('openDesignConnect', agents)
-}
-
-export function openDesignLaunch(): Promise<boolean> {
-  return call<boolean>('openDesignLaunch')
-}
-
-export type OpenDesignInstall = {
-  ok: boolean
-  file?: string
-  version?: string
-  launched: boolean
-  message: string
-}
-
-/** Download the right OpenDesign release for this machine and open its installer. */
-export function openDesignInstall(): Promise<OpenDesignInstall> {
-  return call<OpenDesignInstall>('openDesignInstall')
-}
-
 // --------------------------------------------------------------------------- memory
 export type GraphReportSection = { heading: string; lines: string[] }
 export type ReindexResult = { ok: boolean; log: string; missing: boolean }

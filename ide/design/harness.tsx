@@ -189,8 +189,6 @@ const after = <T,>(result: T): unknown => ok({ result, payload: rollups() })
         ]
       }),
     openGraphWindow: async () => ok({ opened: true }),
-    openDesignInstall: async () =>
-      ok({ ok: true, launched: true, version: 'v0.21.1', message: 'Downloaded and opened the installer.' }),
     onBoardChanged: () => () => {},
     // Git and backups are real subprocess/filesystem work in the app; here they
     // are plausible answers so the two tabs can be looked at.

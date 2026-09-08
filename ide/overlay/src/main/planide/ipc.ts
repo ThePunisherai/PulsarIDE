@@ -18,7 +18,6 @@ import * as git from './git'
 import { detect } from './detect'
 import { graphPicture, memoryStatus } from './memory-status'
 import { readGraphReport, reindexGraph } from './graphify-run'
-import { connectOpenDesignToAgents, openDesignInstall, openDesignLaunch, openDesignStatus } from './open-design'
 import { archifyRender, archifyStatus } from './archify-run'
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { historySnapshot, readProjectHistory, recordHistory } from './history'
@@ -240,12 +239,6 @@ export function registerPlanIdeIpc(): void {
     void win.loadFile(htmlPath)
     return { opened: true }
   })
-  // OpenDesign: read-only status, plus two explicitly user-triggered actions.
-  on('planide:open-design-status', () => openDesignStatus())
-  on('planide:open-design-connect', (agents: string[]) => connectOpenDesignToAgents(agents))
-  on('planide:open-design-launch', () => openDesignLaunch())
-  // Fetches the right release for this machine and opens the vendor's installer.
-  on('planide:open-design-install', () => openDesignInstall())
   // Archify: list this project's diagrams, and render one on request. The
   // render takes a name and a type rather than a path, so nothing from the
   // renderer is ever joined onto disk.

@@ -6,6 +6,22 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.57.0] - 2026-09-08
+
+### Removed
+- **Open Design is gone.** The tab, the left-nav entry, the sidebar panel, the
+  install/connect/launch plumbing and the `od` detection all came out — it was a
+  web/SaaS design engine that never fit what this IDE is used for.
+
+### Fixed
+- **The bundled libraries were never actually reached for.** ThreeUI, the
+  agency-agents roles, Archify and the skills were all installed and all
+  described to the Council — but a hundred lines deep in a wall of prose, after
+  the Council steps, the loop guard and the tracker rules. So design work got
+  hand-rolled while 44 ready-made 3D components sat on disk. The instruction now
+  opens with a short routing table: match the work to a row, open what it names,
+  and say so in one line if you did not.
+
 ## [0.56.0] - 2026-09-08
 
 ### Added

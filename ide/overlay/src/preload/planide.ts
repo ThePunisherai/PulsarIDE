@@ -61,10 +61,6 @@ export const planIdeApi = {
   reindexGraph: <T>(path: string) => call<T>('planide:reindex-graph', path),
   openGraphWindow: <T>(htmlPath: string, title?: string) =>
     call<T>('planide:open-graph-window', htmlPath, title),
-  openDesignStatus: <T>() => call<T>('planide:open-design-status'),
-  openDesignConnect: <T>(agents: string[]) => call<T>('planide:open-design-connect', agents),
-  openDesignLaunch: <T>() => call<T>('planide:open-design-launch'),
-  openDesignInstall: <T>() => call<T>('planide:open-design-install'),
   archifyStatus: <T>(path: string) => call<T>('planide:archify-status', path),
   archifyRender: <T>(path: string, name: string, type: string) =>
     call<T>('planide:archify-render', path, name, type),

@@ -283,14 +283,14 @@ EDITS: list[tuple[str, str, str, str]] = [
         "  // PlanIDE project tracker (board / fixes / roadmap).\n  | 'planide'\n"
         "  // Pulse memory: the knowledge graph and the Obsidian notes. Sidebar\n"
         "  // tabs, not Tracker tabs -- you want them open WHILE you work.\n"
-        "  | 'pulse-brain'\n  | 'pulse-obsidian'\n  | 'pulse-design'\n  | 'pulse-archify'",
+        "  | 'pulse-brain'\n  | 'pulse-obsidian'\n  | 'pulse-archify'",
         "register the 'planide' sidebar tab",
     ),
     (
         "src/renderer/src/components/right-sidebar/use-right-sidebar-activity-items.ts",
         "import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'",
         "import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'\n"
-        "import { BookText, Network, PenTool } from 'lucide-react'\n"
+        "import { BookText, Network } from 'lucide-react'\n"
         "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker tab icon import",
     ),
@@ -317,12 +317,6 @@ EDITS: list[tuple[str, str, str, str]] = [
         shortcut: ''
       },
       {
-        id: 'pulse-design',
-        icon: PenTool,
-        title: translate('planide.design.tab', 'Open Design'),
-        shortcut: ''
-      },
-      {
         id: 'pulse-archify',
         icon: Workflow,
         title: translate('planide.archify.tab', 'Archify'),
@@ -343,9 +337,6 @@ EDITS: list[tuple[str, str, str, str]] = [
         ")\n"
         "const ObsidianSidebar = lazy(() =>\n"
         "  import('../planide/PulseMemory').then((m) => ({ default: m.ObsidianSidebar }))\n"
-        ")\n"
-        "const OpenDesignSidebar = lazy(() =>\n"
-        "  import('../planide/PulseDesign').then((m) => ({ default: m.OpenDesignSidebar }))\n"
         ")",
         "tracker panel import",
     ),
@@ -355,7 +346,6 @@ EDITS: list[tuple[str, str, str, str]] = [
         "        {effectiveTab === 'planide' && <PlanIdePanel />}\n"
         "        {effectiveTab === 'pulse-brain' && <BrainGraphSidebar />}\n"
         "        {effectiveTab === 'pulse-obsidian' && <ObsidianSidebar />}\n"
-        "        {effectiveTab === 'pulse-design' && <OpenDesignSidebar />}\n"
         "        {effectiveTab === 'pulse-archify' && <ArchifyTab />}\n"
         "        {effectiveTab === 'explorer' && <FileExplorer />}",
         "render the tracker panel",
@@ -367,7 +357,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "src/renderer/src/store/right-sidebar-route.ts",
         "    tab === 'explorer' ||\n    tab === 'vault' ||",
         "    tab === 'planide' ||\n    tab === 'pulse-brain' ||\n    tab === 'pulse-obsidian' ||\n"
-        "    tab === 'pulse-design' ||\n    tab === 'pulse-archify' ||\n"
+        "    tab === 'pulse-archify' ||\n"
         "    tab === 'explorer' ||\n    tab === 'vault' ||",
         "let the tracker tab pass the route normalizer (else clicking it does nothing)",
     ),
@@ -424,7 +414,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/shared/ui-chrome-types.ts",
         "export type TopLevelView =\n  | 'terminal'",
-        "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'\n  // The same two surfaces as the sidebar tabs of these names, opened full\n  // page from the left nav. Separate type from RightSidebarTab, so the\n  // shared ids are deliberate rather than a collision.\n  | 'pulse-brain'\n  | 'pulse-design'\n  | 'pulse-archify'",
+        "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'\n  // The same two surfaces as the sidebar tabs of these names, opened full\n  // page from the left nav. Separate type from RightSidebarTab, so the\n  // shared ids are deliberate rather than a collision.\n  | 'pulse-brain'\n  | 'pulse-archify'",
         "register 'planide' as a top-level view",
     ),
     # Upstream used to hand-write eight unions here, one per view, each
@@ -434,7 +424,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/renderer/src/store/slices/ui/ui-slice-contract-core.ts",
         "export type UiViewHistory =\n  | 'terminal'",
-        "export type UiViewHistory =\n  // PlanIDE: the tracker surfaces are top-level views too, so they are\n  // valid history entries for every previousViewBefore* field.\n  | 'planide'\n  | 'pulse-brain'\n  | 'pulse-design'\n  | 'pulse-archify'\n  | 'terminal'",
+        "export type UiViewHistory =\n  // PlanIDE: the tracker surfaces are top-level views too, so they are\n  // valid history entries for every previousViewBefore* field.\n  | 'planide'\n  | 'pulse-brain'\n  | 'pulse-archify'\n  | 'terminal'",
         "the view history accepts the tracker",
     ),
     # And the zod enum the persisted UI state is validated against: a compile-time
@@ -446,25 +436,25 @@ EDITS: list[tuple[str, str, str, str]] = [
         "const STATIC_RIGHT_SIDEBAR_TABS = [\n"
         "  // PlanIDE: the tracker and the two memory tabs are real sidebar tabs,\n"
         "  // so a client may persist any of them.\n"
-        "  'planide',\n  'pulse-brain',\n  'pulse-obsidian',\n  'pulse-design',\n  'pulse-archify',\n  'explorer',",
+        "  'planide',\n  'pulse-brain',\n  'pulse-obsidian',\n  'pulse-archify',\n  'explorer',",
         "the tracker is a valid persisted sidebar tab",
     ),
     (
         "src/main/runtime/rpc/methods/client-ui-schemas.ts",
         "const TopLevelViewSchema = z.enum([\n  'terminal',",
-        "const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker and the two full-page\n  // memory/design surfaces are top-level views.\n  'planide',\n  'pulse-brain',\n  'pulse-design',\n  'pulse-archify',\n  'terminal',",
+        "const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker and the two full-page\n  // memory/design surfaces are top-level views.\n  'planide',\n  'pulse-brain',\n  'pulse-archify',\n  'terminal',",
         "the tracker is a valid persisted view",
     ),
     (
         "src/shared/top-level-view.ts",
         "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,",
-        "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,\n  planide: true,\n  'pulse-brain': true,\n  'pulse-design': true,\n  'pulse-archify': true,",
+        "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,\n  planide: true,\n  'pulse-brain': true,\n  'pulse-archify': true,",
         "allow 'planide' through the persistence guard",
     ),
     (
         "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
         "      {activeView === 'settings' ? <Settings /> : null}",
-        "      {activeView === 'planide' ? <PlanIdeView /> : null}\n      {activeView === 'pulse-brain' ? <PulseMemoryPage /> : null}\n      {activeView === 'pulse-design' ? <PulseDesignPage /> : null}\n      {activeView === 'pulse-archify' ? <PulseArchifyPage /> : null}\n      {activeView === 'settings' ? <Settings /> : null}",
+        "      {activeView === 'planide' ? <PlanIdeView /> : null}\n      {activeView === 'pulse-brain' ? <PulseMemoryPage /> : null}\n      {activeView === 'pulse-archify' ? <PulseArchifyPage /> : null}\n      {activeView === 'settings' ? <Settings /> : null}",
         "render the tracker workbench",
     ),
     (
@@ -472,7 +462,6 @@ EDITS: list[tuple[str, str, str, str]] = [
         "function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
         "const PlanIdeView = lazy(() => import('../components/planide/PlanIdeView'))\n"
         "const PulseMemoryPage = lazy(() => import('../components/planide/PulseMemoryPage'))\n"
-        "const PulseDesignPage = lazy(() => import('../components/planide/PulseDesignPage'))\n"
         "const PulseArchifyPage = lazy(() => import('../components/planide/PulseArchifyPage'))\n\n"
         "function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
         "lazy-import the tracker workbench",
@@ -480,7 +469,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/renderer/src/components/sidebar/SidebarNav.tsx",
         "  const skillsActive = activeView === 'skills'",
-        "  const skillsActive = activeView === 'skills'\n  const planIdeActive = activeView === 'planide'\n  const pulseBrainActive = activeView === 'pulse-brain'\n  const pulseDesignActive = activeView === 'pulse-design'\n  const pulseArchifyActive = activeView === 'pulse-archify'\n  const setActiveView = useAppStore((s) => s.setActiveView)",
+        "  const skillsActive = activeView === 'skills'\n  const planIdeActive = activeView === 'planide'\n  const pulseBrainActive = activeView === 'pulse-brain'\n  const pulseArchifyActive = activeView === 'pulse-archify'\n  const setActiveView = useAppStore((s) => s.setActiveView)",
         "tracker nav state",
     ),
     (
@@ -528,23 +517,6 @@ EDITS: list[tuple[str, str, str, str]] = [
       </button>
       <button
         type="button"
-        onClick={() => setActiveView('pulse-design')}
-        aria-current={pulseDesignActive ? 'page' : undefined}
-        className={cn(
-          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium tracking-tight transition-colors',
-          pulseDesignActive
-            ? 'bg-worktree-sidebar-accent text-worktree-sidebar-accent-foreground'
-            : 'text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8'
-        )}
-      >
-        <PenTool
-          className={cn('size-4 shrink-0', !pulseDesignActive && 'text-worktree-sidebar-foreground/30')}
-          strokeWidth={pulseDesignActive ? 2.25 : 1.75}
-        />
-        <span className="flex-1">{translate('planide.nav.design', 'Open Design')}</span>
-      </button>
-      <button
-        type="button"
         onClick={() => setActiveView('pulse-archify')}
         aria-current={pulseArchifyActive ? 'page' : undefined}
         className={cn(
@@ -566,7 +538,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "src/renderer/src/components/sidebar/SidebarNav.tsx",
         "import { BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'",
         "import { BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'\n"
-        "import { Network, PenTool, Workflow } from 'lucide-react'\n"
+        "import { Network, Workflow } from 'lucide-react'\n"
         "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker nav icon",
     ),
@@ -792,14 +764,10 @@ OVERLAY_FILES = [
     "src/renderer/src/components/planide/PulseMemory.tsx",
     # Full-page versions of the two surfaces above, opened from the left nav.
     "src/renderer/src/components/planide/PulseMemoryPage.tsx",
-    "src/renderer/src/components/planide/PulseDesignPage.tsx",
     "src/renderer/src/components/planide/GraphCanvas.tsx",
     "src/renderer/src/components/planide/PulseArchify.tsx",
     "src/renderer/src/components/planide/PulseArchifyPage.tsx",
     "src/renderer/src/components/planide/PulseArchifyTab.tsx",
-    # OpenDesign: the design engine, driven by whichever agent you are using.
-    "src/renderer/src/components/planide/PulseDesign.tsx",
-    "src/main/planide/open-design.ts",
     # The PulsarIDE theme: re-declares Orca's own design tokens (nothing
     # upstream is edited). Imported after main.css by the two renderer entry
     # points below, so the later declaration wins.

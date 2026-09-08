@@ -43,7 +43,6 @@
     "../overlay/src/main/planide/memory-status.ts",
     "../overlay/src/main/planide/history.ts",
     "../overlay/src/main/planide/memory-sync.ts",
-    "../overlay/src/main/planide/open-design.ts",
     "../overlay/src/main/planide/report.ts",
     "../overlay/src/main/planide/store.ts"
   ]

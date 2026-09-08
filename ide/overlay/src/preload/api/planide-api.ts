@@ -59,10 +59,6 @@ export type PlanIdeApi = {
   graphPicture: <T>(path: string) => Call<T>
   reindexGraph: <T>(path: string) => Call<T>
   openGraphWindow: <T>(htmlPath: string, title?: string) => Call<T>
-  openDesignStatus: <T>() => Call<T>
-  openDesignConnect: <T>(agents: string[]) => Call<T>
-  openDesignLaunch: <T>() => Call<T>
-  openDesignInstall: <T>() => Call<T>
   archifyStatus: <T>(path: string) => Call<T>
   archifyRender: <T>(path: string, name: string, type: string) => Call<T>
 
