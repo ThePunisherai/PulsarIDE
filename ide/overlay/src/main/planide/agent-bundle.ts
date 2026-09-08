@@ -76,7 +76,8 @@ export type DeployResult = {
 }
 
 /**
- * Appended to every deployed team-lead body (Claude Code, Gemini CLI, Codex) so
+ * Appended to every deployed team-lead body (Claude Code, Gemini CLI, Codex,
+ * Qwen Code) so
  * a subagent PulsarIDE dispatches knows the project has a live board and updates
  * it as it works. The main session gets the same nudge from the SessionStart
  * hook's additionalContext (graphify-bootstrap), so this is reinforcement, not
@@ -140,6 +141,20 @@ function readManifest(root: string): Manifest {
 }
 
 /**
+ * Every home-relative directory this build deploys agent content into. Part of
+ * the freshness fingerprint (see bundleSignature) and the reason a newly
+ * supported tool triggers exactly one redeploy on every existing install.
+ */
+const DEPLOY_TARGETS = [
+  '.claude/agents',
+  '.claude/skills',
+  '.codex/agents',
+  '.gemini/agents',
+  '.qwen/agents',
+  '.qwen/skills'
+] as const
+
+/**
  * A fingerprint of what this app actually ships, used to decide whether a
  * redeploy is needed.
  *
@@ -156,6 +171,14 @@ function readManifest(root: string): Manifest {
  * plus the manifest's own bytes. That catches an added, removed or edited file
  * without reading any of them in full at every launch.
  *
+ * DEPLOY_TARGETS is in there for the mirror-image case: the bundle is byte for
+ * byte the same, but this build writes it somewhere the last one did not. Adding
+ * Qwen Code was exactly that -- not one file under agent-bundle/ changed, so
+ * without this every existing install would have kept skipping the deploy and
+ * ~/.qwen would have stayed empty. Deriving it from the target list rather than a
+ * hand-bumped constant means the next tool added is covered by having been
+ * added, which is the same reason this function exists at all.
+ *
  * It walks the whole tree rather than each directory's top level, which is the
  * fix for a second, quieter version of the same bug: the shallow listing could
  * only see `skills/<name>` and `tracker/mcp` as entries, never what changed
@@ -166,7 +189,7 @@ function readManifest(root: string): Manifest {
  * walking it all costs nothing worth trading correctness for.
  */
 function bundleSignature(root: string): string {
-  const parts: string[] = []
+  const parts: string[] = [`targets:${DEPLOY_TARGETS.join(',')}`]
   try {
     parts.push(readFileSync(join(root, 'manifest.json'), 'utf8'))
   } catch {
@@ -327,12 +350,17 @@ export function deployAgentBundle(
     // Reconcile: remove what a previous deploy of ours wrote, ours only.
     if (prev) {
       for (const p of prev.agents) rmSync(p, { force: true })
-      for (const name of prev.skills) rmSync(join(home, '.claude', 'skills', name), { recursive: true, force: true })
+      for (const name of prev.skills) {
+        // Both roots: a skill we stopped shipping has to go from Qwen's copy too,
+        // or an update leaves it behind for one tool and not the other.
+        rmSync(join(home, '.claude', 'skills', name), { recursive: true, force: true })
+        rmSync(join(home, '.qwen', 'skills', name), { recursive: true, force: true })
+      }
       if (prev.tracker) rmSync(prev.tracker, { recursive: true, force: true })
       for (const lib of prev.libraries ?? []) rmSync(lib, { recursive: true, force: true })
     }
 
-    // --- agents: team leads -> Claude Code, Gemini CLI, Codex ------------- //
+    // --- agents: team leads -> Claude Code, Gemini CLI, Codex, Qwen Code -- //
     const agentDir = join(root, 'agents')
     // Only real agents — a .md with a `name:` frontmatter. This excludes the
     // bundle's own README.md, which was being deployed as a malformed agent
@@ -351,9 +379,17 @@ export function deployAgentBundle(
     const claudeAgents = join(home, '.claude', 'agents')
     const geminiAgents = join(home, '.gemini', 'agents')
     const codexAgents = join(home, '.codex', 'agents')
+    // Qwen Code: same `<dir>/<name>.md` subagent shape as Gemini CLI and Claude
+    // Code (frontmatter `name` + `description`, optional `tools`/`model`), read
+    // from `~/.qwen/agents`. Verified against the published qwen-code bundle's
+    // own loader, which lists `.md` files under
+    // `join(Storage.getGlobalQwenDir(), AGENT_CONFIG_DIR)` with
+    // AGENT_CONFIG_DIR = 'agents' -- not inferred from it being a Gemini fork.
+    const qwenAgents = join(home, '.qwen', 'agents')
     mkdirSync(claudeAgents, { recursive: true })
     mkdirSync(geminiAgents, { recursive: true })
     mkdirSync(codexAgents, { recursive: true })
+    mkdirSync(qwenAgents, { recursive: true })
 
     /**
      * Exactly one copy of this roster, and it is the one this app ships.
@@ -411,7 +447,8 @@ export function deployAgentBundle(
     const superseded =
       supersedeForeignRoster(claudeAgents) +
       supersedeForeignRoster(geminiAgents) +
-      supersedeForeignRoster(codexAgents)
+      supersedeForeignRoster(codexAgents) +
+      supersedeForeignRoster(qwenAgents)
     if (superseded > 0) {
       console.info(
         `[pulsar] replaced ${superseded} older ThePunisher-Agent roster file(s) with the Pulse ` +
@@ -434,6 +471,9 @@ export function deployAgentBundle(
       wroteAgents.push(geminiPath)
       writeFileSync(codexPath, toToml(mdOut))
       wroteAgents.push(codexPath)
+      const qwenPath = join(qwenAgents, base)
+      writeFileSync(qwenPath, mdOut)
+      wroteAgents.push(qwenPath)
     }
 
     // --- skills: curated set incl. orchestration -> Claude Code ----------- //
@@ -441,12 +481,18 @@ export function deployAgentBundle(
     const skillNames = existsSync(skillsSrc)
       ? readdirSync(skillsSrc).filter((d) => existsSync(join(skillsSrc, d, 'SKILL.md')))
       : []
-    const claudeSkills = join(home, '.claude', 'skills')
-    mkdirSync(claudeSkills, { recursive: true })
-    for (const name of skillNames) {
-      const dest = join(claudeSkills, name)
-      rmSync(dest, { recursive: true, force: true })
-      cpSync(join(skillsSrc, name), dest, { recursive: true })
+    // Qwen Code reads global skills from `~/.qwen/skills/<name>/SKILL.md` --
+    // same manifest name and same one-directory-per-skill layout Claude Code
+    // uses, so the bundled set is copied verbatim to both. Verified against the
+    // published qwen-code bundle (SKILLS_CONFIG_DIR = 'skills' under the global
+    // qwen dir, manifest `SKILL.md`), not assumed from the Gemini fork.
+    for (const skillRoot of [join(home, '.claude', 'skills'), join(home, '.qwen', 'skills')]) {
+      mkdirSync(skillRoot, { recursive: true })
+      for (const name of skillNames) {
+        const dest = join(skillRoot, name)
+        rmSync(dest, { recursive: true, force: true })
+        cpSync(join(skillsSrc, name), dest, { recursive: true })
+      }
     }
 
     // --- memory hooks: graphify + Obsidian, per project ------------------- //
@@ -993,14 +1039,30 @@ function mergeOpenCodeRules(home: string, block: string): void {
  * is touched; every other server and setting in the file is preserved verbatim.
  */
 function registerPlanideMcpGemini(home: string): boolean {
+  return registerPlanideMcpSettingsJson(join(home, '.gemini', 'settings.json'), home)
+}
+
+/**
+ * Qwen Code is a fork of Gemini CLI and keeps the same user-scope
+ * `settings.json` with a top-level `mcpServers` map, under its own `~/.qwen`
+ * directory. Verified against the real published @qwen-code/qwen-code package
+ * rather than assumed from the fork relationship: `QWEN_DIR = '.qwen'`,
+ * `Storage.getGlobalQwenDir()` joined with `'settings.json'`, and the loader
+ * reading `userSettings.mcpServers[serverName]`.
+ */
+function registerPlanideMcpQwen(home: string): boolean {
+  return registerPlanideMcpSettingsJson(join(home, '.qwen', 'settings.json'), home)
+}
+
+/** The shared writer for both: only our own keys are touched. */
+function registerPlanideMcpSettingsJson(path: string, home: string): boolean {
   try {
-    const path = join(home, '.gemini', 'settings.json')
     let config: Record<string, unknown> = {}
     if (existsSync(path)) {
       try {
         config = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
       } catch {
-        // A malformed ~/.gemini/settings.json is Gemini's own state — never clobber it.
+        // A malformed settings.json is that tool's own state — never clobber it.
         return false
       }
     }
@@ -1312,6 +1374,34 @@ export function deployCursorRule(projectPath: string, home: string = homedir()):
   }
 }
 
+/**
+ * The repo-root `AGENTS.md`, for every agent this app does not know by name.
+ *
+ * The user-scope files above each reach exactly one tool, and that list can only
+ * ever be the tools someone sat down and wired. AGENTS.md is the opposite: one
+ * open format, stewarded by the Agentic AI Foundation, that 30+ agents already
+ * read from the repository root -- Amp, Jules, Zed, Factory, Aider, Devin,
+ * Windsurf, GitHub Copilot and others none of this code has ever heard of. It is
+ * also a second, project-scoped route into the tools that ARE wired: Codex and
+ * Qwen Code both read it (qwen-code's own bundle defines
+ * AGENT_CONTEXT_FILENAME = 'AGENTS.md' and ships it in the default context list),
+ * so a project opened here is covered even on a machine where the user-scope file
+ * was never written.
+ *
+ * Same two rules as the Cursor rule next to it, for the same reason: only for a
+ * project this app actually tracks (a board exists), and merged rather than
+ * written -- AGENTS.md is a file the user commits, so everything outside our
+ * delimiters is preserved byte for byte and only our own block is ever replaced.
+ */
+export function deployProjectAgentsMd(projectPath: string, home: string = homedir()): boolean {
+  try {
+    if (!existsSync(join(projectPath, '.planide', 'state.json'))) return false
+    return mergeManagedBlock(join(projectPath, 'AGENTS.md'), mainSessionBlock(home))
+  } catch {
+    return false
+  }
+}
+
 /** Merge our managed block into a main-session context file, reconcile-not-accumulate. */
 /**
  * ThePunisher-Agent's own installer merges a delimited block into these very
@@ -1358,8 +1448,8 @@ function mergeManagedBlock(path: string, block: string): boolean {
 
 /**
  * Register the planide tracker MCP for every embedded agent that reads a
- * user-scope config — Claude Code, Codex CLI, Cursor, and Gemini CLI/Antigravity
- * — and merge the main-session context (Council understand-first + tracker) into
+ * user-scope config — Claude Code, Codex CLI, Cursor, Gemini CLI/Antigravity and
+ * Qwen Code — and merge the main-session context (Council + tracker) into
  * each tool's always-loaded memory file so the *main* session gets it without an
  * @-mention. Returns true if any MCP registration wrote.
  */
@@ -1368,18 +1458,24 @@ function registerTrackerForAllAgents(home: string): boolean {
   const codex = registerPlanideMcpCodex(home)
   registerPlanideMcpCursor(home)
   const gemini = registerPlanideMcpGemini(home)
+  const qwen = registerPlanideMcpQwen(home)
   const opencode = registerPlanideMcpOpenCode(home)
   const block = mainSessionBlock(home)
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
   mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)
   mergeManagedBlock(join(home, '.gemini', 'GEMINI.md'), block)
+  // Qwen Code's user-scope context file. Its memory loader joins the global
+  // `~/.qwen` dir with each entry of `currentMemoryFilename`, which defaults to
+  // ['QWEN.md', 'AGENTS.md'] -- so QWEN.md alone reaches it, and writing both
+  // would only load the same block twice.
+  mergeManagedBlock(join(home, '.qwen', 'QWEN.md'), block)
   // opencode reads ~/.claude/CLAUDE.md and ~/.claude/skills when it has no
   // global AGENTS.md of its own, so it already has the block above. This only
   // adds it where the user keeps their own file, which turns that fallback off.
   mergeOpenCodeRules(home, block)
   // Antigravity's own native surface, on top of the shared GEMINI.md block.
   deployAntigravitySkill(home, block)
-  return claude || codex || gemini || opencode
+  return claude || codex || gemini || qwen || opencode
 }
 
 /**

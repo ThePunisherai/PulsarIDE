@@ -38,7 +38,7 @@ PulsarIDE adds, in the sidebar, wired to the agents.
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
 | **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
-| **Pulse Agent, pre-installed** | 100 team leads + **5,372 named specialists** + 77 skills + a **274-role agency library** and **44 ThreeUI 3D/design components** ship inside the app and deploy on launch — Claude Code, Codex and Gemini CLI as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule, opencode through its own config — with graphify + Obsidian wired per project and the `planide` and `pulsar-tools` MCP servers registered, so every agent updates the board out of the box |
+| **Pulse Agent, pre-installed** | 100 team leads + **5,372 named specialists** + 77 skills + a **274-role agency library** and **44 ThreeUI 3D/design components** ship inside the app and deploy on launch — Claude Code, Codex, Gemini CLI and Qwen Code as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule, opencode through its own config, and every other agent through the repo's `AGENTS.md` — with graphify + Obsidian wired per project and the `planide` and `pulsar-tools` MCP servers registered, so every agent updates the board out of the box |
 | **The agent's own tools, everywhere** | `pulsar-tools` gives any agent — Codex and Cursor included, not just Claude Code — task routing across the whole roster, an anti-loop check so a failed approach is never retried, and binary triage through the bundled RE toolkit |
 | **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
 | **Live board** | The tracker watches the project, so an agent writing to the board updates what you are looking at — no refreshing |
@@ -228,7 +228,7 @@ To have an agent update the board itself, two ways — pick per agent:
   ./agent-tools/plan fix done <project-path> <fix_id> --solution "awaited the query"
   ```
 - **MCP** (nothing to install) — the `planide` server is registered for Claude
-  Code, Codex, Cursor, Gemini CLI and Antigravity on launch, and agents call
+  Code, Codex, Cursor, Gemini CLI, Qwen Code and Antigravity on launch, and agents call
   `get_board` / `add_item` / `set_item` / `add_fix` / `mark_fixed` /
   `add_milestone` / `set_milestone` / `add_version` directly. It is a
   zero-dependency Node server run by the IDE's own binary, so there is no Python

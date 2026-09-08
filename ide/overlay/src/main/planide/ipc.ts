@@ -21,7 +21,7 @@ import { readGraphReport, reindexGraph } from './graphify-run'
 import { archifyRender, archifyStatus } from './archify-run'
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { historySnapshot, readProjectHistory, recordHistory } from './history'
-import { deployCursorRule } from './agent-bundle'
+import { deployCursorRule, deployProjectAgentsMd } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
 import {
   addFix,
@@ -123,6 +123,9 @@ export function registerPlanIdeIpc(): void {
       // its rule lives in the project. Now that the board exists, write it.
       // Best-effort by design: a read-only checkout must not break opening.
       deployCursorRule(path)
+      // And the repo-root AGENTS.md, which is how every agent we do NOT wire by
+      // name (Amp, Jules, Zed, Factory, Aider, Copilot, ...) finds Pulse Agent.
+      deployProjectAgentsMd(path)
       watchBoard(path, (changed) => {
         if (!event.sender.isDestroyed()) event.sender.send('planide:board-changed', changed)
       })

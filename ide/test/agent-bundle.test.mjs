@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 
 const REPO = process.env.PULSAR_REPO || join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const MOD = process.env.PULSAR_BUNDLE_CJS // esbuild output, provided by verify.sh
-const { deployAgentBundle, deployCursorRule } = await import(MOD)
+const { deployAgentBundle, deployCursorRule, deployProjectAgentsMd } = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
 const res = join(work, 'res'); mkdirSync(res)
@@ -36,6 +36,10 @@ writeFileSync(join(HOME, '.codex/AGENTS.md'), '# My own notes\n\nKeep this.\n')
 // Pre-existing Gemini/Antigravity settings.json: registering planide must keep it.
 mkdirSync(join(HOME, '.gemini'), { recursive: true })
 writeFileSync(join(HOME, '.gemini/settings.json'), JSON.stringify({ theme: 'Default', mcpServers: { other: { command: 'x' } } }))
+// Same for Qwen Code, which keeps its own ~/.qwen/settings.json.
+mkdirSync(join(HOME, '.qwen'), { recursive: true })
+writeFileSync(join(HOME, '.qwen/settings.json'), JSON.stringify({ vimMode: true, mcpServers: { other: { command: 'x' } } }))
+writeFileSync(join(HOME, '.qwen/QWEN.md'), '# My own Qwen notes\n\nKeep this too.\n')
 
 const r1 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('deploys on first run', r1.deployed === true)
@@ -49,6 +53,22 @@ ok(`every bundled skill deploys (${bundledSkills}), orchestration included`,
   existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) &&
   existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')) &&
   existsSync(join(HOME, '.claude/skills/prompt-master/SKILL.md')))
+// Qwen Code: same `<dir>/<name>.md` subagent shape as Gemini CLI, under ~/.qwen.
+// Paths taken from the published @qwen-code/qwen-code bundle itself
+// (QWEN_DIR='.qwen', AGENT_CONFIG_DIR='agents', SKILLS_CONFIG_DIR='skills',
+// context filenames ['QWEN.md','AGENTS.md']), not inferred from the fork.
+ok('Qwen Code gets the same roster and every bundled skill',
+  readdirSync(join(HOME, '.qwen/agents')).filter(f => f.startsWith('pulse-') && f.endsWith('.md')).length === 100 &&
+  existsSync(join(HOME, '.qwen/skills/agent-orchestrator/SKILL.md')) &&
+  readdirSync(join(HOME, '.qwen/skills')).length === readdirSync(join(HOME, '.claude/skills')).length)
+ok('Qwen Code gets the main-session block in ~/.qwen/QWEN.md, own notes intact', (() => {
+  const t = readFileSync(join(HOME, '.qwen/QWEN.md'), 'utf8')
+  return t.includes('\u{1F534} Pulse Agent \u2014 Council') && t.includes('# My own Qwen notes')
+})())
+ok('Qwen Code MCP registered at ~/.qwen/settings.json, user content preserved', (() => {
+  const q = JSON.parse(readFileSync(join(HOME, '.qwen/settings.json'), 'utf8'))
+  return q.mcpServers.planide && q.mcpServers.other && q.vimMode === true
+})())
 ok('claude/gemini/codex all get the roster', readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulse-')).length === 100 && readdirSync(join(HOME, '.gemini/agents')).length === 100 && readdirSync(join(HOME, '.codex/agents')).filter(f => f.endsWith('.toml')).length === 100)
 try { execSync('python3 -c "import tomllib,sys;[tomllib.load(open(f,\'rb\')) for f in sys.argv[1:]]" ' + readdirSync(join(HOME, '.codex/agents')).map(f => join(HOME, '.codex/agents', f)).join(' ')); ok('every codex toml parses', true) } catch { ok('every codex toml parses', false) }
 ok('README.md is NOT deployed as an agent (would break Codex agent loading)',
@@ -158,7 +178,7 @@ ok('hook not duplicated', s2.hooks.SessionStart.filter(e => JSON.stringify(e).in
 // reported. registerTrackerForAllAgents runs BEFORE the gate for exactly this
 // reason; this pins that ordering down so a refactor cannot quietly undo it.
 const MAIN_FILES = ['.claude/CLAUDE.md', '.codex/AGENTS.md', '.gemini/GEMINI.md',
-  '.gemini/config/skills/pulse-agent/SKILL.md']
+  '.qwen/QWEN.md', '.gemini/config/skills/pulse-agent/SKILL.md']
 for (const f of MAIN_FILES) {
   // Stand in for the previous build's text: keep the delimiters, gut the body.
   const path = join(HOME, f)
@@ -221,6 +241,24 @@ ok('Cursor rule is alwaysApply (Cursor has no task routing to discover it otherw
   /^---\r?\n/.test(mdc) && /\nalwaysApply:\s*true\b/.test(mdc))
 ok('Cursor rule carries the same orchestrator body the other agents get',
   mdc.includes('orchestrate as The Council') && mdc.includes('get_board'))
+
+// --- AGENTS.md: the open format every agent we do NOT wire by name reads ---- //
+// Same repo-writing risk as the Cursor rule, so the same board gate. The extra
+// thing this one has to get right is that AGENTS.md is a file the user commits:
+// their own content has to come back byte for byte, and a second run must
+// replace our block rather than append another copy.
+ok('AGENTS.md NOT written into a project with no board',
+  deployProjectAgentsMd(untracked, HOME) === false && !existsSync(join(untracked, 'AGENTS.md')))
+writeFileSync(join(tracked, 'AGENTS.md'), '# Build\n\nRun `make test` first.\n')
+ok('AGENTS.md written for a tracked project', deployProjectAgentsMd(tracked, HOME) === true)
+const agentsMd = readFileSync(join(tracked, 'AGENTS.md'), 'utf8')
+ok("AGENTS.md keeps the repo's own instructions and adds the orchestrator body",
+  agentsMd.includes('Run `make test` first.') && agentsMd.includes('orchestrate as The Council') &&
+  agentsMd.includes('\u{1F534} Pulse Agent \u2014 Council'))
+deployProjectAgentsMd(tracked, HOME)
+const agentsMd2 = readFileSync(join(tracked, 'AGENTS.md'), 'utf8')
+ok('a second run replaces our AGENTS.md block instead of appending another',
+  agentsMd2.split('<!-- PULSAR:MAIN:BEGIN -->').length === 2 && agentsMd2 === agentsMd)
 
 // --- the agent-description budget: one roster, never two ------------------- //
 // PulsarIDE's bundle IS ThePunisher-Agent's roster. Someone running that

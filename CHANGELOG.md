@@ -6,6 +6,25 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.58.0] - 2026-09-08
+
+### What's new
+- **Qwen Code is a first-class agent now.** It gets the same 100 team leads
+  (`~/.qwen/agents`), all 77 skills (`~/.qwen/skills`), the Council instruction
+  in `~/.qwen/QWEN.md` and the live tracker tools in `~/.qwen/settings.json` —
+  the same deal Claude Code, Codex and Gemini CLI already had.
+- **Every other agent, through `AGENTS.md`.** Opening a tracked project now
+  merges the Pulse Agent block into the repo's `AGENTS.md` — the open format
+  Amp, Jules, Zed, Factory, Aider, Copilot and 30-odd others read. Your own
+  content in that file is kept; only our block is replaced on an update.
+
+### What's fixed
+- **A release that only changes the instruction now actually redeploys.** The
+  freshness check looked at the bundle's files, so a version that adds a new
+  tool without changing a bundled file decided nothing had changed and skipped —
+  which would have left `~/.qwen` empty after updating. It now also covers where
+  the build deploys to, so adding a tool is enough to trigger it.
+
 ## [0.57.0] - 2026-09-08
 
 ### Removed
