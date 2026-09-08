@@ -6,6 +6,27 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.56.0] - 2026-09-08
+
+### Added
+- **25 more skills, built in.** [mblode/agent-skills](https://github.com/mblode/agent-skills)
+  (MIT) ships pre-installed: shipping (`planning`, `pr-reviewer`, `pr-creator`,
+  `pr-babysitter`, `tidy`, `autoship`), design (`product-design`, `ui-design`,
+  `ui-verification`, `ui-animation`, `presentation-creator`), audits (`ax-audit`,
+  `dx-audit`, `typography-audit`, `seo`), architecture (`codebase-architecture`,
+  `scaffold-nextjs`, `scaffold-cli`, `multi-tenant-architecture`), writing and
+  skill authoring. 52 skills to 77, none of them shadowing a skill already here.
+  The Council is told what each group is for and to open them by name.
+
+### Fixed
+- **"The agent never even gets called."** Each of the 100 team-lead subagents was
+  told to announce itself with a `🔴 Pulse Agent — <team>` banner, but a main
+  session is not a subagent, and the always-loaded instruction never asked for
+  one — it only referred to a banner it never requested. So in the usual case,
+  where the Council runs in your main session rather than a dispatched subagent,
+  nothing ever said it was there, which is indistinguishable from it never
+  running. Every tool's memory file now carries the rule.
+
 ## [0.55.1] - 2026-09-05
 
 ### Fixed

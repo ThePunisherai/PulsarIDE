@@ -111,6 +111,24 @@ ok('the main-session block makes the board a Council step, before any code',
 ok('Claude + Gemini main-session memory get the same block',
   readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('orchestrate as The Council') &&
   readFileSync(join(HOME, '.gemini/GEMINI.md'), 'utf8').includes('orchestrate as The Council'))
+// "It never even gets called": the 100 team-lead subagent files each carry an
+// activation-banner rule, but a MAIN session is not a subagent -- and the block
+// referred to "the activation banner" without ever telling a main session to
+// print one. With no banner there is no evidence any of this reached the model,
+// which reads exactly like the agent never ran. Every tool's always-loaded file
+// must carry the rule, not just Claude's.
+ok('every main session is told to announce itself with the activation banner',
+  ['.codex/AGENTS.md', '.claude/CLAUDE.md', '.gemini/GEMINI.md'].every((f) => {
+    const s = readFileSync(join(HOME, f), 'utf8')
+    return s.includes('🔴 Pulse Agent — Council') && s.includes('before anything else')
+  }))
+// The mblode/agent-skills library ships as ordinary skills, so the only thing
+// that can silently break is them not landing at all.
+const deployedSkills = readdirSync(join(HOME, '.claude/skills'))
+ok('mblode/agent-skills land as real deployed skills',
+  ['ui-design', 'pr-reviewer', 'ax-audit', 'codebase-architecture', 'tidy'].every(
+    (s) => deployedSkills.includes(s) &&
+      existsSync(join(HOME, '.claude/skills', s, 'SKILL.md'))))
 // The watermark instruction has to reach every agent, not just Claude -- an
 // invisible mark is invisible regardless of which model wrote the doc.
 ok('every agent is told to clean the docs it writes',
