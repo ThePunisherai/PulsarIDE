@@ -149,6 +149,33 @@ ok('second run is version-gated no-op', r2.deployed === false)
 const s2 = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8'))
 ok('hook not duplicated', s2.hooks.SessionStart.filter(e => JSON.stringify(e).includes('graphify-bootstrap.sh')).length === 1)
 
+// A release can change the main-session instruction WITHOUT changing a single
+// file under ide/agent-bundle/ -- v0.57.0's routing table did exactly that, and
+// v0.56.0's activation banner lives in the same place. bundleSignature only
+// fingerprints the bundle directories, so that release's signature is identical
+// and the deploy is correctly gated off. The instruction still has to land, or
+// updating the app visibly changes nothing in chat -- which is how it gets
+// reported. registerTrackerForAllAgents runs BEFORE the gate for exactly this
+// reason; this pins that ordering down so a refactor cannot quietly undo it.
+const MAIN_FILES = ['.claude/CLAUDE.md', '.codex/AGENTS.md', '.gemini/GEMINI.md',
+  '.gemini/config/skills/pulse-agent/SKILL.md']
+for (const f of MAIN_FILES) {
+  // Stand in for the previous build's text: keep the delimiters, gut the body.
+  const path = join(HOME, f)
+  const t = readFileSync(path, 'utf8')
+  writeFileSync(path, t.includes('<!-- PULSAR:MAIN:BEGIN -->')
+    ? t.split('<!-- PULSAR:MAIN:BEGIN -->')[0] + '<!-- PULSAR:MAIN:BEGIN -->\nSTALE\n<!-- PULSAR:MAIN:END -->'
+    : '---\nname: pulse-agent\n---\nSTALE\n')
+}
+const rStale = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
+ok('a prompt-only release still refreshes every main session (no signature change)',
+  rStale.deployed === false && MAIN_FILES.every((f) => {
+    const t = readFileSync(join(HOME, f), 'utf8')
+    return !t.includes('STALE') && t.includes('\u{1F534} Pulse Agent \u2014 Council')
+  }))
+ok("the user's own text around the managed block survives that refresh",
+  readFileSync(join(HOME, '.codex/AGENTS.md'), 'utf8').includes('# My own notes'))
+
 const r3 = deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
 ok('force redeploys without accumulating', r3.deployed === true && readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulse-')).length === 100 && existsSync(join(HOME, '.claude/agents/my-own.md')))
 const cj3 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
