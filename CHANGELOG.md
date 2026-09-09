@@ -6,6 +6,27 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.62.0] - 2026-09-09
+
+### What's fixed
+- **ECC no longer costs you 40,600 tokens a session.** v0.60.0 installed it as a
+  plugin, which loads all 354 skills and agents into every session on every
+  project. Now only its catalogue lands on disk — `marketplace add` clones
+  everything and installs nothing — so it costs **zero** until it's used.
+
+### What's new
+- **The Council calls ECC when it needs it.** Two new tools on the `pulsar-tools`
+  MCP server: `ecc_find("<your task>")` searches the catalogue, `ecc_read("<name>")`
+  returns the file to follow inline. Works in Codex, Cursor, Gemini and Qwen too,
+  not just Claude Code.
+- **Matches say how good they are.** Each result is `strong` or `weak`, and weak
+  means it shares a word with your task, not a subject — ECC doesn't cover
+  everything, and saying so beats a confident wrong answer.
+
+### Notes
+- Want ECC fully loaded anyway? `claude plugin install ecc@ecc` — the marketplace
+  is already registered, so it's one command.
+
 ## [0.61.0] - 2026-09-09
 
 ### What's new

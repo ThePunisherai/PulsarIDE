@@ -1111,7 +1111,7 @@ const MANAGED_END = '<!-- PULSAR:MAIN:END -->'
  * `~/.claude/plugins/known_marketplaces.json`.
  */
 function eccInstalled(home: string): boolean {
-  return existsSync(join(home, '.claude', 'plugins', 'marketplaces', 'ecc'))
+  return existsSync(eccCatalogueDir(home))
 }
 
 function mainSessionBlock(home: string): string {
@@ -1183,14 +1183,24 @@ function mainSessionBlock(home: string): string {
     // Only when it is really there -- see eccInstalled.
     ...(eccInstalled(home)
       ? [
-          'ECC (`ecc@ecc`) is installed alongside Pulse Agent: a third-party operator layer of',
-          '68 agents and 286 skills for harness-level work — CI and release operations, repo',
-          'hygiene, security review, incident and migration workflows. Treat it the way you treat',
-          'the libraries above: reach for it when the task is operator/harness work rather than',
-          'building the product, and say which ECC skill you used. Pulse Agent stays the',
-          'orchestrator and the board stays the record — an ECC skill doing the work does not',
-          'excuse you from `add_item`/`set_item`. If ECC and a Pulse Agent team both fit, the',
-          'Pulse Agent team leads, because it is the one that knows this project.',
+          'ECC is on this machine: 354 third-party operator/harness entries (CI, repo hygiene,',
+          'security review, incidents, migrations, language-specific review). It is deliberately',
+          'NOT loaded — as a plugin it would cost ~40,600 tokens of every session — so it sits on',
+          'disk and you fetch from it instead:',
+          '',
+          '    ecc_find("<the task, in your words>")   -> names + descriptions, ranked',
+          '    ecc_read("<exact name>")                -> the whole file, follow it inline',
+          '',
+          'Call `ecc_find` when the work is operating the project rather than building it, and',
+          'nothing in the table above already covers it. Then judge what comes back: each match',
+          'is marked `strong` or `weak`, and weak means it shares a word with your task, not a',
+          'subject — read the description before following one, and drop it if it is not really',
+          'about this. ECC does not cover everything, and a Pulse Agent team is the better',
+          'answer more often than not.',
+          '',
+          'You stay the orchestrator and the board stays the record: following an ECC entry does',
+          'not excuse you from `add_item`/`set_item`. Name the entry you used, so where the',
+          'approach came from is visible.',
           ''
         ]
       : []),
@@ -1759,30 +1769,44 @@ function ensurePyEnv(home: string): boolean {
 }
 
 /**
- * Install ECC through ECC's own installer, so it is simply there.
+ * Put ECC's catalogue on disk, and nothing more.
  *
- * Not vendored, deliberately: ECC's README asks people not to run unofficial
- * mirrors, and mirroring 63 MB of someone else's plugin into our installer is
- * how the Windows Defender flag happened once already. This runs their real,
- * documented non-interactive setup instead -- `ecc setup --mode claude-plugin
- * --scope user --yes` -- so what lands is exactly what `npx ecc-universal setup`
- * would have put there, and their own updates keep working.
+ * Installing ECC as a Claude Code plugin costs ~40,600 always-on tokens in
+ * every session on every project -- Claude Code's own `plugin details`,
+ * measured, not estimated -- for a library you need on maybe one task in
+ * twenty. Paying that up front is the wrong shape.
  *
- * What it costs, measured rather than guessed: Claude Code's own
- * `plugin details` puts ECC at ~40,600 always-on tokens (380 skills, 68 agents)
- * on top of Pulse Agent's ~16,800. That is real context spent in every session,
- * on every project, whether or not the work is operator work. It is a genuine
- * trade, so it is a visible setting rather than a silent default -- see
- * eccOptedOut. ECC's own install profiles do not help here: those belong to its
- * manual module install, and its README is explicit that the plugin path and
- * the manual path must not be stacked.
+ * `claude plugin marketplace add` clones the whole repository and installs
+ * nothing: verified against the real CLI, `plugin list` reports "No plugins
+ * installed" afterwards. So the 286 skills and 68 agents sit on disk at no
+ * context cost, and the Council reaches them through the `ecc_find` /
+ * `ecc_read` tools on the pulsar-tools MCP server -- search the catalogue, read
+ * the one file that fits, follow it inline.
  *
- * Fire-and-forget and once-only. It needs npx and the network, so it has to be
- * allowed to simply not happen: a failure writes a marker with the reason and
- * is never retried in a loop, and nothing about startup or the tracker depends
- * on it.
+ * That is the same trade Pulse Agent already makes with its own 5,050
+ * specialists, and it works for every agent with MCP rather than only Claude
+ * Code. Anyone who does want the plugin loaded is one `plugin install ecc@ecc`
+ * away, which is why the marketplace is registered rather than just cloned.
+ *
+ * Not vendored either way: ECC's README asks people not to run unofficial
+ * mirrors, and 63 MB of someone else's plugin inside our exe is how the Windows
+ * Defender flag happened once already.
+ *
+ * Fire-and-forget and once-only. It needs a CLI and the network, so it has to
+ * be allowed to simply not happen: a failure writes a marker with the reason
+ * and is never retried in a loop, and nothing depends on it.
  */
 const ECC_STATE = 'ecc-install.json'
+const ECC_REPO = 'https://github.com/affaan-m/ECC'
+
+/**
+ * Where the catalogue lands. This is Claude Code's own marketplace path, taken
+ * from what the real CLI does on `plugin marketplace add` -- the git fallback
+ * clones to the same place so `ecc_find` has one path to look in either way.
+ */
+function eccCatalogueDir(home: string): string {
+  return join(home, '.claude', 'plugins', 'marketplaces', 'ecc')
+}
 
 type EccState = { attempted: string; ok: boolean; detail: string }
 
@@ -1832,8 +1856,10 @@ export type EccStatus = {
   optedOut: boolean
   lastAttempt: string | null
   lastError: string | null
-  /** Measured with Claude Code's own plugin details, not estimated. */
+  /** What ECC costs as it is used here: nothing until a tool is called. */
   alwaysOnTokens: number
+  /** What installing the plugin would cost instead. Measured, not estimated. */
+  alwaysOnTokensIfInstalled: number
 }
 
 export function eccStatus(home: string = homedir()): EccStatus {
@@ -1843,7 +1869,10 @@ export function eccStatus(home: string = homedir()): EccStatus {
     optedOut: eccOptedOut(home),
     lastAttempt: state?.attempted ?? null,
     lastError: state && !state.ok ? state.detail : null,
-    alwaysOnTokens: 40637
+    // What it would cost if you installed the plugin. On disk, reached through
+    // ecc_find/ecc_read, it costs nothing until a tool is actually called.
+    alwaysOnTokensIfInstalled: 40637,
+    alwaysOnTokens: 0
   }
 }
 
@@ -1856,25 +1885,39 @@ function ensureEcc(home: string): boolean {
     // this marker deliberately (setEccEnabled).
     if (readEccState(home)) return false
 
-    const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
-    try {
-      execFileSync(npx, ['--version'], { stdio: 'ignore', timeout: 8000, windowsHide: true })
-    } catch {
-      writeEccState(home, false, 'npx not found -- ECC needs Node.js 18+ on PATH')
-      return false
-    }
-
     mkdirSync(configDir(home), { recursive: true })
     const log = openSync(join(configDir(home), 'ecc-setup.log'), 'a')
-    // Their documented non-interactive form. --yes so it never waits for a
-    // prompt nobody is watching; user scope so it works in every project.
-    const child = spawn(
-      npx,
-      ['--yes', 'ecc-universal', 'setup', '--mode', 'claude-plugin', '--scope', 'user', '--yes'],
-      { detached: true, stdio: ['ignore', log, log], windowsHide: true }
-    )
+
+    // `claude plugin marketplace add` when the CLI is here: it is the official
+    // route and it also registers the marketplace, so `plugin install ecc@ecc`
+    // stays one command away for anyone who does want it loaded.
+    const claudeCli = process.platform === 'win32' ? 'claude.cmd' : 'claude'
+    let cmd = claudeCli
+    let args = ['plugin', 'marketplace', 'add', ECC_REPO]
+    try {
+      execFileSync(claudeCli, ['--version'], { stdio: 'ignore', timeout: 8000, windowsHide: true })
+    } catch {
+      // No Claude Code CLI. The clone is all our tools need, and this way Codex,
+      // Cursor and Qwen users get ECC too -- they were never going to install a
+      // Claude Code plugin.
+      try {
+        execFileSync('git', ['--version'], { stdio: 'ignore', timeout: 8000, windowsHide: true })
+      } catch {
+        writeEccState(home, false, 'neither the claude CLI nor git is on PATH')
+        return false
+      }
+      cmd = 'git'
+      args = ['clone', '--depth', '1', ECC_REPO, eccCatalogueDir(home)]
+      mkdirSync(dirname(eccCatalogueDir(home)), { recursive: true })
+    }
+
+    const child = spawn(cmd, args, {
+      detached: true,
+      stdio: ['ignore', log, log],
+      windowsHide: true
+    })
     child.unref()
-    writeEccState(home, true, 'setup started')
+    writeEccState(home, true, `${cmd} ${args[0]} started`)
     return true
   } catch (err) {
     writeEccState(home, false, err instanceof Error ? err.message : String(err))

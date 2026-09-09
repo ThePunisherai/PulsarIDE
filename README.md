@@ -248,37 +248,47 @@ Worth knowing why that link breaks by itself: Claude Code owns `~/.claude.json`
 and rewrites it on its own schedule, so our entry can go missing through nobody's
 fault.
 
-### ECC, pre-installed
+### ECC, on tap
 
 [ECC](https://github.com/affaan-m/ECC) (MIT) is a third-party operator layer —
-68 agents and 380 skills for CI, releases, repo hygiene and incident work. On
-first launch PulsarIDE installs it for you, by running ECC's own documented
-setup:
+354 skills and agents for CI, repo hygiene, security review, incidents and
+migrations. On first launch PulsarIDE puts its catalogue on this machine:
 
 ```bash
-npx ecc-universal setup --mode claude-plugin --scope user --yes
+claude plugin marketplace add https://github.com/affaan-m/ECC   # or a plain git clone
 ```
 
-It is **not** mirrored into our installer: ECC's README asks people not to run
-unofficial copies, and 63 MB of someone else's plugin inside our exe is how the
-Windows Defender flag happened once already. Running their real installer means
-what lands is exactly what they ship, and their updates keep working.
+**It is deliberately not installed.** As a Claude Code plugin ECC costs
+**~40,600 always-on tokens** in every session on every project — Claude Code's
+own `plugin details`, measured, not estimated — for a library you need on maybe
+one task in twenty. `marketplace add` clones the whole repository and installs
+nothing (`plugin list` afterwards: "No plugins installed"), so the catalogue
+sits on disk at zero context cost and the Council fetches from it:
 
-**What it costs, measured:** Claude Code's own `plugin details` puts ECC at
-**~40,600 always-on tokens**, on top of Pulse Agent's ~16,800. That is context
-spent in every session on every project, whether or not the work is operator
-work. So it is a switch, not a fact of life:
+```
+ecc_find("audit this codebase for HIPAA compliance")  ->  hipaa-compliance (strong)
+                                                          healthcare-phi-compliance (weak)
+ecc_read("hipaa-compliance")                          ->  the file, followed inline
+```
+
+Two tools on the `pulsar-tools` MCP server, so this works in Codex, Cursor,
+Gemini and Qwen too — not just Claude Code. Matches come back marked `strong` or
+`weak`, and `weak` means it shares a word with your task rather than a subject:
+ECC genuinely does not cover everything, and saying so beats returning a
+confident wrong answer. Same trade Pulse Agent already makes with its own 5,050
+specialists — catalogued, read on demand, never registered.
+
+Not mirrored into our installer either way: ECC's README asks people not to run
+unofficial copies, and 63 MB of someone else's plugin inside our exe is how the
+Windows Defender flag happened once already.
 
 ```jsonc
 // ~/.config/pulsaride/settings.json
-{ "installEcc": false }   // never install it; removes nothing already there
+{ "installEcc": false }   // don't fetch the catalogue at all
 ```
 
-Needs Node 18+ on PATH and one network call. If either is missing it simply does
-not happen — the reason is written to `~/.config/pulsaride/ecc-install.json` and
-it is not retried on every launch. Once ECC is really on disk the Council is told
-what it is for, and that Pulse Agent still leads and the board still gets
-updated. Until then it is never mentioned, so it costs nothing.
+Want it fully loaded anyway? `claude plugin install ecc@ecc` — the marketplace
+is already registered, so it is one command.
 
 ## Verify
 

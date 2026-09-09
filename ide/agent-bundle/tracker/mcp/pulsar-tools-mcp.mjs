@@ -396,6 +396,186 @@ function reTriage(binaryPath) {
 
 const str = (v) => (typeof v === 'string' ? v : v === undefined || v === null ? '' : String(v))
 
+// --------------------------------------------------------------------------- ECC
+
+/**
+ * ECC's catalogue, read off disk instead of loaded into every session.
+ *
+ * ECC ships 286 skills and 68 agents. Installed as a Claude Code plugin it costs
+ * ~40,600 always-on tokens in every session on every project -- measured with
+ * Claude Code's own `plugin details`, not estimated. That is the wrong shape for
+ * something you need on maybe one task in twenty.
+ *
+ * `claude plugin marketplace add` clones the whole repository to disk and
+ * installs nothing (verified: `plugin list` reports "No plugins installed"
+ * afterwards). So the content is right there, costing nothing, and these two
+ * tools are the way in: search the catalogue, then read the one file you need
+ * and follow it inline.
+ *
+ * That is the same trade Pulse Agent already makes with its own 5,050
+ * specialists -- catalogued on disk, adopted by reading, never registered --
+ * and it works for every agent with MCP, not only Claude Code.
+ */
+// Words that carry no topic. Without these, "review this pull request for
+// security problems" ranks a plan-canvas skill above security-review, because
+// a long description happens to contain "this" and "for".
+const ECC_STOP = new Set([
+  'the', 'this', 'that', 'these', 'those', 'and', 'for', 'with', 'from', 'into', 'our', 'your',
+  'when', 'what', 'how', 'why', 'can', 'you', 'are', 'has', 'have', 'was', 'not', 'but', 'all',
+  'any', 'its', 'it', 'use', 'using', 'make', 'need', 'want', 'please', 'help'
+])
+
+function eccRoot() {
+  const home = process.env.HOME || process.env.USERPROFILE || ''
+  const dir = join(home, '.claude', 'plugins', 'marketplaces', 'ecc')
+  return existsSync(dir) ? dir : null
+}
+
+/** Front matter `description:` if there is one, else the first real line. */
+function summarise(file) {
+  try {
+    const text = readFileSync(file, 'utf8').slice(0, 4000)
+    const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+    if (fm) {
+      const d = fm[1].match(/^description:\s*(?:>-?\s*)?(.*)$/m)
+      if (d && d[1].trim()) return d[1].trim().replace(/^["']|["']$/g, '').slice(0, 300)
+    }
+    for (const line of text.split(/\r?\n/)) {
+      const t = line.trim()
+      if (t && !t.startsWith('---') && !t.startsWith('#') && !t.includes(':')) return t.slice(0, 300)
+    }
+  } catch {
+    /* unreadable entry -- it still exists, the name is the useful part */
+  }
+  return ''
+}
+
+/** Every ECC entry as {kind, name, file}. Cheap: one readdir per directory. */
+function eccEntries(root) {
+  const out = []
+  const skills = join(root, 'skills')
+  if (existsSync(skills)) {
+    for (const d of readdirSync(skills, { withFileTypes: true })) {
+      if (!d.isDirectory()) continue
+      const f = join(skills, d.name, 'SKILL.md')
+      if (existsSync(f)) out.push({ kind: 'skill', name: d.name, file: f })
+    }
+  }
+  const agents = join(root, 'agents')
+  if (existsSync(agents)) {
+    for (const d of readdirSync(agents, { withFileTypes: true })) {
+      if (!d.isFile() || !d.name.endsWith('.md')) continue
+      out.push({ kind: 'agent', name: d.name.replace(/\.md$/, ''), file: join(agents, d.name) })
+    }
+  }
+  return out
+}
+
+/** Term overlap, name matches worth more than body matches. Same idea as route_task. */
+function eccSearch(query, limit) {
+  const root = eccRoot()
+  if (!root) {
+    return {
+      available: false,
+      note:
+        'ECC is not on this machine. It is added by PulsarIDE on first launch; to add it by hand: ' +
+        'claude plugin marketplace add https://github.com/affaan-m/ECC (this clones it, it installs nothing).',
+      matches: []
+    }
+  }
+  const terms = String(query || '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 2 && !ECC_STOP.has(t))
+  const entries = eccEntries(root)
+  const scored = []
+  for (const e of entries) {
+    const name = e.name.toLowerCase().replace(/[-_]/g, ' ')
+    const desc = summarise(e.file)
+    const hay = (name + ' ' + desc).toLowerCase()
+    let score = 0
+    let nameHits = 0
+    for (const t of terms) {
+      if (name.includes(t)) {
+        score += 5
+        nameHits += 1
+      } else if (hay.includes(t)) {
+        score += 1
+      }
+    }
+    if (score > 0) scored.push({ ...e, description: desc, score, nameHits })
+  }
+  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+
+  // Say how good the match is instead of deciding for the caller.
+  //
+  // Both ways of being wrong here are real, and were both hit while building
+  // this. Rank on weight alone and "cut a release, tag it, publish the
+  // changelog" returns a social-media publisher, first, looking authoritative.
+  // Add a threshold that drops weak matches and "write terraform for kubernetes
+  // deployment" loses kubernetes-patterns, which was the right answer.
+  //
+  // The caller is an orchestrator holding the actual task and reading the
+  // descriptions -- it can reject a bad candidate, but only if it can see one.
+  // So: nothing is hidden, and a weak top match is labelled as weak.
+  const strong = (m) => m.nameHits >= 2 || m.score >= 8
+  const best = scored[0]
+  if (!best) {
+    return {
+      available: true,
+      total: entries.length,
+      matches: [],
+      note:
+        'Nothing in ECC matched. It is an operator/harness library (CI, repo hygiene, security ' +
+        'review, incidents, migrations, language-specific review) -- not a general catalogue. ' +
+        'Use a Pulse Agent team instead.'
+    }
+  }
+  return {
+    available: true,
+    total: entries.length,
+    matches: scored.slice(0, limit).map((m) => ({
+      kind: m.kind,
+      name: m.name,
+      description: m.description,
+      confidence: strong(m) ? 'strong' : 'weak'
+    })),
+    ...(strong(best)
+      ? {}
+      : {
+          note:
+            'Every match is weak -- they share a word with your task, not a subject. Read the ' +
+            'descriptions before following one, and prefer a Pulse Agent team if none of them ' +
+            'is actually about this.'
+        })
+  }
+}
+
+function eccRead(name) {
+  const root = eccRoot()
+  if (!root) return { found: false, note: 'ECC is not on this machine.' }
+  const wanted = String(name || '').trim().toLowerCase()
+  for (const e of eccEntries(root)) {
+    if (e.name.toLowerCase() === wanted) {
+      try {
+        // Capped: a few of ECC's skills are very long, and the point is to
+        // follow one, not to pull a novel into the session.
+        const body = readFileSync(e.file, 'utf8')
+        return {
+          found: true,
+          kind: e.kind,
+          name: e.name,
+          truncated: body.length > 24000,
+          content: body.slice(0, 24000)
+        }
+      } catch (err) {
+        return { found: false, note: String(err) }
+      }
+    }
+  }
+  return { found: false, note: `No ECC skill or agent named "${name}". Use ecc_find first.` }
+}
+
 const TOOLS = [
   {
     name: 'route_task',
@@ -645,6 +825,31 @@ const TOOLS = [
         note: cleared ? 'That approach is allowed again.' : 'Nothing matched; nothing was blocking it.'
       }
     }
+  },
+  {
+    name: 'ecc_find',
+    description:
+      "Search ECC's 286 skills and 68 agents for operator/harness work -- CI, releases, repo hygiene, security review, incidents, migrations. Costs nothing until you call it: ECC is on disk, not loaded into the session. Returns names + descriptions; read the one you want with ecc_read.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'What the task is, in your own words.' },
+        limit: { type: 'number', description: 'Max matches (default 5).' }
+      },
+      required: ['query']
+    },
+    run: (args) => eccSearch(str(args.query), Math.max(1, Math.min(20, Number(args.limit) || 5)))
+  },
+  {
+    name: 'ecc_read',
+    description:
+      'Read one ECC skill or agent in full, by the exact name ecc_find returned, and follow it inline. This is how an ECC skill gets used without installing it.',
+    inputSchema: {
+      type: 'object',
+      properties: { name: { type: 'string', description: 'Exact name from ecc_find.' } },
+      required: ['name']
+    },
+    run: (args) => eccRead(str(args.name))
   },
   {
     name: 're_triage',

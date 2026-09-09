@@ -273,8 +273,13 @@ ok('a second run replaces our AGENTS.md block instead of appending another',
 // estimate), so the guards matter more than the install: it must not run when
 // the user said no, and must not retry a failed attempt on every launch.
 const eccFresh = eccStatus(HOME)
-ok('ECC status reports the real measured cost, not a guess',
-  eccFresh.alwaysOnTokens === 40637 && eccFresh.installed === false && eccFresh.optedOut === false)
+// Zero, deliberately: the catalogue sits on disk and is reached through
+// ecc_find/ecc_read, so it costs nothing until a tool is actually called. The
+// 40,637 is what installing the plugin instead would cost -- kept alongside it
+// so the trade stays visible rather than becoming folklore.
+ok('ECC costs nothing until it is called, and says what the alternative would cost',
+  eccFresh.alwaysOnTokens === 0 && eccFresh.alwaysOnTokensIfInstalled === 40637 &&
+  eccFresh.installed === false && eccFresh.optedOut === false)
 ok('turning ECC off is remembered', setEccEnabled(false, HOME) === true && eccStatus(HOME).optedOut === true)
 ok('turning it back on clears the opt-out',
   setEccEnabled(true, HOME) === true && eccStatus(HOME).optedOut === false)
@@ -298,9 +303,15 @@ ok('ECC is not mentioned when it is not installed',
 mkdirSync(join(HOME, '.claude/plugins/marketplaces/ecc'), { recursive: true })
 deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
 const withEcc = readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8')
-ok('once ECC is installed the Council is told what it is for, and who still leads',
-  withEcc.includes('ecc@ecc') && withEcc.includes('Pulse Agent stays the') &&
+// The point is not that ECC is mentioned -- it is that the Council is told the
+// only two calls that reach it, that weak matches need judging, and that using
+// one does not get it out of updating the board.
+ok('once ECC is on disk the Council is told how to reach it, and who still leads',
+  withEcc.includes('ecc_find') && withEcc.includes('ecc_read') &&
+  withEcc.includes('weak') && withEcc.includes('You stay the orchestrator') &&
   withEcc.includes('add_item'))
+ok('the Council is never told ECC is loaded -- it is not, and that is the point',
+  !withEcc.includes('ecc@ecc') && withEcc.includes('NOT loaded'))
 
 // --- the agent -> board chain, end to end --------------------------------- //
 // "The agents do not update the board any more" is a report about a chain: the

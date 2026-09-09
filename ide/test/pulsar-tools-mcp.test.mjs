@@ -55,7 +55,7 @@ ok('it echoes the protocol version the client asked for',
   byId(hs, 1).result.protocolVersion === '2026-06-18')
 const names = byId(hs, 2).result.tools.map((t) => t.name).sort()
 ok('it offers exactly the tools the agents are told to call',
-  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 're_triage', 'record_anti_loop_failure', 'record_solution', 'route_task']))
+  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 'ecc_find', 'ecc_read', 're_triage', 'record_anti_loop_failure', 'record_solution', 'route_task']))
 ok('an initialized notification is never answered', !hs.some((r) => r.id === undefined && r.result))
 
 // --- routing: the cases the first implementation got wrong ------------------ //
@@ -141,6 +141,22 @@ ok('a blocked approach can be cleared once its cause is fixed',
   json(byId(clr, 62)).blocked === true &&
   json(byId(clr, 63)).cleared === 1 &&
   json(byId(clr, 64)).blocked === false)
+
+// --- ecc_find --------------------------------------------------------------- //
+// ECC is 354 entries sitting on disk, deliberately not loaded. With no
+// catalogue there at all, the tool has to say so and point at how to get it --
+// inventing matches for a library that is not present is the exact failure it
+// exists to avoid.
+const ecc = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(70, 'ecc_find', { query: 'review this pull request for security problems' }),
+  call(71, 'ecc_read', { name: 'security-review' })
+])
+ok('ecc_find reports ECC missing instead of inventing matches', (() => {
+  const r = json(byId(ecc, 70))
+  return r.available === false && r.matches.length === 0 && r.note.includes('marketplace add')
+})())
+ok('ecc_read is honest about it too', json(byId(ecc, 71)).found === false)
 
 // --- re_triage -------------------------------------------------------------- //
 const triage = await drive([
