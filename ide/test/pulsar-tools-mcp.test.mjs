@@ -55,7 +55,7 @@ ok('it echoes the protocol version the client asked for',
   byId(hs, 1).result.protocolVersion === '2026-06-18')
 const names = byId(hs, 2).result.tools.map((t) => t.name).sort()
 ok('it offers exactly the tools the agents are told to call',
-  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 'ecc_find', 'ecc_read', 're_triage', 'record_anti_loop_failure', 'record_solution', 'route_task']))
+  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 'ecc_find', 'ecc_read', 're_triage', 'record_anti_loop_failure', 'record_solution', 'route_task', 'ui_find', 'ui_read']))
 ok('an initialized notification is never answered', !hs.some((r) => r.id === undefined && r.result))
 
 // --- routing: the cases the first implementation got wrong ------------------ //
@@ -141,6 +141,29 @@ ok('a blocked approach can be cleared once its cause is fixed',
   json(byId(clr, 62)).blocked === true &&
   json(byId(clr, 63)).cleared === 1 &&
   json(byId(clr, 64)).blocked === false)
+
+// --- ui_find ---------------------------------------------------------------- //
+// The whole point: you can get from what you want to build to a component whose
+// name gives no hint. "bell-field" is an animated background; nothing about the
+// word says so, which is why this library went unused twice.
+const ui = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(80, 'ui_find', { query: 'an animated hero background for a landing page' }),
+  call(81, 'ui_read', { name: 'bell-field' }),
+  call(82, 'ui_find', { query: 'quantum tax accounting ledger' })
+])
+ok('ui_find finds components by intent, not by their name', (() => {
+  const r = json(byId(ui, 80))
+  return r.available === true && r.total === 44 && r.matches.length > 0 &&
+    r.matches.every((m) => m.name && m.description && m.confidence)
+})())
+ok('ui_read returns the real component source', (() => {
+  const r = json(byId(ui, 81))
+  return r.found === true && r.entry === 'BellFieldBackground.tsx' && r.files.length > 0 &&
+    r.files[0].content.includes('BellFieldBackground')
+})())
+ok('and it says nothing matches rather than offering something unrelated',
+  json(byId(ui, 82)).matches.length === 0)
 
 // --- ecc_find --------------------------------------------------------------- //
 // ECC is 354 entries sitting on disk, deliberately not loaded. With no

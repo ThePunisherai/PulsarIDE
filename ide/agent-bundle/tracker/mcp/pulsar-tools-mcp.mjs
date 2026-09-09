@@ -576,6 +576,132 @@ function eccRead(name) {
   return { found: false, note: `No ECC skill or agent named "${name}". Use ecc_find first.` }
 }
 
+// --------------------------------------------------------------------------- ThreeUI
+
+/**
+ * The 44 vendored ThreeUI components, searchable by what you want to build.
+ *
+ * They were already installed and already described to the Council -- and still
+ * went unused, reported twice. The reason is in the names: bell-field,
+ * bookshelf, brand-orbs. Nothing about "I want an animated hero background"
+ * leads an agent to bell-field, so the index it was told to read could not
+ * actually answer the question it was there for.
+ *
+ * `catalog.json` beside the components now carries ThreeUI's own descriptions
+ * (MengTo/threeui, src/data/shaders.tsx, MIT), so the search has something real
+ * to match on. Same two-step as ECC: find, then read one and adapt it.
+ */
+function threeUiRoot() {
+  const home = process.env.HOME || process.env.USERPROFILE || ''
+  for (const dir of [
+    join(home, '.config', 'pulsaride', 'design', 'threeui'),
+    join(BUNDLE_ROOT, 'design', 'threeui')
+  ]) {
+    if (existsSync(join(dir, 'catalog.json'))) return dir
+  }
+  return null
+}
+
+function threeUiCatalog(root) {
+  try {
+    return JSON.parse(readFileSync(join(root, 'catalog.json'), 'utf8'))
+  } catch {
+    return {}
+  }
+}
+
+function threeUiFind(query, limit) {
+  const root = threeUiRoot()
+  if (!root) {
+    return { available: false, note: 'ThreeUI is not deployed on this machine.', matches: [] }
+  }
+  const catalog = threeUiCatalog(root)
+  const terms = String(query || '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 2 && !ECC_STOP.has(t))
+  const scored = []
+  for (const [name, meta] of Object.entries(catalog)) {
+    const label = name.toLowerCase().replace(/[-_]/g, ' ')
+    const desc = String(meta.description || '')
+    const hay = (label + ' ' + desc).toLowerCase()
+    let score = 0
+    let nameHits = 0
+    for (const t of terms) {
+      if (label.includes(t)) {
+        score += 5
+        nameHits += 1
+      } else if (hay.includes(t)) {
+        score += 1
+      }
+    }
+    if (score > 0) scored.push({ name, entry: meta.entry, description: desc, score, nameHits })
+  }
+  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+  const strong = (m) => m.nameHits >= 1 || m.score >= 4
+  const best = scored[0]
+  if (!best) {
+    return {
+      available: true,
+      total: Object.keys(catalog).length,
+      matches: [],
+      note:
+        'No ThreeUI component matches that. These are 3D/shader/animated visual pieces -- ' +
+        'backgrounds, heroes, docks, text effects. For ordinary layout or forms, build it ' +
+        'normally instead.'
+    }
+  }
+  return {
+    available: true,
+    total: Object.keys(catalog).length,
+    root,
+    matches: scored.slice(0, limit).map((m) => ({
+      name: m.name,
+      file: join(root, m.name, m.entry),
+      description: m.description,
+      confidence: strong(m) ? 'strong' : 'weak'
+    })),
+    note: 'Read one with ui_read, copy it into the project and adapt it. Needs `three` as a dependency.'
+  }
+}
+
+function threeUiRead(name) {
+  const root = threeUiRoot()
+  if (!root) return { found: false, note: 'ThreeUI is not deployed on this machine.' }
+  const catalog = threeUiCatalog(root)
+  const wanted = String(name || '').trim()
+  const meta = catalog[wanted]
+  if (!meta) return { found: false, note: `No ThreeUI component named "${name}". Use ui_find first.` }
+  const dir = join(root, wanted)
+  let files = []
+  try {
+    files = readdirSync(dir).filter((f) => /\.(tsx|jsx|ts|js|css)$/.test(f))
+  } catch {
+    return { found: false, note: `${wanted} is in the catalogue but not on disk.` }
+  }
+  const parts = []
+  let budget = 60000
+  for (const f of files) {
+    if (budget <= 0) break
+    try {
+      const body = readFileSync(join(dir, f), 'utf8')
+      parts.push({ file: f, truncated: body.length > budget, content: body.slice(0, budget) })
+      budget -= Math.min(body.length, budget)
+    } catch {
+      /* skip an unreadable sibling rather than fail the whole read */
+    }
+  }
+  return {
+    found: true,
+    name: wanted,
+    dir,
+    entry: meta.entry,
+    description: meta.description,
+    files: parts,
+    omitted: files.length - parts.length
+  }
+}
+
 const TOOLS = [
   {
     name: 'route_task',
@@ -825,6 +951,31 @@ const TOOLS = [
         note: cleared ? 'That approach is allowed again.' : 'Nothing matched; nothing was blocking it.'
       }
     }
+  },
+  {
+    name: 'ui_find',
+    description:
+      "Search the 44 installed ThreeUI components (3D, shader and animated React pieces: backgrounds, heroes, docks, text effects) by what you want to build. Use this before hand-writing WebGL or a canvas animation -- the component names say nothing about what they are, which is why they get missed.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The visual you want, in your own words.' },
+        limit: { type: 'number', description: 'Max matches (default 5).' }
+      },
+      required: ['query']
+    },
+    run: (args) => threeUiFind(str(args.query), Math.max(1, Math.min(20, Number(args.limit) || 5)))
+  },
+  {
+    name: 'ui_read',
+    description:
+      'Read one ThreeUI component in full, by the exact name ui_find returned, so you can copy it into the project and adapt it.',
+    inputSchema: {
+      type: 'object',
+      properties: { name: { type: 'string', description: 'Exact name from ui_find.' } },
+      required: ['name']
+    },
+    run: (args) => threeUiRead(str(args.name))
   },
   {
     name: 'ecc_find',

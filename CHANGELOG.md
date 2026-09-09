@@ -6,6 +6,23 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.64.0] - 2026-09-09
+
+### What's fixed
+- **ThreeUI actually gets used now.** 44 installed 3D/shader components kept being
+  skipped while WebGL got written by hand next to them. The reason was the names:
+  nothing about `bell-field` says "animated background", so the index the agent was
+  told to read couldn't answer the question it existed for.
+
+### What's new
+- **`ui_find` / `ui_read`.** Ask for the visual you want — "an animated hero
+  background", "a 3D dock" — and get matching components with what they actually
+  are, then read one to copy and adapt. Two tools on the `pulsar-tools` MCP server,
+  so it works in Codex, Cursor, Gemini and Qwen too.
+- **The index has real descriptions.** Taken from ThreeUI's own catalogue
+  (MengTo/threeui, MIT) rather than written here, so they describe the components
+  instead of guessing at them.
+
 ## [0.63.0] - 2026-09-09
 
 ### What's fixed
