@@ -237,6 +237,35 @@ To have an agent update the board itself, two ways — pick per agent:
 Both write the same state the IDE reads, so a fix an agent logs mid-session
 shows up in the Tracker.
 
+### When agents stop updating the board
+
+That is a chain, not a component: the MCP server has to be on disk, runnable
+with the exact command each agent was handed, and named in each tool's own
+config. The Tracker panel checks all three on every project it opens and stays
+silent unless one is down — then it names the broken link and offers **Repair
+agent wiring**, which writes the `planide` entry back into every agent's config.
+Worth knowing why that link breaks by itself: Claude Code owns `~/.claude.json`
+and rewrites it on its own schedule, so our entry can go missing through nobody's
+fault.
+
+### ECC (optional)
+
+[ECC](https://github.com/affaan-m/ECC) (MIT) is a third-party operator layer —
+68 agents and 286 skills for CI, releases, repo hygiene and incident work. It is
+**not bundled**: its own README asks people not to run unofficial mirrors, and 68
+more agent descriptions on top of our 100 team leads would blow Claude Code's
+~15k description budget, which is what breaks subagents. Install it its own way:
+
+```bash
+npx ecc-universal setup      # or, inside Claude Code:
+                             # /plugin marketplace add https://github.com/affaan-m/ECC
+                             # /plugin install ecc@ecc
+```
+
+Once it is really on the machine, the Council is told what it is for and that
+Pulse Agent still leads and the board still gets updated. Until then it is never
+mentioned, so it costs nothing.
+
 ## Verify
 
 ```bash

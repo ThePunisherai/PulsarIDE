@@ -21,7 +21,12 @@ import { readGraphReport, reindexGraph } from './graphify-run'
 import { archifyRender, archifyStatus } from './archify-run'
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { historySnapshot, readProjectHistory, recordHistory } from './history'
-import { deployCursorRule, deployProjectAgentsMd } from './agent-bundle'
+import {
+  deployCursorRule,
+  deployProjectAgentsMd,
+  repairTrackerRegistration,
+  trackerHealth
+} from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
 import {
   addFix,
@@ -211,6 +216,11 @@ export function registerPlanIdeIpc(): void {
 
   // project memory: graphify graph + Obsidian note status, so the Tracker tab
   // can show graphify/Obsidian actually working for this project (read-only).
+  // Why the board is not being updated, checked link by link on this machine
+  // rather than guessed at, plus the one-call repair for the link that breaks
+  // on its own: the agent CLIs own these config files and rewrite them.
+  on('planide:tracker-health', (path?: string) => trackerHealth(path))
+  on('planide:tracker-repair', () => repairTrackerRegistration())
   on('planide:memory-status', (path: string) => memoryStatus(path))
   // Per-project history DB: the full, uncapped record of board changes.
   on('planide:history', (path: string, limit?: number) => readProjectHistory(path, limit ?? 500))

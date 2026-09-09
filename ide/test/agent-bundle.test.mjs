@@ -13,7 +13,8 @@ import { fileURLToPath } from 'node:url'
 
 const REPO = process.env.PULSAR_REPO || join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const MOD = process.env.PULSAR_BUNDLE_CJS // esbuild output, provided by verify.sh
-const { deployAgentBundle, deployCursorRule, deployProjectAgentsMd } = await import(MOD)
+const { deployAgentBundle, deployCursorRule, deployProjectAgentsMd, trackerHealth, repairTrackerRegistration } =
+  await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
 const res = join(work, 'res'); mkdirSync(res)
@@ -259,6 +260,52 @@ deployProjectAgentsMd(tracked, HOME)
 const agentsMd2 = readFileSync(join(tracked, 'AGENTS.md'), 'utf8')
 ok('a second run replaces our AGENTS.md block instead of appending another',
   agentsMd2.split('<!-- PULSAR:MAIN:BEGIN -->').length === 2 && agentsMd2 === agentsMd)
+
+// --- ECC: named only when it is really installed --------------------------- //
+// It is a third-party plugin installed through its own official channel, never
+// bundled: 68 more agent descriptions would walk into the same ~15k budget that
+// has broken subagents here twice. So the always-loaded block must not pay for
+// it -- and must not invite reaching for something that is not on the machine.
+ok('ECC is not mentioned when it is not installed',
+  !readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('ecc@ecc'))
+// The real path, taken from the Claude Code CLI's own behaviour on `plugin
+// marketplace add`, not guessed.
+mkdirSync(join(HOME, '.claude/plugins/marketplaces/ecc'), { recursive: true })
+deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
+const withEcc = readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8')
+ok('once ECC is installed the Council is told what it is for, and who still leads',
+  withEcc.includes('ecc@ecc') && withEcc.includes('Pulse Agent stays the') &&
+  withEcc.includes('add_item'))
+
+// --- the agent -> board chain, end to end --------------------------------- //
+// "The agents do not update the board any more" is a report about a chain: the
+// server has to be on disk, runnable with the exact command each agent was
+// handed, and named in each tool's own config. Every link works here, so a real
+// break is machine-specific -- which is the whole reason this check exists.
+// These assertions are what make its verdict trustworthy.
+const okHealth = await trackerHealth(tracked, HOME)
+ok('the tracker chain is healthy on a fresh deploy, checked link by link',
+  okHealth.ok === true && okHealth.serverPresent === true && okHealth.problem === null)
+ok('the health check LAUNCHES the registered command, it does not just stat it',
+  okHealth.serverRuns === true && okHealth.toolCount >= 8)
+ok('every agent that can carry the tracker is wired',
+  ['claude-code', 'codex', 'gemini', 'qwen', 'cursor']
+    .every((id) => okHealth.agents.find((a) => a.id === id)?.registered === true))
+
+// Claude Code owns ~/.claude.json and rewrites it on its own schedule, so our
+// entry can go missing through nobody's fault. That is the one failure the
+// panel offers a repair for, so it has to be both detected and repairable.
+const cjBefore = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
+delete cjBefore.mcpServers.planide
+writeFileSync(join(HOME, '.claude.json'), JSON.stringify(cjBefore))
+const dropped = await trackerHealth(tracked, HOME)
+ok('a dropped planide entry is detected and named, not silently tolerated',
+  dropped.ok === false && typeof dropped.problem === 'string' && dropped.problem.includes('Claude Code'))
+repairTrackerRegistration(HOME)
+const repaired = await trackerHealth(tracked, HOME)
+ok('Repair writes it back and the chain reports healthy again',
+  repaired.ok === true && repaired.agents.find((a) => a.id === 'claude-code').registered === true &&
+  JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8')).mcpServers.other)
 
 // --- the agent-description budget: one roster, never two ------------------- //
 // PulsarIDE's bundle IS ThePunisher-Agent's roster. Someone running that

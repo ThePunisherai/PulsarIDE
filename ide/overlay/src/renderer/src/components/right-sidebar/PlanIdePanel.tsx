@@ -19,7 +19,8 @@ import {
   ShieldAlert,
   Plus,
   RefreshCw,
-  Wrench
+  Wrench,
+  PlugZap
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useActiveWorktree } from '@/store/selectors'
@@ -35,9 +36,12 @@ import {
   onBoardChanged,
   openProject,
   setItemStatus,
+  trackerHealth,
+  trackerRepair,
   verifyItem,
   type ItemStatus,
   type PlanIdeItem,
+  type TrackerHealth,
   type PlanIdeProject,
   withVisibleSpin
 } from './planide-engine-client'
@@ -126,6 +130,12 @@ export default function PlanIdePanel(): React.JSX.Element {
   const [refreshing, setRefreshing] = useState(false)
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
+  // Why the board is not being written. Checked once per project rather than on
+  // a button, because "the agents stopped updating it" is noticed by the board
+  // staying still -- which is exactly when nobody thinks to go looking for a
+  // diagnostics button. Silent unless something is actually wrong.
+  const [health, setHealth] = useState<TrackerHealth | null>(null)
+  const [repairing, setRepairing] = useState(false)
 
   const load = useCallback(
     async (path: string) => {
@@ -178,6 +188,46 @@ export default function PlanIdePanel(): React.JSX.Element {
       if (changed === worktreePath) void refresh()
     })
   }, [worktreePath, refresh])
+
+  // One check per project. It launches the MCP server the agents were actually
+  // told to launch, so it costs a short-lived subprocess -- worth it once, not
+  // on every refresh. `cancelled` guards the late reply from a project you have
+  // already switched away from.
+  useEffect(() => {
+    if (!worktreePath) {
+      setHealth(null)
+      return
+    }
+    let cancelled = false
+    void trackerHealth(worktreePath)
+      .then((h) => {
+        if (!cancelled) setHealth(h)
+      })
+      .catch(() => {
+        if (!cancelled) setHealth(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [worktreePath])
+
+  const repair = useCallback(async () => {
+    setRepairing(true)
+    try {
+      await trackerRepair()
+      const next = await trackerHealth(worktreePath ?? undefined)
+      setHealth(next)
+      toast[next.ok ? 'success' : 'error'](
+        next.ok
+          ? translate('planide.panel.repairOk', 'Agents can reach the board again.')
+          : (next.problem ?? translate('planide.panel.repairFail', 'Still not reachable.'))
+      )
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    } finally {
+      setRepairing(false)
+    }
+  }, [worktreePath])
 
   const grouped = useMemo(() => {
     const byStatus = new Map<ItemStatus, PlanIdeItem[]>()
@@ -387,6 +437,43 @@ export default function PlanIdePanel(): React.JSX.Element {
               {translate('planide.panel.regressionHint', 'Fix this before anything else.')}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Agents write the board through the planide MCP server. When that chain
+          is down the board simply stops moving, with nothing on screen to say
+          so -- which is how it gets reported as "the tracker is broken". This
+          names the broken link and offers the one repair that fixes the link
+          that breaks by itself: the agent CLIs own these config files and
+          rewrite them on their own schedule. */}
+      {health && !health.ok && (
+        <div className="mx-3 mb-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-2">
+          <div className="flex items-start gap-2">
+            <PlugZap size={13} className="mt-0.5 shrink-0 text-amber-500" />
+            <div className="min-w-0 flex-1 text-[11px]">
+              <div className="font-semibold text-amber-500">
+                {translate('planide.panel.healthTitle', 'Agents cannot update this board')}
+              </div>
+              <div className="text-muted-foreground">{health.problem}</div>
+              <div className="mt-1 font-mono text-[10px] text-muted-foreground/70">
+                {translate('planide.panel.healthWired', 'wired')}:{' '}
+                {health.agents.filter((a) => a.registered).map((a) => a.label).join(', ') ||
+                  translate('planide.panel.healthNone', 'none')}
+                {' · '}
+                {translate('planide.panel.healthTools', 'tools')}: {health.toolCount}
+              </div>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-2 h-7 w-full text-[11px]"
+            disabled={repairing}
+            onClick={() => void repair()}
+          >
+            <Wrench size={12} className={cn(repairing && 'animate-spin')} />{' '}
+            {translate('planide.panel.repair', 'Repair agent wiring')}
+          </Button>
         </div>
       )}
 

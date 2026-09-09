@@ -54,6 +54,8 @@ export const planIdeApi = {
   report: (path: string, mode: string) => call<string>('planide:report', path, mode),
 
   // project memory (graphify graph + Obsidian note status)
+  trackerHealth: <T>(path?: string) => call<T>('planide:tracker-health', path),
+  trackerRepair: <T>() => call<T>('planide:tracker-repair'),
   memoryStatus: <T>(path: string) => call<T>('planide:memory-status', path),
   history: <T>(path: string, limit?: number) => call<T>('planide:history', path, limit),
   graphReport: <T>(path: string) => call<T>('planide:graph-report', path),

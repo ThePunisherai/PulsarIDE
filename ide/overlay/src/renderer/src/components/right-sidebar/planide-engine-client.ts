@@ -325,6 +325,38 @@ export function memoryStatus(path: string): Promise<MemoryStatus> {
   return call<MemoryStatus>('memoryStatus', path)
 }
 
+// --------------------------------------------------------------------------- health
+export type TrackerAgentWiring = {
+  id: string
+  label: string
+  configPath: string
+  configExists: boolean
+  registered: boolean
+}
+
+export type TrackerHealth = {
+  ok: boolean
+  serverPath: string
+  serverPresent: boolean
+  command: string
+  args: string[]
+  serverRuns: boolean
+  toolCount: number
+  agents: TrackerAgentWiring[]
+  boardWritable: boolean | null
+  problem: string | null
+}
+
+/** Check the whole agent -> board chain on this machine, link by link. */
+export function trackerHealth(path?: string): Promise<TrackerHealth> {
+  return call<TrackerHealth>('trackerHealth', path)
+}
+
+/** Write the planide MCP entry back into every agent's own config. */
+export function trackerRepair(): Promise<boolean> {
+  return call<boolean>('trackerRepair')
+}
+
 // --------------------------------------------------------------------------- live
 /**
  * Subscribe to board changes pushed from the main process (an agent wrote the

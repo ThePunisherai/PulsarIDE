@@ -6,6 +6,26 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.59.0] - 2026-09-09
+
+### What's new
+- **The Tracker panel says why agents stopped updating the board.** It checks the
+  whole chain on every project — server on disk, runnable with the exact command
+  the agents were handed, named in each tool's config, board writable — stays
+  silent when it's fine, and names the broken link when it isn't.
+- **Repair agent wiring.** One button writes the `planide` entry back into every
+  agent's config. Claude Code owns `~/.claude.json` and rewrites it on its own
+  schedule, so ours can go missing through nobody's fault — now that's a click,
+  not a reinstall.
+- **ECC support, without the cost.** Install [ECC](https://github.com/affaan-m/ECC)
+  its own official way and the Council is told what it's for and that Pulse Agent
+  still leads. Not installed? Never mentioned, no context spent.
+
+### Unchanged on purpose
+- Still pinned to Orca `61e0100`. There are 715 upstream commits waiting, but
+  bumping while something is reported broken makes it impossible to tell whose
+  bug it is.
+
 ## [0.58.0] - 2026-09-08
 
 ### What's new

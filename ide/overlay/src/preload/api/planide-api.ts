@@ -53,6 +53,8 @@ export type PlanIdeApi = {
   report: (path: string, mode: string) => Call<string>
 
   // project memory (graphify graph + Obsidian note status)
+  trackerHealth: <T>(path?: string) => Call<T>
+  trackerRepair: <T>() => Call<T>
   memoryStatus: <T>(path: string) => Call<T>
   history: <T>(path: string, limit?: number) => Call<T>
   graphReport: <T>(path: string) => Call<T>

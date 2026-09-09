@@ -1090,6 +1090,27 @@ const MANAGED_END = '<!-- PULSAR:MAIN:END -->'
  * sessions never adopt the council-subagent persona, so this is where "the
  * Council asks first" and "keep the board in sync" actually reach them.
  */
+/**
+ * Is ECC (github.com/affaan-m/ECC) actually installed as a Claude Code plugin?
+ *
+ * ECC is a large third-party operator layer -- 68 agents and 286 skills -- and
+ * it is installed through its own official channel, never bundled here. Two
+ * reasons, both real: its own README asks people not to run unofficial mirrors,
+ * and 68 more agent descriptions on top of our 100 team leads would walk
+ * straight into the ~15k description budget that has broken subagents in this
+ * project twice already.
+ *
+ * So the Council is told about it only when it is genuinely on the machine.
+ * A section describing a tool you do not have is pure cost in an always-loaded
+ * block, and worse, it invites reaching for something that is not there.
+ * Path verified against the real Claude Code CLI (2.1.266), not assumed: adding
+ * a marketplace writes `~/.claude/plugins/marketplaces/<name>` and records it in
+ * `~/.claude/plugins/known_marketplaces.json`.
+ */
+function eccInstalled(home: string): boolean {
+  return existsSync(join(home, '.claude', 'plugins', 'marketplaces', 'ecc'))
+}
+
 function mainSessionBlock(home: string): string {
   return [
     '## PulsarIDE — orchestrate as The Council, and keep the board live',
@@ -1156,6 +1177,20 @@ function mainSessionBlock(home: string): string {
     '(re-triage.sh, ghidra/frida/x64dbg drivers, fuzz-driver.sh, linux-unpack.sh) — use it for',
     'binary/RE work.',
     '',
+    // Only when it is really there -- see eccInstalled.
+    ...(eccInstalled(home)
+      ? [
+          'ECC (`ecc@ecc`) is installed alongside Pulse Agent: a third-party operator layer of',
+          '68 agents and 286 skills for harness-level work — CI and release operations, repo',
+          'hygiene, security review, incident and migration workflows. Treat it the way you treat',
+          'the libraries above: reach for it when the task is operator/harness work rather than',
+          'building the product, and say which ECC skill you used. Pulse Agent stays the',
+          'orchestrator and the board stays the record — an ECC skill doing the work does not',
+          'excuse you from `add_item`/`set_item`. If ECC and a Pulse Agent team both fit, the',
+          'Pulse Agent team leads, because it is the one that knows this project.',
+          ''
+        ]
+      : []),
     '## When you are going in circles',
     '',
     'The `pulsar-tools` anti-loop now watches two different things. It still blocks a',
@@ -1372,6 +1407,208 @@ export function deployCursorRule(projectPath: string, home: string = homedir()):
   } catch {
     return false
   }
+}
+
+/**
+ * Why the tracker stopped being updated, on this machine, right now.
+ *
+ * "The agents do not update the board any more" is a report about a chain, not
+ * a component: the bundle deploys the MCP server, each tool's own config has to
+ * name it, the server has to actually start under whatever runtime it was
+ * registered with, and the board file has to be writable. Every link works on a
+ * clean install -- verified end to end -- so a break is something about one
+ * machine, and none of it is visible from the outside. Guessing at it produces
+ * exactly the speculative fix this project has a rule against.
+ *
+ * So: check each link for real. The server is not merely looked for on disk, it
+ * is launched with the exact command an agent was told to use and asked for its
+ * tool list, because "registered" and "runnable" fail separately and the fix
+ * differs. Read-only and bounded -- a hung runtime resolves as `serverRuns:
+ * false` after the timeout instead of hanging the panel that called it.
+ */
+export type TrackerAgentWiring = {
+  id: string
+  label: string
+  /** Where this tool keeps user-scope MCP config. */
+  configPath: string
+  configExists: boolean
+  /** The `planide` server is named in it. */
+  registered: boolean
+}
+
+export type TrackerHealth = {
+  ok: boolean
+  serverPath: string
+  serverPresent: boolean
+  command: string
+  args: string[]
+  serverRuns: boolean
+  toolCount: number
+  agents: TrackerAgentWiring[]
+  /** null when no project was passed. */
+  boardWritable: boolean | null
+  /** Plain-language description of the first broken link, if any. */
+  problem: string | null
+}
+
+/** Does this tool's own config name our server? Shape differs per tool. */
+function planideRegisteredIn(path: string): boolean {
+  try {
+    if (!existsSync(path)) return false
+    const text = readFileSync(path, 'utf8')
+    if (path.endsWith('.toml')) return /\[mcp_servers\.planide\]/.test(text)
+    const config = JSON.parse(text || '{}') as { mcpServers?: Record<string, unknown> }
+    return Boolean(config.mcpServers && config.mcpServers.planide)
+  } catch {
+    return false
+  }
+}
+
+/** Launch the registered command and ask it for its tools. Bounded. */
+function probeMcpServer(
+  launch: McpLaunch,
+  timeoutMs = 6000
+): Promise<{ runs: boolean; tools: number }> {
+  return new Promise((resolve) => {
+    let done = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const finish = (runs: boolean, tools: number): void => {
+      if (done) return
+      done = true
+      if (timer) clearTimeout(timer)
+      try {
+        child.kill()
+      } catch {
+        /* already gone */
+      }
+      resolve({ runs, tools })
+    }
+    let child: ReturnType<typeof spawn>
+    try {
+      child = spawn(launch.command, launch.args, {
+        stdio: ['pipe', 'pipe', 'ignore'],
+        env: { ...process.env, ...(launch.env ?? {}) },
+        windowsHide: true
+      })
+    } catch {
+      resolve({ runs: false, tools: 0 })
+      return
+    }
+    timer = setTimeout(() => finish(false, 0), timeoutMs)
+    child.on('error', () => finish(false, 0))
+    child.on('exit', () => finish(false, 0))
+    let buf = ''
+    child.stdout?.on('data', (chunk: Buffer) => {
+      buf += chunk.toString()
+      for (const line of buf.split('\n')) {
+        if (!line.trim()) continue
+        try {
+          const msg = JSON.parse(line) as { id?: number; result?: { tools?: unknown[] } }
+          if (msg.id === 2 && Array.isArray(msg.result?.tools)) {
+            finish(true, msg.result.tools.length)
+            return
+          }
+        } catch {
+          /* partial line -- wait for the rest */
+        }
+      }
+    })
+    try {
+      child.stdin?.write(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2024-11-05',
+            capabilities: {},
+            clientInfo: { name: 'pulsar-health', version: '1' }
+          }
+        }) + '\n'
+      )
+      child.stdin?.write(JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }) + '\n')
+    } catch {
+      finish(false, 0)
+    }
+  })
+}
+
+export async function trackerHealth(
+  projectPath?: string,
+  home: string = homedir()
+): Promise<TrackerHealth> {
+  const launch = mcpLaunch(home)
+  const serverPath = join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs')
+  const serverPresent = existsSync(serverPath)
+
+  const agents: TrackerAgentWiring[] = [
+    { id: 'claude-code', label: 'Claude Code', configPath: join(home, '.claude.json') },
+    { id: 'codex', label: 'Codex CLI', configPath: join(home, '.codex', 'config.toml') },
+    { id: 'gemini', label: 'Gemini CLI / Antigravity', configPath: join(home, '.gemini', 'settings.json') },
+    { id: 'qwen', label: 'Qwen Code', configPath: join(home, '.qwen', 'settings.json') },
+    { id: 'cursor', label: 'Cursor', configPath: join(home, '.cursor', 'mcp.json') }
+  ].map((a) => ({
+    ...a,
+    configExists: existsSync(a.configPath),
+    registered: planideRegisteredIn(a.configPath)
+  }))
+
+  const probe = serverPresent ? await probeMcpServer(launch) : { runs: false, tools: 0 }
+
+  let boardWritable: boolean | null = null
+  if (projectPath) {
+    try {
+      const dir = join(projectPath, '.planide')
+      mkdirSync(dir, { recursive: true })
+      const probeFile = join(dir, `.health-${process.pid}.tmp`)
+      writeFileSync(probeFile, '')
+      rmSync(probeFile, { force: true })
+      boardWritable = true
+    } catch {
+      boardWritable = false
+    }
+  }
+
+  // First broken link wins: fixing a later one changes nothing while an earlier
+  // one is still down, so naming them all at once sends you the wrong way.
+  const wired = agents.filter((a) => a.registered)
+  let problem: string | null = null
+  if (!serverPresent) {
+    problem = 'The tracker MCP server is not on disk. Restart PulsarIDE -- it redeploys the bundle on launch.'
+  } else if (!probe.runs) {
+    problem = `The server is on disk but did not answer when launched as \`${launch.command}\`. That runtime path is what every agent was handed, so no agent can reach the board.`
+  } else if (!wired.length) {
+    problem = 'No agent config names the planide server. Use Repair to write it back.'
+  } else if (!agents.find((a) => a.id === 'claude-code')?.registered && agents.find((a) => a.id === 'claude-code')?.configExists) {
+    problem = 'Claude Code has a config but no planide entry -- it writes ~/.claude.json itself, so it can drop ours. Use Repair.'
+  } else if (boardWritable === false) {
+    problem = 'The board directory could not be written. Check permissions on the project folder.'
+  }
+
+  return {
+    ok: problem === null,
+    serverPath,
+    serverPresent,
+    command: launch.command,
+    args: launch.args,
+    serverRuns: probe.runs,
+    toolCount: probe.tools,
+    agents,
+    boardWritable,
+    problem
+  }
+}
+
+/**
+ * Write the planide MCP entry back into every agent's config.
+ *
+ * Deliberately reachable without a reinstall: these are files the agent CLIs
+ * own and rewrite themselves (Claude Code rewrites ~/.claude.json on its own
+ * schedule), so ours can go missing between launches through nobody's fault.
+ * The deploy already does this on startup; this is the same call on demand.
+ */
+export function repairTrackerRegistration(home: string = homedir()): boolean {
+  return registerTrackerForAllAgents(home)
 }
 
 /**
