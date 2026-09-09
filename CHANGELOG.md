@@ -6,6 +6,20 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.63.0] - 2026-09-09
+
+### What's fixed
+- **"Transport closed" on every planide tool call.** The tracker MCP server was
+  registered to run under the app's own ~200 MB Electron binary. On Windows that
+  can take longer to start than the agent is willing to wait, so the process was
+  killed before it answered — tools resolved, calls failed, board never moved. It
+  now runs on a real `node` when there is one, and only falls back to the app
+  binary when there isn't. Existing installs fix themselves the first time you
+  launch this version.
+- **The Tracker panel now says why, not just that.** The health check captures the
+  runtime's own stderr and exit code, so a dead server reports its actual reason
+  instead of a shrug.
+
 ## [0.62.0] - 2026-09-09
 
 ### What's fixed

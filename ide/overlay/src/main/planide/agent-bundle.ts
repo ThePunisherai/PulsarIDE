@@ -827,20 +827,30 @@ type McpLaunch = { command: string; args: string[]; env?: Record<string, string>
 function mcpLaunch(home: string): McpLaunch {
   const nodeServer = join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs')
   if (existsSync(nodeServer)) {
-    // On Linux the app almost always runs as an AppImage, whose process.execPath
-    // is an ephemeral `/tmp/.mount_*` path: it changes every launch and does not
-    // exist at all once the app is closed. An agent run from a terminal -- or the
-    // same terminal after the app restarts under a new mount -- would then be
-    // told to launch a runtime that is gone, so the tracker tools silently do
-    // nothing. A stable system `node` survives both; the server is
-    // zero-dependency pure Node, so any modern node runs it. Only when we are an
-    // AppImage, and only if a suitable node is actually found -- otherwise the
-    // app's own binary as Node is already stable on Windows/macOS and a correct
-    // fallback everywhere.
-    if (process.env.APPIMAGE) {
-      const stableNode = findStableNode()
-      if (stableNode) return { command: stableNode, args: [nodeServer] }
-    }
+    // Prefer a real `node` on PATH, everywhere -- not only on AppImage, which is
+    // all this used to cover.
+    //
+    // The app's own binary does work as Node (ELECTRON_RUN_AS_NODE), but it is a
+    // ~200 MB Electron executable, and an agent starting an MCP server gives it
+    // a startup timeout measured in seconds. On Windows, where a first launch
+    // also means Defender scanning that whole binary, that is a real race -- and
+    // losing it looks exactly like the report that led here: every planide tool
+    // call failing with "Transport closed", tools resolved and registered, the
+    // process simply gone. A system node starts in milliseconds and cannot lose
+    // that race.
+    //
+    // It is also the more durable path. process.execPath is an ephemeral
+    // `/tmp/.mount_*` on AppImage (already the reason this existed), and on
+    // Windows it moves when the app is reinstalled elsewhere -- either way an
+    // agent in a terminal is left pointing at a runtime that is gone. A node on
+    // PATH survives both, and survives the app not running at all.
+    //
+    // Verified, not assumed: findStableNode only returns an absolute path that
+    // exists and reports major >= 18. The server is zero-dependency pure Node,
+    // so any modern node runs it. No node, or too old a node -> the app binary,
+    // which is still correct, just slower to start.
+    const stableNode = findStableNode()
+    if (stableNode) return { command: stableNode, args: [nodeServer] }
     return { command: process.execPath, args: [nodeServer], env: { ELECTRON_RUN_AS_NODE: '1' } }
   }
   // Only reachable before the bundle has ever deployed (or if it was deleted).
@@ -1481,11 +1491,15 @@ function planideRegisteredIn(path: string): boolean {
 function probeMcpServer(
   launch: McpLaunch,
   timeoutMs = 6000
-): Promise<{ runs: boolean; tools: number }> {
+): Promise<{ runs: boolean; tools: number; why: string }> {
   return new Promise((resolve) => {
     let done = false
     let timer: ReturnType<typeof setTimeout> | null = null
-    const finish = (runs: boolean, tools: number): void => {
+    // What the runtime said on its way out. "Transport closed" is all an agent
+    // reports when this process dies, which is true and useless -- the reason is
+    // on stderr and in the exit code, and nobody was collecting either.
+    let stderr = ''
+    const finish = (runs: boolean, tools: number, why = ''): void => {
       if (done) return
       done = true
       if (timer) clearTimeout(timer)
@@ -1494,22 +1508,28 @@ function probeMcpServer(
       } catch {
         /* already gone */
       }
-      resolve({ runs, tools })
+      resolve({ runs, tools, why: why || stderr.trim().split('\n').slice(-3).join(' ').slice(0, 400) })
     }
     let child: ReturnType<typeof spawn>
     try {
       child = spawn(launch.command, launch.args, {
-        stdio: ['pipe', 'pipe', 'ignore'],
+        stdio: ['pipe', 'pipe', 'pipe'],
         env: { ...process.env, ...(launch.env ?? {}) },
         windowsHide: true
       })
-    } catch {
-      resolve({ runs: false, tools: 0 })
+    } catch (err) {
+      resolve({ runs: false, tools: 0, why: err instanceof Error ? err.message : String(err) })
       return
     }
-    timer = setTimeout(() => finish(false, 0), timeoutMs)
-    child.on('error', () => finish(false, 0))
-    child.on('exit', () => finish(false, 0))
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString()
+    })
+    timer = setTimeout(
+      () => finish(false, 0, `no answer within ${Math.round(timeoutMs / 1000)}s -- the runtime is too slow to start`),
+      timeoutMs
+    )
+    child.on('error', (err) => finish(false, 0, `could not start ${launch.command}: ${err.message}`))
+    child.on('exit', (code) => finish(false, 0, `the server exited (code ${code ?? 'unknown'}) before answering`))
     let buf = ''
     child.stdout?.on('data', (chunk: Buffer) => {
       buf += chunk.toString()
@@ -1566,7 +1586,9 @@ export async function trackerHealth(
     registered: planideRegisteredIn(a.configPath)
   }))
 
-  const probe = serverPresent ? await probeMcpServer(launch) : { runs: false, tools: 0 }
+  const probe = serverPresent
+    ? await probeMcpServer(launch)
+    : { runs: false, tools: 0, why: 'the server file is not on disk' }
 
   let boardWritable: boolean | null = null
   if (projectPath) {
@@ -1589,7 +1611,10 @@ export async function trackerHealth(
   if (!serverPresent) {
     problem = 'The tracker MCP server is not on disk. Restart PulsarIDE -- it redeploys the bundle on launch.'
   } else if (!probe.runs) {
-    problem = `The server is on disk but did not answer when launched as \`${launch.command}\`. That runtime path is what every agent was handed, so no agent can reach the board.`
+    problem =
+      `The server is on disk but did not answer when launched as \`${launch.command}\`: ` +
+      `${probe.why || 'no reason reported'}. That runtime path is what every agent was handed, ` +
+      'so every planide tool call fails with "Transport closed".'
   } else if (!wired.length) {
     problem = 'No agent config names the planide server. Use Repair to write it back.'
   } else if (!agents.find((a) => a.id === 'claude-code')?.registered && agents.find((a) => a.id === 'claude-code')?.configExists) {

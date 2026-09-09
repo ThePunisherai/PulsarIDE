@@ -28,6 +28,22 @@ const res = join(work, 'res'); mkdirSync(res)
 symlinkSync(join(REPO, 'ide/agent-bundle'), join(res, 'pulsar-agents'))
 const HOME = join(work, 'home'); mkdirSync(HOME)
 
+// Resolved the way mcpLaunch resolves it, so these assertions hold on a machine
+// with node on PATH and on one without -- both are real deployments.
+const nodeOnPath = (() => {
+  try {
+    for (const cand of execSync(process.platform === 'win32' ? 'where node' : 'which -a node')
+      .toString().split(/\r?\n/).map((l) => l.trim()).filter(Boolean)) {
+      if (!existsSync(cand)) continue
+      const major = Number.parseInt(execSync(`"${cand}" --version`).toString().trim().replace(/^v/, ''), 10)
+      if (Number.isFinite(major) && major >= 18) return cand
+    }
+  } catch {
+    /* none -- the app binary is the fallback, which is what mcpLaunch does */
+  }
+  return null
+})()
+
 let pass = 0, fail = 0
 const ok = (n, c) => c ? (pass++, console.log('  PASS ' + n)) : (fail++, console.log('  FAIL ' + n))
 
@@ -107,11 +123,24 @@ const cj1 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
 ok('planide MCP registered at user scope, points at deployed script',
   r1.mcpWired === true && cj1.mcpServers && cj1.mcpServers.planide &&
   cj1.mcpServers.planide.args && cj1.mcpServers.planide.args[0] === trackerScript)
-// The whole point of the Node server: it runs under the app's own binary, so it
-// needs no Python and no fastmcp -- the reason the tracker did nothing before.
-ok('MCP runs under the app binary as node (no Python dependency)',
-  cj1.mcpServers.planide.command === process.execPath &&
-  cj1.mcpServers.planide.env && cj1.mcpServers.planide.env.ELECTRON_RUN_AS_NODE === '1')
+// No Python, no fastmcp -- that was the reason the tracker did nothing at all
+// once. The runtime is a real `node` when there is one, and the app's own binary
+// as node when there is not. A real user's Codex session failing every planide
+// call with "Transport closed" is what settled the order: the same deployed
+// server, driven by plain node, answered fine -- the ~200 MB Electron binary was
+// simply too slow to start before the agent gave up on it.
+const launched = cj1.mcpServers.planide
+ok('MCP runs on a real node when there is one, the app binary otherwise',
+  launched.command === (nodeOnPath ?? process.execPath) &&
+  (nodeOnPath ? !launched.env : launched.env?.ELECTRON_RUN_AS_NODE === '1'))
+// Whichever it picked has to actually be able to run it. A registered runtime
+// that is not there is precisely the failure being fixed.
+ok('and that runtime exists and really runs the server', (() => {
+  const out = execSync(`"${launched.command}" -e "process.stdout.write('ok')"`, {
+    env: { ...process.env, ...(launched.env ?? {}) }
+  }).toString()
+  return out === 'ok' && existsSync(launched.args[0])
+})())
 ok('existing ~/.claude.json content preserved (never clobbered)',
   cj1.mcpServers.other && cj1.projects && cj1.projects['/p'])
 ok('tracker instruction injected into agent bodies (Claude + Codex)',
@@ -122,8 +151,10 @@ ok('tracker instruction injected into agent bodies (Claude + Codex)',
 const codexToml = readFileSync(join(HOME, '.codex/config.toml'), 'utf8')
 ok('Codex MCP registered ([mcp_servers.planide]) pointing at our script',
   codexToml.includes('[mcp_servers.planide]') && codexToml.includes(trackerScript))
-ok('Codex MCP carries the run-as-node env table',
-  codexToml.includes('[mcp_servers.planide.env]') && codexToml.includes('ELECTRON_RUN_AS_NODE = "1"'))
+ok('Codex gets the env table only when the launch actually needs one',
+  nodeOnPath
+    ? !codexToml.includes('[mcp_servers.planide.env]')
+    : codexToml.includes('[mcp_servers.planide.env]') && codexToml.includes('ELECTRON_RUN_AS_NODE = "1"'))
 ok('Codex existing config preserved (other server + model key kept)',
   codexToml.includes('[mcp_servers.other]') && codexToml.includes('model = "gpt-5"'))
 const codexAgentsMd = readFileSync(join(HOME, '.codex/AGENTS.md'), 'utf8')
@@ -168,9 +199,12 @@ ok('Cursor MCP registered at ~/.cursor/mcp.json',
 const gem1 = JSON.parse(readFileSync(join(HOME, '.gemini/settings.json'), 'utf8'))
 ok('Gemini/Antigravity MCP registered at ~/.gemini/settings.json, user content preserved',
   gem1.mcpServers.planide.args[0] === trackerScript && gem1.mcpServers.other && gem1.theme === 'Default')
+// One launch, every agent. They fail separately otherwise, and a tracker that
+// works in one CLI and dies in another is the hardest kind of report to act on.
 ok('every agent gets the same dependency-free launch (claude/codex/cursor/gemini)',
   [JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide, gem1.mcpServers.planide]
-    .every((s) => s.command === process.execPath && s.env?.ELECTRON_RUN_AS_NODE === '1'))
+    .every((s) => s.command === launched.command &&
+      (s.env?.ELECTRON_RUN_AS_NODE ?? null) === (launched.env?.ELECTRON_RUN_AS_NODE ?? null)))
 
 const r2 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
 ok('second run is version-gated no-op', r2.deployed === false)
