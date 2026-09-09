@@ -337,6 +337,9 @@ export function deployAgentBundle(
     // best available python. This lets the MCP switch to the venv the moment the
     // background install finishes, instead of waiting for a version bump.
     if (opts.provisionPyEnv !== false) ensurePyEnv(home)
+    // Same shape as the venv above: optional, detached, never a gate. Opt-out
+    // aware, so a user who turned ECC off does not get it back on next launch.
+    if (opts.provisionPyEnv !== false) ensureEcc(home)
     const alreadyTracked = existsSync(join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs'))
     let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home) : false
 
@@ -1752,6 +1755,142 @@ function ensurePyEnv(home: string): boolean {
     return true
   } catch {
     return false // never break startup over the optional memory backend
+  }
+}
+
+/**
+ * Install ECC through ECC's own installer, so it is simply there.
+ *
+ * Not vendored, deliberately: ECC's README asks people not to run unofficial
+ * mirrors, and mirroring 63 MB of someone else's plugin into our installer is
+ * how the Windows Defender flag happened once already. This runs their real,
+ * documented non-interactive setup instead -- `ecc setup --mode claude-plugin
+ * --scope user --yes` -- so what lands is exactly what `npx ecc-universal setup`
+ * would have put there, and their own updates keep working.
+ *
+ * What it costs, measured rather than guessed: Claude Code's own
+ * `plugin details` puts ECC at ~40,600 always-on tokens (380 skills, 68 agents)
+ * on top of Pulse Agent's ~16,800. That is real context spent in every session,
+ * on every project, whether or not the work is operator work. It is a genuine
+ * trade, so it is a visible setting rather than a silent default -- see
+ * eccOptedOut. ECC's own install profiles do not help here: those belong to its
+ * manual module install, and its README is explicit that the plugin path and
+ * the manual path must not be stacked.
+ *
+ * Fire-and-forget and once-only. It needs npx and the network, so it has to be
+ * allowed to simply not happen: a failure writes a marker with the reason and
+ * is never retried in a loop, and nothing about startup or the tracker depends
+ * on it.
+ */
+const ECC_STATE = 'ecc-install.json'
+
+type EccState = { attempted: string; ok: boolean; detail: string }
+
+function readEccState(home: string): EccState | null {
+  try {
+    return JSON.parse(readFileSync(join(configDir(home), ECC_STATE), 'utf8')) as EccState
+  } catch {
+    return null
+  }
+}
+
+/** The user turned it off (or never turned it on). Their machine, their context. */
+function eccOptedOut(home: string): boolean {
+  try {
+    const raw = readFileSync(join(configDir(home), 'settings.json'), 'utf8')
+    return (JSON.parse(raw) as { installEcc?: boolean }).installEcc === false
+  } catch {
+    return false
+  }
+}
+
+export function setEccEnabled(enabled: boolean, home: string = homedir()): boolean {
+  try {
+    const path = join(configDir(home), 'settings.json')
+    let settings: Record<string, unknown> = {}
+    if (existsSync(path)) {
+      try {
+        settings = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+      } catch {
+        /* unreadable -- start clean rather than refuse */
+      }
+    }
+    settings.installEcc = enabled
+    mkdirSync(configDir(home), { recursive: true })
+    writeConfigAtomic(path, JSON.stringify(settings, null, 2))
+    // Turning it back on clears the "already tried" marker, so the next launch
+    // really does try again instead of remembering an old refusal.
+    if (enabled) rmSync(join(configDir(home), ECC_STATE), { force: true })
+    return true
+  } catch {
+    return false
+  }
+}
+
+export type EccStatus = {
+  installed: boolean
+  optedOut: boolean
+  lastAttempt: string | null
+  lastError: string | null
+  /** Measured with Claude Code's own plugin details, not estimated. */
+  alwaysOnTokens: number
+}
+
+export function eccStatus(home: string = homedir()): EccStatus {
+  const state = readEccState(home)
+  return {
+    installed: eccInstalled(home),
+    optedOut: eccOptedOut(home),
+    lastAttempt: state?.attempted ?? null,
+    lastError: state && !state.ok ? state.detail : null,
+    alwaysOnTokens: 40637
+  }
+}
+
+function ensureEcc(home: string): boolean {
+  try {
+    if (eccOptedOut(home)) return false
+    if (eccInstalled(home)) return true
+    // One attempt per install. Retrying a failing network/npx call on every
+    // launch is noise the user cannot act on; Repair-style re-enabling clears
+    // this marker deliberately (setEccEnabled).
+    if (readEccState(home)) return false
+
+    const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+    try {
+      execFileSync(npx, ['--version'], { stdio: 'ignore', timeout: 8000, windowsHide: true })
+    } catch {
+      writeEccState(home, false, 'npx not found -- ECC needs Node.js 18+ on PATH')
+      return false
+    }
+
+    mkdirSync(configDir(home), { recursive: true })
+    const log = openSync(join(configDir(home), 'ecc-setup.log'), 'a')
+    // Their documented non-interactive form. --yes so it never waits for a
+    // prompt nobody is watching; user scope so it works in every project.
+    const child = spawn(
+      npx,
+      ['--yes', 'ecc-universal', 'setup', '--mode', 'claude-plugin', '--scope', 'user', '--yes'],
+      { detached: true, stdio: ['ignore', log, log], windowsHide: true }
+    )
+    child.unref()
+    writeEccState(home, true, 'setup started')
+    return true
+  } catch (err) {
+    writeEccState(home, false, err instanceof Error ? err.message : String(err))
+    return false
+  }
+}
+
+function writeEccState(home: string, ok: boolean, detail: string): void {
+  try {
+    mkdirSync(configDir(home), { recursive: true })
+    writeConfigAtomic(
+      join(configDir(home), ECC_STATE),
+      JSON.stringify({ attempted: new Date().toISOString(), ok, detail }, null, 2)
+    )
+  } catch {
+    /* a marker we cannot write just means one more attempt later */
   }
 }
 

@@ -6,6 +6,21 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.60.0] - 2026-09-09
+
+### What's new
+- **ECC comes pre-installed.** First launch runs ECC's own official setup, so its
+  68 agents and 380 skills are just there — nothing to type. Not mirrored into
+  our installer: their installer, their updates.
+- **And it's a switch.** Measured with Claude Code's own `plugin details`, ECC
+  adds **~40,600 always-on tokens** to every session on top of Pulse Agent's
+  ~16,800. Set `"installEcc": false` in `~/.config/pulsaride/settings.json` if
+  you'd rather keep that context.
+
+### Notes
+- Needs Node 18+ and one network call. Missing either, it quietly doesn't happen
+  — the reason lands in `ecc-install.json` and it isn't retried every launch.
+
 ## [0.59.0] - 2026-09-09
 
 ### What's new

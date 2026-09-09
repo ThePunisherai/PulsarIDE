@@ -352,6 +352,23 @@ export function trackerHealth(path?: string): Promise<TrackerHealth> {
   return call<TrackerHealth>('trackerHealth', path)
 }
 
+export type EccStatus = {
+  installed: boolean
+  optedOut: boolean
+  lastAttempt: string | null
+  lastError: string | null
+  alwaysOnTokens: number
+}
+
+/** ECC: installed through its own installer, and what it costs per session. */
+export function eccStatus(): Promise<EccStatus> {
+  return call<EccStatus>('eccStatus')
+}
+
+export function eccSetEnabled(enabled: boolean): Promise<boolean> {
+  return call<boolean>('eccSetEnabled', enabled)
+}
+
 /** Write the planide MCP entry back into every agent's own config. */
 export function trackerRepair(): Promise<boolean> {
   return call<boolean>('trackerRepair')

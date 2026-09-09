@@ -13,8 +13,15 @@ import { fileURLToPath } from 'node:url'
 
 const REPO = process.env.PULSAR_REPO || join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const MOD = process.env.PULSAR_BUNDLE_CJS // esbuild output, provided by verify.sh
-const { deployAgentBundle, deployCursorRule, deployProjectAgentsMd, trackerHealth, repairTrackerRegistration } =
-  await import(MOD)
+const {
+  deployAgentBundle,
+  deployCursorRule,
+  deployProjectAgentsMd,
+  trackerHealth,
+  repairTrackerRegistration,
+  eccStatus,
+  setEccEnabled
+} = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
 const res = join(work, 'res'); mkdirSync(res)
@@ -260,6 +267,24 @@ deployProjectAgentsMd(tracked, HOME)
 const agentsMd2 = readFileSync(join(tracked, 'AGENTS.md'), 'utf8')
 ok('a second run replaces our AGENTS.md block instead of appending another',
   agentsMd2.split('<!-- PULSAR:MAIN:BEGIN -->').length === 2 && agentsMd2 === agentsMd)
+
+// --- ECC: installed by its own installer, and switchable ------------------- //
+// It costs ~40.6k always-on tokens (Claude Code's own plugin details, not an
+// estimate), so the guards matter more than the install: it must not run when
+// the user said no, and must not retry a failed attempt on every launch.
+const eccFresh = eccStatus(HOME)
+ok('ECC status reports the real measured cost, not a guess',
+  eccFresh.alwaysOnTokens === 40637 && eccFresh.installed === false && eccFresh.optedOut === false)
+ok('turning ECC off is remembered', setEccEnabled(false, HOME) === true && eccStatus(HOME).optedOut === true)
+ok('turning it back on clears the opt-out',
+  setEccEnabled(true, HOME) === true && eccStatus(HOME).optedOut === false)
+// The plugin marketplace directory is what "installed" means -- taken from the
+// real CLI's behaviour on `plugin marketplace add`, checked above too.
+ok('once the marketplace is on disk, status says installed',
+  (() => {
+    mkdirSync(join(HOME, '.claude/plugins/marketplaces/ecc'), { recursive: true })
+    return eccStatus(HOME).installed === true
+  })())
 
 // --- ECC: named only when it is really installed --------------------------- //
 // It is a third-party plugin installed through its own official channel, never

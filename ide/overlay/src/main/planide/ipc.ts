@@ -24,7 +24,9 @@ import { historySnapshot, readProjectHistory, recordHistory } from './history'
 import {
   deployCursorRule,
   deployProjectAgentsMd,
+  eccStatus,
   repairTrackerRegistration,
+  setEccEnabled,
   trackerHealth
 } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
@@ -221,6 +223,10 @@ export function registerPlanIdeIpc(): void {
   // on its own: the agent CLIs own these config files and rewrite them.
   on('planide:tracker-health', (path?: string) => trackerHealth(path))
   on('planide:tracker-repair', () => repairTrackerRegistration())
+  // ECC is installed through its own installer and costs real always-on
+  // context (~40.6k tokens, measured), so it is a switch, not a silent default.
+  on('planide:ecc-status', () => eccStatus())
+  on('planide:ecc-set-enabled', (enabled: boolean) => setEccEnabled(enabled))
   on('planide:memory-status', (path: string) => memoryStatus(path))
   // Per-project history DB: the full, uncapped record of board changes.
   on('planide:history', (path: string, limit?: number) => readProjectHistory(path, limit ?? 500))

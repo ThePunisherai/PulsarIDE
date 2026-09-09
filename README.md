@@ -248,23 +248,37 @@ Worth knowing why that link breaks by itself: Claude Code owns `~/.claude.json`
 and rewrites it on its own schedule, so our entry can go missing through nobody's
 fault.
 
-### ECC (optional)
+### ECC, pre-installed
 
 [ECC](https://github.com/affaan-m/ECC) (MIT) is a third-party operator layer —
-68 agents and 286 skills for CI, releases, repo hygiene and incident work. It is
-**not bundled**: its own README asks people not to run unofficial mirrors, and 68
-more agent descriptions on top of our 100 team leads would blow Claude Code's
-~15k description budget, which is what breaks subagents. Install it its own way:
+68 agents and 380 skills for CI, releases, repo hygiene and incident work. On
+first launch PulsarIDE installs it for you, by running ECC's own documented
+setup:
 
 ```bash
-npx ecc-universal setup      # or, inside Claude Code:
-                             # /plugin marketplace add https://github.com/affaan-m/ECC
-                             # /plugin install ecc@ecc
+npx ecc-universal setup --mode claude-plugin --scope user --yes
 ```
 
-Once it is really on the machine, the Council is told what it is for and that
-Pulse Agent still leads and the board still gets updated. Until then it is never
-mentioned, so it costs nothing.
+It is **not** mirrored into our installer: ECC's README asks people not to run
+unofficial copies, and 63 MB of someone else's plugin inside our exe is how the
+Windows Defender flag happened once already. Running their real installer means
+what lands is exactly what they ship, and their updates keep working.
+
+**What it costs, measured:** Claude Code's own `plugin details` puts ECC at
+**~40,600 always-on tokens**, on top of Pulse Agent's ~16,800. That is context
+spent in every session on every project, whether or not the work is operator
+work. So it is a switch, not a fact of life:
+
+```jsonc
+// ~/.config/pulsaride/settings.json
+{ "installEcc": false }   // never install it; removes nothing already there
+```
+
+Needs Node 18+ on PATH and one network call. If either is missing it simply does
+not happen — the reason is written to `~/.config/pulsaride/ecc-install.json` and
+it is not retried on every launch. Once ECC is really on disk the Council is told
+what it is for, and that Pulse Agent still leads and the board still gets
+updated. Until then it is never mentioned, so it costs nothing.
 
 ## Verify
 
