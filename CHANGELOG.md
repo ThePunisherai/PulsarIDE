@@ -6,6 +6,25 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.61.0] - 2026-09-09
+
+### What's new
+- **Orca is current again.** Pinned forward 715 commits to `7dd183d`, after five
+  releases held back. You get everything upstream shipped in that window —
+  terminal and runtime performance work, the reworked sidebar create actions,
+  native-chat fixes.
+
+### What's fixed
+- Three overlay anchors upstream had moved under us: both Windows-signing
+  anchors in the builder config, and the PowerShell agent-hook line — that last
+  one now anchors on just the path, so upstream reshuffling that command can't
+  break it a third time.
+
+### Please read
+- The v0.55.0 React #185 boot crash was never reproduced, only pinned around. A
+  typecheck can't see a render loop, so **if the app crashes a few seconds into
+  boot, tell me** — it pins straight back to `61e0100` as a patch release.
+
 ## [0.60.0] - 2026-09-09
 
 ### What's new

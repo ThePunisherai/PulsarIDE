@@ -30,26 +30,30 @@ import sys
 
 # Upstream revision this overlay was written against and verified on.
 #
-# HELD BACK ON PURPOSE -- do not bump past this without reading the note below.
+# History worth keeping, because it decides what "verified" is allowed to mean
+# here. v0.55.0 moved this to b0df874 (+201 commits) and a real Windows install
+# came back with a React #185 crash -- the "maximum update depth" render loop --
+# about three seconds into boot. The crash report's own attribution is
+# unreliable by design (#185 throws on whichever component calls setState next,
+# so its boundary_id named the status bar, a bystander). What made the call was
+# the diff: v0.55.0 touched ZERO renderer files, so nothing of ours could have
+# introduced a render loop, while upstream's window included several commits
+# reworking exactly that area -- two of them explicitly render-loop fixes. We
+# pinned back to 61e0100 and stayed there for five releases.
 #
-# v0.55.0 moved this to b0df874 (+201 upstream commits) and a real Windows
-# install came back with a React #185 crash -- the "maximum update depth"
-# render loop -- about three seconds into boot, caught by an error boundary.
-# The crash report's own attribution is unreliable by design (#185 throws on
-# whichever component calls setState next, so its boundary_id named the status
-# bar, a bystander). What made the call was the diff: v0.55.0 touched ZERO
-# renderer files -- only this pin, one build-config anchor, a main-process
-# module and a test -- so nothing of ours could have introduced a render loop.
-# The only renderer change in that release was upstream's, and that window
-# includes several commits reworking exactly this area, two of them explicitly
-# render-loop fixes ("add equality bailouts to the tab pane-expansion actions",
-# "fix the orchestration batch's self-invalidating cache").
+# This bump crosses 715 commits, which sounds worse than it measured: only 3 of
+# 64 anchors drifted (both electron-builder Windows-signing anchors, which
+# upstream restructured, and the PowerShell agent-hook line, now anchored on the
+# path fragment alone so its next reshuffle cannot break us again). verify.sh is
+# green, all 64 edits resolve, and Orca's own tsc passes over the patched tree
+# in CI.
 #
-# So this is pinned back to the last revision shipped without that report.
-# Before moving it again: reproduce a real boot on Windows, not just a green
-# typecheck -- ide/verify.sh and Orca's own tsc both passed on b0df874 and
-# neither could see this, because a render loop is a runtime fault.
-PINNED_COMMIT = "61e010079f769f40cff39aef09f9788c13c3257d"  # 2026-09-02, last revision with no #185 report
+# None of that can see a render loop. A green typecheck and a green verify both
+# passed on b0df874 too, and neither could: it is a runtime fault. So the standing
+# rule holds -- the only thing that clears a bump is a real boot on Windows. If
+# #185 comes back on this revision, pin straight back to 61e0100 and ship that
+# as a patch release, exactly as v0.55.1 did.
+PINNED_COMMIT = "7dd183d82dafb768bb2506d161438a6d0894fd53"  # 2026-09-09, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -82,9 +86,11 @@ EDITS: list[tuple[str, str, str, str]] = [
     ),
     (
         "config/electron-builder.config.cjs",
-        """    ...(isWinDevChannel
-      ? { verifyUpdateCodeSignature: false }
-      : { signtoolOptions: { publisherName: 'SignPath Foundation' } }),""",
+        """    signtoolOptions: {
+      sign: signWindowsUninstallerViaSignPath,
+      ...(isWinDevChannel ? {} : { publisherName: 'SignPath Foundation' })
+    },
+    ...(isWinDevChannel ? { verifyUpdateCodeSignature: false } : {}),""",
         """    // PulsarIDE ships unsigned on Windows, on every channel, so the
     // publisherName branch upstream takes for its own release builds can never
     // be satisfied here. electron-updater Authenticode-verifies each installer
@@ -99,6 +105,12 @@ EDITS: list[tuple[str, str, str, str]] = [
     // land. Upstream documents the fix in the comment just above: verification
     // is skipped when that name is absent, which is exactly what their unsigned
     // dev channels do. We are unsigned always, so we take that branch always.
+    //
+    // The sign hook stays: upstream documents it as inert when the SignPath
+    // relay env vars are unset, which is our case, and it is the only moment
+    // electron-builder exposes the NSIS uninstaller. Dropping it would be a
+    // change to upstream behaviour we have no reason to make.
+    signtoolOptions: { sign: signWindowsUninstallerViaSignPath },
     verifyUpdateCodeSignature: false,""",
         "unsigned Windows builds: skip the Authenticode publisher check that blocked every update",
     ),
@@ -238,8 +250,14 @@ EDITS: list[tuple[str, str, str, str]] = [
     ),
     (
         "src/main/agent-hooks/runtime-home-hook-command.ts",
-        "  const powershellCommand = `$homePath = $env:HOME -replace '^/([A-Za-z])/', '$1:/'; $scriptPath = Join-Path $homePath '.orca\\\\agent-hooks\\\\${scriptBaseName}.cmd'; if (Test-Path -LiteralPath $scriptPath -PathType Leaf) { & $scriptPath; exit $LASTEXITCODE }; [Console]::In.ReadToEnd() | Out-Null${powershellFallback}; exit 0`",
-        "  const powershellCommand = `$homePath = $env:HOME -replace '^/([A-Za-z])/', '$1:/'; $scriptPath = Join-Path $homePath '.pulsar\\\\agent-hooks\\\\${scriptBaseName}.cmd'; if (Test-Path -LiteralPath $scriptPath -PathType Leaf) { & $scriptPath; exit $LASTEXITCODE }; [Console]::In.ReadToEnd() | Out-Null${powershellFallback}; exit 0`",
+        # Just the path fragment. Upstream has reordered the rest of this one
+        # command twice (the fallback moved, then an environment guard was
+        # inserted), and each time it broke an anchor that only ever wanted to
+        # change the directory name. The backslash form appears once; the
+        # forward-slash `.orca/agent-hooks/` on the lines above is a different
+        # string with its own edit.
+        "'.orca\\\\agent-hooks\\\\${scriptBaseName}.cmd'",
+        "'.pulsar\\\\agent-hooks\\\\${scriptBaseName}.cmd'",
         'agent-hook command points at ~/.pulsar (Git Bash PowerShell branch)',
     ),
     (
@@ -724,9 +742,20 @@ EDITS: list[tuple[str, str, str, str]] = [
     # ---- the agent bundle: ThePunisher agents + skills, packaged ---------- #
     (
         "config/electron-builder.config.cjs",
-        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources]",
+        "const commonExtraResources = [\n"
+        "  relayExtraResource,\n"
+        "  bundledPluginResources,\n"
+        "  skillFreshnessResources,\n"
+        "  emojiShortcodeDatasetResource\n"
+        "]",
         "const pulsarAgentsResource = { from: 'resources/pulsar-agents', to: 'pulsar-agents' }\n"
-        "const commonExtraResources = [relayExtraResource, bundledPluginResources, skillFreshnessResources, pulsarAgentsResource]",
+        "const commonExtraResources = [\n"
+        "  relayExtraResource,\n"
+        "  bundledPluginResources,\n"
+        "  skillFreshnessResources,\n"
+        "  emojiShortcodeDatasetResource,\n"
+        "  pulsarAgentsResource\n"
+        "]",
         "ship the ThePunisher agent bundle inside the app",
     ),
 ]
