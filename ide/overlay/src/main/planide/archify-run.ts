@@ -21,7 +21,7 @@
 import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 /** Bounded: a hung render must not leave the panel spinning forever. */
 const RENDER_TIMEOUT_MS = 120_000
@@ -30,11 +30,20 @@ const RENDER_TIMEOUT_MS = 120_000
 export const ARCHIFY_TYPES = ['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle'] as const
 export type ArchifyType = (typeof ARCHIFY_TYPES)[number]
 
+/**
+ * What the tab can show. A diagram type, or `delta` for a Before/Delta/After
+ * artifact from `archify compare` -- which has two JSON snapshots as input and
+ * one HTML as output, so it never had a source to pair with and was invisible
+ * here. Kept out of ARCHIFY_TYPES on purpose: that list is what the CLI accepts
+ * as a `render` type, and `delta` is not one.
+ */
+export type ArchifyArtifactType = ArchifyType | 'delta'
+
 export type ArchifyDiagram = {
   /** Base name without the type or extension, e.g. "checkout-flow". */
   name: string
-  type: ArchifyType
-  /** Absolute path of the JSON source. */
+  type: ArchifyArtifactType
+  /** The JSON source, or the artifact itself when it has no separate source. */
   source: string
   /** Absolute path of the rendered HTML, when it has been rendered. */
   html?: string
@@ -76,6 +85,10 @@ function parseName(file: string): { name: string; type: ArchifyType } | null {
   return { name: m[1], type }
 }
 
+function isArchifyType(value: string | undefined): value is ArchifyType {
+  return typeof value === 'string' && (ARCHIFY_TYPES as readonly string[]).includes(value)
+}
+
 /** List a project's diagrams and whether each has been rendered. */
 export function archifyStatus(projectPath: string, home: string = homedir()): ArchifyStatus {
   const dir = diagramsDir(projectPath)
@@ -113,6 +126,38 @@ export function archifyStatus(projectPath: string, home: string = homedir()): Ar
     }
     status.diagrams.push({ ...parsed, source, html: rendered, stale, updatedAt })
   }
+
+  // Artifacts with no `<name>.<type>.json` beside them.
+  //
+  // Everything above pairs a source with its render, which is right for a
+  // diagram you author and re-render. It silently drops the ones that do not
+  // work that way -- `archify compare` takes TWO snapshots and writes ONE
+  // Before/Delta/After artifact, so the most useful thing the toolkit produces
+  // was the one thing this tab could never show.
+  const paired = new Set(status.diagrams.map((d) => (d.html ? basename(d.html) : '')))
+  for (const file of names.sort()) {
+    if (!file.endsWith('.html') || paired.has(file)) continue
+    const html = join(dir, file)
+    let updatedAt = 0
+    try {
+      updatedAt = statSync(html).mtimeMs
+    } catch {
+      continue
+    }
+    const base = file.replace(/\.html$/, '')
+    const m = /\.([a-z]+)$/.exec(base)
+    status.diagrams.push({
+      name: base.replace(/\.[a-z]+$/, ''),
+      // A delta is its own kind of artifact; anything else keeps its suffix so
+      // the tab labels it honestly rather than guessing a diagram type.
+      type: isArchifyType(m?.[1]) ? m[1] : 'delta',
+      source: html,
+      html,
+      stale: false,
+      updatedAt
+    })
+  }
+
   status.diagrams.sort((a, b) => b.updatedAt - a.updatedAt)
   return status
 }

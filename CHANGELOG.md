@@ -6,6 +6,25 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.65.0] - 2026-09-09
+
+### What's fixed
+- **Archify was only ever using a fraction of itself.** Guided views you can play
+  through, the summary cards under the diagram, node sublabels, and full
+  Before/Delta/After comparison were all installed and all working — the Council
+  was only ever told about bare `render`, so you got box-and-arrow sketches. It
+  now delivers at `--quality showcase` (a real gate: 9 artifact checks, refuses
+  warnings) and knows the four fields that carry the rest.
+- **Deltas show up in the Archify tab.** `compare` takes two snapshots and writes
+  one artifact, so it had no JSON to pair with and the tab silently skipped it —
+  the most useful thing the toolkit makes was the one thing you couldn't see.
+
+### What's new
+- **Diagrams get offered per project.** A project with real architecture and no
+  diagram is treated as a gap to raise, not something to wait to be asked about.
+- `compare`, `guide`, `brands` and `visual-check` are now part of what the Council
+  reaches for.
+
 ## [0.64.0] - 2026-09-09
 
 ### What's fixed

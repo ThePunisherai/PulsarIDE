@@ -302,6 +302,23 @@ const agentsMd2 = readFileSync(join(tracked, 'AGENTS.md'), 'utf8')
 ok('a second run replaces our AGENTS.md block instead of appending another',
   agentsMd2.split('<!-- PULSAR:MAIN:BEGIN -->').length === 2 && agentsMd2 === agentsMd)
 
+// --- Archify: the whole toolkit, not just render --------------------------- //
+// Everything in the artifacts people actually want -- guided views, the summary
+// cards, Before/Delta/After -- was already installed and already working. The
+// Council was only ever told `render`, so it produced box-and-arrow sketches and
+// never the rest. These assert the instruction names the parts that make the
+// difference, and asks for them per project instead of waiting to be asked.
+const arch = readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8')
+ok('the Council is told to deliver at showcase quality, not bare render',
+  arch.includes('deliver') && arch.includes('--quality showcase') &&
+  arch.includes('9 artifact checks'))
+ok('and the fields that carry the rich artifact are named',
+  ['meta.quality_profile', 'meta.views', 'cards', 'sublabel'].every((f) => arch.includes(f)))
+ok('compare (Before/Delta/After) is reachable, it was never mentioned before',
+  arch.includes('compare architecture') && arch.includes('Before / Delta / After'))
+ok('and it offers a diagram per project rather than waiting to be asked',
+  arch.includes('per project, do not wait to be asked'))
+
 // --- ECC: installed by its own installer, and switchable ------------------- //
 // It costs ~40.6k always-on tokens (Claude Code's own plugin details, not an
 // estimate), so the guards matter more than the install: it must not run when
