@@ -339,7 +339,7 @@ export function deployAgentBundle(
     if (opts.provisionPyEnv !== false) ensurePyEnv(home)
     // Same shape as the venv above: optional, detached, never a gate. Opt-out
     // aware, so a user who turned ECC off does not get it back on next launch.
-    if (opts.provisionPyEnv !== false) ensureEcc(home)
+    if (opts.provisionPyEnv !== false) ensureEcc(home, root)
     const alreadyTracked = existsSync(join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs'))
     let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home) : false
 
@@ -956,6 +956,9 @@ function registerPlanideMcp(home: string): boolean {
   const meshy = meshyMcpLaunch(home)
   if (meshy) servers.meshy = { type: 'stdio', command: meshy.command, args: meshy.args, env: meshy.env }
   else delete servers.meshy
+  const unreal = unrealMcpLaunch(home)
+  if (unreal) servers.unreal = { type: 'stdio', command: unreal.command, args: unreal.args }
+  else delete servers.unreal
   writeConfigAtomic(path, JSON.stringify(config, null, 2))
   return true
 }
@@ -1115,6 +1118,70 @@ export function setMeshyKey(key: string, home: string = homedir()): MeshyStatus 
   return meshyStatus(home)
 }
 
+/** Write one string setting into the shared settings file (or remove it). */
+function writeSetting(home: string, key: string, value: string): void {
+  const path = join(configDir(home), 'settings.json')
+  let settings: Record<string, unknown> = {}
+  if (existsSync(path)) {
+    try {
+      settings = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+    } catch {
+      /* unreadable -- start clean rather than refuse to save */
+    }
+  }
+  const trimmed = String(value || '').trim()
+  if (trimmed) settings[key] = trimmed
+  else delete settings[key]
+  mkdirSync(configDir(home), { recursive: true })
+  writeConfigAtomic(path, JSON.stringify(settings, null, 2))
+}
+
+/**
+ * Unreal Engine's MCP server, once you have pointed the IDE at your clone.
+ *
+ * Local by design: this one drives a running Unreal editor through the UnrealMCP
+ * plugin, so it only means anything on a machine that actually has Unreal. The
+ * invocation is verbatim from flopperam/unreal-engine-mcp's own LOCAL_SETUP.md
+ * (`uv --directory <repo>/Python run unreal_mcp_server_advanced.py`), not
+ * guessed -- there is also a hosted url+API-key variant upstream, deliberately
+ * not used here.
+ *
+ * Registered only when the server script is really on disk, so an agent is never
+ * shown a tool that cannot start. Two things stay the user's, and the Toolkit
+ * says so: `uv` on PATH, and the UnrealMCP plugin enabled in the project.
+ */
+function unrealMcpLaunch(home: string): McpLaunch | null {
+  const repo = readSetting(home, 'unrealMcpPath')
+  if (!repo) return null
+  const pyDir = join(repo, 'Python')
+  if (!existsSync(join(pyDir, 'unreal_mcp_server_advanced.py'))) return null
+  return { command: 'uv', args: ['--directory', pyDir, 'run', 'unreal_mcp_server_advanced.py'] }
+}
+
+export type UnrealStatus = { configured: boolean; path: string; ready: boolean; problem: string }
+
+/** What the Toolkit shows: is a folder set, and is it really the right folder. */
+export function unrealStatus(home: string = homedir()): UnrealStatus {
+  const repo = readSetting(home, 'unrealMcpPath')
+  if (!repo) return { configured: false, path: '', ready: false, problem: '' }
+  const ready = existsSync(join(repo, 'Python', 'unreal_mcp_server_advanced.py'))
+  return {
+    configured: true,
+    path: repo,
+    ready,
+    // Naming the file we looked for is the difference between "it does not work"
+    // and knowing the wrong folder was picked.
+    problem: ready ? '' : 'No Python/unreal_mcp_server_advanced.py in there — pick the folder you cloned unreal-engine-mcp into.'
+  }
+}
+
+/** Point the IDE at the clone (or clear it) and re-register every agent now. */
+export function setUnrealPath(path: string, home: string = homedir()): UnrealStatus {
+  writeSetting(home, 'unrealMcpPath', path)
+  registerTrackerForAllAgents(home)
+  return unrealStatus(home)
+}
+
 function toolsMcpLaunch(home: string): McpLaunch | null {
   const server = join(configDir(home), 'tracker', 'mcp', 'pulsar-tools-mcp.mjs')
   if (!existsSync(server)) return null
@@ -1149,10 +1216,12 @@ function registerPlanideMcpCodex(home: string): boolean {
     if (tools) ours.push({ name: 'pulsar-tools', launch: tools })
     const meshy = meshyMcpLaunch(home)
     if (meshy) ours.push({ name: 'meshy', launch: meshy })
+    const unrealTo = unrealMcpLaunch(home)
+    if (unrealTo) ours.push({ name: 'unreal', launch: unrealTo })
 
-    // Strip every block of ours (including a meshy left behind by a cleared
-    // key), keep everything else verbatim, then append the current set.
-    const mine = new Set(['planide', 'pulsar-tools', 'meshy'])
+    // Strip every block of ours (including a meshy or unreal left behind by a
+    // cleared setting), keep everything else verbatim, then append the current set.
+    const mine = new Set(['planide', 'pulsar-tools', 'meshy', 'unreal'])
     const kept: string[] = []
     let skipping = false
     for (const line of text.split(/\r?\n/)) {
@@ -1206,6 +1275,9 @@ function registerPlanideMcpCursor(home: string): boolean {
     const meshy = meshyMcpLaunch(home)
     if (meshy) servers.meshy = { command: meshy.command, args: meshy.args, env: meshy.env }
     else delete servers.meshy
+    const unreal = unrealMcpLaunch(home)
+    if (unreal) servers.unreal = { command: unreal.command, args: unreal.args }
+    else delete servers.unreal
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
@@ -1268,6 +1340,16 @@ function registerPlanideMcpOpenCode(home: string): boolean {
       }
     } else {
       delete servers.meshy
+    }
+    const unreal = unrealMcpLaunch(home)
+    if (unreal) {
+      servers.unreal = {
+        type: 'local',
+        command: [unreal.command, ...unreal.args],
+        enabled: true
+      }
+    } else {
+      delete servers.unreal
     }
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
@@ -1381,6 +1463,9 @@ function registerPlanideMcpSettingsJson(path: string, home: string): boolean {
     const meshy = meshyMcpLaunch(home)
     if (meshy) servers.meshy = { command: meshy.command, args: meshy.args, env: meshy.env }
     else delete servers.meshy
+    const unreal = unrealMcpLaunch(home)
+    if (unreal) servers.unreal = { command: unreal.command, args: unreal.args }
+    else delete servers.unreal
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
@@ -1401,7 +1486,7 @@ const MANAGED_END = '<!-- PULSAR:MAIN:END -->'
 /**
  * Is ECC (github.com/affaan-m/ECC) actually installed as a Claude Code plugin?
  *
- * ECC is a large third-party operator layer -- 68 agents and 286 skills -- and
+ * ECC is a large third-party operator layer -- 68 agents and 291 skills -- and
  * it is installed through its own official channel, never bundled here. Two
  * reasons, both real: its own README asks people not to run unofficial mirrors,
  * and 68 more agent descriptions on top of our 100 team leads would walk
@@ -2183,7 +2268,7 @@ function ensurePyEnv(home: string): boolean {
  *
  * `claude plugin marketplace add` clones the whole repository and installs
  * nothing: verified against the real CLI, `plugin list` reports "No plugins
- * installed" afterwards. So the 286 skills and 68 agents sit on disk at no
+ * installed" afterwards. So the 291 skills and 68 agents sit on disk at no
  * context cost, and the Council reaches them through the `ecc_find` /
  * `ecc_read` tools on the pulsar-tools MCP server -- search the catalogue, read
  * the one file that fits, follow it inline.
@@ -2291,53 +2376,66 @@ export function eccStatus(home: string = homedir()): EccStatus {
  * calls this straight after turning ECC on, which is what makes the button do
  * something without waiting for the next launch.
  */
-export function installEccNow(home: string = homedir()): EccStatus {
-  ensureEcc(home)
+export function installEccNow(
+  home: string = homedir(),
+  root: string | null = bundleRoot()
+): EccStatus {
+  ensureEcc(home, root)
   return eccStatus(home)
 }
 
-function ensureEcc(home: string): boolean {
+/**
+ * The commit of the ECC catalogue this build carries. Bumping it on an IDE
+ * update is what makes an already-deployed copy get replaced with the newer one.
+ */
+const ECC_BUNDLE_VERSION = '928c1dea'
+
+/** Which bundled catalogue is on disk, or '' when it is not ours. */
+function eccDeployedVersion(home: string): string {
+  try {
+    return readFileSync(join(eccCatalogueDir(home), '.pulsar-bundle'), 'utf8').trim()
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Put ECC on disk. No network, no git, no Claude CLI.
+ *
+ * This used to fetch on first launch -- `claude plugin marketplace add`, falling
+ * back to `git clone` -- and wrote a marker so it only ever tried once. On a
+ * machine with neither tool on PATH that is a permanent "not fetched yet", which
+ * is exactly what it did. The catalogue is 7.5M of markdown, so the honest fix
+ * is to ship it: `ide/agent-bundle/ecc` holds the two trees ecc_find/ecc_read
+ * actually read (skills/<name>/SKILL.md and agents/<name>.md, see its
+ * ATTRIBUTION.md) and this copies them into place.
+ *
+ * Still not installed as a Claude Code plugin: that costs ~40,600 always-on
+ * tokens per session, measured. On disk it costs nothing until a tool asks.
+ *
+ * An ECC that is already there and is NOT ours (someone ran `claude plugin
+ * marketplace add` themselves) is left completely alone -- it is a fuller copy
+ * than ours and it is theirs, so replacing it would be a downgrade they never
+ * asked for.
+ */
+function ensureEcc(home: string, root: string | null = bundleRoot()): boolean {
   try {
     if (eccOptedOut(home)) return false
-    if (eccInstalled(home)) return true
-    // One attempt per install. Retrying a failing network/npx call on every
-    // launch is noise the user cannot act on; Repair-style re-enabling clears
-    // this marker deliberately (setEccEnabled).
-    if (readEccState(home)) return false
+    const deployed = eccDeployedVersion(home)
+    if (deployed === ECC_BUNDLE_VERSION) return true
+    if (deployed === '' && eccInstalled(home)) return true // someone else's clone
 
-    mkdirSync(configDir(home), { recursive: true })
-    const log = openSync(join(configDir(home), 'ecc-setup.log'), 'a')
-
-    // `claude plugin marketplace add` when the CLI is here: it is the official
-    // route and it also registers the marketplace, so `plugin install ecc@ecc`
-    // stays one command away for anyone who does want it loaded.
-    const claudeCli = process.platform === 'win32' ? 'claude.cmd' : 'claude'
-    let cmd = claudeCli
-    let args = ['plugin', 'marketplace', 'add', ECC_REPO]
-    try {
-      execFileSync(claudeCli, ['--version'], { stdio: 'ignore', timeout: 8000, windowsHide: true })
-    } catch {
-      // No Claude Code CLI. The clone is all our tools need, and this way Codex,
-      // Cursor and Qwen users get ECC too -- they were never going to install a
-      // Claude Code plugin.
-      try {
-        execFileSync('git', ['--version'], { stdio: 'ignore', timeout: 8000, windowsHide: true })
-      } catch {
-        writeEccState(home, false, 'neither the claude CLI nor git is on PATH')
-        return false
-      }
-      cmd = 'git'
-      args = ['clone', '--depth', '1', ECC_REPO, eccCatalogueDir(home)]
-      mkdirSync(dirname(eccCatalogueDir(home)), { recursive: true })
+    const src = root ? join(root, 'ecc') : ''
+    if (!src || !existsSync(src)) {
+      writeEccState(home, false, 'this build does not carry the ECC catalogue')
+      return false
     }
-
-    const child = spawn(cmd, args, {
-      detached: true,
-      stdio: ['ignore', log, log],
-      windowsHide: true
-    })
-    child.unref()
-    writeEccState(home, true, `${cmd} ${args[0]} started`)
+    const dest = eccCatalogueDir(home)
+    rmSync(dest, { recursive: true, force: true })
+    mkdirSync(dirname(dest), { recursive: true })
+    cpSync(src, dest, { recursive: true })
+    writeFileSync(join(dest, '.pulsar-bundle'), ECC_BUNDLE_VERSION)
+    writeEccState(home, true, `installed from the bundled catalogue (${ECC_REPO})`)
     return true
   } catch (err) {
     writeEccState(home, false, err instanceof Error ? err.message : String(err))

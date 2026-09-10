@@ -372,6 +372,18 @@ export function meshySetKey(key: string): Promise<MeshyStatus> {
   return call<MeshyStatus>('meshySetKey', key)
 }
 
+/** Unreal's MCP server: local, so it needs the folder you cloned it into. */
+export type UnrealStatus = { configured: boolean; path: string; ready: boolean; problem: string }
+
+export function unrealStatus(): Promise<UnrealStatus> {
+  return call<UnrealStatus>('unrealStatus')
+}
+
+/** Point at the clone, or pass '' to clear it and unregister the server. */
+export function unrealSetPath(path: string): Promise<UnrealStatus> {
+  return call<UnrealStatus>('unrealSetPath', path)
+}
+
 /** ECC: installed through its own installer, and what it costs per session. */
 export function eccStatus(): Promise<EccStatus> {
   return call<EccStatus>('eccStatus')

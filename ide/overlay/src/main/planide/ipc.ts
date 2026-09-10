@@ -27,6 +27,8 @@ import {
   eccStatus,
   installEccNow,
   meshyStatus,
+  setUnrealPath,
+  unrealStatus,
   repairTrackerRegistration,
   setEccEnabled,
   setMeshyKey,
@@ -247,6 +249,10 @@ export function registerPlanIdeIpc(): void {
   // its MCP server is registered for every agent, without one it is removed.
   on('planide:meshy-status', () => meshyStatus())
   on('planide:meshy-set-key', (key: string) => setMeshyKey(key))
+  // Unreal's MCP is local: it drives a running Unreal editor through the
+  // UnrealMCP plugin, so it needs the folder you cloned the server into.
+  on('planide:unreal-status', () => unrealStatus())
+  on('planide:unreal-set-path', (path: string) => setUnrealPath(path))
   on('planide:memory-status', (path: string) => memoryStatus(path))
   // Per-project history DB: the full, uncapped record of board changes.
   on('planide:history', (path: string, limit?: number) => readProjectHistory(path, limit ?? 500))

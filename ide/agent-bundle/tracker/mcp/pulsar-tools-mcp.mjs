@@ -401,7 +401,7 @@ const str = (v) => (typeof v === 'string' ? v : v === undefined || v === null ? 
 /**
  * ECC's catalogue, read off disk instead of loaded into every session.
  *
- * ECC ships 286 skills and 68 agents. Installed as a Claude Code plugin it costs
+ * ECC ships 291 skills and 68 agents. Installed as a Claude Code plugin it costs
  * ~40,600 always-on tokens in every session on every project -- measured with
  * Claude Code's own `plugin details`, not estimated. That is the wrong shape for
  * something you need on maybe one task in twenty.
@@ -478,8 +478,10 @@ function eccSearch(query, limit) {
     return {
       available: false,
       note:
-        'ECC is not on this machine. It is added by PulsarIDE on first launch; to add it by hand: ' +
-        'claude plugin marketplace add https://github.com/affaan-m/ECC (this clones it, it installs nothing).',
+        'ECC is not on this machine. PulsarIDE ships the catalogue and deploys it on launch, so ' +
+        'this usually means it was turned off in the Toolkit page -- turn it back on there. To add ' +
+        'the full upstream copy by hand instead: claude plugin marketplace add ' +
+        'https://github.com/affaan-m/ECC (this clones it, it installs nothing).',
       matches: []
     }
   }
@@ -980,7 +982,7 @@ const TOOLS = [
   {
     name: 'ecc_find',
     description:
-      "Search ECC's 286 skills and 68 agents for operator/harness work -- CI, releases, repo hygiene, security review, incidents, migrations. Costs nothing until you call it: ECC is on disk, not loaded into the session. Returns names + descriptions; read the one you want with ecc_read.",
+      "Search ECC's 291 skills and 68 agents for operator/harness work -- CI, releases, repo hygiene, security review, incidents, migrations. Costs nothing until you call it: ECC is on disk, not loaded into the session. Returns names + descriptions; read the one you want with ecc_read.",
     inputSchema: {
       type: 'object',
       properties: {

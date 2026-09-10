@@ -12,7 +12,7 @@
  * topology, and a button here could only guess. Asking an agent for the diagram
  * you want is the path that produces a truthful one.
  */
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Box, Check, ExternalLink, Network, RefreshCw, Workflow } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -186,6 +186,30 @@ export function ArchifySidebar({ worktreePath }: { worktreePath: string }): Reac
     [worktreePath, refresh]
   )
 
+  /**
+   * Render what an agent wrote, without waiting to be asked.
+   *
+   * An agent produces the diagram's JSON -- that part needs judgment about what
+   * the system really does, which is why there is still no "invent me a diagram"
+   * button. Compiling that JSON to HTML needs no judgment at all, so leaving it
+   * behind a manual Render click just meant diagrams sat there unrendered.
+   *
+   * One per pass, and every key is remembered before the attempt: refresh() will
+   * re-run this effect for the next one, and a diagram that fails to render is
+   * never retried in a loop -- its error is shown and Render stays available.
+   */
+  const autoRendered = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!worktreePath || !status) return
+    const pending = (status.diagrams ?? []).filter(
+      (d) => (!d.html || d.stale) && !autoRendered.current.has(`${d.name}.${d.type}`)
+    )
+    if (pending.length === 0) return
+    const next = pending[0]
+    autoRendered.current.add(`${next.name}.${next.type}`)
+    void render(next)
+  }, [status, worktreePath, render])
+
   const diagrams = status?.diagrams ?? []
 
   return (
@@ -200,7 +224,10 @@ export function ArchifySidebar({ worktreePath }: { worktreePath: string }): Reac
           <div className="truncate text-[11px] text-muted-foreground">
             {status?.available === false
               ? translate('planide.archify.unavailable', 'Archify is not deployed yet.')
-              : translate('planide.archify.hint', 'Ask an agent for a diagram; it appears here.')}
+              : translate(
+                  'planide.archify.hint',
+                  'Ask an agent for a diagram; it appears here and renders itself.'
+                )}
           </div>
         </div>
         <Button

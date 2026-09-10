@@ -27,9 +27,12 @@ import {
   pickFolder,
   trackerHealth,
   trackerRepair,
+  unrealSetPath,
+  unrealStatus,
   withVisibleSpin,
   type EccStatus,
-  type TrackerHealth
+  type TrackerHealth,
+  type UnrealStatus
 } from '../right-sidebar/planide-engine-client'
 import { MeshyKey } from './PulseArchify'
 
@@ -83,13 +86,15 @@ export default function PulseToolkitPage(): React.JSX.Element {
   const folder = chosen || worktreePath
   const [health, setHealth] = useState<TrackerHealth | null>(null)
   const [ecc, setEcc] = useState<EccStatus | null>(null)
+  const [unreal, setUnreal] = useState<UnrealStatus | null>(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
     // Both are best-effort: one backend hiccup must not blank the whole page.
     await Promise.allSettled([
       trackerHealth(folder || undefined).then(setHealth),
-      eccStatus().then(setEcc)
+      eccStatus().then(setEcc),
+      unrealStatus().then(setUnreal)
     ])
   }, [folder])
 
@@ -127,6 +132,20 @@ export default function PulseToolkitPage(): React.JSX.Element {
         // a preference and nothing visibly happened until the IDE restarted.
         setEcc(enabled ? await eccInstall() : await eccStatus())
       }),
+    []
+  )
+
+  // Unreal's server is local: pick the clone, we check the file is really in it.
+  const chooseUnreal = useCallback(
+    () =>
+      withVisibleSpin(setBusy, async () => {
+        const picked = await pickFolder()
+        if (picked) setUnreal(await unrealSetPath(picked))
+      }),
+    []
+  )
+  const clearUnreal = useCallback(
+    () => withVisibleSpin(setBusy, async () => setUnreal(await unrealSetPath(''))),
     []
   )
 
@@ -265,12 +284,56 @@ export default function PulseToolkitPage(): React.JSX.Element {
             </div>
           </Card>
 
+          {/* --- Unreal: local server, so it needs the folder ---------------- */}
+          <Card
+            title={translate('planide.toolkit.unreal', 'Unreal Engine')}
+            subtitle={translate(
+              'planide.toolkit.unrealSub',
+              'Drives a running Unreal editor, so it only does anything on a machine with Unreal installed. Clone flopperam/unreal-engine-mcp, then point at that folder.'
+            )}
+          >
+            {unreal?.configured ? (
+              <>
+                <div className="mt-2 flex items-center gap-2 text-[12px]">
+                  <Dot ok={unreal.ready} />
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px]">{unreal.path}</span>
+                </div>
+                {unreal.problem && (
+                  <p className="mt-2 rounded-md bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-500">
+                    {unreal.problem}
+                  </p>
+                )}
+                {unreal.ready && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    {translate(
+                      'planide.toolkit.unrealNeeds',
+                      'Registered for every agent. Two things stay yours: uv on PATH, and the UnrealMCP plugin enabled in your project.'
+                    )}
+                  </p>
+                )}
+                <div className="mt-2 flex gap-1.5">
+                  <Button size="sm" variant="outline" className="h-7 text-[11px]" disabled={busy} onClick={() => void chooseUnreal()}>
+                    {translate('planide.toolkit.changeFolder', 'Change folder…')}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-[11px]" disabled={busy} onClick={() => void clearUnreal()}>
+                    {translate('planide.toolkit.clear', 'Clear')}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Button size="sm" variant="outline" className="mt-2 h-7 text-[11px]" disabled={busy} onClick={() => void chooseUnreal()}>
+                <Folder size={12} className="mr-1" />
+                {translate('planide.toolkit.unrealChoose', 'Choose the unreal-engine-mcp folder…')}
+              </Button>
+            )}
+          </Card>
+
           {/* --- ECC: on disk, reached through tools, not loaded per session -- */}
           <Card
             title={translate('planide.toolkit.ecc', 'ECC')}
             subtitle={translate(
               'planide.toolkit.eccSub',
-              "286 skills and 68 agents, kept on disk and searched through ecc_find / ecc_read. Installing it as a plugin instead would cost ~40,600 tokens in every session on every project -- measured, not estimated -- so it is not loaded, it is looked up."
+              "291 skills and 68 agents, shipped with the IDE and searched through ecc_find / ecc_read -- no git, no network, no npx. Installing it as a plugin instead would cost ~40,600 tokens in every session on every project -- measured, not estimated -- so it is not loaded, it is looked up."
             )}
           >
             {ecc ? (

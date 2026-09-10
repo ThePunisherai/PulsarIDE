@@ -6,6 +6,19 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.75.0] - 2026-09-10
+
+### What's new
+- **ECC is in the box.** The 291 skills and 68 agents now ship inside PulsarIDE
+  and are deployed on launch — no git, no network, no npx, nothing to fail. If
+  you installed ECC yourself, your copy is left untouched.
+- **Unreal Engine MCP.** Point Toolkit at your `unreal-engine-mcp` clone and it
+  registers for all seven agents. It checks the folder really holds the server
+  before registering, so no agent shows a tool that cannot start. You still need
+  `uv` on PATH and the UnrealMCP plugin enabled in your project.
+- **Archify renders by itself.** A diagram an agent wrote no longer waits for you
+  to click Render.
+
 ## [0.74.0] - 2026-09-10
 
 ### What's fixed

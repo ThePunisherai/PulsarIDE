@@ -22,7 +22,9 @@ const {
   eccStatus,
   setEccEnabled,
   meshyStatus,
-  setMeshyKey
+  setMeshyKey,
+  installEccNow,
+  setUnrealPath
 } = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
@@ -366,6 +368,38 @@ ok('clearing the key removes the server again, it is not left stale',
   setMeshyKey('', HOME).configured === false && !cfgFor('.claude.json').meshy &&
   !cfgFor('.gemini/settings.json').meshy && !cfgFor('.gemini/config/mcp_config.json').meshy)
 
+// --- Unreal: a LOCAL server, so the folder is the whole gate --------------- //
+// It drives a running Unreal editor through the UnrealMCP plugin, so it only
+// means anything on a machine with Unreal. The invocation is upstream's own
+// (uv --directory <repo>/Python run unreal_mcp_server_advanced.py); what has to
+// hold here is that it appears in all six agent configs when the folder really
+// contains that script, and in none of them when it does not.
+const unrealRepo = join(work, 'unreal-engine-mcp')
+mkdirSync(join(unrealRepo, 'Python'), { recursive: true })
+writeFileSync(join(unrealRepo, 'Python', 'unreal_mcp_server_advanced.py'), '# stub')
+
+ok('a folder without the server script registers nothing, and says why', (() => {
+  const bad = setUnrealPath(join(work, 'not-unreal-at-all'), HOME)
+  return bad.configured === true && bad.ready === false && bad.problem !== '' &&
+    !cfgFor('.claude.json').unreal
+})())
+
+const ue = setUnrealPath(unrealRepo, HOME)
+ok('pointing at the clone registers unreal for every agent, via uv and the real script',
+  ue.ready === true &&
+  ['.claude.json', '.gemini/settings.json', '.qwen/settings.json', '.cursor/mcp.json',
+   '.gemini/config/mcp_config.json'].every((f) => {
+    const u = cfgFor(f).unreal
+    return u && u.command === 'uv' &&
+      JSON.stringify(u.args).includes('unreal_mcp_server_advanced.py')
+  }) && readFileSync(join(HOME, '.codex/config.toml'), 'utf8').includes('[mcp_servers.unreal]'))
+
+ok('clearing the folder unregisters it everywhere, including the Codex TOML',
+  setUnrealPath('', HOME).configured === false && !cfgFor('.claude.json').unreal &&
+  !cfgFor('.gemini/settings.json').unreal &&
+  !cfgFor('.gemini/config/mcp_config.json').unreal &&
+  !readFileSync(join(HOME, '.codex/config.toml'), 'utf8').includes('[mcp_servers.unreal]'))
+
 // --- Archify: the whole toolkit, not just render --------------------------- //
 // Everything in the artifacts people actually want -- guided views, the summary
 // cards, Before/Delta/After -- was already installed and already working. The
@@ -395,6 +429,30 @@ const eccFresh = eccStatus(HOME)
 ok('ECC costs nothing until it is called, and says what the alternative would cost',
   eccFresh.alwaysOnTokens === 0 && eccFresh.alwaysOnTokensIfInstalled === 40637 &&
   eccFresh.installed === false && eccFresh.optedOut === false)
+// ECC ships IN the bundle now. It used to be fetched on first launch (claude
+// CLI, else git clone), which on a machine with neither on PATH is a permanent
+// "not fetched yet" -- exactly what a real user was looking at. Deployed from
+// disk there is nothing to fail, so this asserts the real copy, not a marker.
+const HOME_ECC = join(work, 'home-ecc')
+mkdirSync(HOME_ECC)
+const eccBundle = join(res, 'pulsar-agents')
+const eccOut = installEccNow(HOME_ECC, eccBundle)
+const eccDir = join(HOME_ECC, '.claude', 'plugins', 'marketplaces', 'ecc')
+ok('ECC is deployed straight from the bundle -- no git, no network, no npx',
+  eccOut.installed === true &&
+  readdirSync(join(eccDir, 'skills')).length > 250 &&
+  existsSync(join(eccDir, 'skills', 'security-review', 'SKILL.md')) &&
+  readdirSync(join(eccDir, 'agents')).filter((f) => f.endsWith('.md')).length === 68)
+
+// An ECC the user installed themselves is a fuller copy than ours; replacing it
+// would be a downgrade they never asked for.
+const HOME_ECC2 = join(work, 'home-ecc2')
+mkdirSync(join(HOME_ECC2, '.claude', 'plugins', 'marketplaces', 'ecc'), { recursive: true })
+writeFileSync(join(HOME_ECC2, '.claude/plugins/marketplaces/ecc/THEIRS'), 'x')
+installEccNow(HOME_ECC2, eccBundle)
+ok('an ECC the user installed themselves is left alone',
+  existsSync(join(HOME_ECC2, '.claude/plugins/marketplaces/ecc/THEIRS')))
+
 ok('turning ECC off is remembered', setEccEnabled(false, HOME) === true && eccStatus(HOME).optedOut === true)
 ok('turning it back on clears the opt-out',
   setEccEnabled(true, HOME) === true && eccStatus(HOME).optedOut === false)

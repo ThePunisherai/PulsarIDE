@@ -227,5 +227,13 @@
       "deployed_to": "~/.config/pulsaride/design/threeui",
       "what": "Self-contained React + three.js shader/3D UI components, source only."
     }
+  },
+  "ecc": {
+    "note": "ECC's catalogue, vendored so it is present without git, network or the Claude CLI. Deployed to ~/.claude/plugins/marketplaces/ecc and searched with ecc_find/ecc_read. NOT installed as a Claude Code plugin: that costs ~40,600 always-on tokens per session (measured). An ECC the user installed themselves is left alone. See ecc/ATTRIBUTION.md.",
+    "upstream": "https://github.com/affaan-m/ECC",
+    "commit": "928c1dea72f5c330442fc1f595563398b8f389f7",
+    "license": "MIT",
+    "skills": 291,
+    "agents": 68
   }
 }
