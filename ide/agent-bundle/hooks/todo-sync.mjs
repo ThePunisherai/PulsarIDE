@@ -15,11 +15,17 @@
  * session's `cwd` arrive on stdin, and the matcher is an exact tool-name match --
  * so one script serves both.
  *
+ * Gemini CLI (and Qwen Code, its fork) have one too: `write_todos`, on the
+ * `AfterTool` event -- not `PostToolUse`, which is what several third-party
+ * guides claim and what the official reference disproves.
+ *
  * Where they differ is only the shape of the plan itself, and it is small:
  * Claude Code sends `tool_input.todos` with the step in `content`, Codex sends
  * `tool_input.plan` with it in `step` (codex_protocol::plan_tool::UpdatePlanArgs,
- * read from source, not guessed). Both use pending / in_progress / completed for
- * status, so the mapping below is genuinely shared.
+ * read from source, not guessed), Gemini sends `tool_input.todos` with it in
+ * `description` (docs/tools/todos.md). They agree on pending / in_progress /
+ * completed, so the mapping below is genuinely shared; Gemini adds two of its
+ * own, handled just under it.
  *
  * This matters more than a convenience: without it, Codex only reaches the board
  * if the model remembers to call `sync_plan`. With it, the harness does it.
@@ -44,11 +50,26 @@ const nowIso = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
 const newId = (p) => p + randomUUID().replace(/-/g, '').slice(0, 12)
 const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim()
 
-/** Claude Code's and Codex's todo states, mapped onto the board's columns. */
-const STATUS = { pending: 'todo', in_progress: 'wip', completed: 'works' }
+/** The agents' todo states, mapped onto the board's columns. */
+const STATUS = {
+  pending: 'todo',
+  in_progress: 'wip',
+  completed: 'works',
+  // Gemini CLI's two extras. `blocked` is a column the board already has.
+  blocked: 'blocked'
+}
+
+/**
+ * Gemini's `cancelled` is deliberately not in that map, and not a fallback to
+ * `todo` either: the board has no cancelled column, and showing a step the agent
+ * abandoned as outstanding work is worse than not showing it. A cancelled step
+ * is skipped -- a new one never appears, an existing one keeps whatever the user
+ * last saw, and nothing is ever deleted from under them.
+ */
+const SKIP_STATUS = new Set(['cancelled'])
 
 /** The plan tools we mirror, per agent. */
-const PLAN_TOOLS = new Set(['TodoWrite', 'update_plan'])
+const PLAN_TOOLS = new Set(['TodoWrite', 'update_plan', 'write_todos'])
 
 /** A step's text, tolerating the field names different agents may use. */
 function textOf(todo) {
@@ -145,7 +166,9 @@ async function main() {
   for (const todo of todos) {
     const title = textOf(todo)
     if (!title) continue
-    const status = STATUS[String(todo?.status || 'pending')] ?? 'todo'
+    const raw = String(todo?.status || 'pending')
+    if (SKIP_STATUS.has(raw)) continue
+    const status = STATUS[raw] ?? 'todo'
     const key = norm(title)
     const item = state.items.find((i) => norm(i.title) === key)
     if (!item) {

@@ -617,6 +617,21 @@ ok('with the timeout field Codex actually accepts',
 ok('the hooks Codex users configured themselves are kept',
   codexPost.some((e) => (e.hooks ?? []).some((h) => h.command === '/usr/bin/mine.sh')))
 
+// Gemini CLI and Qwen Code have a plan tool too (`write_todos`), on their own
+// `AfterTool` event -- not PostToolUse, and timeout in milliseconds not seconds.
+// Both are easy to get wrong and both are inert if wrong, so they are asserted.
+for (const [label, file] of [['Gemini CLI', '.gemini/settings.json'], ['Qwen Code', '.qwen/settings.json']]) {
+  const cfg = JSON.parse(readFileSync(join(HOME, file), 'utf8'))
+  const group = (cfg.hooks?.AfterTool ?? []).find((e) =>
+    (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync')))
+  ok(`${label}: plan sync wired on AfterTool, matched on write_todos`,
+    Boolean(group) && group.matcher === 'write_todos')
+  ok(`${label}: timeout is in milliseconds, as its own reference specifies`,
+    group?.hooks[0].timeout === 15000)
+  ok(`${label}: the MCP servers in the same file are untouched`,
+    Boolean(cfg.mcpServers?.planide) && Boolean(cfg.mcpServers?.other))
+}
+
 ok('a redeploy leaves exactly one plan hook',
    postAgain.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync'))).length === 1)
 
@@ -844,6 +859,20 @@ await runHook({ tool_name: 'TodoWrite', cwd: hookProject, tool_input: { todos: [
 ] } })
 ok('and the same launcher still serves Claude Code\'s own payload',
   byTitle('Claude step')?.status === 'wip')
+// Gemini CLI's shape: tool_input.todos, text in `description`, plus the two
+// statuses only it has. `blocked` is a real board column; `cancelled` is not,
+// and a step the agent abandoned must not come back as outstanding work.
+await runHook({ tool_name: 'write_todos', cwd: hookProject, tool_input: { todos: [
+  { description: 'Gemini blocked step', status: 'blocked' },
+  { description: 'Gemini cancelled step', status: 'cancelled' },
+  { description: 'Gemini live step', status: 'in_progress' }
+] } })
+ok('a Gemini CLI plan reaches the board, blocked included',
+  byTitle('Gemini blocked step')?.status === 'blocked' &&
+  byTitle('Gemini live step')?.status === 'wip')
+ok('a cancelled step is not resurrected as outstanding work',
+  byTitle('Gemini cancelled step') === undefined)
+
 // A matcher widened by hand must not turn a Bash call into a plan.
 const beforeStray = hookItems().length
 await runHook({ tool_name: 'Bash', cwd: hookProject, tool_input: { command: 'ls' } })

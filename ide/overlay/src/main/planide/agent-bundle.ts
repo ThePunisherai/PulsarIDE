@@ -675,8 +675,10 @@ function wireHooks(home: string, root: string): boolean {
     })
     keptPost.push({ matcher: 'TodoWrite', hooks: [{ type: 'command', command: launcher, timeout: 15 }] })
     hooks.PostToolUse = keptPost
-    // Codex runs the very same script off its own plan tool -- see below.
+    // Codex and Gemini CLI/Qwen run the very same script off their own plan
+    // tools -- see below.
     wireCodexPlanHook(home)
+    wireGeminiPlanHook(home)
   }
 
   writeConfigAtomic(settingsPath, JSON.stringify(settings, null, 2))
@@ -759,6 +761,77 @@ function wireCodexPlanHook(home: string): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * The same again for Gemini CLI and Qwen Code, off `write_todos`.
+ *
+ * Two things here are easy to get wrong, and both were checked against Gemini
+ * CLI's own reference rather than the write-ups, which are wrong about the first:
+ *  - The event is `AfterTool`, not `PostToolUse`. Gemini's event names are its
+ *    own (BeforeTool / AfterTool / BeforeModel / SessionStart / ...), so the
+ *    Claude-shaped name would sit in the config doing nothing at all.
+ *  - `timeout` is in MILLISECONDS here (default 60000), where Codex counts
+ *    seconds in `timeoutSec`. 15 would be 15ms -- a hook that always times out.
+ *
+ * The payload needs no special handling: `AfterTool` hands over `tool_name`,
+ * `tool_input` and `cwd` like the other two, `write_todos` takes `{ todos: [...] }`
+ * with the text in `description` (docs/tools/todos.md), and the shared script
+ * already reads that key and that field.
+ *
+ * Qwen Code is written the same way. It is a Gemini CLI fork keeping the same
+ * settings.json, and this repo already relies on that for its MCP registration --
+ * but its tool name has NOT been verified to still be `write_todos`. That is a
+ * safe thing not to know: a matcher naming a tool the agent does not have is
+ * inert, so this either works there or does nothing, and cannot misfire.
+ */
+function wireGeminiPlanHook(home: string): boolean {
+  const launcher = join(
+    configDir(home),
+    'hooks',
+    process.platform === 'win32' ? 'todo-sync.cmd' : 'todo-sync.sh'
+  )
+  if (!existsSync(launcher)) return false
+
+  let wrote = false
+  for (const path of [
+    join(home, '.gemini', 'settings.json'),
+    join(home, '.qwen', 'settings.json')
+  ]) {
+    try {
+      let config: Record<string, unknown> = {}
+      if (existsSync(path)) {
+        try {
+          config = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+        } catch {
+          continue // that tool's own state -- never clobber it
+        }
+      }
+      const hooks = (config.hooks ??= {}) as Record<string, unknown>
+      const after = (hooks.AfterTool ?? []) as unknown[]
+      const kept = after.filter((entry) => {
+        if (typeof entry !== 'object' || entry === null) return true
+        const inner = (entry as { hooks?: unknown[] }).hooks ?? []
+        return !inner.some(
+          (h) =>
+            typeof h === 'object' &&
+            h !== null &&
+            String((h as { command?: string }).command ?? '').includes('todo-sync')
+        )
+      })
+      kept.push({
+        matcher: 'write_todos',
+        hooks: [{ type: 'command', command: launcher, timeout: 15000 }]
+      })
+      hooks.AfterTool = kept
+      mkdirSync(dirname(path), { recursive: true })
+      writeConfigAtomic(path, JSON.stringify(config, null, 2))
+      wrote = true
+    } catch {
+      /* one agent failing is not the other's problem */
+    }
+  }
+  return wrote
 }
 
 /**
@@ -1587,11 +1660,11 @@ function mainSessionBlock(home: string): string {
     '',
     '- `sync_plan` — every time your plan changes, send the whole plan: each step with',
     '  its state. Steps are matched on their text, so a revised plan moves what moved and',
-    '  adds what is new instead of duplicating anything. Claude Code and Codex each have a',
-    '  hook that does this for you (from TodoWrite and update_plan); in Gemini CLI, Qwen',
-    '  Code, Antigravity and Cursor this call IS the mechanism, so a plan you never sync',
-    '  is a Tracker that never moves. Calling it anyway is free — a re-sent plan that has',
-    '  not changed moves nothing.',
+    '  adds what is new instead of duplicating anything. Claude Code, Codex, Gemini CLI and',
+    '  Qwen Code each have a hook that does this for you (from TodoWrite, update_plan and',
+    '  write_todos); in Antigravity, Cursor and opencode this call IS the mechanism, so a',
+    '  plan you never sync is a Tracker that never moves. Call it anyway wherever you are —',
+    '  it is free: a re-sent plan that has not changed moves nothing.',
     '- `get_board` — read it first, every task.',
     '- `add_item` — the user asks / you plan a step → status `todo`.',
     '- `set_item` — you start it → `wip`;  it works → `works`;  finished → `done`;  fails → `broken`.',
@@ -2033,9 +2106,10 @@ function registerTrackerForAllAgents(home: string): boolean {
   const qwen = registerPlanideMcpQwen(home)
   const antigravity = registerPlanideMcpAntigravity(home)
   const opencode = registerPlanideMcpOpenCode(home)
-  // Every launch, like the MCP entries: Codex owns this file too, so our entry
-  // can go missing through nobody's fault.
+  // Every launch, like the MCP entries: these agents own these files too, so our
+  // entry can go missing through nobody's fault.
   wireCodexPlanHook(home)
+  wireGeminiPlanHook(home)
   const block = mainSessionBlock(home)
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
   mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)

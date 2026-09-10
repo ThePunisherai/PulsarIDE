@@ -6,6 +6,18 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.70.0] - 2026-09-10
+
+### What's new
+- **Gemini CLI and Qwen Code now update the board by themselves too.** They have
+  a plan tool (`write_todos`) on their own `AfterTool` event, so four of the
+  agents — Claude Code, Codex, Gemini CLI, Qwen Code — no longer depend on
+  remembering to call `sync_plan`. Antigravity, Cursor and opencode still do.
+- **A cancelled step stays off the board.** Gemini can mark a step `cancelled`,
+  and the board has no such column; showing work the agent abandoned as still
+  outstanding would be worse than not showing it. `blocked` maps to the real
+  blocked column.
+
 ## [0.69.0] - 2026-09-10
 
 ### What's fixed
