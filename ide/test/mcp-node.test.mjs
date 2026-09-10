@@ -150,6 +150,44 @@ ok('and the states land in the board\'s own columns',
   planBoard.items.find((i) => i.title === 'Draft the schema').status === 'works' &&
   planBoard.items.find((i) => i.title === 'Write the migration').status === 'wip' &&
   planBoard.items.find((i) => i.title === 'Backfill the old rows').status === 'todo')
+// A plan whose steps do not use `content`. Codex's own update_plan calls the
+// field `step`, and a sync that reads nothing used to answer {added: 0, moved: 0}
+// -- success, with an empty board. That is exactly what "the todo list does not
+// work" looks like from the outside, and nothing anywhere said otherwise.
+const shapeProj = mkdtempSync(join(tmpdir(), 'pulsar-shape-'))
+const shapeRun = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(80, 'sync_plan', { project: shapeProj, agent: 'codex', todos: [
+    { step: 'Codex calls it step', status: 'in_progress' }
+  ] }),
+  // Mixed: throwing here would roll back the steps that were fine, which is
+  // strictly worse than the silence it replaces. Keep them, and say what fell out.
+  call(81, 'sync_plan', { project: shapeProj, agent: 'codex', todos: [
+    { content: 'readable', status: 'pending' },
+    { unreadable: true }
+  ] }),
+  call(82, 'get_board', { project: shapeProj })
+])
+const shape1 = json(byId(shapeRun.replies, 80))
+const shape2 = json(byId(shapeRun.replies, 81))
+const shapeBoard = json(byId(shapeRun.replies, 82))
+ok('a plan using Codex\'s own `step` field lands instead of silently doing nothing',
+  shape1.added === 1 &&
+  shapeBoard.items.find((i) => i.title === 'Codex calls it step')?.status === 'wip')
+ok('a step with no readable text is reported, not counted as a success',
+  shape2.added === 1 && shape2.skipped === 1 && /NOT on the board/.test(shape2.warning ?? ''))
+ok('and the readable steps of that same plan are kept, not rolled back',
+  shapeBoard.items.some((i) => i.title === 'readable'))
+// Nothing readable at all is a real failure: no partial work to protect, and
+// staying quiet would be the original bug.
+const allBad = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(83, 'sync_plan', { project: mkdtempSync(join(tmpdir(), 'pulsar-bad-')), agent: 'codex',
+    todos: [{ nope: 1 }] })
+])
+ok('a plan with nothing readable in it fails loudly instead of reporting success',
+  byId(allBad.replies, 83).result?.isError === true)
+
 const run2c = await drive([
   { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
   call(25, 'set_milestone', { project: proj, milestone_id: milestone.id, done: true })

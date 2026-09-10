@@ -39,7 +39,7 @@ const STATUS = { pending: 'todo', in_progress: 'wip', completed: 'works' }
 /** A step's text, tolerating the field names different agents may use. */
 function textOf(todo) {
   if (typeof todo === 'string') return todo
-  for (const k of ['content', 'text', 'title', 'task', 'activeForm', 'description']) {
+  for (const k of ['content', 'step', 'text', 'title', 'task', 'activeForm', 'description']) {
     const v = todo?.[k]
     if (typeof v === 'string' && v.trim()) return v.trim()
   }

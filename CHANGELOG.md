@@ -6,6 +6,19 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.68.0] - 2026-09-10
+
+### What's fixed
+- **A plan could vanish and be reported as synced.** If a step's text was not in
+  `content` — Codex's own plan tool calls it `step` — `sync_plan` returned
+  "0 added, 0 moved" as a success and the board stayed empty. That is exactly
+  what "the todo list doesn't work" looks like, with nothing anywhere saying so.
+  `step` is now accepted, and steps that genuinely cannot be read are reported
+  instead of swallowed.
+- **A partly-readable plan keeps the steps that were fine.** The readable steps
+  land and the response names what was dropped; only a plan with nothing
+  readable in it fails outright.
+
 ## [0.67.0] - 2026-09-10
 
 ### What's fixed

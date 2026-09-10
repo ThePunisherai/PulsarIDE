@@ -368,13 +368,22 @@ const TOOLS = [
       return mutate(path, (state) => {
         let added = 0
         let moved = 0
+        const skipped = []
         for (const todo of todos) {
           const title = String(
             typeof todo === 'string'
               ? todo
-              : (todo && (todo.content ?? todo.title ?? todo.text ?? todo.task ?? todo.description)) || ''
+              : (todo &&
+                  // `step` is what Codex's own update_plan calls it. The rest are
+                  // the names other agents reach for. An alias costs nothing; a
+                  // plan silently not landing costs the whole feature.
+                  (todo.content ?? todo.step ?? todo.title ?? todo.text ?? todo.task ?? todo.description)) ||
+                ''
           ).trim()
-          if (!title) continue
+          if (!title) {
+            skipped.push(todo)
+            continue
+          }
           const status = planStatus(typeof todo === 'string' ? '' : todo && todo.status)
           const key = normTitle(title)
           const item = (state.items ?? []).find((i) => normTitle(i.title) === key)
@@ -408,7 +417,37 @@ const TOOLS = [
         if (added || moved) {
           logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved`, agent)
         }
-        return { added, moved, total: todos.length }
+        // A step we could not read is not a success. Returning {added: 0, moved: 0}
+        // and nothing else is how a plan fails to reach the board while the agent
+        // is told it worked -- which reads to the user as "the tracker is broken"
+        // with nothing anywhere to say so.
+        if (!skipped.length) return { added, moved, total: todos.length }
+
+        const shape = skipped
+          .map((t) => (t && typeof t === 'object' ? Object.keys(t).join('+') || '{}' : typeof t))
+          .slice(0, 3)
+          .join(', ')
+        const how =
+          `Each step needs its text in \`content\` -- either a plain string or ` +
+          '{ content, status }.'
+        // Nothing landed: no partial work to protect, and staying quiet would be
+        // the original bug. Throwing is the only answer the agent cannot miss.
+        if (!added && !moved) {
+          throw new Error(
+            `None of the ${todos.length} step(s) had readable text, so the board did not ` +
+              `change (got: ${shape}). ${how}`
+          )
+        }
+        // Some landed. Throwing here would roll back the steps that were fine --
+        // strictly worse than the silence it replaced -- so keep them and say
+        // plainly what was dropped.
+        return {
+          added,
+          moved,
+          total: todos.length,
+          skipped: skipped.length,
+          warning: `${skipped.length} step(s) had no readable text and are NOT on the board (got: ${shape}). ${how}`
+        }
       })
     }
   },
