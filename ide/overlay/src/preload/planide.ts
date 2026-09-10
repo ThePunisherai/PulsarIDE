@@ -56,6 +56,8 @@ export const planIdeApi = {
   // project memory (graphify graph + Obsidian note status)
   eccStatus: <T>() => call<T>('planide:ecc-status'),
   eccSetEnabled: <T>(enabled: boolean) => call<T>('planide:ecc-set-enabled', enabled),
+  meshyStatus: <T>() => call<T>('planide:meshy-status'),
+  meshySetKey: <T>(key: string) => call<T>('planide:meshy-set-key', key),
   trackerHealth: <T>(path?: string) => call<T>('planide:tracker-health', path),
   trackerRepair: <T>() => call<T>('planide:tracker-repair'),
   memoryStatus: <T>(path: string) => call<T>('planide:memory-status', path),

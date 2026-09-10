@@ -800,6 +800,9 @@ function registerPlanideMcp(home: string): boolean {
   if (tools) {
     servers['pulsar-tools'] = { type: 'stdio', command: tools.command, args: tools.args, env: tools.env }
   }
+  const meshy = meshyMcpLaunch(home)
+  if (meshy) servers.meshy = { type: 'stdio', command: meshy.command, args: meshy.args, env: meshy.env }
+  else delete servers.meshy
   writeConfigAtomic(path, JSON.stringify(config, null, 2))
   return true
 }
@@ -892,6 +895,73 @@ function findStableNode(): string | null {
  * broken by the user's Python. Returns null when the file is not deployed yet,
  * so a caller registers nothing rather than a command that cannot start.
  */
+/**
+ * Meshy's own MCP server, when a key has been set.
+ *
+ * 3D generation is a paid API, so this cannot be pre-installed the way the rest
+ * is: with no key the server exits complaining about a missing MESHY_API_KEY,
+ * which every agent would show as a broken tool. So it is registered only once a
+ * key exists, and removed again when the key is cleared -- which is why every
+ * caller deletes the entry in the else branch rather than leaving a stale one.
+ *
+ * Invocation taken from Meshy's own README, not guessed: `npx -y
+ * @meshy-ai/meshy-mcp-server` with the key inside an `env` block -- their
+ * troubleshooting section is explicit that it must not go in `args` -- wrapped
+ * in `cmd /c` on Windows, which is their documented fix for `spawn npx ENOENT`.
+ */
+function meshyMcpLaunch(home: string): McpLaunch | null {
+  const key = readSetting(home, 'meshyApiKey')
+  if (!key) return null
+  const pkg = '@meshy-ai/meshy-mcp-server'
+  return process.platform === 'win32'
+    ? { command: 'cmd', args: ['/c', 'npx', '-y', pkg], env: { MESHY_API_KEY: key } }
+    : { command: 'npx', args: ['-y', pkg], env: { MESHY_API_KEY: key } }
+}
+
+/** One string setting out of the shared settings file, or ''. */
+function readSetting(home: string, key: string): string {
+  try {
+    const raw = readFileSync(join(configDir(home), 'settings.json'), 'utf8')
+    const value = (JSON.parse(raw) as Record<string, unknown>)[key]
+    return typeof value === 'string' ? value.trim() : ''
+  } catch {
+    return ''
+  }
+}
+
+export type MeshyStatus = { configured: boolean; hint: string }
+
+/** Whether a key is set, and enough of it to recognise -- never the whole key. */
+export function meshyStatus(home: string = homedir()): MeshyStatus {
+  const key = readSetting(home, 'meshyApiKey')
+  return { configured: key !== '', hint: key ? `${key.slice(0, 8)}\u2026${key.slice(-4)}` : '' }
+}
+
+/**
+ * Save (or clear) the Meshy key and re-register every agent immediately.
+ *
+ * Re-registering here rather than at the next launch is the point: a key typed
+ * into the IDE that only takes effect after a restart reads as not working.
+ */
+export function setMeshyKey(key: string, home: string = homedir()): MeshyStatus {
+  const path = join(configDir(home), 'settings.json')
+  let settings: Record<string, unknown> = {}
+  if (existsSync(path)) {
+    try {
+      settings = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+    } catch {
+      /* unreadable -- start clean rather than refuse to save */
+    }
+  }
+  const trimmed = String(key || '').trim()
+  if (trimmed) settings.meshyApiKey = trimmed
+  else delete settings.meshyApiKey
+  mkdirSync(configDir(home), { recursive: true })
+  writeConfigAtomic(path, JSON.stringify(settings, null, 2))
+  registerTrackerForAllAgents(home)
+  return meshyStatus(home)
+}
+
 function toolsMcpLaunch(home: string): McpLaunch | null {
   const server = join(configDir(home), 'tracker', 'mcp', 'pulsar-tools-mcp.mjs')
   if (!existsSync(server)) return null
@@ -917,28 +987,44 @@ function registerPlanideMcpCodex(home: string): boolean {
         return false // don't clobber a file we can't read
       }
     }
+    // Every server we own, not just the tracker. Codex only ever got `planide`,
+    // so an agent there had the board but none of pulsar-tools -- no route_task,
+    // no ui_find, no ecc_find, no anti-loop check. Which is the one CLI the user
+    // actually runs, so that gap was the whole toolkit missing.
+    const ours: { name: string; launch: McpLaunch }[] = [{ name: 'planide', launch: mcpLaunch(home) }]
+    const tools = toolsMcpLaunch(home)
+    if (tools) ours.push({ name: 'pulsar-tools', launch: tools })
+    const meshy = meshyMcpLaunch(home)
+    if (meshy) ours.push({ name: 'meshy', launch: meshy })
+
+    // Strip every block of ours (including a meshy left behind by a cleared
+    // key), keep everything else verbatim, then append the current set.
+    const mine = new Set(['planide', 'pulsar-tools', 'meshy'])
     const kept: string[] = []
     let skipping = false
     for (const line of text.split(/\r?\n/)) {
       const header = line.match(/^\s*\[([^\]]+)\]/)
       if (header) {
         const name = header[1]
-        skipping = name === 'mcp_servers.planide' || name.startsWith('mcp_servers.planide.')
+        const server = name.startsWith('mcp_servers.') ? name.slice('mcp_servers.'.length).split('.')[0] : ''
+        skipping = mine.has(server)
       }
       if (!skipping) kept.push(line)
     }
     const esc = (s: string): string => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-    const launch = mcpLaunch(home)
-    const envBlock = launch.env
-      ? Object.entries(launch.env).map(([k, v]) => `${k} = "${esc(v)}"`).join('\n')
-      : ''
-    const block =
-      `[mcp_servers.planide]\ncommand = "${esc(launch.command)}"\n` +
-      `args = [${launch.args.map((a) => `"${esc(a)}"`).join(', ')}]\n` +
-      (envBlock ? `\n[mcp_servers.planide.env]\n${envBlock}\n` : '')
+    const blocks = ours.map(({ name, launch }) => {
+      const envBlock = launch.env
+        ? Object.entries(launch.env).map(([k, v]) => `${k} = "${esc(v)}"`).join('\n')
+        : ''
+      return (
+        `[mcp_servers.${name}]\ncommand = "${esc(launch.command)}"\n` +
+        `args = [${launch.args.map((a) => `"${esc(a)}"`).join(', ')}]\n` +
+        (envBlock ? `\n[mcp_servers.${name}.env]\n${envBlock}\n` : '')
+      )
+    })
     const body = kept.join('\n').replace(/\s+$/, '')
     mkdirSync(dirname(path), { recursive: true })
-    writeConfigAtomic(path, (body ? body + '\n\n' : '') + block)
+    writeConfigAtomic(path, (body ? body + '\n\n' : '') + blocks.join('\n'))
     return true
   } catch {
     return false
@@ -964,6 +1050,9 @@ function registerPlanideMcpCursor(home: string): boolean {
     if (tools) {
       servers['pulsar-tools'] = { command: tools.command, args: tools.args, env: tools.env }
     }
+    const meshy = meshyMcpLaunch(home)
+    if (meshy) servers.meshy = { command: meshy.command, args: meshy.args, env: meshy.env }
+    else delete servers.meshy
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
@@ -1015,6 +1104,17 @@ function registerPlanideMcpOpenCode(home: string): boolean {
         enabled: true,
         ...(tools.env ? { environment: tools.env } : {})
       }
+    }
+    const meshy = meshyMcpLaunch(home)
+    if (meshy) {
+      servers.meshy = {
+        type: 'local',
+        command: [meshy.command, ...meshy.args],
+        enabled: true,
+        ...(meshy.env ? { environment: meshy.env } : {})
+      }
+    } else {
+      delete servers.meshy
     }
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
@@ -1086,6 +1186,9 @@ function registerPlanideMcpSettingsJson(path: string, home: string): boolean {
     if (tools) {
       servers['pulsar-tools'] = { command: tools.command, args: tools.args, env: tools.env }
     }
+    const meshy = meshyMcpLaunch(home)
+    if (meshy) servers.meshy = { command: meshy.command, args: meshy.args, env: meshy.env }
+    else delete servers.meshy
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
@@ -1170,6 +1273,9 @@ function mainSessionBlock(home: string): string {
     '  3D / shader / animated visual   call ui_find("...") -- never hand-write WebGL',
     '                                  before you have looked',
     '  build or audit a UI             skills: ui-design, ui-verification, ui-animation',
+    '  rebuild an existing site        the ai-website-cloner template (MIT): clone',
+    '                                  Mood-Global-Services/How-to-Clone-Website, point it at',
+    '                                  the URL, it extracts tokens and assets first',
     '  what to build, not how          skill: product-design',
     '  a diagram of the system         Archify (below) -- validate, then render',
     '  review a diff / tidy your own   skills: pr-reviewer, tidy',
@@ -1332,6 +1438,7 @@ function mainSessionBlock(home: string): string {
     '      moved and rerouted. This is the one to produce before a merge that moves',
     '      architecture. Keep both snapshots in the diagrams directory.',
     '  guide "<scenario>" --json     which diagram type actually fits, when unsure',
+
     '  brands "<product>" --json     the real mark for a named product, never guessed',
     '  visual-check <out.html> --json  the artifact renders as intended',
     '',
@@ -1339,6 +1446,12 @@ function mainSessionBlock(home: string): string {
     '`<name>.<type>.json` with its artifact beside it as `<name>.<type>.html`, and a delta',
     'as `<name>.delta.html`. That directory is exactly what the IDE\'s Archify tab lists —',
     'anything put elsewhere is invisible.',
+    '',
+    'Real 3D assets: when a `meshy` MCP server is present, its tools generate actual 3D',
+    'models, textures and rigged characters from a description. It only exists when the',
+    'user has put a Meshy API key in the Archify tab, so check for the tools rather than',
+    'assuming; if the work needs a real model and they are absent, say so and point at that',
+    'field instead of substituting a placeholder.',
     '',
     '**Offer this per project, do not wait to be asked.** A project with real architecture',
     'and no diagram in that directory is a gap: say what you would draw and make it. Draw',
@@ -1353,6 +1466,11 @@ function mainSessionBlock(home: string): string {
     'fact appears — you never need to be asked. Pass `project` = the project\'s absolute path',
     'to every call. The board is created for you on first use, so it always works.',
     '',
+    '- `sync_plan` — every time your plan changes, send the whole plan: each step with',
+    '  its state. Steps are matched on their text, so a revised plan moves what moved and',
+    '  adds what is new instead of duplicating anything. In Claude Code a hook does this',
+    '  from TodoWrite automatically; everywhere else this call IS the mechanism, so a plan',
+    '  you never sync is a Tracker that never moves.',
     '- `get_board` — read it first, every task.',
     '- `add_item` — the user asks / you plan a step → status `todo`.',
     '- `set_item` — you start it → `wip`;  it works → `works`;  finished → `done`;  fails → `broken`.',

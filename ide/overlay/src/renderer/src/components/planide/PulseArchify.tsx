@@ -13,17 +13,118 @@
  * you want is the path that produces a truthful one.
  */
 import React, { useCallback, useEffect, useState } from 'react'
-import { ExternalLink, Network, RefreshCw, Workflow } from 'lucide-react'
+import { Box, Check, ExternalLink, Network, RefreshCw, Workflow } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import {
   archifyRender,
   archifyStatus,
+  meshySetKey,
+  meshyStatus,
   withVisibleSpin,
   type ArchifyDiagram,
-  type ArchifyStatus
+  type ArchifyStatus,
+  type MeshyStatus
 } from '../right-sidebar/planide-engine-client'
+
+/**
+ * Meshy's key, next to the diagrams.
+ *
+ * Meshy generates real 3D models from a description, and it is a paid API, so
+ * it cannot ship switched on: with no key its MCP server exits on startup and
+ * every agent shows a broken tool. One field is the whole setup -- saving it
+ * registers the server for Claude Code, Codex, Cursor, Gemini and Qwen at once,
+ * clearing it removes it again.
+ *
+ * The saved key is never read back into the field. Only a short hint comes
+ * back from the main process, which is enough to tell one key from another
+ * without putting a secret on screen or in a DOM node.
+ */
+function MeshyKey(): React.JSX.Element {
+  const [status, setStatus] = useState<MeshyStatus | null>(null)
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void meshyStatus()
+      .then((s) => {
+        if (!cancelled) setStatus(s)
+      })
+      .catch(() => {
+        if (!cancelled) setStatus(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const save = useCallback(async (value: string) => {
+    setSaving(true)
+    try {
+      setStatus(await meshySetKey(value))
+      setDraft('')
+    } catch {
+      /* the status line below is the feedback; a toast here would be noise */
+    } finally {
+      setSaving(false)
+    }
+  }, [])
+
+  return (
+    <div className="rounded-lg border border-border/40 bg-card/40 px-3 py-2">
+      <div className="flex items-center gap-2">
+        <Box size={14} className="shrink-0 text-primary/80" strokeWidth={1.75} />
+        <div className="min-w-0 flex-1">
+          <div className="text-[12px] font-medium">
+            {translate('planide.meshy.title', 'Meshy 3D')}
+          </div>
+          <div className="truncate text-[11px] text-muted-foreground">
+            {status?.configured
+              ? translate('planide.meshy.on', 'Available to every agent') + ` · ${status.hint}`
+              : translate('planide.meshy.off', 'Paste an API key to turn it on')}
+          </div>
+        </div>
+        {status?.configured && <Check size={13} className="shrink-0 text-emerald-500" />}
+      </div>
+      <div className="mt-2 flex items-center gap-1.5">
+        <input
+          type="password"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && draft.trim()) void save(draft)
+          }}
+          placeholder="msy_..."
+          spellCheck={false}
+          autoComplete="off"
+          className="h-7 min-w-0 flex-1 rounded-md border border-border/60 bg-background px-2 font-mono text-[11px] outline-none focus:border-primary/60"
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-[11px]"
+          disabled={saving || !draft.trim()}
+          onClick={() => void save(draft)}
+        >
+          {translate('planide.meshy.save', 'Save')}
+        </Button>
+        {status?.configured && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-[11px] text-muted-foreground"
+            disabled={saving}
+            onClick={() => void save('')}
+          >
+            {translate('planide.meshy.clear', 'Clear')}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 /** Human labels for archify's five diagram kinds. */
 const TYPE_LABEL: Record<string, string> = {
@@ -88,6 +189,7 @@ export function ArchifySidebar({ worktreePath }: { worktreePath: string }): Reac
 
   return (
     <div className="flex flex-col gap-3">
+      <MeshyKey />
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="text-[12px] font-medium">

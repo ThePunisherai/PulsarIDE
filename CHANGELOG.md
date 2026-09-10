@@ -6,6 +6,24 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.66.0] - 2026-09-10
+
+### What's fixed
+- **Codex only ever got the tracker, never the toolkit.** It was registered for
+  `planide` alone — so in Codex there was no `route_task`, no `ui_find`, no
+  `ecc_find`, no anti-loop check. It now gets every server, same as the others.
+- **Your plan reaches the board from any agent.** The TodoWrite hook works, but
+  it is Claude Code's hook — in Codex nothing was syncing. New `sync_plan` tool:
+  send your whole plan, steps are matched on their text, so a revised plan moves
+  what moved and adds what is new instead of duplicating.
+
+### What's new
+- **Meshy 3D, one field.** Paste an API key in the Archify tab and Meshy's 24
+  tools are registered for Claude Code, Codex, Cursor, Gemini and Qwen at once.
+  Clear it and they are removed again. The key is never read back into the field.
+- **`docs/INTEGRATIONS.md`** — every repository evaluated, what was done with it,
+  and why the ones left out were left out.
+
 ## [0.65.0] - 2026-09-09
 
 ### What's fixed

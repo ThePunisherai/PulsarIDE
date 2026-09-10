@@ -20,7 +20,9 @@ const {
   trackerHealth,
   repairTrackerRegistration,
   eccStatus,
-  setEccEnabled
+  setEccEnabled,
+  meshyStatus,
+  setMeshyKey
 } = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
@@ -301,6 +303,39 @@ deployProjectAgentsMd(tracked, HOME)
 const agentsMd2 = readFileSync(join(tracked, 'AGENTS.md'), 'utf8')
 ok('a second run replaces our AGENTS.md block instead of appending another',
   agentsMd2.split('<!-- PULSAR:MAIN:BEGIN -->').length === 2 && agentsMd2 === agentsMd)
+
+// --- Codex gets every server we own, not just the tracker ------------------ //
+// It only ever got `planide`, so an agent there had the board and none of
+// pulsar-tools: no route_task, no ui_find, no ecc_find, no anti-loop check.
+ok('Codex is registered for pulsar-tools too, not only planide', (() => {
+  const toml = readFileSync(join(HOME, '.codex/config.toml'), 'utf8')
+  return toml.includes('[mcp_servers.planide]') && toml.includes('[mcp_servers.pulsar-tools]') &&
+    toml.includes('[mcp_servers.other]') && toml.includes('model = "gpt-5"')
+})())
+
+// --- Meshy: a paid API, so the key is the whole gate ----------------------- //
+// Registered only once a key exists: with none, its server exits on the missing
+// MESHY_API_KEY and every agent shows a broken tool. So the thing to prove is
+// that it appears and disappears with the key, in every agent's own config.
+const cfgFor = (f) => JSON.parse(readFileSync(join(HOME, f), 'utf8')).mcpServers ?? {}
+ok('no key means no meshy server anywhere',
+  meshyStatus(HOME).configured === false && !cfgFor('.claude.json').meshy &&
+  !cfgFor('.gemini/settings.json').meshy && !cfgFor('.cursor/mcp.json').meshy)
+
+const saved = setMeshyKey('msy_abcdef0123456789', HOME)
+ok('saving a key registers meshy for every agent, key in env and never in args',
+  saved.configured === true &&
+  ['.claude.json', '.gemini/settings.json', '.qwen/settings.json', '.cursor/mcp.json'].every((f) => {
+    const m = cfgFor(f).meshy
+    return m && m.env?.MESHY_API_KEY === 'msy_abcdef0123456789' &&
+      !JSON.stringify(m.args).includes('msy_')
+  }) && readFileSync(join(HOME, '.codex/config.toml'), 'utf8').includes('[mcp_servers.meshy]'))
+ok('the status hint identifies the key without exposing it',
+  saved.hint.startsWith('msy_abcd') && saved.hint.endsWith('6789') &&
+  !saved.hint.includes('msy_abcdef0123456789'))
+ok('clearing the key removes the server again, it is not left stale',
+  setMeshyKey('', HOME).configured === false && !cfgFor('.claude.json').meshy &&
+  !cfgFor('.gemini/settings.json').meshy)
 
 // --- Archify: the whole toolkit, not just render --------------------------- //
 // Everything in the artifacts people actually want -- guided views, the summary

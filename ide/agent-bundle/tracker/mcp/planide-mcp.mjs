@@ -220,6 +220,28 @@ const str = (v, fallback = '') => (typeof v === 'string' ? v : fallback)
 const arr = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [])
 
 /** Read board, apply fn, write board. Every mutating tool goes through here. */
+/**
+ * A plan step's state, in whichever vocabulary the caller has.
+ *
+ * Claude Code's TodoWrite says pending/in_progress/completed; the board says
+ * todo/wip/works. Agents that reach this through the MCP rather than the hook
+ * will send either, and rejecting one of them would just mean plans silently
+ * not syncing for whichever agent guessed differently. Same mapping the
+ * todo-sync hook uses, so both routes land a plan in the same place.
+ */
+const PLAN_STATUS = { pending: 'todo', in_progress: 'wip', completed: 'works' }
+
+function planStatus(value) {
+  const raw = String(value || 'pending').trim().toLowerCase()
+  if (ITEM_STATUSES.includes(raw)) return raw
+  return PLAN_STATUS[raw] ?? 'todo'
+}
+
+/** Match a step to a board item on its text, ignoring case and punctuation. */
+function normTitle(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
 function mutate(path, fn) {
   const state = loadState(path)
   // A deep snapshot of just the collections history diffs, taken before `fn`
@@ -306,6 +328,88 @@ const TOOLS = [
         })),
         recent_activity: (state.activity ?? []).slice(0, 15)
       }
+    }
+  },
+  {
+    name: 'sync_plan',
+    description:
+      "Mirror your whole current plan onto the board in one call: pass every step with its state. Matched on the step's text, so re-sending a revised plan moves the steps you moved and adds the new ones instead of duplicating anything. Call this every time your plan changes -- it is what keeps the Tracker showing what you are actually doing.",
+    inputSchema: {
+      type: 'object',
+      properties: P({
+        todos: {
+          type: 'array',
+          description: 'Every step in your current plan, in order.',
+          items: {
+            type: 'object',
+            properties: {
+              content: { type: 'string', description: 'The step, as one line.' },
+              status: {
+                type: 'string',
+                description:
+                  "The step's state: pending / in_progress / completed, or the board's own todo / wip / works / done / broken / blocked."
+              }
+            },
+            required: ['content']
+          }
+        },
+        agent: { type: 'string', description: 'Your name, recorded as who claimed these.' }
+      }),
+      required: ['project', 'todos']
+    },
+    run: (args) => {
+      const path = resolveProject(args)
+      // Not arr(): that keeps strings only, and a plan step is an object.
+      // Both shapes are accepted -- an agent sending a bare list of lines is
+      // giving us a plan too, just without states.
+      const todos = Array.isArray(args.todos) ? args.todos : []
+      if (!todos.length) throw new Error('todos is required and must not be empty')
+      const agent = str(args.agent, 'agent').slice(0, 40)
+      return mutate(path, (state) => {
+        let added = 0
+        let moved = 0
+        for (const todo of todos) {
+          const title = String(
+            typeof todo === 'string'
+              ? todo
+              : (todo && (todo.content ?? todo.title ?? todo.text ?? todo.task ?? todo.description)) || ''
+          ).trim()
+          if (!title) continue
+          const status = planStatus(typeof todo === 'string' ? '' : todo && todo.status)
+          const key = normTitle(title)
+          const item = (state.items ?? []).find((i) => normTitle(i.title) === key)
+          if (!item) {
+            state.items.push({
+              id: newId('i_'),
+              title: title.length > 160 ? `${title.slice(0, 159)}\u2026` : title,
+              status,
+              notes: '', tags: ['plan'], priority: 'normal',
+              created_at: nowIso(), updated_at: nowIso(), claimed_by: agent,
+              verified: false, verified_at: '', verified_by: '', locked: false, locked_at: ''
+            })
+            added += 1
+            continue
+          }
+          // A step the user protected is theirs; a plan never moves it.
+          if (item.locked) continue
+          if (item.status !== status) {
+            item.status = status
+            item.updated_at = nowIso()
+            if (!item.claimed_by) item.claimed_by = agent
+            // A status change drops a stale confirmation, as everywhere else.
+            if (item.verified) {
+              item.verified = false
+              item.verified_at = ''
+              item.verified_by = ''
+            }
+            moved += 1
+          }
+        }
+        if (added || moved) {
+          logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved`, agent)
+        }
+        return { added, moved, total: todos.length }
+      })
     }
   },
   {

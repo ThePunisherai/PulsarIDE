@@ -360,6 +360,18 @@ export type EccStatus = {
   alwaysOnTokens: number
 }
 
+export type MeshyStatus = { configured: boolean; hint: string }
+
+/** Meshy (3D generation) is registered for every agent once a key is saved. */
+export function meshyStatus(): Promise<MeshyStatus> {
+  return call<MeshyStatus>('meshyStatus')
+}
+
+/** Save a key, or pass '' to clear it and unregister the server again. */
+export function meshySetKey(key: string): Promise<MeshyStatus> {
+  return call<MeshyStatus>('meshySetKey', key)
+}
+
 /** ECC: installed through its own installer, and what it costs per session. */
 export function eccStatus(): Promise<EccStatus> {
   return call<EccStatus>('eccStatus')

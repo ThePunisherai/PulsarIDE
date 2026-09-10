@@ -25,8 +25,10 @@ import {
   deployCursorRule,
   deployProjectAgentsMd,
   eccStatus,
+  meshyStatus,
   repairTrackerRegistration,
   setEccEnabled,
+  setMeshyKey,
   trackerHealth
 } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
@@ -227,6 +229,10 @@ export function registerPlanIdeIpc(): void {
   // context (~40.6k tokens, measured), so it is a switch, not a silent default.
   on('planide:ecc-status', () => eccStatus())
   on('planide:ecc-set-enabled', (enabled: boolean) => setEccEnabled(enabled))
+  // Meshy's 3D generation is a paid API, so the key is the whole gate: with one
+  // its MCP server is registered for every agent, without one it is removed.
+  on('planide:meshy-status', () => meshyStatus())
+  on('planide:meshy-set-key', (key: string) => setMeshyKey(key))
   on('planide:memory-status', (path: string) => memoryStatus(path))
   // Per-project history DB: the full, uncapped record of board changes.
   on('planide:history', (path: string, limit?: number) => readProjectHistory(path, limit ?? 500))

@@ -78,7 +78,7 @@ ok('capabilities advertise tools', Boolean(init?.result?.capabilities?.tools))
 ok('a notification is never answered (2 frames for 3 messages)', hs.replies.length === 2)
 const tools = byId(hs.replies, 2).result.tools.map((t) => t.name)
 ok('every tracker tool is listed, roadmap included',
-  ['get_board', 'add_item', 'set_item', 'add_fix', 'mark_fixed', 'add_version', 'add_milestone', 'set_milestone'].every((t) => tools.includes(t)))
+  ['get_board', 'add_item', 'set_item', 'add_fix', 'mark_fixed', 'add_version', 'add_milestone', 'set_milestone', 'sync_plan'].every((t) => tools.includes(t)))
 ok('every tool takes project and declares a schema',
   byId(hs.replies, 2).result.tools.every((t) => t.inputSchema?.properties?.project && t.inputSchema.required.includes('project')))
 ok('nothing but protocol frames on stdout', hs.stderr.length === 0 || !hs.stderr.includes('{'))
@@ -118,6 +118,38 @@ const run2b = await drive([
 const milestone = json(byId(run2b.replies, 23))
 ok('add_milestone creates a roadmap entry', milestone.id.startsWith('m_') && milestone.target === 'v0.3.0')
 ok('get_board reports the roadmap back', json(byId(run2b.replies, 24)).roadmap.some((m) => m.id === milestone.id))
+
+// sync_plan: the mechanism every agent has, including the ones with no
+// TodoWrite hook. Its own project on purpose -- adding items to the shared
+// fixture would move the rollups the parity assertions above check.
+const planProj = mkdtempSync(join(tmpdir(), 'pulsar-plan-'))
+const planRun = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(70, 'sync_plan', { project: planProj, agent: 'Council', todos: [
+    { content: 'Draft the schema', status: 'in_progress' },
+    { content: 'Write the migration', status: 'pending' }
+  ] }),
+  // Re-sending a revised plan is the normal case, so what matters is that it
+  // moves steps instead of piling up copies.
+  call(71, 'sync_plan', { project: planProj, agent: 'Council', todos: [
+    { content: 'Draft the schema', status: 'completed' },
+    { content: 'Write the migration', status: 'in_progress' },
+    { content: 'Backfill the old rows', status: 'pending' }
+  ] }),
+  call(72, 'get_board', { project: planProj })
+])
+const plan1 = json(byId(planRun.replies, 70))
+const plan2 = json(byId(planRun.replies, 71))
+const planBoard = json(byId(planRun.replies, 72))
+ok('sync_plan puts a whole plan on the board in one call',
+  plan1.added === 2 && plan1.moved === 0)
+ok('a revised plan moves what moved and adds what is new -- never duplicates',
+  plan2.added === 1 && plan2.moved === 2 &&
+  planBoard.items.filter((i) => i.title === 'Draft the schema').length === 1)
+ok('and the states land in the board\'s own columns',
+  planBoard.items.find((i) => i.title === 'Draft the schema').status === 'works' &&
+  planBoard.items.find((i) => i.title === 'Write the migration').status === 'wip' &&
+  planBoard.items.find((i) => i.title === 'Backfill the old rows').status === 'todo')
 const run2c = await drive([
   { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
   call(25, 'set_milestone', { project: proj, milestone_id: milestone.id, done: true })

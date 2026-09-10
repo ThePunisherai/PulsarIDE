@@ -55,6 +55,8 @@ export type PlanIdeApi = {
   // project memory (graphify graph + Obsidian note status)
   eccStatus: <T>() => Call<T>
   eccSetEnabled: <T>(enabled: boolean) => Call<T>
+  meshyStatus: <T>() => Call<T>
+  meshySetKey: <T>(key: string) => Call<T>
   trackerHealth: <T>(path?: string) => Call<T>
   trackerRepair: <T>() => Call<T>
   memoryStatus: <T>(path: string) => Call<T>
