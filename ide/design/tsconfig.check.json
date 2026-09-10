@@ -72,6 +72,7 @@
     "../overlay/src/renderer/src/components/planide/GraphCanvas.tsx",
     "../overlay/src/renderer/src/components/planide/PulseArchify.tsx",
     "../overlay/src/renderer/src/components/planide/PulseArchifyPage.tsx",
+    "../overlay/src/renderer/src/components/planide/PulseToolkitPage.tsx",
     "../overlay/src/renderer/src/components/planide/PulseArchifyTab.tsx",
     "../overlay/src/renderer/src/components/planide/PulseMemory.tsx",
     "../overlay/src/renderer/src/components/planide/PulseMemoryPage.tsx",

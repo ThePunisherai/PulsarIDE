@@ -41,7 +41,7 @@ import {
  * back from the main process, which is enough to tell one key from another
  * without putting a secret on screen or in a DOM node.
  */
-function MeshyKey(): React.JSX.Element {
+export function MeshyKey(): React.JSX.Element {
   const [status, setStatus] = useState<MeshyStatus | null>(null)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)

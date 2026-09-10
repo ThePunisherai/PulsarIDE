@@ -432,7 +432,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/shared/ui-chrome-types.ts",
         "export type TopLevelView =\n  | 'terminal'",
-        "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'\n  // The same two surfaces as the sidebar tabs of these names, opened full\n  // page from the left nav. Separate type from RightSidebarTab, so the\n  // shared ids are deliberate rather than a collision.\n  | 'pulse-brain'\n  | 'pulse-archify'",
+        "export type TopLevelView =\n  | 'terminal'\n  // PlanIDE tracker workbench (board / protected / activity / briefing).\n  | 'planide'\n  // The same two surfaces as the sidebar tabs of these names, opened full\n  // page from the left nav. Separate type from RightSidebarTab, so the\n  // shared ids are deliberate rather than a collision.\n  | 'pulse-brain'\n  | 'pulse-archify'\n  | 'pulse-toolkit'",
         "register 'planide' as a top-level view",
     ),
     # Upstream used to hand-write eight unions here, one per view, each
@@ -442,7 +442,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/renderer/src/store/slices/ui/ui-slice-contract-core.ts",
         "export type UiViewHistory =\n  | 'terminal'",
-        "export type UiViewHistory =\n  // PlanIDE: the tracker surfaces are top-level views too, so they are\n  // valid history entries for every previousViewBefore* field.\n  | 'planide'\n  | 'pulse-brain'\n  | 'pulse-archify'\n  | 'terminal'",
+        "export type UiViewHistory =\n  // PlanIDE: the tracker surfaces are top-level views too, so they are\n  // valid history entries for every previousViewBefore* field.\n  | 'planide'\n  | 'pulse-brain'\n  | 'pulse-archify'\n  | 'pulse-toolkit'\n  | 'terminal'",
         "the view history accepts the tracker",
     ),
     # And the zod enum the persisted UI state is validated against: a compile-time
@@ -460,19 +460,19 @@ EDITS: list[tuple[str, str, str, str]] = [
     (
         "src/main/runtime/rpc/methods/client-ui-schemas.ts",
         "const TopLevelViewSchema = z.enum([\n  'terminal',",
-        "const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker and the two full-page\n  // memory/design surfaces are top-level views.\n  'planide',\n  'pulse-brain',\n  'pulse-archify',\n  'terminal',",
+        "const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker and the two full-page\n  // memory/design surfaces are top-level views.\n  'planide',\n  'pulse-brain',\n  'pulse-archify',\n  'pulse-toolkit',\n  'terminal',",
         "the tracker is a valid persisted view",
     ),
     (
         "src/shared/top-level-view.ts",
         "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,",
-        "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,\n  planide: true,\n  'pulse-brain': true,\n  'pulse-archify': true,",
+        "const TOP_LEVEL_VIEW_LOOKUP: Record<TopLevelView, true> = {\n  terminal: true,\n  planide: true,\n  'pulse-brain': true,\n  'pulse-archify': true,\n  'pulse-toolkit': true,",
         "allow 'planide' through the persistence guard",
     ),
     (
         "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
         "      {activeView === 'settings' ? <Settings /> : null}",
-        "      {activeView === 'planide' ? <PlanIdeView /> : null}\n      {activeView === 'pulse-brain' ? <PulseMemoryPage /> : null}\n      {activeView === 'pulse-archify' ? <PulseArchifyPage /> : null}\n      {activeView === 'settings' ? <Settings /> : null}",
+        "      {activeView === 'planide' ? <PlanIdeView /> : null}\n      {activeView === 'pulse-brain' ? <PulseMemoryPage /> : null}\n      {activeView === 'pulse-archify' ? <PulseArchifyPage /> : null}\n      {activeView === 'pulse-toolkit' ? <PulseToolkitPage /> : null}\n      {activeView === 'settings' ? <Settings /> : null}",
         "render the tracker workbench",
     ),
     (
@@ -480,14 +480,14 @@ EDITS: list[tuple[str, str, str, str]] = [
         "function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
         "const PlanIdeView = lazy(() => import('../components/planide/PlanIdeView'))\n"
         "const PulseMemoryPage = lazy(() => import('../components/planide/PulseMemoryPage'))\n"
-        "const PulseArchifyPage = lazy(() => import('../components/planide/PulseArchifyPage'))\n\n"
+        "const PulseArchifyPage = lazy(() => import('../components/planide/PulseArchifyPage'))\nconst PulseToolkitPage = lazy(() => import('../components/planide/PulseToolkitPage'))\n\n"
         "function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {",
         "lazy-import the tracker workbench",
     ),
     (
         "src/renderer/src/components/sidebar/SidebarNav.tsx",
         "  const skillsActive = activeView === 'skills'",
-        "  const skillsActive = activeView === 'skills'\n  const planIdeActive = activeView === 'planide'\n  const pulseBrainActive = activeView === 'pulse-brain'\n  const pulseArchifyActive = activeView === 'pulse-archify'\n  const setActiveView = useAppStore((s) => s.setActiveView)",
+        "  const skillsActive = activeView === 'skills'\n  const planIdeActive = activeView === 'planide'\n  const pulseBrainActive = activeView === 'pulse-brain'\n  const pulseArchifyActive = activeView === 'pulse-archify'\n  const pulseToolkitActive = activeView === 'pulse-toolkit'\n  const setActiveView = useAppStore((s) => s.setActiveView)",
         "tracker nav state",
     ),
     (
@@ -549,6 +549,26 @@ EDITS: list[tuple[str, str, str, str]] = [
           strokeWidth={pulseArchifyActive ? 2.25 : 1.75}
         />
         <span className="flex-1">{translate('planide.nav.archify', 'Archify')}</span>
+      </button>
+      {/* Toolkit last: what is wired into the agents, rather than a view of the
+          project. It exists because "I don't see it anywhere" was a fair
+          description of Meshy and ECC -- a buried field and no UI at all. */}
+      <button
+        type="button"
+        onClick={() => setActiveView('pulse-toolkit')}
+        aria-current={pulseToolkitActive ? 'page' : undefined}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium tracking-tight transition-colors',
+          pulseToolkitActive
+            ? 'bg-worktree-sidebar-accent text-worktree-sidebar-accent-foreground'
+            : 'text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8'
+        )}
+      >
+        <Wrench
+          className={cn('size-4 shrink-0', !pulseToolkitActive && 'text-worktree-sidebar-foreground/30')}
+          strokeWidth={pulseToolkitActive ? 2.25 : 1.75}
+        />
+        <span className="flex-1">{translate('planide.nav.toolkit', 'Toolkit')}</span>
       </button>""",
         "tracker entry in the left nav",
     ),
@@ -556,7 +576,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "src/renderer/src/components/sidebar/SidebarNav.tsx",
         "import { BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'",
         "import { BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'\n"
-        "import { Network, Workflow } from 'lucide-react'\n"
+        "import { Network, Workflow, Wrench } from 'lucide-react'\n"
         "import { PlanIdeMark } from '../planide/PlanIdeMark'",
         "tracker nav icon",
     ),
@@ -796,6 +816,7 @@ OVERLAY_FILES = [
     "src/renderer/src/components/planide/GraphCanvas.tsx",
     "src/renderer/src/components/planide/PulseArchify.tsx",
     "src/renderer/src/components/planide/PulseArchifyPage.tsx",
+    "src/renderer/src/components/planide/PulseToolkitPage.tsx",
     "src/renderer/src/components/planide/PulseArchifyTab.tsx",
     # The PulsarIDE theme: re-declares Orca's own design tokens (nothing
     # upstream is edited). Imported after main.css by the two renderer entry

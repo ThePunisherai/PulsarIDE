@@ -20,7 +20,7 @@ or fetching something that should have been indexed.
 | Repository | License | Why not bundled |
 |---|---|---|
 | [affaan-m/ECC](https://github.com/affaan-m/ECC) | MIT | 354 skills and agents. Installed as a plugin it costs ~40,600 always-on tokens per session. The catalogue is cloned to disk and searched with `ecc_find` / `ecc_read` instead, at zero cost. Their README also asks people not to run unofficial mirrors. |
-| [meshy-dev/meshy-mcp-server](https://github.com/meshy-dev/meshy-mcp-server) | see repo | A paid API. Registered for every agent the moment a key is saved in the Archify tab, removed again when it is cleared — without a key its server exits and every agent would show a broken tool. |
+| [meshy-dev/meshy-mcp-server](https://github.com/meshy-dev/meshy-mcp-server) | see repo | A paid API. Registered for every agent the moment a key is saved in the Toolkit page (left nav, under Archify), removed again when it is cleared — without a key its server exits and every agent would show a broken tool. |
 
 ## Catalogued only
 

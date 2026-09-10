@@ -444,6 +444,21 @@ ok('every agent that can carry the tracker is wired',
     .every((id) => okHealth.agents.find((a) => a.id === id)?.registered === true))
 // Antigravity used to be a slash on Gemini's row, so a green banner said nothing
 // about it either way. It reports on its own file now, or it reports nothing.
+// The Toolkit page badges an agent with the name of its plan hook, keyed on the
+// agent id. If an id here and an id there ever drift, the page quietly claims an
+// agent needs sync_plan when it actually has a hook -- wrong in the direction of
+// under-promising, but still wrong, and invisible. Read from the page's source
+// so it cannot pass by being copied.
+const toolkitSrc = readFileSync(
+  join(REPO, 'ide/overlay/src/renderer/src/components/planide/PulseToolkitPage.tsx'),
+  'utf8'
+)
+const hookIds = [...toolkitSrc.matchAll(/^\s*'?([a-z-]+)'?:\s*'(TodoWrite|update_plan|write_todos)'/gm)].map(
+  (m) => m[1]
+)
+ok('every agent the Toolkit page badges with a plan hook is a real agent id',
+  hookIds.length === 4 && hookIds.every((id) => okHealth.agents.some((a) => a.id === id)))
+
 ok('the panel reports Antigravity separately, against its own config file',
   okHealth.agents.find((a) => a.id === 'antigravity')?.configPath.endsWith('mcp_config.json') === true &&
   okHealth.agents.find((a) => a.id === 'gemini')?.label === 'Gemini CLI')

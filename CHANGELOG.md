@@ -6,6 +6,25 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.72.0] - 2026-09-10
+
+### What's new
+- **Toolkit, in the left nav.** One page showing everything this IDE wires into
+  your agents, read back from your machine rather than claimed: whether the
+  tracker server actually starts (it is launched, not just found) and the exact
+  command used, which config file each of the seven agents keeps and whether our
+  servers are named in it, which agents keep the board current by themselves, and
+  a button to wire up any that are missing.
+- **Meshy and ECC finally have somewhere to live.** Meshy's key was buried in the
+  Archify tab and ECC had no interface at all, so neither looked like it existed.
+  Both are on the Toolkit page now, with ECC's on/off switch and what it costs.
+
+### What's fixed
+- **Agents are told not to write `.planide/state.json` themselves.** One was
+  caught scripting around the tools and editing the board by hand, which races
+  the IDE and skips the rollups. If a tool looks broken it should be reported,
+  not routed past.
+
 ## [0.71.0] - 2026-09-10
 
 ### What's fixed
