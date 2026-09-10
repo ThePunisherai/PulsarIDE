@@ -7,11 +7,22 @@
  * worked off. Asked for directly: the steps an agent means to do should be on
  * the board "van tasks die gedaan moeten worden tot die gedaan zijn".
  *
- * This runs as a `PostToolUse` hook with `matcher: "TodoWrite"` -- verified
- * against code.claude.com/docs/en/hooks.md: that event receives `tool_name`,
- * `tool_input` and the session's `cwd` on stdin, and the matcher is an exact
- * tool-name match. So every time the agent revises its plan, we see the whole
- * new list and can bring the board level with it.
+ * This runs as a `PostToolUse` hook -- for Claude Code on `matcher: "TodoWrite"`,
+ * for Codex on `matcher: "update_plan"`. Both were verified against their own
+ * upstreams rather than assumed alike: code.claude.com/docs/en/hooks.md, and
+ * openai/codex's own `PostToolUseCommandInput` (codex-rs/hooks/src/schema.rs).
+ * They agree on the part that matters -- `tool_name`, `tool_input` and the
+ * session's `cwd` arrive on stdin, and the matcher is an exact tool-name match --
+ * so one script serves both.
+ *
+ * Where they differ is only the shape of the plan itself, and it is small:
+ * Claude Code sends `tool_input.todos` with the step in `content`, Codex sends
+ * `tool_input.plan` with it in `step` (codex_protocol::plan_tool::UpdatePlanArgs,
+ * read from source, not guessed). Both use pending / in_progress / completed for
+ * status, so the mapping below is genuinely shared.
+ *
+ * This matters more than a convenience: without it, Codex only reaches the board
+ * if the model remembers to call `sync_plan`. With it, the harness does it.
  *
  * Deliberately conservative:
  *  - One board item per distinct step, matched on its text, so revising a plan
@@ -33,8 +44,11 @@ const nowIso = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
 const newId = (p) => p + randomUUID().replace(/-/g, '').slice(0, 12)
 const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim()
 
-/** Claude Code's todo states, mapped onto the board's columns. */
+/** Claude Code's and Codex's todo states, mapped onto the board's columns. */
 const STATUS = { pending: 'todo', in_progress: 'wip', completed: 'works' }
+
+/** The plan tools we mirror, per agent. */
+const PLAN_TOOLS = new Set(['TodoWrite', 'update_plan'])
 
 /** A step's text, tolerating the field names different agents may use. */
 function textOf(todo) {
@@ -110,11 +124,13 @@ async function main() {
   const raw = readStdin()
   if (!raw.trim()) return
   const payload = JSON.parse(raw)
-  // The matcher should already have narrowed this, but a settings.json edited by
-  // hand could widen it, and syncing a Bash call as a plan would be nonsense.
-  if (payload.tool_name && payload.tool_name !== 'TodoWrite') return
+  // The matcher should already have narrowed this, but a config edited by hand
+  // could widen it, and syncing a Bash call as a plan would be nonsense.
+  if (payload.tool_name && !PLAN_TOOLS.has(payload.tool_name)) return
 
-  const todos = payload?.tool_input?.todos
+  // `todos` is Claude Code's key, `plan` is Codex's. Whichever arrives is the plan.
+  const input = payload?.tool_input ?? {}
+  const todos = Array.isArray(input.todos) ? input.todos : input.plan
   if (!Array.isArray(todos) || todos.length === 0) return
 
   const project = resolveProject(payload.cwd)

@@ -59,6 +59,10 @@ writeFileSync(join(HOME, '.claude.json'), JSON.stringify({ mcpServers: { other: 
 mkdirSync(join(HOME, '.codex'), { recursive: true })
 writeFileSync(join(HOME, '.codex/config.toml'), 'model = "gpt-5"\n\n[mcp_servers.other]\ncommand = "x"\nargs = ["y"]\n')
 writeFileSync(join(HOME, '.codex/AGENTS.md'), '# My own notes\n\nKeep this.\n')
+// Codex hooks the user configured themselves: ours must join, never replace.
+writeFileSync(join(HOME, '.codex/hooks.json'), JSON.stringify({
+  hooks: { PostToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: '/usr/bin/mine.sh' }] }] }
+}))
 // Pre-existing Gemini/Antigravity settings.json: registering planide must keep it.
 mkdirSync(join(HOME, '.gemini'), { recursive: true })
 writeFileSync(join(HOME, '.gemini/settings.json'), JSON.stringify({ theme: 'Default', mcpServers: { other: { command: 'x' } } }))
@@ -595,6 +599,24 @@ ok('its launcher and script are both on disk',
 // Reconcile, not accumulate: a second deploy must not stack a second entry.
 deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
 const postAgain = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8')).hooks.PostToolUse
+// Codex has a real plan hook of its own -- PostToolUse matched on `update_plan`,
+// its actual plan tool. Without it Codex only reaches the board when the model
+// remembers to call sync_plan, while Claude Code never had to remember. That
+// asymmetry is most of what "the tracker does not update" meant on Codex.
+const codexHooks = JSON.parse(readFileSync(join(HOME, '.codex/hooks.json'), 'utf8'))
+const codexPost = codexHooks.hooks?.PostToolUse ?? []
+const codexPlan = codexPost.find((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync')))
+ok('Codex gets the same plan sync, matched on its own update_plan tool',
+  Boolean(codexPlan) && codexPlan.matcher === 'update_plan')
+ok('and it names the launcher that is really on disk',
+  existsSync(codexPlan.hooks[0].command))
+// timeoutSec, not timeout: Codex's own ConfiguredHookHandler names it that, and
+// deny_unknown_fields means the wrong spelling is a rejected config, not a default.
+ok('with the timeout field Codex actually accepts',
+  typeof codexPlan.hooks[0].timeoutSec === 'number' && codexPlan.hooks[0].timeout === undefined)
+ok('the hooks Codex users configured themselves are kept',
+  codexPost.some((e) => (e.hooks ?? []).some((h) => h.command === '/usr/bin/mine.sh')))
+
 ok('a redeploy leaves exactly one plan hook',
    postAgain.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync'))).length === 1)
 
@@ -788,6 +810,45 @@ for (const [label, file] of AGENT_CONFIGS) {
 ok('all seven agents wrote to the one board, each step once',
   boardItems().length === AGENT_CONFIGS.length &&
   new Set(boardItems().map((i) => i.title)).size === AGENT_CONFIGS.length)
+
+// The hook path, end to end, through the launcher actually written to disk and
+// named in Codex's own hooks.json -- not the source script, and not a stub.
+// Claude Code's TodoWrite payload and Codex's update_plan payload both go in.
+const hookProject = join(work, 'hook-e2e'); mkdirSync(join(hookProject, '.git'), { recursive: true })
+const runHook = (payload) =>
+  new Promise((resolve) => {
+    const child = spawn(codexPlan.hooks[0].command, [], { stdio: ['pipe', 'ignore', 'ignore'] })
+    child.on('error', () => resolve(false))
+    child.on('close', () => resolve(true))
+    child.stdin.write(JSON.stringify(payload))
+    child.stdin.end()
+  })
+const hookItems = () => {
+  const f = join(hookProject, '.planide/state.json')
+  return existsSync(f) ? (JSON.parse(readFileSync(f, 'utf8')).items ?? []) : []
+}
+// Codex's real shape: tool_input.plan, each step in `step`, snake_case status.
+await runHook({ tool_name: 'update_plan', cwd: hookProject, tool_input: { explanation: 'x', plan: [
+  { step: 'Codex finished this', status: 'completed' },
+  { step: 'Codex is on this', status: 'in_progress' },
+  { step: 'Codex will do this', status: 'pending' }
+] } })
+const byTitle = (t) => hookItems().find((i) => i.title === t)
+ok('a Codex plan reaches the board through the deployed hook, no sync_plan call',
+  byTitle('Codex finished this')?.status === 'works' &&
+  byTitle('Codex is on this')?.status === 'wip' &&
+  byTitle('Codex will do this')?.status === 'todo')
+// Claude Code's shape through the very same launcher: one script, both agents.
+await runHook({ tool_name: 'TodoWrite', cwd: hookProject, tool_input: { todos: [
+  { content: 'Claude step', status: 'in_progress' }
+] } })
+ok('and the same launcher still serves Claude Code\'s own payload',
+  byTitle('Claude step')?.status === 'wip')
+// A matcher widened by hand must not turn a Bash call into a plan.
+const beforeStray = hookItems().length
+await runHook({ tool_name: 'Bash', cwd: hookProject, tool_input: { command: 'ls' } })
+ok('a non-plan tool is ignored even if the matcher is widened by hand',
+  hookItems().length === beforeStray)
 
 // Re-sending a revised plan must move a step, never stack a second copy of it.
 const revised = await callTool(launchFromConfig('.codex/config.toml'), 'sync_plan', {

@@ -675,10 +675,90 @@ function wireHooks(home: string, root: string): boolean {
     })
     keptPost.push({ matcher: 'TodoWrite', hooks: [{ type: 'command', command: launcher, timeout: 15 }] })
     hooks.PostToolUse = keptPost
+    // Codex runs the very same script off its own plan tool -- see below.
+    wireCodexPlanHook(home)
   }
 
   writeConfigAtomic(settingsPath, JSON.stringify(settings, null, 2))
   return true
+}
+
+/**
+ * The same plan-to-board sync, for Codex, off Codex's own plan tool.
+ *
+ * Until this existed, Codex reached the board only if the model remembered to
+ * call `sync_plan`. Claude Code never had to remember: a hook does it. That
+ * asymmetry is most of what "the tracker does not update" meant for anyone whose
+ * main CLI is Codex.
+ *
+ * Codex has the equivalent, and it is a genuine hook, not an approximation.
+ * Verified against openai/codex itself (Apache-2.0) rather than a third-party
+ * write-up, because the write-ups disagree with the source on the casing:
+ *  - `codex-rs/hooks/src/engine/discovery.rs` loads `<config>/hooks.json` into a
+ *    `HooksFile { hooks }`, keyed by event name, each event holding
+ *    `{ matcher, hooks: [...] }` groups -- the same shape as Claude Code's
+ *    settings.json, which is unsurprising: the engine is literally
+ *    `ClaudeHooksEngine`.
+ *  - `codex-rs/hooks/src/schema.rs` renames the config event names to PascalCase
+ *    (`#[serde(rename = "PostToolUse")]`). The camelCase `HookEventName` in the
+ *    app-server protocol schema is a different surface -- writing `postToolUse`
+ *    here would simply never match.
+ *  - `PostToolUseCommandInput` gives the hook `tool_name`, `tool_input` and `cwd`
+ *    on stdin, and the matcher is compared against the tool name. That is exactly
+ *    what the Claude Code hook already consumes, so one script serves both.
+ *  - `update_plan` is a real registered tool (`update_plan_enabled` in
+ *    codex-rs/core/src/config/mod.rs), and its arguments are
+ *    `UpdatePlanArgs { explanation, plan: Vec<PlanItemArg { step, status }> }`
+ *    with status pending / in_progress / completed.
+ *
+ * Reconcile-not-accumulate, and never clobber: a hooks.json we cannot parse is
+ * Codex's own state and is left exactly as it is, the same rule every other
+ * config writer here follows.
+ */
+function wireCodexPlanHook(home: string): boolean {
+  try {
+    const launcher = join(
+      configDir(home),
+      'hooks',
+      process.platform === 'win32' ? 'todo-sync.cmd' : 'todo-sync.sh'
+    )
+    // Wired only once the script it points at is really on disk. A hook naming a
+    // missing file fails on every single plan update, which is worse than none.
+    if (!existsSync(launcher)) return false
+
+    const path = join(home, '.codex', 'hooks.json')
+    let config: Record<string, unknown> = {}
+    if (existsSync(path)) {
+      try {
+        config = JSON.parse(readFileSync(path, 'utf8') || '{}') as Record<string, unknown>
+      } catch {
+        return false // not ours to rewrite
+      }
+    }
+    const hooks = (config.hooks ??= {}) as Record<string, unknown>
+    const post = (hooks.PostToolUse ?? []) as unknown[]
+    const kept = post.filter((entry) => {
+      if (typeof entry !== 'object' || entry === null) return true
+      const inner = (entry as { hooks?: unknown[] }).hooks ?? []
+      return !inner.some(
+        (h) =>
+          typeof h === 'object' &&
+          h !== null &&
+          String((h as { command?: string }).command ?? '').includes('todo-sync')
+      )
+    })
+    // `timeoutSec`, not `timeout`: Codex's ConfiguredHookHandler names it that.
+    kept.push({
+      matcher: 'update_plan',
+      hooks: [{ type: 'command', command: launcher, timeoutSec: 15 }]
+    })
+    hooks.PostToolUse = kept
+    mkdirSync(dirname(path), { recursive: true })
+    writeConfigAtomic(path, JSON.stringify(config, null, 2))
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -1507,9 +1587,11 @@ function mainSessionBlock(home: string): string {
     '',
     '- `sync_plan` — every time your plan changes, send the whole plan: each step with',
     '  its state. Steps are matched on their text, so a revised plan moves what moved and',
-    '  adds what is new instead of duplicating anything. In Claude Code a hook does this',
-    '  from TodoWrite automatically; everywhere else this call IS the mechanism, so a plan',
-    '  you never sync is a Tracker that never moves.',
+    '  adds what is new instead of duplicating anything. Claude Code and Codex each have a',
+    '  hook that does this for you (from TodoWrite and update_plan); in Gemini CLI, Qwen',
+    '  Code, Antigravity and Cursor this call IS the mechanism, so a plan you never sync',
+    '  is a Tracker that never moves. Calling it anyway is free — a re-sent plan that has',
+    '  not changed moves nothing.',
     '- `get_board` — read it first, every task.',
     '- `add_item` — the user asks / you plan a step → status `todo`.',
     '- `set_item` — you start it → `wip`;  it works → `works`;  finished → `done`;  fails → `broken`.',
@@ -1951,6 +2033,9 @@ function registerTrackerForAllAgents(home: string): boolean {
   const qwen = registerPlanideMcpQwen(home)
   const antigravity = registerPlanideMcpAntigravity(home)
   const opencode = registerPlanideMcpOpenCode(home)
+  // Every launch, like the MCP entries: Codex owns this file too, so our entry
+  // can go missing through nobody's fault.
+  wireCodexPlanHook(home)
   const block = mainSessionBlock(home)
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
   mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)

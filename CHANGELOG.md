@@ -6,6 +6,20 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.69.0] - 2026-09-10
+
+### What's fixed
+- **Codex no longer has to remember to update the board.** Claude Code had a hook
+  doing it automatically; Codex only reached the board if the model chose to call
+  `sync_plan`. Codex has a real equivalent — `PostToolUse` matched on its own
+  `update_plan` tool — and it is now wired to the same script, so a plan you make
+  in Codex lands on the board by itself.
+
+### What's new
+- **One plan hook, both agents.** The same launcher reads Claude Code's
+  `TodoWrite` payload and Codex's `update_plan` payload; the shapes were taken
+  from each project's own source, not from a guide.
+
 ## [0.68.0] - 2026-09-10
 
 ### What's fixed
