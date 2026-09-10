@@ -14,27 +14,41 @@
   "hooks": [
     "graphify-bootstrap.sh",
     "graphify-bootstrap.ps1",
-    "council-memory.py"
+    "council-memory.py",
+    "todo-sync.mjs"
   ],
   "tracker": {
-    "note": "Deployed to ~/.config/pulsaride/tracker and registered as the 'planide' MCP server (user scope) so agents in every project can read/update the board.",
+    "note": "Deployed to ~/.config/pulsaride/tracker and registered as the 'planide' and 'pulsar-tools' MCP servers (user scope) for every agent this app knows: Claude Code, Codex, Gemini CLI, Antigravity, Qwen Code, Cursor and opencode. Each reads its own config file -- Antigravity's is ~/.gemini/config/mcp_config.json, NOT Gemini CLI's ~/.gemini/settings.json.",
     "cli": "tracker/plan",
     "package": "tracker/planide",
-    "mcp_server": "tracker/mcp/planide_mcp.py",
+    "mcp_server": "tracker/mcp/planide-mcp.mjs",
     "mcp_name": "planide",
     "state_file": "<project>/.planide/state.json",
     "mcp_tools": [
-      "list_projects",
-      "add_project",
       "get_board",
+      "sync_plan",
       "add_item",
       "set_item",
       "add_fix",
       "mark_fixed",
       "add_milestone",
-      "add_version",
-      "ai_report",
-      "detect_stack"
+      "set_milestone",
+      "clean_doc",
+      "add_version"
+    ],
+    "tools_server": "tracker/mcp/pulsar-tools-mcp.mjs",
+    "tools_server_name": "pulsar-tools",
+    "tools_mcp_tools": [
+      "route_task",
+      "check_anti_loop",
+      "record_anti_loop_failure",
+      "record_solution",
+      "clear_anti_loop",
+      "ui_find",
+      "ui_read",
+      "ecc_find",
+      "ecc_read",
+      "re_triage"
     ]
   },
   "agent_names": [

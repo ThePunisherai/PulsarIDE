@@ -462,6 +462,18 @@ export default function PlanIdePanel(): React.JSX.Element {
                 {' · '}
                 {translate('planide.panel.healthTools', 'tools')}: {health.toolCount}
               </div>
+              {/* The agents that are on this machine and cannot reach the board.
+                  Listing only the wired ones reads as reassurance when the whole
+                  point is that one of them is missing. */}
+              {health.agents.some((a) => a.configExists && !a.registered) && (
+                <div className="mt-0.5 font-mono text-[10px] text-amber-500/80">
+                  {translate('planide.panel.healthMissing', 'not wired')}:{' '}
+                  {health.agents
+                    .filter((a) => a.configExists && !a.registered)
+                    .map((a) => a.label)
+                    .join(', ')}
+                </div>
+              )}
             </div>
           </div>
           <Button

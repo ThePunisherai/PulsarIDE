@@ -347,6 +347,47 @@ else
   bad "agents name pulsar-tools tools that do not exist: $tool_gap"
 fi
 
+# manifest.json describes the bundle to anyone reading it, and it had drifted:
+# it named a Python MCP server we stopped registering and four tools that no
+# longer exist, while missing three that do. Documentation nobody can trust is
+# worse than none, so it is checked against the servers themselves.
+manifest_drift=$(python3 - "$ROOT" <<'PY_MANIFEST'
+import json, re, sys, pathlib
+root = pathlib.Path(sys.argv[1])
+m = json.loads((root / 'ide/agent-bundle/manifest.json').read_text(encoding='utf-8'))
+t = m.get('tracker', {})
+problems = []
+
+def offered(rel):
+    return re.findall(r"name: '([a-z_]+)'", (root / rel).read_text(encoding='utf-8'))
+
+for key, rel in (('mcp_tools', 'mcp_server'), ('tools_mcp_tools', 'tools_server')):
+    server = t.get(rel)
+    if not server:
+        problems.append(f'tracker.{rel} is missing')
+        continue
+    path = root / 'ide/agent-bundle/tracker' / server.split('tracker/', 1)[-1]
+    if not path.exists():
+        problems.append(f'tracker.{rel} points at {server}, which is not on disk')
+        continue
+    if t.get(key) != offered(str(path.relative_to(root))):
+        problems.append(f'tracker.{key} does not match {server}')
+
+for h in m.get('hooks', []):
+    if not (root / 'ide/agent-bundle/hooks' / h).exists():
+        problems.append(f'hooks lists {h}, which is not on disk')
+for f in sorted((root / 'ide/agent-bundle/hooks').iterdir()):
+    if f.suffix in ('.sh', '.ps1', '.py', '.mjs') and f.name not in m.get('hooks', []):
+        problems.append(f'{f.name} ships but is not listed in hooks')
+print('; '.join(problems))
+PY_MANIFEST
+)
+if [ -z "$manifest_drift" ]; then
+  ok "manifest.json describes the servers and hooks that actually ship"
+else
+  bad "manifest.json has drifted: $manifest_drift"
+fi
+
 # 4c2. the Brain Graph's rebuild path: the button that used to only re-read.
 # Runs the real graphify when it is installed, and skips those checks when it
 # is not -- a machine without it is a normal state, not a failure.

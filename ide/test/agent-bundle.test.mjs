@@ -5,7 +5,7 @@
  * because the deploy is plain Node fs. PULSAR_REPO points at the repo root so it
  * can find ide/agent-bundle.
  */
-import { execSync } from 'node:child_process'
+import { execSync, spawn } from 'node:child_process'
 import { cpSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
@@ -62,6 +62,9 @@ writeFileSync(join(HOME, '.codex/AGENTS.md'), '# My own notes\n\nKeep this.\n')
 // Pre-existing Gemini/Antigravity settings.json: registering planide must keep it.
 mkdirSync(join(HOME, '.gemini'), { recursive: true })
 writeFileSync(join(HOME, '.gemini/settings.json'), JSON.stringify({ theme: 'Default', mcpServers: { other: { command: 'x' } } }))
+// An Antigravity install from before the ~/.gemini/config move, so the legacy
+// path is a real branch under test and not just a line of code nobody runs.
+mkdirSync(join(HOME, '.gemini/antigravity-cli'), { recursive: true })
 // Same for Qwen Code, which keeps its own ~/.qwen/settings.json.
 mkdirSync(join(HOME, '.qwen'), { recursive: true })
 writeFileSync(join(HOME, '.qwen/settings.json'), JSON.stringify({ vimMode: true, mcpServers: { other: { command: 'x' } } }))
@@ -199,12 +202,33 @@ ok('every agent is told to clean the docs it writes',
 ok('Cursor MCP registered at ~/.cursor/mcp.json',
   JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide.args[0] === trackerScript)
 const gem1 = JSON.parse(readFileSync(join(HOME, '.gemini/settings.json'), 'utf8'))
-ok('Gemini/Antigravity MCP registered at ~/.gemini/settings.json, user content preserved',
+ok('Gemini CLI MCP registered at ~/.gemini/settings.json, user content preserved',
   gem1.mcpServers.planide.args[0] === trackerScript && gem1.mcpServers.other && gem1.theme === 'Default')
+// Antigravity shares ~/.gemini with Gemini CLI but not its settings file: the
+// IDE, the agy CLI and the SDK read ~/.gemini/config/mcp_config.json. Writing
+// only settings.json looked like it covered both and covered one, so every
+// planide/pulsar-tools tool was absent in Antigravity -- not failing, absent.
+const agCfg = JSON.parse(readFileSync(join(HOME, '.gemini/config/mcp_config.json'), 'utf8'))
+ok('Antigravity MCP registered at ~/.gemini/config/mcp_config.json, not settings.json',
+  agCfg.mcpServers.planide.args[0] === trackerScript)
+ok('Antigravity gets the whole toolkit, not just the tracker',
+  Boolean(agCfg.mcpServers['pulsar-tools']))
+ok('a pre-migration Antigravity is written too (~/.gemini/antigravity-cli)',
+  JSON.parse(readFileSync(join(HOME, '.gemini/antigravity-cli/mcp_config.json'), 'utf8'))
+    .mcpServers.planide.args[0] === trackerScript)
+// The legacy file is a fallback, not a directory to create on a machine that
+// never had it -- same rule the Cursor rule follows for ~/.cursor.
+const freshHome = join(work, 'home-no-legacy'); mkdirSync(freshHome, { recursive: true })
+repairTrackerRegistration(freshHome)
+ok('no pre-migration directory is invented where Antigravity never used one',
+  existsSync(join(freshHome, '.gemini/config/mcp_config.json')) &&
+  !existsSync(join(freshHome, '.gemini/antigravity-cli')))
+
 // One launch, every agent. They fail separately otherwise, and a tracker that
 // works in one CLI and dies in another is the hardest kind of report to act on.
-ok('every agent gets the same dependency-free launch (claude/codex/cursor/gemini)',
-  [JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide, gem1.mcpServers.planide]
+ok('every agent gets the same dependency-free launch (claude/codex/cursor/gemini/antigravity)',
+  [JSON.parse(readFileSync(join(HOME, '.cursor/mcp.json'), 'utf8')).mcpServers.planide,
+   gem1.mcpServers.planide, agCfg.mcpServers.planide]
     .every((s) => s.command === launched.command &&
       (s.env?.ELECTRON_RUN_AS_NODE ?? null) === (launched.env?.ELECTRON_RUN_AS_NODE ?? null)))
 
@@ -325,7 +349,8 @@ ok('no key means no meshy server anywhere',
 const saved = setMeshyKey('msy_abcdef0123456789', HOME)
 ok('saving a key registers meshy for every agent, key in env and never in args',
   saved.configured === true &&
-  ['.claude.json', '.gemini/settings.json', '.qwen/settings.json', '.cursor/mcp.json'].every((f) => {
+  ['.claude.json', '.gemini/settings.json', '.qwen/settings.json', '.cursor/mcp.json',
+   '.gemini/config/mcp_config.json'].every((f) => {
     const m = cfgFor(f).meshy
     return m && m.env?.MESHY_API_KEY === 'msy_abcdef0123456789' &&
       !JSON.stringify(m.args).includes('msy_')
@@ -335,7 +360,7 @@ ok('the status hint identifies the key without exposing it',
   !saved.hint.includes('msy_abcdef0123456789'))
 ok('clearing the key removes the server again, it is not left stale',
   setMeshyKey('', HOME).configured === false && !cfgFor('.claude.json').meshy &&
-  !cfgFor('.gemini/settings.json').meshy)
+  !cfgFor('.gemini/settings.json').meshy && !cfgFor('.gemini/config/mcp_config.json').meshy)
 
 // --- Archify: the whole toolkit, not just render --------------------------- //
 // Everything in the artifacts people actually want -- guided views, the summary
@@ -411,8 +436,13 @@ ok('the tracker chain is healthy on a fresh deploy, checked link by link',
 ok('the health check LAUNCHES the registered command, it does not just stat it',
   okHealth.serverRuns === true && okHealth.toolCount >= 8)
 ok('every agent that can carry the tracker is wired',
-  ['claude-code', 'codex', 'gemini', 'qwen', 'cursor']
+  ['claude-code', 'codex', 'gemini', 'qwen', 'cursor', 'antigravity']
     .every((id) => okHealth.agents.find((a) => a.id === id)?.registered === true))
+// Antigravity used to be a slash on Gemini's row, so a green banner said nothing
+// about it either way. It reports on its own file now, or it reports nothing.
+ok('the panel reports Antigravity separately, against its own config file',
+  okHealth.agents.find((a) => a.id === 'antigravity')?.configPath.endsWith('mcp_config.json') === true &&
+  okHealth.agents.find((a) => a.id === 'gemini')?.label === 'Gemini CLI')
 
 // Claude Code owns ~/.claude.json and rewrites it on its own schedule, so our
 // entry can go missing through nobody's fault. That is the one failure the
@@ -428,6 +458,22 @@ const repaired = await trackerHealth(tracked, HOME)
 ok('Repair writes it back and the chain reports healthy again',
   repaired.ok === true && repaired.agents.find((a) => a.id === 'claude-code').registered === true &&
   JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8')).mcpServers.other)
+
+// One agent unwired while the others work is the failure that hid for months:
+// the panel stayed green off the agents that DID update the board, so "it works
+// in Claude and never in Antigravity" had nothing to show for it. It has to be
+// named, and it has to name the right one.
+const agPath = join(HOME, '.gemini/config/mcp_config.json')
+const agSaved = JSON.parse(readFileSync(agPath, 'utf8'))
+const agMinus = JSON.parse(JSON.stringify(agSaved))
+delete agMinus.mcpServers.planide
+writeFileSync(agPath, JSON.stringify(agMinus))
+const oneDown = await trackerHealth(tracked, HOME)
+ok('one installed-but-unwired agent is named, not hidden behind the ones that work',
+  oneDown.ok === false && oneDown.problem?.includes('Antigravity') === true)
+repairTrackerRegistration(HOME)
+ok('Repair wires that agent back too',
+  (await trackerHealth(tracked, HOME)).ok === true)
 
 // --- the agent-description budget: one roster, never two ------------------- //
 // PulsarIDE's bundle IS ThePunisher-Agent's roster. Someone running that
@@ -645,6 +691,113 @@ writeFileSync(join(HOME8, '.config/opencode/opencode.json'), jsonc)
 deployAgentBundle({ home: HOME8, resourcesPath: res, force: true, provisionPyEnv: false })
 ok('a config with comments is left exactly as it was, not clobbered',
   readFileSync(join(HOME8, '.config/opencode/opencode.json'), 'utf8') === jsonc)
+
+// --- a plan reaches the board from EVERY agent, not just Claude Code ------- //
+// The assertions above prove each agent's config NAMES the server. That is not
+// the same as the tracker working there, which is what was actually reported.
+// So: take the launch out of each agent's own config file, run it exactly as
+// that agent would, call sync_plan over real MCP frames, and read the board
+// back. Anything that only ever worked in Claude Code fails right here.
+//
+// sync_plan is the todo list for every agent that is not Claude Code: the
+// TodoWrite hook is Claude Code's own, so everywhere else this call IS the
+// mechanism -- which is exactly why it has to be proven per agent.
+const launchFromConfig = (file) => {
+  const full = join(HOME, file)
+  if (file.endsWith('.toml')) {
+    const py = 'import tomllib,json;s=tomllib.load(open(' + JSON.stringify(full) +
+      ",'rb'))['mcp_servers']['planide'];print(json.dumps(s))"
+    const s = JSON.parse(execSync('python3 -c ' + JSON.stringify(py)).toString())
+    return { command: s.command, args: s.args, env: s.env }
+  }
+  const cfg = JSON.parse(readFileSync(full, 'utf8'))
+  if (cfg.mcp?.planide) { // opencode: one command array, env under `environment`
+    const [command, ...args] = cfg.mcp.planide.command
+    return { command, args, env: cfg.mcp.planide.environment }
+  }
+  const srv = cfg.mcpServers.planide
+  return { command: srv.command, args: srv.args, env: srv.env }
+}
+
+/** Drive a planide server the way an agent does, and return the tool result. */
+const callTool = (launch, name, args) =>
+  new Promise((resolve) => {
+    const child = spawn(launch.command, launch.args, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ...(launch.env ?? {}) }
+    })
+    let out = '', err = ''
+    child.stdout.on('data', (d) => (out += d))
+    child.stderr.on('data', (d) => (err += d))
+    child.on('error', (e) => resolve({ error: String(e) }))
+    child.on('close', () => {
+      const replies = out.split('\n').filter(Boolean).flatMap((l) => {
+        try { return [JSON.parse(l)] } catch { return [] }
+      })
+      resolve({ reply: replies.find((r) => r.id === 2), stderr: err })
+    })
+    child.stdin.write(JSON.stringify({
+      jsonrpc: '2.0', id: 1, method: 'initialize',
+      params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 't', version: '1' } }
+    }) + '\n')
+    child.stdin.write(JSON.stringify({
+      jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name, arguments: args }
+    }) + '\n')
+    child.stdin.end()
+    setTimeout(() => child.kill(), 20000).unref?.()
+  })
+
+const AGENT_CONFIGS = [
+  ['Claude Code', '.claude.json'],
+  ['Codex CLI', '.codex/config.toml'],
+  ['Gemini CLI', '.gemini/settings.json'],
+  ['Antigravity', '.gemini/config/mcp_config.json'],
+  ['Qwen Code', '.qwen/settings.json'],
+  ['Cursor', '.cursor/mcp.json'],
+  ['opencode', '.config/opencode/opencode.json']
+]
+
+const planProject = join(work, 'plan-e2e'); mkdirSync(planProject, { recursive: true })
+const boardItems = () => {
+  const f = join(planProject, '.planide/state.json')
+  return existsSync(f) ? (JSON.parse(readFileSync(f, 'utf8')).items ?? []) : []
+}
+const titled = (t) => boardItems().find((i) => i.title === t)
+
+for (const [label, file] of AGENT_CONFIGS) {
+  const step = `step from ${label}`
+  // A config this agent never got is the exact shape of the Antigravity bug, so
+  // it has to read as a failed check for that agent -- not as a thrown error
+  // that takes the whole suite down and says nothing about which agent broke.
+  let res
+  try {
+    res = await callTool(launchFromConfig(file), 'sync_plan', {
+      project: planProject,
+      todos: [{ content: step, status: 'in_progress' }],
+      agent: label
+    })
+  } catch (e) {
+    res = { error: `no usable planide launch in ${file}: ${e.message}` }
+  }
+  ok(`${label}: a plan syncs to the board through its own registered launch`,
+    !res.error && res.reply?.result && !res.reply.result.isError && titled(step)?.status === 'wip')
+}
+
+// The same board, written by seven different agents' launches: one project, one
+// plan, no per-agent duplicates. That is the property a shared tracker needs.
+ok('all seven agents wrote to the one board, each step once',
+  boardItems().length === AGENT_CONFIGS.length &&
+  new Set(boardItems().map((i) => i.title)).size === AGENT_CONFIGS.length)
+
+// Re-sending a revised plan must move a step, never stack a second copy of it.
+const revised = await callTool(launchFromConfig('.codex/config.toml'), 'sync_plan', {
+  project: planProject,
+  todos: [{ content: 'step from Codex CLI', status: 'completed' }],
+  agent: 'Codex CLI'
+})
+ok('a revised plan moves the step it already knows instead of duplicating it',
+  !revised.error && titled('step from Codex CLI')?.status === 'works' &&
+  boardItems().filter((i) => i.title === 'step from Codex CLI').length === 1)
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

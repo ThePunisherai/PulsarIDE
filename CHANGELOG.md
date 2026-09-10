@@ -6,6 +6,25 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.67.0] - 2026-09-10
+
+### What's fixed
+- **Antigravity never had the tracker at all.** It shares `~/.gemini` with Gemini
+  CLI but not its settings file — the IDE, the `agy` CLI and the SDK read
+  `~/.gemini/config/mcp_config.json`, which we never wrote. Every `planide` and
+  `pulsar-tools` tool was simply absent there. Now written, older
+  `~/.gemini/antigravity-cli` layout included.
+- **The health banner stayed green while one agent was broken.** Antigravity was
+  folded into Gemini's row, so it could not report on itself. It has its own row
+  now, and any tool that is installed but unwired is named in the banner instead
+  of hidden behind the ones that work.
+
+### What's new
+- **A plan is proven to reach the board from all seven agents.** The test suite
+  now takes the launch command out of each agent's own config file, runs it, and
+  syncs a real plan — Claude Code, Codex, Gemini CLI, Antigravity, Qwen Code,
+  Cursor and opencode. Anything that only worked in Claude Code fails the build.
+
 ## [0.66.0] - 2026-09-10
 
 ### What's fixed

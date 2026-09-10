@@ -1167,7 +1167,46 @@ function registerPlanideMcpQwen(home: string): boolean {
   return registerPlanideMcpSettingsJson(join(home, '.qwen', 'settings.json'), home)
 }
 
-/** The shared writer for both: only our own keys are touched. */
+/**
+ * Antigravity does NOT read `~/.gemini/settings.json`.
+ *
+ * It shares the `~/.gemini` directory with Gemini CLI, which is exactly why
+ * this was wrong for so long: registering the Gemini CLI settings file looked
+ * like it covered Antigravity too, and it never did. Antigravity keeps its own
+ * MCP config -- the 2.0 IDE, the `agy` CLI and the SDK all read one central
+ * `~/.gemini/config/mcp_config.json` (antigravity.google/docs/cli/mcp). Same
+ * top-level `mcpServers` map, different file. So every planide/pulsar-tools
+ * tool was simply absent in Antigravity: not failing, not registered.
+ *
+ * That it is under `~/.gemini/config/` is corroborated by where Antigravity's
+ * own Skills live -- `~/.gemini/config/skills/<name>/SKILL.md`, which
+ * deployAntigravitySkill already writes and which does work. The skill landed;
+ * the tools never did.
+ *
+ * Pre-migration installs read `~/.gemini/antigravity-cli/mcp_config.json`
+ * instead (google-antigravity/antigravity-cli#60, which reports MCP servers
+ * loading from there and being ignored at project scope). Written only when
+ * that directory already exists, so a machine that never had the older layout
+ * does not gain a stray directory -- the same rule deployCursorRule follows for
+ * `~/.cursor`.
+ *
+ * Project scope is deliberately not written: per that same issue a project-local
+ * `mcp_config.json` is read and then silently discarded, so writing one would
+ * look like wiring and do nothing.
+ */
+function registerPlanideMcpAntigravity(home: string): boolean {
+  let wrote = registerPlanideMcpSettingsJson(
+    join(home, '.gemini', 'config', 'mcp_config.json'),
+    home
+  )
+  const legacyDir = join(home, '.gemini', 'antigravity-cli')
+  if (existsSync(legacyDir)) {
+    wrote = registerPlanideMcpSettingsJson(join(legacyDir, 'mcp_config.json'), home) || wrote
+  }
+  return wrote
+}
+
+/** The shared writer for all of them: only our own keys are touched. */
 function registerPlanideMcpSettingsJson(path: string, home: string): boolean {
   try {
     let config: Record<string, unknown> = {}
@@ -1626,8 +1665,14 @@ function planideRegisteredIn(path: string): boolean {
     if (!existsSync(path)) return false
     const text = readFileSync(path, 'utf8')
     if (path.endsWith('.toml')) return /\[mcp_servers\.planide\]/.test(text)
-    const config = JSON.parse(text || '{}') as { mcpServers?: Record<string, unknown> }
-    return Boolean(config.mcpServers && config.mcpServers.planide)
+    const config = JSON.parse(text || '{}') as {
+      mcpServers?: Record<string, unknown>
+      mcp?: Record<string, unknown>
+    }
+    // opencode nests its servers under `mcp`; everyone else uses `mcpServers`.
+    // Checking only the latter would call a correctly-wired opencode unwired,
+    // which now raises a banner rather than being merely cosmetic.
+    return Boolean(config.mcpServers?.planide || config.mcp?.planide)
   } catch {
     return false
   }
@@ -1723,9 +1768,21 @@ export async function trackerHealth(
   const agents: TrackerAgentWiring[] = [
     { id: 'claude-code', label: 'Claude Code', configPath: join(home, '.claude.json') },
     { id: 'codex', label: 'Codex CLI', configPath: join(home, '.codex', 'config.toml') },
-    { id: 'gemini', label: 'Gemini CLI / Antigravity', configPath: join(home, '.gemini', 'settings.json') },
+    { id: 'gemini', label: 'Gemini CLI', configPath: join(home, '.gemini', 'settings.json') },
+    // Its own row, not a slash on Gemini's. Sharing ~/.gemini made one look like
+    // both, and that is precisely how Antigravity went unwired without showing it.
+    {
+      id: 'antigravity',
+      label: 'Antigravity',
+      configPath: join(home, '.gemini', 'config', 'mcp_config.json')
+    },
     { id: 'qwen', label: 'Qwen Code', configPath: join(home, '.qwen', 'settings.json') },
-    { id: 'cursor', label: 'Cursor', configPath: join(home, '.cursor', 'mcp.json') }
+    { id: 'cursor', label: 'Cursor', configPath: join(home, '.cursor', 'mcp.json') },
+    {
+      id: 'opencode',
+      label: 'opencode',
+      configPath: join(home, '.config', 'opencode', 'opencode.json')
+    }
   ].map((a) => ({
     ...a,
     configExists: existsSync(a.configPath),
@@ -1767,6 +1824,18 @@ export async function trackerHealth(
     problem = 'Claude Code has a config but no planide entry -- it writes ~/.claude.json itself, so it can drop ours. Use Repair.'
   } else if (boardWritable === false) {
     problem = 'The board directory could not be written. Check permissions on the project folder.'
+  } else {
+    // A tool that is on this machine but carries no planide entry. Reported last,
+    // because the links above break the tracker everywhere while this breaks it
+    // in one agent -- but it must be reported, because "some agents update the
+    // board and one never does" is otherwise invisible: the panel stayed green
+    // off the agents that did work. Antigravity was exactly that for months.
+    const unwired = agents.filter((a) => a.configExists && !a.registered)
+    if (unwired.length) {
+      problem =
+        `${unwired.map((a) => a.label).join(', ')} ${unwired.length > 1 ? 'are' : 'is'} installed ` +
+        'but the planide server is not in its config, so the board never moves there. Use Repair.'
+    }
   }
 
   return {
@@ -1880,6 +1949,7 @@ function registerTrackerForAllAgents(home: string): boolean {
   registerPlanideMcpCursor(home)
   const gemini = registerPlanideMcpGemini(home)
   const qwen = registerPlanideMcpQwen(home)
+  const antigravity = registerPlanideMcpAntigravity(home)
   const opencode = registerPlanideMcpOpenCode(home)
   const block = mainSessionBlock(home)
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
@@ -1896,7 +1966,7 @@ function registerTrackerForAllAgents(home: string): boolean {
   mergeOpenCodeRules(home, block)
   // Antigravity's own native surface, on top of the shared GEMINI.md block.
   deployAntigravitySkill(home, block)
-  return claude || codex || gemini || qwen || opencode
+  return claude || codex || gemini || qwen || antigravity || opencode
 }
 
 /**
