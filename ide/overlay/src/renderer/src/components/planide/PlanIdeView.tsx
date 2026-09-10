@@ -373,15 +373,26 @@ function ItemBadges({ item }: { item: PlanIdeItem }): React.JSX.Element | null {
         <Lock size={8} /> PROTECTED
       </span>
     )
-  if (item.verified)
+  // Green is reserved for YOUR confirmation. An agent confirming its own work
+  // is a claim, and it used to render green with the agent's name -- which reads
+  // as checked at a glance, exactly when it has not been. It is amber now, in
+  // the same words the rollup counts it with.
+  if (item.verified && !item.verified_by)
     bits.push(
       <span
         key="v"
         className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-px text-[9px] font-bold tracking-wide text-emerald-500"
       >
-        {/* An agent's confirmation is still green -- work landed -- but it says
-            whose it is, because that is what makes declining it meaningful. */}
-        <ShieldCheck size={8} /> {item.verified_by ? `CONFIRMED · ${item.verified_by}` : 'CONFIRMED'}
+        <ShieldCheck size={8} /> CONFIRMED
+      </span>
+    )
+  else if (item.verified && item.verified_by)
+    bits.push(
+      <span
+        key="v"
+        className="rounded-full bg-amber-500/15 px-1.5 py-px text-[9px] font-semibold text-amber-500"
+      >
+        claimed · {item.verified_by}
       </span>
     )
   else if (item.claimed_by && (item.status === 'works' || item.status === 'done'))

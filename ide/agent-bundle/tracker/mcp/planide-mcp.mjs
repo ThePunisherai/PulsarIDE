@@ -490,7 +490,7 @@ const TOOLS = [
   {
     name: 'set_item',
     description:
-      "Move an item as the work really changes: 'wip' when you start, 'works' when it works, 'done' when it is finished and you are not coming back to it, 'broken' when it fails. Do not leave finished work sitting in 'works' -- 'works' means it functions but is still in play, 'done' means closed out, and the board shows them in different columns. Reporting 'works' or 'done' confirms the item under your name; the user can decline it. Cannot protect an item -- that stays the user's.",
+      "Move an item as the work really changes: 'wip' when you start, 'works' when it works, 'done' when it is finished and you are not coming back to it, 'broken' when it fails. Do not leave finished work sitting in 'works' -- 'works' means it functions but is still in play, 'done' means closed out, and the board shows them in different columns. Reporting 'works' or 'done' records it as YOUR claim, under your name -- it is not the user's confirmation and does not count as one on the board. Only the user checking it themselves does that. Cannot protect an item -- that stays the user's.",
     inputSchema: {
       type: 'object',
       properties: P({

@@ -43,7 +43,12 @@ export type Item = {
   updated_at: string
   /** Who reported it (agent name); empty when you entered it yourself. */
   claimed_by: string
-  /** You confirmed it works. Never set by an agent. */
+  /**
+   * Someone confirmed it works. Read this WITH `verified_by`, never alone:
+   * an agent reporting `works`/`done` sets it too, and treating that as your
+   * confirmation is how a board ends up claiming you checked 63 things you
+   * never looked at.
+   */
   verified: boolean
   verified_at: string
   /** Who confirmed it: '' = you, otherwise the agent that reported it working. */
@@ -511,8 +516,22 @@ export function progress(state: ProjectState): Progress {
   // Two different truths, never merged into one number:
   //   done      -- items whose status says they work (often an agent's claim)
   //   confirmed -- items YOU confirmed actually work
+  //
+  // `verified` alone is not that second truth, and reading it as if it were is
+  // a bug this board existed to prevent. An agent reporting `works` or `done`
+  // sets `verified` and stamps its own name in `verified_by` -- by design, so
+  // the card can say "claimed by X". The rollup then counted those as yours,
+  // and the header says "confirmed by you, not claimed by an agent". A run
+  // where one agent closed out 63 items showed 63 confirmed BY YOU and 0
+  // claimed, which is the exact opposite of what happened, and it also fed
+  // health, so self-reported work scored as verified work.
+  //
+  // `verified_by === ''` is what actually means you: set_verified writes your
+  // confirmation with no name, every agent path writes a name.
   const working = items.filter((i) => DONE_ITEM.includes(i.status))
-  const confirmed = working.filter((i) => i.verified).length
+  const confirmed = working.filter((i) => i.verified && !i.verified_by).length
+  // Everything else that says it works is somebody's claim, not your check --
+  // whether nobody confirmed it or an agent confirmed itself.
   const unconfirmed = working.length - confirmed
   const confirmedPercent = total ? Math.round((100 * confirmed) / total) : 0
 

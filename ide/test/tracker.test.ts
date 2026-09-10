@@ -70,6 +70,36 @@ ok('regression detected', store.regressions(st).length === 1)
 console.log('== progress ==')
 const p = store.progress(st)
 ok('claimed vs confirmed are separate', p.percent !== p.confirmed_percent || p.confirmed === 0)
+
+// An agent reporting `works`/`done` sets `verified` and stamps its own name in
+// `verified_by`. Counting that as YOUR confirmation is what made a real board
+// read "63 confirmed by you, 0 claimed" after a single agent run closed out 63
+// items the user had never looked at -- and it fed health too, so self-reported
+// work scored as verified work. `verified_by === ''` is the only thing that
+// means you.
+const trustDir = mkdtempSync(join(tmpdir(), 'pulsar-trust-'))
+const trust = store.loadState(trustDir)
+const mine = store.addItem(trust, { title: 'I checked this one', status: 'works' })
+const theirs = store.addItem(trust, {
+  title: 'An agent closed this one',
+  status: 'done',
+  claimedBy: 'Pulse-Tracker'
+})
+store.verifyItem(trust, mine.id, true) // you: verifyItem always clears verified_by
+// An agent's confirmation cannot come through verifyItem -- that path is yours
+// by construction. It arrives as the MCP server writes it into state.json, so
+// that is what is reproduced here rather than a shape no real run produces.
+const agentItem = trust.items.find((i) => i.id === theirs.id)!
+agentItem.verified = true
+agentItem.verified_at = new Date().toISOString()
+agentItem.verified_by = 'Pulse-Tracker'
+const tp = store.progress(trust)
+ok('an agent confirming its own work is not counted as confirmed by you',
+  tp.confirmed === 1 && trust.items.find((i) => i.id === theirs.id)?.verified === true)
+ok('it lands in the claimed-unchecked count instead, where the tile reads it',
+  tp.unconfirmed === 1)
+ok('and health is scored on your confirmations, not on self-reported work',
+  tp.confirmed_percent === 50)
 ok('regressed counted', p.regressed === 1)
 ok('protected counted', p.protected === 1)
 ok('open counted (todo)', p.open === 1)

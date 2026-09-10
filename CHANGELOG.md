@@ -6,6 +6,20 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.71.0] - 2026-09-10
+
+### What's fixed
+- **The board said you had confirmed work you never looked at.** An agent
+  reporting `works` or `done` sets the confirmed flag under its own name, but the
+  totals counted that as yours — so a run where one agent closed out 63 items
+  showed "63 confirmed by you, 0 claimed by an agent", the exact opposite of what
+  happened. Only your own check counts as confirmed now; an agent's counts as
+  claimed, which is what the CLAIMED tile was always meant to show.
+- **Health was scored on self-reported work.** It runs off your confirmations
+  now, which is what it always said it measured.
+- **Green is yours again.** A card an agent confirmed shows an amber
+  `claimed · <agent>` badge instead of a green CONFIRMED one.
+
 ## [0.70.0] - 2026-09-10
 
 ### What's new
