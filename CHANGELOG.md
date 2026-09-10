@@ -6,6 +6,21 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.74.0] - 2026-09-10
+
+### What's fixed
+- **Archify's "Open" did nothing.** It was a `file://` link, which the Electron
+  renderer refuses to navigate. It now opens the diagram in a real window, the
+  same way the Brain Graph already did.
+- **Meshy asked for its key in two places.** The key field sat in the Archify tab
+  as well as on Toolkit; Archify no longer shows it — Toolkit owns it.
+- **Toolkit's ECC switch looked broken.** Turning ECC on only wrote a preference
+  and waited for the next launch. It now fetches immediately.
+
+### What's new
+- **Pick the folder Toolkit checks.** A native folder picker, so you can point
+  the checks at the project you mean instead of only the active worktree.
+
 ## [0.73.0] - 2026-09-10
 
 ### What's fixed

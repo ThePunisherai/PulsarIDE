@@ -15,14 +15,16 @@
  * has been checked, not assumed.
  */
 import React, { useCallback, useEffect, useState } from 'react'
-import { Check, Plug, RefreshCw, Wrench, X } from 'lucide-react'
+import { Check, Folder, Plug, RefreshCw, Wrench, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { useActiveWorktree } from '@/store/selectors'
 import {
+  eccInstall,
   eccSetEnabled,
   eccStatus,
+  pickFolder,
   trackerHealth,
   trackerRepair,
   withVisibleSpin,
@@ -75,6 +77,10 @@ function Card({
 export default function PulseToolkitPage(): React.JSX.Element {
   const worktree = useActiveWorktree()
   const worktreePath = worktree?.path ?? ''
+  // A folder the user picked explicitly wins over the active worktree, so the
+  // Toolkit can be pointed at the project whose agents you want checked.
+  const [chosen, setChosen] = useState<string>('')
+  const folder = chosen || worktreePath
   const [health, setHealth] = useState<TrackerHealth | null>(null)
   const [ecc, setEcc] = useState<EccStatus | null>(null)
   const [busy, setBusy] = useState(false)
@@ -82,10 +88,19 @@ export default function PulseToolkitPage(): React.JSX.Element {
   const load = useCallback(async () => {
     // Both are best-effort: one backend hiccup must not blank the whole page.
     await Promise.allSettled([
-      trackerHealth(worktreePath || undefined).then(setHealth),
+      trackerHealth(folder || undefined).then(setHealth),
       eccStatus().then(setEcc)
     ])
-  }, [worktreePath])
+  }, [folder])
+
+  const choose = useCallback(
+    () =>
+      withVisibleSpin(setBusy, async () => {
+        const picked = await pickFolder()
+        if (picked) setChosen(picked)
+      }),
+    []
+  )
 
   useEffect(() => {
     void load()
@@ -108,7 +123,9 @@ export default function PulseToolkitPage(): React.JSX.Element {
     (enabled: boolean) =>
       withVisibleSpin(setBusy, async () => {
         await eccSetEnabled(enabled)
-        setEcc(await eccStatus())
+        // Turning it on also fetches it now. Without this the button only wrote
+        // a preference and nothing visibly happened until the IDE restarted.
+        setEcc(enabled ? await eccInstall() : await eccStatus())
       }),
     []
   )
@@ -139,6 +156,21 @@ export default function PulseToolkitPage(): React.JSX.Element {
 
       <div className="min-h-0 flex-1 space-y-3 p-6">
         <div className="mx-auto w-full max-w-3xl space-y-3">
+          {/* --- which project the checks below run against ------------------ */}
+          <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-card/40 px-3 py-2">
+            <Folder size={14} className="shrink-0 text-primary/80" strokeWidth={1.75} />
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] text-muted-foreground">
+                {translate('planide.toolkit.folderLabel', 'Checking this project')}
+              </div>
+              <div className="truncate font-mono text-[11px]">
+                {folder || translate('planide.toolkit.noFolder', 'no project open')}
+              </div>
+            </div>
+            <Button size="sm" variant="outline" className="h-7 text-[11px]" disabled={busy} onClick={() => void choose()}>
+              {translate('planide.toolkit.choose', 'Choose folder…')}
+            </Button>
+          </div>
           {/* --- the tracker server, actually launched ----------------------- */}
           <Card
             title={translate('planide.toolkit.tracker', 'Tracker server (planide)')}

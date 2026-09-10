@@ -22,6 +22,7 @@ import {
   archifyStatus,
   meshySetKey,
   meshyStatus,
+  openGraphWindow,
   withVisibleSpin,
   type ArchifyDiagram,
   type ArchifyStatus,
@@ -189,7 +190,8 @@ export function ArchifySidebar({ worktreePath }: { worktreePath: string }): Reac
 
   return (
     <div className="flex flex-col gap-3">
-      <MeshyKey />
+      {/* Meshy's key lives on the Toolkit page now; it used to also sit here,
+          which is why it looked like it was set up twice. */}
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="text-[12px] font-medium">
@@ -252,15 +254,14 @@ export function ArchifySidebar({ worktreePath }: { worktreePath: string }): Reac
                     : translate('planide.archify.render', 'Render')}
                 </Button>
                 {d.html ? (
-                  <a
-                    href={`file://${d.html}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => void openGraphWindow(d.html as string, d.name)}
                     className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] text-muted-foreground hover:text-foreground"
                   >
                     <ExternalLink size={11} />
                     {translate('planide.archify.open', 'Open')}
-                  </a>
+                  </button>
                 ) : null}
               </div>
             )

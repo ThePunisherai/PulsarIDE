@@ -11,7 +11,7 @@
  */
 
 import { existsSync } from 'node:fs'
-import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import * as backup from './backup'
 import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
@@ -25,6 +25,7 @@ import {
   deployCursorRule,
   deployProjectAgentsMd,
   eccStatus,
+  installEccNow,
   meshyStatus,
   repairTrackerRegistration,
   setEccEnabled,
@@ -223,12 +224,25 @@ export function registerPlanIdeIpc(): void {
   // Why the board is not being updated, checked link by link on this machine
   // rather than guessed at, plus the one-call repair for the link that breaks
   // on its own: the agent CLIs own these config files and rewrite them.
+  // A native folder picker, so the Toolkit page can be pointed at the project
+  // whose agents you actually want checked, instead of only the active worktree.
+  // Returns the chosen absolute path, or null when the dialog is cancelled.
+  on('planide:pick-folder', async () => {
+    const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? undefined
+    const res = await dialog.showOpenDialog(win as BrowserWindow, {
+      properties: ['openDirectory', 'createDirectory']
+    })
+    return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
+  })
   on('planide:tracker-health', (path?: string) => trackerHealth(path))
   on('planide:tracker-repair', () => repairTrackerRegistration())
   // ECC is installed through its own installer and costs real always-on
   // context (~40.6k tokens, measured), so it is a switch, not a silent default.
   on('planide:ecc-status', () => eccStatus())
   on('planide:ecc-set-enabled', (enabled: boolean) => setEccEnabled(enabled))
+  // Fetching is its own action, so turning ECC on in the Toolkit installs it now
+  // instead of quietly waiting for the next launch.
+  on('planide:ecc-install', () => installEccNow())
   // Meshy's 3D generation is a paid API, so the key is the whole gate: with one
   // its MCP server is registered for every agent, without one it is removed.
   on('planide:meshy-status', () => meshyStatus())

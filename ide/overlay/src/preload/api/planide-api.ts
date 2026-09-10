@@ -55,6 +55,7 @@ export type PlanIdeApi = {
   // project memory (graphify graph + Obsidian note status)
   eccStatus: <T>() => Call<T>
   eccSetEnabled: <T>(enabled: boolean) => Call<T>
+  eccInstall: <T>() => Call<T>
   meshyStatus: <T>() => Call<T>
   meshySetKey: <T>(key: string) => Call<T>
   trackerHealth: <T>(path?: string) => Call<T>
@@ -65,6 +66,7 @@ export type PlanIdeApi = {
   graphPicture: <T>(path: string) => Call<T>
   reindexGraph: <T>(path: string) => Call<T>
   openGraphWindow: <T>(htmlPath: string, title?: string) => Call<T>
+  pickFolder: <T>() => Call<T>
   archifyStatus: <T>(path: string) => Call<T>
   archifyRender: <T>(path: string, name: string, type: string) => Call<T>
 

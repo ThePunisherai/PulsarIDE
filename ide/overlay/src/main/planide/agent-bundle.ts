@@ -2247,8 +2247,11 @@ export function setEccEnabled(enabled: boolean, home: string = homedir()): boole
     settings.installEcc = enabled
     mkdirSync(configDir(home), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(settings, null, 2))
-    // Turning it back on clears the "already tried" marker, so the next launch
-    // really does try again instead of remembering an old refusal.
+    // Turning it back on clears the "already tried" marker so a retry is
+    // possible. It deliberately does NOT fetch here: saving a preference and
+    // reaching the network are different actions, and folding them together
+    // made this function fire a real clone from the test suite. Callers that
+    // want the fetch now call installEccNow().
     if (enabled) rmSync(join(configDir(home), ECC_STATE), { force: true })
     return true
   } catch {
@@ -2279,6 +2282,18 @@ export function eccStatus(home: string = homedir()): EccStatus {
     alwaysOnTokensIfInstalled: 40637,
     alwaysOnTokens: 0
   }
+}
+
+/**
+ * Fetch ECC now, on purpose.
+ *
+ * Split out from setEccEnabled so the preference write stays pure: the Toolkit
+ * calls this straight after turning ECC on, which is what makes the button do
+ * something without waiting for the next launch.
+ */
+export function installEccNow(home: string = homedir()): EccStatus {
+  ensureEcc(home)
+  return eccStatus(home)
 }
 
 function ensureEcc(home: string): boolean {

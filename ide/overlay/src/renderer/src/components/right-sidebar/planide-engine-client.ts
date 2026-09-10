@@ -381,6 +381,11 @@ export function eccSetEnabled(enabled: boolean): Promise<boolean> {
   return call<boolean>('eccSetEnabled', enabled)
 }
 
+/** Fetch ECC now (after enabling it), rather than waiting for the next launch. */
+export function eccInstall(): Promise<EccStatus> {
+  return call<EccStatus>('eccInstall')
+}
+
 /** Write the planide MCP entry back into every agent's own config. */
 export function trackerRepair(): Promise<boolean> {
   return call<boolean>('trackerRepair')
@@ -531,6 +536,11 @@ export function graphPicture(path: string): Promise<GraphPicture> {
 /** Open graphify's own graph.html in a window inside the IDE. */
 export function openGraphWindow(htmlPath: string, title?: string): Promise<{ opened: boolean }> {
   return call<{ opened: boolean }>('openGraphWindow', htmlPath, title)
+}
+
+/** Native folder picker. Resolves to the chosen path, or null if cancelled. */
+export function pickFolder(): Promise<string | null> {
+  return call<string | null>('pickFolder')
 }
 
 // --------------------------------------------------------------------------- history

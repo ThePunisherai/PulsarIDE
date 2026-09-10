@@ -56,6 +56,7 @@ export const planIdeApi = {
   // project memory (graphify graph + Obsidian note status)
   eccStatus: <T>() => call<T>('planide:ecc-status'),
   eccSetEnabled: <T>(enabled: boolean) => call<T>('planide:ecc-set-enabled', enabled),
+  eccInstall: <T>() => call<T>('planide:ecc-install'),
   meshyStatus: <T>() => call<T>('planide:meshy-status'),
   meshySetKey: <T>(key: string) => call<T>('planide:meshy-set-key', key),
   trackerHealth: <T>(path?: string) => call<T>('planide:tracker-health', path),
@@ -67,6 +68,7 @@ export const planIdeApi = {
   reindexGraph: <T>(path: string) => call<T>('planide:reindex-graph', path),
   openGraphWindow: <T>(htmlPath: string, title?: string) =>
     call<T>('planide:open-graph-window', htmlPath, title),
+  pickFolder: <T>() => call<T>('planide:pick-folder'),
   archifyStatus: <T>(path: string) => call<T>('planide:archify-status', path),
   archifyRender: <T>(path: string, name: string, type: string) =>
     call<T>('planide:archify-render', path, name, type),
