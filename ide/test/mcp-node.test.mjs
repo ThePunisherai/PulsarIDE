@@ -218,6 +218,18 @@ const moved = afterSneak.items.find((i) => i.id === first.id)
 ok('reporting works confirms the item', moved.verified === true)
 ok('the confirmation is attributed to the agent, never to you',
   moved.verified_by === 'Codex')
+// get_board's rollup must draw the same line the board is built on: an agent
+// confirming its own work is a claim, not your check. Otherwise an agent asking
+// "how far are we" reads back its own claims as confirmed, and the % the IDE
+// shows and the % the agent sees disagree.
+const boardAC = json(byId((await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(305, 'get_board', { project: proj })
+])).replies, 305))
+ok("get_board: an agent's own confirmation is not counted as confirmed by you",
+  boardAC.progress.confirmed === 0)
+ok('get_board: completion still counts the agent-done work, so % is not stuck at 0',
+  boardAC.progress.percent > 0)
 ok('set_item still cannot protect an item', moved.locked === false)
 ok('add_item cannot confirm or protect via a payload field',
   afterSneak.items.every((i) => (i.title !== 'Sneaky' || (i.verified === false && i.locked === false))))

@@ -157,13 +157,18 @@ function progress(state) {
   const items = state.items ?? []
   const counts = {}
   for (const s of ITEM_STATUSES) counts[s] = items.filter((i) => i.status === s).length
-  const confirmed = items.filter((i) => i.verified).length
-  const working = counts.works + counts.done
+  // Only YOUR confirmation counts as confirmed, never an agent's. set_item
+  // stamps verified_by with the agent's name when it reports works/done, so a
+  // bare `verified` check would read every agent claim as your check -- the
+  // exact split this board exists to keep. verified && no verified_by == you.
+  const workingItems = items.filter((i) => i.status === 'works' || i.status === 'done')
+  const working = workingItems.length
+  const confirmed = workingItems.filter((i) => i.verified && !i.verified_by).length
   return {
     total_items: items.length,
     counts,
     confirmed,
-    unconfirmed: items.filter((i) => (i.status === 'works' || i.status === 'done') && !i.verified).length,
+    unconfirmed: working - confirmed,
     open: counts.todo + counts.wip,
     broken: counts.broken,
     protected: items.filter((i) => i.locked).length,

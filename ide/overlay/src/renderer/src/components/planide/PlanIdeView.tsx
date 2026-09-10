@@ -152,20 +152,26 @@ function ConfirmedRing({
           />
         </svg>
         <span className="absolute inset-0 grid place-items-center text-[15px] font-semibold tabular-nums">
-          {progress.confirmed_percent}%
+          {progress.percent}%
         </span>
       </div>
+      {/* The headline is completion -- how far the board has moved -- not your
+          confirmations. A solo user driving agents confirms cards rarely, so a
+          ring wired to confirmed-percent sat at 0% with most of the board done
+          and read as "nothing works". The green arc and the two lines keep the
+          split honest: what the agents claim is not what you have checked. */}
       <div className="text-[11px] leading-tight">
-        <div className="font-medium text-emerald-500">
-          {progress.confirmed}/{progress.total_items}{' '}
-          {translate('planide.view.confirmedByYou', 'confirmed by you')}
+        <div className="font-medium text-foreground">
+          {progress.done}/{progress.total_items}{' '}
+          {translate('planide.view.doneLabel', 'done')}
         </div>
-        <div className="text-muted-foreground">
-          {translate('planide.view.notByAgent', 'checked by you, not claimed by an agent')}
+        <div className="text-emerald-500">
+          {progress.confirmed} {translate('planide.view.confirmedByYou', 'confirmed by you')}
         </div>
         {progress.unconfirmed > 0 && (
           <div className="mt-0.5 text-amber-500">
-            +{progress.unconfirmed} {translate('planide.view.claimedUnchecked', 'claimed, unchecked')}
+            {progress.unconfirmed}{' '}
+            {translate('planide.view.claimedUnchecked', 'claimed by agents, unchecked')}
           </div>
         )}
       </div>

@@ -399,11 +399,11 @@ export default function PlanIdePanel(): React.JSX.Element {
             actually checked anything. */}
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-[10px]">
-            <span className="text-emerald-500">
-              {p.confirmed}/{p.total_items}{' '}
-              {translate('planide.panel.confirmed', 'confirmed by you')}
+            <span className="text-foreground">
+              {p.done}/{p.total_items}{' '}
+              {translate('planide.panel.done', 'done')}
             </span>
-            <span className="font-mono text-emerald-500">{p.confirmed_percent}%</span>
+            <span className="font-mono text-foreground">{p.percent}%</span>
           </div>
           <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
             <div
@@ -415,12 +415,16 @@ export default function PlanIdePanel(): React.JSX.Element {
               style={{ width: `${p.confirmed_percent}%` }}
             />
           </div>
-          {p.unconfirmed > 0 && (
-            <div className="mt-1 text-[10px] text-amber-500/90">
-              {p.unconfirmed}{' '}
-              {translate('planide.panel.awaiting', 'reported working, awaiting your check')}
-            </div>
-          )}
+          <div className="mt-1 flex items-center justify-between text-[10px]">
+            <span className="text-emerald-500">
+              {p.confirmed} {translate('planide.panel.confirmed', 'confirmed by you')}
+            </span>
+            {p.unconfirmed > 0 && (
+              <span className="text-amber-500/90">
+                {p.unconfirmed} {translate('planide.panel.awaiting', 'claimed by agents')}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

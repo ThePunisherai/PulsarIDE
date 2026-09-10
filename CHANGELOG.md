@@ -6,6 +6,21 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.73.0] - 2026-09-10
+
+### What's fixed
+- **The big progress ring read 0% while most of the board was done.** v0.71.0
+  correctly stopped counting an agent's claim as your confirmation — but the
+  headline number was wired to *your confirmations*, so a solo user whose agents
+  do the work saw a permanent 0% even with 65 of 104 cards finished. The ring and
+  the sidebar bar now headline **completion** (how far the board has moved); the
+  green arc still shows the slice you've personally checked, and the amber shows
+  what agents claimed but you haven't. "How far are we" finally has an honest
+  answer on screen.
+- **An agent asking the board "how far are we" got a different number than the
+  IDE showed.** The MCP `get_board` rollup counted agent self-confirmations as
+  confirmed; it now draws the same line the IDE does, so the two agree.
+
 ## [0.72.0] - 2026-09-10
 
 ### What's new
