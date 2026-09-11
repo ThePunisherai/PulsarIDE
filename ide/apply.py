@@ -53,7 +53,7 @@ import sys
 # rule holds -- the only thing that clears a bump is a real boot on Windows. If
 # #185 comes back on this revision, pin straight back to 61e0100 and ship that
 # as a patch release, exactly as v0.55.1 did.
-PINNED_COMMIT = "7dd183d82dafb768bb2506d161438a6d0894fd53"  # 2026-09-09, upstream HEAD
+PINNED_COMMIT = "729491597f33031089148bc2fba41a99e0b95de7"  # 2026-09-11, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -449,18 +449,21 @@ EDITS: list[tuple[str, str, str, str]] = [
     # parity assertion in ui-state-schema-parity-checks.ts fails if the schema
     # cannot accept a value the type allows.
     (
-        "src/main/runtime/rpc/methods/client-ui-schemas.ts",
-        "const STATIC_RIGHT_SIDEBAR_TABS = [\n  'explorer',",
-        "const STATIC_RIGHT_SIDEBAR_TABS = [\n"
+        # Upstream 7294915 gutted client-ui-schemas.ts (244 lines -> 8) and moved
+        # these two schemas verbatim into the shared rpc-contract, where they are
+        # now exported rather than file-local. Same content, new home.
+        "src/shared/rpc-contract/client-ui-params.ts",
+        "export const STATIC_RIGHT_SIDEBAR_TABS = [\n  'explorer',",
+        "export const STATIC_RIGHT_SIDEBAR_TABS = [\n"
         "  // PlanIDE: the tracker and the two memory tabs are real sidebar tabs,\n"
         "  // so a client may persist any of them.\n"
         "  'planide',\n  'pulse-brain',\n  'pulse-obsidian',\n  'pulse-archify',\n  'explorer',",
         "the tracker is a valid persisted sidebar tab",
     ),
     (
-        "src/main/runtime/rpc/methods/client-ui-schemas.ts",
-        "const TopLevelViewSchema = z.enum([\n  'terminal',",
-        "const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker and the two full-page\n  // memory/design surfaces are top-level views.\n  'planide',\n  'pulse-brain',\n  'pulse-archify',\n  'pulse-toolkit',\n  'terminal',",
+        "src/shared/rpc-contract/client-ui-params.ts",
+        "export const TopLevelViewSchema = z.enum([\n  'terminal',",
+        "export const TopLevelViewSchema = z.enum([\n  // PlanIDE: the tracker and the two full-page\n  // memory/design surfaces are top-level views.\n  'planide',\n  'pulse-brain',\n  'pulse-archify',\n  'pulse-toolkit',\n  'terminal',",
         "the tracker is a valid persisted view",
     ),
     (

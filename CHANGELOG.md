@@ -6,6 +6,21 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.80.0] - 2026-09-11
+
+### What's new
+- **Upstream Orca is up to date** (`7dd183d` → `7294915`). Everything the IDE
+  adds still sits on top of it: all 64 anchored edits apply, nothing upstream
+  was removed, and re-applying changes nothing.
+
+### What's fixed
+- **Re-homed the two edits upstream moved.** Orca gutted
+  `client-ui-schemas.ts` (244 lines → 8) and moved its schemas into
+  `src/shared/rpc-contract/client-ui-params.ts`, where they are exported rather
+  than file-local. Those are the two that register the tracker and the Brain
+  Graph / Archify / Toolkit pages as real views — without them the app would
+  refuse to restore the tab you left open.
+
 ## [0.79.0] - 2026-09-11
 
 ### What's new
