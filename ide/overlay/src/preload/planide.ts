@@ -61,6 +61,7 @@ export const planIdeApi = {
   meshySetKey: <T>(key: string) => call<T>('planide:meshy-set-key', key),
   unrealStatus: <T>() => call<T>('planide:unreal-status'),
   unrealSetPath: <T>(path: string) => call<T>('planide:unreal-set-path', path),
+  unrealInstall: <T>(dir: string) => call<T>('planide:unreal-install', dir),
   trackerHealth: <T>(path?: string) => call<T>('planide:tracker-health', path),
   trackerRepair: <T>() => call<T>('planide:tracker-repair'),
   memoryStatus: <T>(path: string) => call<T>('planide:memory-status', path),

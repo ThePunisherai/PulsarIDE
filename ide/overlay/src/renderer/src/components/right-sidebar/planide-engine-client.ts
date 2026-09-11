@@ -380,6 +380,11 @@ export function unrealStatus(): Promise<UnrealStatus> {
 }
 
 /** Point at the clone, or pass '' to clear it and unregister the server. */
+/** Download the Unreal MCP server into `dir` and register it for every agent. */
+export function unrealInstall(dir: string): Promise<UnrealStatus> {
+  return call<UnrealStatus>('unrealInstall', dir)
+}
+
 export function unrealSetPath(path: string): Promise<UnrealStatus> {
   return call<UnrealStatus>('unrealSetPath', path)
 }

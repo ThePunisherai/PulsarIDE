@@ -6,6 +6,23 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.76.0] - 2026-09-11
+
+### What's fixed
+- **The Council never knew ECC existed.** ECC shipped, deployed, and was named in
+  the always-loaded instruction block — but not in the Council's own persona file.
+  A subagent runs on its persona, not on that block, so the one deciding what to
+  reach for had never heard of the 359 entries. It is in the persona now, for
+  Claude Code, Codex and Gemini CLI alike, with when to call `ecc_find` and when
+  to say it does not fit.
+- **The entry count was wrong.** The block claimed 354; counted on disk it is 359
+  (291 skills + 68 agents).
+
+### What's new
+- **Unreal Engine MCP installs itself.** Choose a folder and the IDE downloads the
+  server into it. It used to ask you to clone the repo first and then point at it —
+  the wrong half of the job to hand back.
+
 ## [0.75.0] - 2026-09-10
 
 ### What's new

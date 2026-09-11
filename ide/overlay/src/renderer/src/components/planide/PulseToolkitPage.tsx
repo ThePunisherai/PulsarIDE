@@ -27,6 +27,7 @@ import {
   pickFolder,
   trackerHealth,
   trackerRepair,
+  unrealInstall,
   unrealSetPath,
   unrealStatus,
   withVisibleSpin,
@@ -135,12 +136,14 @@ export default function PulseToolkitPage(): React.JSX.Element {
     []
   )
 
-  // Unreal's server is local: pick the clone, we check the file is really in it.
+  // You choose where it goes, the IDE downloads it there. Asking the user to
+  // clone a repo by hand for a feature the IDE offers was the wrong half of the
+  // job to hand back.
   const chooseUnreal = useCallback(
     () =>
       withVisibleSpin(setBusy, async () => {
         const picked = await pickFolder()
-        if (picked) setUnreal(await unrealSetPath(picked))
+        if (picked) setUnreal(await unrealInstall(picked))
       }),
     []
   )
@@ -289,7 +292,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
             title={translate('planide.toolkit.unreal', 'Unreal Engine')}
             subtitle={translate(
               'planide.toolkit.unrealSub',
-              'Drives a running Unreal editor, so it only does anything on a machine with Unreal installed. Clone flopperam/unreal-engine-mcp, then point at that folder.'
+              'Drives a running Unreal editor, so it only does anything on a machine with Unreal installed. Pick a folder and the IDE downloads the server into it.'
             )}
           >
             {unreal?.configured ? (
@@ -323,7 +326,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
             ) : (
               <Button size="sm" variant="outline" className="mt-2 h-7 text-[11px]" disabled={busy} onClick={() => void chooseUnreal()}>
                 <Folder size={12} className="mr-1" />
-                {translate('planide.toolkit.unrealChoose', 'Choose the unreal-engine-mcp folder…')}
+                {translate('planide.toolkit.unrealChoose', 'Choose a folder and install…')}
               </Button>
             )}
           </Card>

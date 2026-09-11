@@ -157,6 +157,21 @@ ok('existing ~/.claude.json content preserved (never clobbered)',
 ok('tracker instruction injected into agent bodies (Claude + Codex)',
   readFileSync(join(HOME, '.claude/agents/pulse-council.md'), 'utf8').includes('PulsarIDE built-in tracker') &&
   readFileSync(join(HOME, '.codex/agents/pulse-council.toml'), 'utf8').includes('PulsarIDE built-in tracker'))
+
+// ECC was on disk and named in the always-loaded CLAUDE.md/AGENTS.md block, but
+// NOT in the Council persona itself -- and a subagent runs on its own persona
+// file, not the user-level block. So Council, the one deciding what to reach
+// for, never learned ECC existed: "council doet niets met ECC", exactly as
+// reported. It has to be in the persona, in every format Council ships in.
+for (const [label, file] of [
+  ['Claude Code', '.claude/agents/pulse-council.md'],
+  ['Codex', '.codex/agents/pulse-council.toml'],
+  ['Gemini CLI', '.gemini/agents/pulse-council.md']
+]) {
+  const text = existsSync(join(HOME, file)) ? readFileSync(join(HOME, file), 'utf8') : ''
+  ok(`${label}: Council's own persona tells it ECC exists and how to call it`,
+    text.includes('ecc_find') && text.includes('ecc_read'))
+}
 // Codex: the MCP is registered as a real [mcp_servers.planide] table, pointing at
 // our script, and the user's existing config + AGENTS.md are preserved.
 const codexToml = readFileSync(join(HOME, '.codex/config.toml'), 'utf8')

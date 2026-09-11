@@ -1182,6 +1182,72 @@ export function setUnrealPath(path: string, home: string = homedir()): UnrealSta
   return unrealStatus(home)
 }
 
+const UNREAL_REPO = 'https://github.com/flopperam/unreal-engine-mcp'
+
+/**
+ * Download the Unreal MCP server into a folder you choose, then register it.
+ *
+ * The first version asked you to clone the repo yourself and then point at it,
+ * which is the wrong half of the job to hand back: picking a folder is a thing a
+ * file dialog does well, running `git clone` is not something a user should have
+ * to do for a feature the IDE offers. You choose where it goes; we put it there.
+ *
+ * It clones into a NAMED subfolder rather than straight into the folder you
+ * picked -- choosing Documents and finding it filled with a repo's contents is a
+ * surprise, and an unnamed clone is impossible to recognise again later.
+ *
+ * Already-present is a success, not an error: re-picking the same folder simply
+ * re-registers it, so this is safe to click twice.
+ */
+export async function installUnrealMcp(
+  destDir: string,
+  home: string = homedir()
+): Promise<UnrealStatus> {
+  const dest = String(destDir || '').trim()
+  if (!dest) return unrealStatus(home)
+  const target = join(dest, 'unreal-engine-mcp')
+  const server = join(target, 'Python', 'unreal_mcp_server_advanced.py')
+  if (existsSync(server)) return setUnrealPath(target, home)
+
+  try {
+    execFileSync('git', ['--version'], { stdio: 'ignore', timeout: 8000, windowsHide: true })
+  } catch {
+    return {
+      configured: false,
+      path: '',
+      ready: false,
+      problem: `git is not on PATH, so the server cannot be downloaded. Install git, or clone ${UNREAL_REPO} by hand and pick that folder.`
+    }
+  }
+
+  try {
+    mkdirSync(dest, { recursive: true })
+  } catch {
+    return { configured: false, path: '', ready: false, problem: `Cannot write to ${dest}.` }
+  }
+
+  const code = await new Promise<number>((resolve) => {
+    const child = spawn('git', ['clone', '--depth', '1', UNREAL_REPO, target], {
+      stdio: 'ignore',
+      windowsHide: true
+    })
+    child.on('error', () => resolve(-1))
+    child.on('close', (c) => resolve(c ?? -1))
+  })
+
+  // Checking for the server file rather than trusting the exit code: a clone can
+  // report success and still not be the layout we need if upstream moves it.
+  if (!existsSync(server)) {
+    return {
+      configured: false,
+      path: '',
+      ready: false,
+      problem: `Downloaded into ${target}, but Python/unreal_mcp_server_advanced.py is not there (git exited ${code}).`
+    }
+  }
+  return setUnrealPath(target, home)
+}
+
 function toolsMcpLaunch(home: string): McpLaunch | null {
   const server = join(configDir(home), 'tracker', 'mcp', 'pulsar-tools-mcp.mjs')
   if (!existsSync(server)) return null
@@ -1576,7 +1642,7 @@ function mainSessionBlock(home: string): string {
     // Only when it is really there -- see eccInstalled.
     ...(eccInstalled(home)
       ? [
-          'ECC is on this machine: 354 third-party operator/harness entries (CI, repo hygiene,',
+          'ECC is on this machine: 359 third-party operator/harness entries (CI, repo hygiene,',
           'security review, incidents, migrations, language-specific review). It is deliberately',
           'NOT loaded — as a plugin it would cost ~40,600 tokens of every session — so it sits on',
           'disk and you fetch from it instead:',

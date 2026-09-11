@@ -28,6 +28,7 @@ import {
   installEccNow,
   meshyStatus,
   setUnrealPath,
+  installUnrealMcp,
   unrealStatus,
   repairTrackerRegistration,
   setEccEnabled,
@@ -253,6 +254,9 @@ export function registerPlanIdeIpc(): void {
   // UnrealMCP plugin, so it needs the folder you cloned the server into.
   on('planide:unreal-status', () => unrealStatus())
   on('planide:unreal-set-path', (path: string) => setUnrealPath(path))
+  // You pick where it goes; the IDE clones it there. Async on purpose -- the
+  // renderer awaits a real download rather than a write that did nothing.
+  on('planide:unreal-install', (dir: string) => installUnrealMcp(dir))
   on('planide:memory-status', (path: string) => memoryStatus(path))
   // Per-project history DB: the full, uncapped record of board changes.
   on('planide:history', (path: string, limit?: number) => readProjectHistory(path, limit ?? 500))

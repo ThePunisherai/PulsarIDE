@@ -60,6 +60,7 @@ export type PlanIdeApi = {
   meshySetKey: <T>(key: string) => Call<T>
   unrealStatus: <T>() => Call<T>
   unrealSetPath: <T>(path: string) => Call<T>
+  unrealInstall: <T>(dir: string) => Call<T>
   trackerHealth: <T>(path?: string) => Call<T>
   trackerRepair: <T>() => Call<T>
   memoryStatus: <T>(path: string) => Call<T>

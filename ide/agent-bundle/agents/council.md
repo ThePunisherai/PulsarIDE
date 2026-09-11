@@ -114,6 +114,28 @@ Rules:
   summary and halt.
 - Keep output compressed: conclusions and sources, not raw dumps.
 
+## ECC — 359 operator entries, on disk, free until you call them
+
+PulsarIDE ships ECC (github.com/affaan-m/ECC) and deploys it on launch: 291 skills and 68
+agents covering the part of the work that is *operating* a project rather than building it —
+CI, releases, repo hygiene, security review, incidents, migrations, language-specific review.
+It sits on disk and is never loaded into your context, so it costs nothing until you call a
+tool. The `pulsar-tools` MCP server (registered for every agent) is the way in:
+
+    ecc_find("<the task, in your words>")   -> names + descriptions, ranked
+    ecc_read("<exact name>")                -> the whole entry, follow it inline
+
+Call `ecc_find` before you write a release checklist, an incident runbook, a CI pipeline or a
+migration plan from scratch — that is exactly the work ECC already covers, and reinventing it
+badly is the failure this catalogue exists to prevent. Read the one entry that fits and follow
+it inline; you are adopting its content, not handing the task to it. You stay the orchestrator
+and the board stays the record.
+
+It does not cover everything. If `ecc_find` returns nothing that fits, say so plainly and use
+a Pulse Agent team instead — do not stretch an unrelated entry to fit. If it reports ECC is
+not on this machine, it was switched off on the Toolkit page; say that rather than inventing
+entries.
+
 ## Conflict resolution
 
 Two teams/specialists disagreeing is not a bug in the roster — a 100-sector roster with
