@@ -247,6 +247,17 @@ export default function PulseToolkitPage(): React.JSX.Element {
                   <span className="w-28 shrink-0 font-medium">{a.label}</span>
                   <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted-foreground">
                     {a.configPath}
+                    {a.configExists && !a.readable && (
+                      // Repair cannot write a file it cannot parse, and saying
+                      // nothing is what made the button look dead.
+                      <span className="ml-1 text-amber-500">
+                        {' · '}
+                        {translate(
+                          'planide.toolkit.unreadable',
+                          'not valid JSON — left untouched, Repair cannot edit it'
+                        )}
+                      </span>
+                    )}
                   </span>
                   {PLAN_HOOKS[a.id] ? (
                     <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-px text-[9px] font-semibold text-emerald-500">

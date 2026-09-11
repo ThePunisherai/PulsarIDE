@@ -6,6 +6,24 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.77.0] - 2026-09-11
+
+### What's fixed
+- **"Broken 1" with nothing in the Broken column.** The tile summed broken *and*
+  blocked while calling itself Broken, so a blocked item showed up as broken and
+  then wasn't there. The tile now counts the column it names.
+- **"Wire the missing ones" looked dead.** A config it cannot parse is one it
+  refuses to rewrite — rewriting your `mcp.json` would throw away your comments.
+  That refusal was right; doing it in silence was the bug. The row now says the
+  file isn't valid JSON and that it was left untouched.
+- **Snapshots were slow and memory-hungry.** The whole archive was built in RAM —
+  briefly twice over — before a byte reached disk. It streams now: peak memory is
+  one file, not the backup. (`node_modules`, `.git`, `venv`, `build` were already
+  excluded and still are.)
+- **The board scrolled sideways.** Columns share the width and fit now.
+- **Squeezed Roadmap text.** A long milestone target refused to shrink and
+  crushed the title to one word per line. It wraps, and takes at most half.
+
 ## [0.76.0] - 2026-09-11
 
 ### What's fixed

@@ -567,6 +567,25 @@ repairTrackerRegistration(HOME)
 ok('Repair wires that agent back too',
   (await trackerHealth(tracked, HOME)).ok === true)
 
+// A config we cannot parse is one we refuse to rewrite -- there is a test above
+// pinning that we never clobber a JSONC file. But refusing SILENTLY is what made
+// "Wire the missing ones" look dead: the row stayed red, the button appeared to
+// do nothing, and nothing anywhere said the file was the reason. So the refusal
+// has to be visible and it has to name the agent.
+const cursorCfg = join(HOME, '.cursor/mcp.json')
+const cursorSaved = readFileSync(cursorCfg, 'utf8')
+writeFileSync(cursorCfg, '{\n  // Cursor lets you write comments here\n  "mcpServers": {}\n}\n')
+const unreadable = await trackerHealth(tracked, HOME)
+const cursorRow = unreadable.agents.find((a) => a.id === 'cursor')
+ok('an unparseable config is reported as unreadable, not merely unregistered',
+  cursorRow?.configExists === true && cursorRow?.readable === false)
+ok('and the problem names which agent is stuck, so Repair is not blamed',
+  unreadable.problem?.includes('Cursor') === true)
+repairTrackerRegistration(HOME)
+ok('Repair still refuses to rewrite it -- the comments survive',
+  readFileSync(cursorCfg, 'utf8').includes('// Cursor lets you write comments here'))
+writeFileSync(cursorCfg, cursorSaved)
+
 // --- the agent-description budget: one roster, never two ------------------- //
 // PulsarIDE's bundle IS ThePunisher-Agent's roster. Someone running that
 // project's own installer too has the same 100 team leads here already, under a

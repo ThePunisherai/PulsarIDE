@@ -332,6 +332,8 @@ export type TrackerAgentWiring = {
   configPath: string
   configExists: boolean
   registered: boolean
+  /** False = the file could not be parsed, so we left it untouched on purpose. */
+  readable: boolean
 }
 
 export type TrackerHealth = {

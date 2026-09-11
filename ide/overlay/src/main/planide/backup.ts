@@ -14,13 +14,15 @@
 
 import { createHash } from 'node:crypto'
 import {
+  closeSync,
   existsSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
   rmSync,
   statSync,
-  writeFileSync
+  writeSync
 } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { deflateRawSync } from 'node:zlib'
@@ -104,13 +106,33 @@ function dosDateTime(d: Date): { time: number; date: number } {
   }
 }
 
+/**
+ * Write the archive straight to disk, one file at a time.
+ *
+ * This used to push every local header and every compressed body into a
+ * `chunks` array and finish with `Buffer.concat([...chunks, central, eocd])` --
+ * so the whole snapshot existed in memory, and for a moment twice over, before
+ * a single byte reached the disk. On a project with real assets in it that is
+ * a slow snapshot, a big memory spike, and a machine complaining about space
+ * for an archive that is not written yet. All three were reported together.
+ *
+ * Streaming changes the peak from "the size of the backup" to "the largest
+ * single file, plus its compressed copy". Only the central directory is still
+ * accumulated, which is ~46 bytes plus a path per entry -- megabytes at worst,
+ * and it genuinely has to be written after the bodies, because every record in
+ * it stores the offset of the body that precedes it.
+ *
+ * The format is unchanged, so archives written before and after this are
+ * byte-identical.
+ */
 function writeZip(target: string, files: { abs: string; rel: string }[]): number {
-  const chunks: Buffer[] = []
   const central: Buffer[] = []
   let offset = 0
   let written = 0
   const now = dosDateTime(new Date())
+  const fd = openSync(target, 'w')
 
+  try {
   for (const { abs, rel } of files) {
     let raw: Buffer
     try {
@@ -139,7 +161,9 @@ function writeZip(target: string, files: { abs: string; rel: string }[]): number
     local.writeUInt32LE(raw.length, 22)
     local.writeUInt16LE(nameBuf.length, 26)
     local.writeUInt16LE(0, 28) // extra length
-    chunks.push(local, nameBuf, body)
+    writeSync(fd, local)
+    writeSync(fd, nameBuf)
+    writeSync(fd, body)
 
     const dir = Buffer.alloc(46)
     dir.writeUInt32LE(0x02014b50, 0) // central directory signature
@@ -165,6 +189,13 @@ function writeZip(target: string, files: { abs: string; rel: string }[]): number
     written++
   }
 
+  } catch (err) {
+    // A half-written archive is worse than none: it looks like a backup.
+    closeSync(fd)
+    rmSync(target, { force: true })
+    throw err
+  }
+
   const centralBuf = Buffer.concat(central)
   const eocd = Buffer.alloc(22)
   eocd.writeUInt32LE(0x06054b50, 0) // end of central directory
@@ -176,7 +207,9 @@ function writeZip(target: string, files: { abs: string; rel: string }[]): number
   eocd.writeUInt32LE(offset, 16)
   eocd.writeUInt16LE(0, 20) // comment length
 
-  writeFileSync(target, Buffer.concat([...chunks, centralBuf, eocd]))
+  writeSync(fd, centralBuf)
+  writeSync(fd, eocd)
+  closeSync(fd)
   return written
 }
 

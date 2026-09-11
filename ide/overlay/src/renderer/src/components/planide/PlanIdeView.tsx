@@ -861,7 +861,17 @@ export default function PlanIdeView(): React.JSX.Element {
             tone={p.regressed ? 'text-rose-500' : 'text-violet-400'}
             dot="bg-violet-400"
           />
-          <Stat label="Broken" value={p.broken} tone={p.broken ? 'text-rose-500' : undefined} dot="bg-rose-500" />
+          {/* `progress.broken` deliberately sums broken AND blocked -- health
+              scores them together. The tile must not: reading "Broken 1" with an
+              empty Broken column, because the item is actually blocked and sits
+              in the Blocked column, is a bug report waiting to happen. It was
+              one. The tile shows the column it names. */}
+          <Stat
+            label="Broken"
+            value={p.counts.broken ?? 0}
+            tone={p.counts.broken ? 'text-rose-500' : undefined}
+            dot="bg-rose-500"
+          />
         </div>
 
         {regressed.length > 0 && (
@@ -1017,7 +1027,7 @@ export default function PlanIdeView(): React.JSX.Element {
                 return (
                   <div
                     key={col.id}
-                    className="flex w-[304px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border/60 bg-card/20"
+                    className="flex min-w-[248px] flex-1 snap-start flex-col overflow-hidden rounded-xl border border-border/60 bg-card/20"
                   >
                     <div className={cn('h-[3px] w-full opacity-70', col.dot)} />
                     <div className="flex min-h-0 flex-col p-2.5">
@@ -1183,7 +1193,7 @@ export default function PlanIdeView(): React.JSX.Element {
               {(project.roadmap ?? []).map((m) => (
                 <div
                   key={m.id}
-                  className="flex items-center gap-3 border-b border-border/60 py-2.5 last:border-none"
+                  className="flex items-start gap-3 border-b border-border/60 py-2.5 last:border-none"
                 >
                   <button
                     type="button"
@@ -1197,9 +1207,14 @@ export default function PlanIdeView(): React.JSX.Element {
                   >
                     <Check size={11} />
                   </button>
-                  <div className="min-w-0 flex-1 text-[13px]">{m.title}</div>
+                  <div className="min-w-0 flex-1 break-words text-[13px]">{m.title}</div>
+                  {/* `target` is free text an agent writes, and they write
+                      sentences into it. With shrink-0 a long one refused to give
+                      up any width, so the title next to it was squeezed down to
+                      one word per line -- unreadable, and reported as such. It
+                      shrinks and wraps now, and never takes more than its half. */}
                   {m.target && (
-                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                    <span className="min-w-0 max-w-[45%] shrink break-words text-right font-mono text-[10px] leading-relaxed text-muted-foreground">
                       {m.target}
                     </span>
                   )}

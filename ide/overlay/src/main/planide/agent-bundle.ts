@@ -1953,6 +1953,12 @@ export type TrackerAgentWiring = {
   configExists: boolean
   /** The `planide` server is named in it. */
   registered: boolean
+  /**
+   * The file parses at all. False means we deliberately did not touch it: a
+   * config we cannot read is one we cannot edit without throwing away whatever
+   * the user keeps in there, comments included.
+   */
+  readable: boolean
 }
 
 export type TrackerHealth = {
@@ -1984,6 +1990,28 @@ function planideRegisteredIn(path: string): boolean {
     // Checking only the latter would call a correctly-wired opencode unwired,
     // which now raises a banner rather than being merely cosmetic.
     return Boolean(config.mcpServers?.planide || config.mcp?.planide)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Does this config parse at all?
+ *
+ * "Not registered" and "we could not read it" were indistinguishable on the
+ * board, and that is precisely what made **Wire the missing ones look dead**: an
+ * unparseable ~/.cursor/mcp.json can never gain our entry, because rewriting a
+ * config we cannot parse would discard the user's own contents (a JSONC file's
+ * comments are the usual casualty -- there is a test pinning that we never do
+ * it). Refusing is right. Refusing in silence is the bug.
+ */
+function configReadable(path: string): boolean {
+  try {
+    if (!existsSync(path)) return true
+    // Codex's config is TOML and is matched with a regex, never parsed as JSON.
+    if (path.endsWith('.toml')) return true
+    JSON.parse(readFileSync(path, 'utf8') || '{}')
+    return true
   } catch {
     return false
   }
@@ -2097,7 +2125,8 @@ export async function trackerHealth(
   ].map((a) => ({
     ...a,
     configExists: existsSync(a.configPath),
-    registered: planideRegisteredIn(a.configPath)
+    registered: planideRegisteredIn(a.configPath),
+    readable: configReadable(a.configPath)
   }))
 
   const probe = serverPresent
@@ -2129,6 +2158,13 @@ export async function trackerHealth(
       `The server is on disk but did not answer when launched as \`${launch.command}\`: ` +
       `${probe.why || 'no reason reported'}. That runtime path is what every agent was handed, ` +
       'so every planide tool call fails with "Transport closed".'
+  } else if (agents.some((a) => a.configExists && !a.readable)) {
+    // Named, because "Repair did nothing" is what this looks like otherwise.
+    const stuck = agents.filter((a) => a.configExists && !a.readable).map((a) => a.label).join(', ')
+    problem =
+      `${stuck}: that config is not valid JSON (a comment or a trailing comma will do it). ` +
+      'Repair deliberately leaves a file it cannot parse alone rather than rewriting it and ' +
+      'losing what you keep in there -- fix the file, then press Re-check.'
   } else if (!wired.length) {
     problem = 'No agent config names the planide server. Use Repair to write it back.'
   } else if (!agents.find((a) => a.id === 'claude-code')?.registered && agents.find((a) => a.id === 'claude-code')?.configExists) {
