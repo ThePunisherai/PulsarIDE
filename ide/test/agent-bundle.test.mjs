@@ -171,7 +171,22 @@ for (const [label, file] of [
   const text = existsSync(join(HOME, file)) ? readFileSync(join(HOME, file), 'utf8') : ''
   ok(`${label}: Council's own persona tells it ECC exists and how to call it`,
     text.includes('ecc_find') && text.includes('ecc_read'))
+  // Token saving is only real if the persona knows the two tools exist. caveman
+  // is installed; rtk is detected, never installed by us.
+  ok(`${label}: and how to spend fewer tokens (caveman, and rtk when present)`,
+    text.includes('caveman') && text.includes('rtk'))
 }
+
+// The caveman skill is MIT and pure prose -- no binary, no endpoint, no key. It
+// has to actually land on disk, or the persona is pointing at nothing.
+const cavemanSkill = join(HOME, '.claude/skills/caveman/SKILL.md')
+ok('the caveman skill is deployed with the rest',
+  existsSync(cavemanSkill))
+ok('and it is the standalone prose one, carrying no proxy or credential',
+  (() => {
+    const t = existsSync(cavemanSkill) ? readFileSync(cavemanSkill, 'utf8') : ''
+    return t.length > 0 && !/ANTHROPIC_BASE_URL|API_KEY|localhost:|npm install/i.test(t)
+  })())
 // Codex: the MCP is registered as a real [mcp_servers.planide] table, pointing at
 // our script, and the user's existing config + AGENTS.md are preserved.
 const codexToml = readFileSync(join(HOME, '.codex/config.toml'), 'utf8')

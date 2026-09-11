@@ -25,6 +25,7 @@ import {
   eccSetEnabled,
   eccStatus,
   pickFolder,
+  rtkStatus,
   trackerHealth,
   trackerRepair,
   unrealInstall,
@@ -32,6 +33,7 @@ import {
   unrealStatus,
   withVisibleSpin,
   type EccStatus,
+  type RtkStatus,
   type TrackerHealth,
   type UnrealStatus
 } from '../right-sidebar/planide-engine-client'
@@ -88,6 +90,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
   const [health, setHealth] = useState<TrackerHealth | null>(null)
   const [ecc, setEcc] = useState<EccStatus | null>(null)
   const [unreal, setUnreal] = useState<UnrealStatus | null>(null)
+  const [rtk, setRtk] = useState<RtkStatus | null>(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
@@ -95,7 +98,8 @@ export default function PulseToolkitPage(): React.JSX.Element {
     await Promise.allSettled([
       trackerHealth(folder || undefined).then(setHealth),
       eccStatus().then(setEcc),
-      unrealStatus().then(setUnreal)
+      unrealStatus().then(setUnreal),
+      rtkStatus().then(setRtk)
     ])
   }, [folder])
 
@@ -298,6 +302,52 @@ export default function PulseToolkitPage(): React.JSX.Element {
             </div>
           </Card>
 
+          {/* --- fewer tokens, neither of them anywhere near your login ------ */}
+          <Card
+            title={translate('planide.toolkit.tokens', 'Fewer tokens')}
+            subtitle={translate(
+              'planide.toolkit.tokensSub',
+              'Both work on your account login — neither needs an API key, and neither sits between an agent and its provider.'
+            )}
+          >
+            <div className="mt-2 flex items-start gap-2 text-[12px]">
+              <Check size={13} className="mt-0.5 shrink-0 text-emerald-500" />
+              <div className="min-w-0">
+                <span className="font-medium">caveman</span>
+                <span className="text-muted-foreground">
+                  {' · '}
+                  {translate(
+                    'planide.toolkit.caveman',
+                    'installed. Writes tersely on /caveman or "be brief" — roughly two thirds off output prose, with code, errors and numbers kept exact.'
+                  )}
+                </span>
+              </div>
+            </div>
+            <div className="mt-2 flex items-start gap-2 text-[12px]">
+              <Dot ok={Boolean(rtk?.installed)} />
+              <div className="min-w-0">
+                <span className="font-medium">rtk</span>
+                <span className="text-muted-foreground">
+                  {' · '}
+                  {rtk?.installed
+                    ? translate('planide.toolkit.rtkOn', 'on PATH') + ` (${rtk.version})` + '. ' +
+                      translate(
+                        'planide.toolkit.rtkUse',
+                        'Agents run noisy commands through it, so less of a build log reaches the context.'
+                      )
+                    : translate(
+                        'planide.toolkit.rtkOff',
+                        'not installed. Optional: it filters noisy command output before an agent reads it. Install it yourself — its setup writes a global shell hook, which is your machine to change, not ours.'
+                      )}
+                </span>
+              </div>
+            </div>
+            {!rtk?.installed && (
+              <pre className="mt-2 overflow-x-auto rounded-md bg-muted/40 px-2 py-1.5 font-mono text-[10px] text-muted-foreground">
+                brew install rtk{'\n'}winget install rtk-ai.rtk
+              </pre>
+            )}
+          </Card>
           {/* --- Unreal: local server, so it needs the folder ---------------- */}
           <Card
             title={translate('planide.toolkit.unreal', 'Unreal Engine')}

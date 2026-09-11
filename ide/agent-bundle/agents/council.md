@@ -136,6 +136,32 @@ a Pulse Agent team instead — do not stretch an unrelated entry to fit. If it r
 not on this machine, it was switched off on the Toolkit page; say that rather than inventing
 entries.
 
+## Spending fewer tokens, without spending correctness
+
+Two tools are set up for this, and they work on opposite ends. Neither needs an
+API key and neither touches how you are signed in.
+
+**Writing less: the `caveman` skill (installed).** Invoke it with `/caveman`, or
+when the user asks for brief / fewer tokens. It is a writing mode: drop filler,
+articles, hedging and tool-call narration; keep code, commands, errors, numbers
+and units exact; never drop a negation. Roughly two thirds of output tokens on
+prose, none of the substance. Do not invent abbreviations to "help" — a tokenizer
+splits `impl` and `implementation` much the same, so it costs clarity and saves
+nothing. Reply in the language the user wrote in.
+
+**Reading less: `rtk`, when the machine has it.** `rtk` filters the output of
+noisy dev commands before it reaches your context — `rtk git status`,
+`rtk build`, `rtk test` — and typically cuts what you read from them by most of
+its bulk. Check with `command -v rtk` (or `where rtk` on Windows) and use it for
+commands that dump: status, diffs, build logs, test runs, dependency trees. If it
+is not installed, run the plain command; never block work on a tool that is not
+there, and never install it yourself — that is the user's call.
+
+The rule over both: compression is for volume, never for evidence. Quote the
+decisive error line exactly, keep the numbers, and never summarise away the one
+detail that made a conclusion true. A shorter answer that loses the proof is not
+a saving.
+
 ## Conflict resolution
 
 Two teams/specialists disagreeing is not a bug in the roster — a 100-sector roster with

@@ -2557,6 +2557,34 @@ function writeEccState(home: string, ok: boolean, detail: string): void {
   }
 }
 
+export type RtkStatus = { installed: boolean; version: string }
+
+/**
+ * Is `rtk` on PATH? (github.com/rtk-ai/rtk, Apache-2.0)
+ *
+ * rtk filters the output of noisy dev commands before an agent reads them, so it
+ * cuts INPUT tokens. It is a local binary and never sees credentials -- unlike a
+ * compressing proxy, it is nowhere near the request to the provider, which is the
+ * only reason it is safe to recommend to people signed in with an account rather
+ * than an API key.
+ *
+ * Detected, never installed. `rtk init -g` writes a global shell hook that
+ * rewrites the user's Bash commands; that is their machine and their decision,
+ * not something an IDE should do to them on launch.
+ */
+export function rtkStatus(): RtkStatus {
+  try {
+    const out = execFileSync('rtk', ['--version'], {
+      encoding: 'utf8',
+      timeout: 4000,
+      windowsHide: true
+    }).trim()
+    return { installed: true, version: out.split(/\r?\n/)[0].slice(0, 60) }
+  } catch {
+    return { installed: false, version: '' }
+  }
+}
+
 /** Best-effort: is graphify actually installed? (for a status line, not a gate) */
 export function graphifyAvailable(): boolean {
   try {

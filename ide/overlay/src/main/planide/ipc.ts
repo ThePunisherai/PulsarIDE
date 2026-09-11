@@ -29,6 +29,7 @@ import {
   meshyStatus,
   setUnrealPath,
   installUnrealMcp,
+  rtkStatus,
   unrealStatus,
   repairTrackerRegistration,
   setEccEnabled,
@@ -253,6 +254,8 @@ export function registerPlanIdeIpc(): void {
   // Unreal's MCP is local: it drives a running Unreal editor through the
   // UnrealMCP plugin, so it needs the folder you cloned the server into.
   on('planide:unreal-status', () => unrealStatus())
+  // Detected, never installed: rtk's own init writes a global shell hook.
+  on('planide:rtk-status', () => rtkStatus())
   on('planide:unreal-set-path', (path: string) => setUnrealPath(path))
   // You pick where it goes; the IDE clones it there. Async on purpose -- the
   // renderer awaits a real download rather than a write that did nothing.

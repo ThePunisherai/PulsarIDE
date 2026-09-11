@@ -377,6 +377,13 @@ export function meshySetKey(key: string): Promise<MeshyStatus> {
 /** Unreal's MCP server: local, so it needs the folder you cloned it into. */
 export type UnrealStatus = { configured: boolean; path: string; ready: boolean; problem: string }
 
+export type RtkStatus = { installed: boolean; version: string }
+
+/** rtk filters noisy command output before an agent reads it. Detected only. */
+export function rtkStatus(): Promise<RtkStatus> {
+  return call<RtkStatus>('rtkStatus')
+}
+
 export function unrealStatus(): Promise<UnrealStatus> {
   return call<UnrealStatus>('unrealStatus')
 }

@@ -6,6 +6,24 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.78.0] - 2026-09-11
+
+### What's new
+- **caveman, installed.** A writing mode that cuts roughly two thirds of output
+  prose while keeping code, commands, errors, numbers and negations exact. Ask
+  for it with `/caveman` or "be brief". MIT, vendored, no key, no proxy.
+- **rtk, detected.** If `rtk` is on your PATH, agents run noisy commands through
+  it so less of a build log reaches the context. Toolkit shows whether it is
+  there and how to install it — the IDE will not install it for you, because its
+  setup writes a global shell hook.
+- **A "Fewer tokens" card in Toolkit**, saying which of the two is live.
+
+### What's deliberately not included
+- **Caveman's compressing proxy.** It is BSL-1.1 rather than MIT, and it stands
+  between the agent and its provider. You sign in with an account, not an API
+  key, and a proxy in that path is exactly what broke Codex logins here before.
+  The saving is not worth the sign-in.
+
 ## [0.77.0] - 2026-09-11
 
 ### What's fixed
