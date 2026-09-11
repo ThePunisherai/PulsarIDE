@@ -14,7 +14,7 @@
  * everything.
  */
 import { spawn } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,9 +26,12 @@ let pass = 0
 let fail = 0
 const ok = (n, c) => (c ? (pass++, console.log('  PASS ' + n)) : (fail++, console.log('  FAIL ' + n)))
 
-function drive(frames) {
+function drive(frames, env) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [SERVER], { stdio: ['pipe', 'pipe', 'pipe'] })
+    const child = spawn(process.execPath, [SERVER], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: env ? { ...process.env, ...env } : process.env
+    })
     let out = ''
     child.stdout.on('data', (d) => (out += d))
     child.on('error', reject)
@@ -170,16 +173,48 @@ ok('and it says nothing matches rather than offering something unrelated',
 // catalogue there at all, the tool has to say so and point at how to get it --
 // inventing matches for a library that is not present is the exact failure it
 // exists to avoid.
+//
+// Both paths are driven against a HOME this test owns. Reading the real
+// ~/.claude was the bug in the first version of these checks: they only passed
+// on a machine that happened to have no ECC, and went red the moment the IDE
+// started shipping and deploying the catalogue -- a test that reports the
+// machine's state rather than the code's.
+const eccAbsentHome = mkdtempSync(join(tmpdir(), 'pulsar-ecc-absent-'))
+const eccEnv = (home) => ({ HOME: home, USERPROFILE: home })
+
 const ecc = await drive([
   { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
   call(70, 'ecc_find', { query: 'review this pull request for security problems' }),
   call(71, 'ecc_read', { name: 'security-review' })
-])
+], eccEnv(eccAbsentHome))
 ok('ecc_find reports ECC missing instead of inventing matches', (() => {
   const r = json(byId(ecc, 70))
   return r.available === false && r.matches.length === 0 && r.note.includes('marketplace add')
 })())
 ok('ecc_read is honest about it too', json(byId(ecc, 71)).found === false)
+
+// And with the catalogue actually there -- the case that ships now -- it finds
+// the real entry rather than reporting missing. Never covered before.
+const eccHome = mkdtempSync(join(tmpdir(), 'pulsar-ecc-present-'))
+const eccSkill = join(eccHome, '.claude', 'plugins', 'marketplaces', 'ecc', 'skills', 'security-review')
+mkdirSync(eccSkill, { recursive: true })
+writeFileSync(
+  join(eccSkill, 'SKILL.md'),
+  '---\ndescription: Review a pull request for security problems.\n---\n\nBody.\n'
+)
+const eccThere = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(72, 'ecc_find', { query: 'review this pull request for security problems' }),
+  call(73, 'ecc_read', { name: 'security-review' })
+], eccEnv(eccHome))
+ok('ecc_find finds the real entry once the catalogue is on disk', (() => {
+  const r = json(byId(eccThere, 72))
+  return r.available === true && r.matches.some((m) => m.name === 'security-review')
+})())
+ok('ecc_read returns that entry', (() => {
+  const r = json(byId(eccThere, 73))
+  return r.found === true && JSON.stringify(r).includes('Review a pull request')
+})())
 
 // --- re_triage -------------------------------------------------------------- //
 const triage = await drive([
