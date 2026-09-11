@@ -615,6 +615,52 @@ const TOOLS = [
     }
   },
   {
+    name: 'reopen_fix',
+    description:
+      'Reopen a fix that was closed but came back, or park one as wontfix. A closed fix is a claim that a problem is gone; when you find it is not, say so here instead of logging a second, duplicate fix for the same symptom.',
+    inputSchema: {
+      type: 'object',
+      properties: P({
+        fix_id: { type: 'string' },
+        status: {
+          type: 'string',
+          enum: ['open', 'wontfix'],
+          description: "'open' if it came back, 'wontfix' if it is real but deliberately not being fixed."
+        },
+        note: {
+          type: 'string',
+          description: 'Why it is back, or why it is being parked. Appended to the problem.'
+        },
+        agent: { type: 'string' }
+      }),
+      required: ['project', 'fix_id']
+    },
+    run: (args) => {
+      const path = resolveProject(args)
+      const fixId = str(args.fix_id)
+      const status = FIX_STATUSES.includes(str(args.status)) && str(args.status) !== 'fixed'
+        ? str(args.status)
+        : 'open'
+      return mutate(path, (state) => {
+        const fix = (state.fixes ?? []).find((f) => f.id === fixId)
+        if (!fix) throw new Error(`no fix with id ${fixId} (call get_board for the real ids)`)
+        fix.status = status
+        // Leaving fixed_at set would keep claiming it was closed on a date that
+        // no longer holds -- same reason the tracker engine clears it.
+        fix.fixed_at = ''
+        const note = str(args.note)
+        if (note) fix.problem = fix.problem ? `${fix.problem}\n${note}` : note
+        logActivity(
+          state,
+          status === 'wontfix' ? 'fix-wontfix' : 'fix-reopen',
+          `${status === 'wontfix' ? 'parked' : 'reopened'}: ${fix.title}`,
+          str(args.agent)
+        )
+        return { id: fix.id, title: fix.title, status: fix.status }
+      })
+    }
+  },
+  {
     name: 'add_milestone',
     description:
       'Add a roadmap milestone: a goal several items build toward, optionally with a target (a date, a version, or a phase). Use this when the user describes a plan in phases, or when you break a large request into stages -- the roadmap is what shows where the project is heading, and it stays empty unless you fill it.',

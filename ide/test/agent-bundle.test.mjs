@@ -175,6 +175,15 @@ for (const [label, file] of [
   // is installed; rtk is detected, never installed by us.
   ok(`${label}: and how to spend fewer tokens (caveman, and rtk when present)`,
     text.includes('caveman') && text.includes('rtk'))
+  // Same class of gap as the ECC one above, found the same way: Council is the
+  // orchestrator of a project tracker and its persona mentioned the board once,
+  // in passing. It was never told to read it, keep it true, or deal with the fix
+  // log -- which is why fixes sat open and nothing walked them.
+  ok(`${label}: Council is told to read the board before routing`,
+    text.includes('get_board') && text.includes('sync_plan'))
+  ok(`${label}: and to close open fixes with a real solution, or reopen/park them`,
+    text.includes('mark_fixed') && text.includes('reopen_fix') &&
+    text.includes('wontfix'))
 }
 
 // The caveman skill is MIT and pure prose -- no binary, no endpoint, no key. It

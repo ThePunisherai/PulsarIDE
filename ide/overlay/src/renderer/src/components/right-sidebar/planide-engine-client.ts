@@ -281,6 +281,40 @@ export function markFixDone(path: string, fixId: string): Promise<PlanIdeProject
   return call<PlanIdeProject>('updateFix', path, fixId, { status: 'fixed' })
 }
 
+/**
+ * Close a fix WITH what actually fixed it.
+ *
+ * `markFixDone` above only flips the status, which is fine for a one-click
+ * close from the sidebar but leaves the log saying a thing was fixed and not
+ * how. That empty `solution` is the difference between a fix log and a
+ * solved-problem memory: the next agent that hits the same symptom has nothing
+ * to read, and re-derives it.
+ */
+export function resolveFix(
+  path: string,
+  fixId: string,
+  solution: string
+): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('updateFix', path, fixId, { status: 'fixed', solution })
+}
+
+/** It came back, or it was closed too early. */
+export function reopenFix(path: string, fixId: string): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('updateFix', path, fixId, { status: 'open' })
+}
+
+/** Real, understood, and deliberately not being fixed -- which is not the same as open. */
+export function parkFix(path: string, fixId: string, solution = ''): Promise<PlanIdeProject> {
+  const fields: Record<string, unknown> = { status: 'wontfix' }
+  if (solution) fields.solution = solution
+  return call<PlanIdeProject>('updateFix', path, fixId, fields)
+}
+
+/** Logged by mistake. Not the same as wontfix, which is a decision worth keeping. */
+export function removeFix(path: string, fixId: string): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('deleteFix', path, fixId)
+}
+
 // --------------------------------------------------------------------------- roadmap + versions
 export function addMilestone(path: string, title: string, target = ''): Promise<PlanIdeProject> {
   return call<PlanIdeProject>('addMilestone', path, title, target)
@@ -308,7 +342,12 @@ export function aiReport(path: string, mode = 'full'): Promise<string> {
 }
 
 // --------------------------------------------------------------------------- memory
-export type GraphReportSection = { heading: string; lines: string[] }
+export type GraphReportSection = {
+  heading: string
+  lines: string[]
+  /** False for a section that says nothing in the way the IDE runs graphify. */
+  useful: boolean
+}
 export type ReindexResult = { ok: boolean; log: string; missing: boolean }
 
 /** graphify's own report about the graph, section by section. */

@@ -428,14 +428,31 @@ export function updateFix(
 ): Fix | null {
   const fix = state.fixes.find((f) => f.id === fixId)
   if (!fix) return null
+  const before = fix.status
   const WRITABLE = new Set(['title', 'problem', 'solution', 'item_id', 'agent', 'status'])
   for (const [k, v] of Object.entries(fields)) {
     if (!WRITABLE.has(k)) continue
     ;(fix as unknown as Record<string, unknown>)[k] = v
   }
-  if (fields.status === 'fixed' && !fix.fixed_at) {
-    fix.fixed_at = nowIso()
-    logActivity(state, 'fix-done', `fixed: ${fix.title}`, fix.agent || 'you')
+  // A fix can come back. Closing stamps fixed_at, so anything that moves it OUT
+  // of `fixed` has to clear that stamp -- otherwise a reopened entry keeps
+  // claiming it was closed on a date that no longer means anything. The old
+  // guard here was `status === 'fixed' && !fixed_at`, which also meant a
+  // reopened fix could never log its second close: fixed_at was still set from
+  // the first one, so the branch never ran. Keyed on a real status CHANGE now,
+  // and labelled by where it lands rather than where it came from.
+  if (before !== fix.status) {
+    if (fix.status === 'fixed') {
+      fix.fixed_at = nowIso()
+      logActivity(state, 'fix-done', `fixed: ${fix.title}`, fix.agent || 'you')
+    } else {
+      fix.fixed_at = ''
+      if (fix.status === 'wontfix') {
+        logActivity(state, 'fix-wontfix', `parked: ${fix.title}`, fix.agent || 'you')
+      } else {
+        logActivity(state, 'fix-reopen', `reopened: ${fix.title}`, fix.agent || 'you')
+      }
+    }
   }
   return fix
 }

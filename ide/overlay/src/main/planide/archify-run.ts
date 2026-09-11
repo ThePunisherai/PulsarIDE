@@ -19,7 +19,7 @@
  * nonsense.
  */
 import { execFile } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 
@@ -245,4 +245,158 @@ export async function archifyRender(
     return { ok: false, missing: false, log: res.out || 'archify render failed' }
   }
   return { ok: true, html, missing: false, log: res.out }
+}
+
+
+// --------------------------------------------------------------------------- baseline
+
+/**
+ * Directory-name -> archify component type.
+ *
+ * A heuristic, and deliberately a shallow one. The schema makes `type`
+ * mandatory, so SOME classification has to be chosen; guessing a project's
+ * actual architecture from folder names is exactly the judgment this baseline
+ * does not claim to have. Names are matched whole, not as substrings, so `lib`
+ * does not match `liberty`.
+ */
+const DIR_TYPE: [names: string[], type: string][] = [
+  [['auth', 'authentication', 'security', 'identity'], 'security'],
+  [['db', 'database', 'migrations', 'models', 'schema', 'prisma', 'sql', 'entities', 'repositories'], 'database'],
+  [['infra', 'infrastructure', 'deploy', 'deployment', 'terraform', 'k8s', 'kubernetes', 'docker', 'ops', 'ci'], 'cloud'],
+  [['queue', 'queues', 'events', 'messaging', 'workers', 'jobs'], 'messagebus'],
+  [['vendor', 'third_party', 'thirdparty', 'external', 'integrations', 'plugins'], 'external'],
+  [['web', 'ui', 'client', 'frontend', 'www', 'pages', 'views', 'renderer', 'public', 'static', 'assets'], 'frontend'],
+  [['api', 'server', 'backend', 'services', 'service', 'cmd', 'core', 'internal', 'handlers', 'routes', 'controllers', 'main'], 'backend']
+]
+
+/** Never a component: not source, or already skipped everywhere else in the IDE. */
+const BASELINE_SKIP = new Set([
+  '.git', '.hg', '.svn', 'node_modules', '.venv', 'venv', 'env', '__pycache__',
+  '.mypy_cache', '.pytest_cache', 'target', 'build', 'dist', 'out', 'bin', 'obj',
+  '.next', '.nuxt', '.gradle', '.idea', '.vs', '.vscode', 'vendor', 'Pods',
+  'DerivedData', '.planide', 'coverage', '.cache', 'cmake-build-debug', '.github',
+  'node_modules.bak', '.turbo', '.parcel-cache'
+])
+
+/**
+ * A diagram is only ever wide enough to read. A repo with forty top-level
+ * directories would render as a wall of boxes nobody looks at twice.
+ */
+const BASELINE_MAX_COMPONENTS = 12
+
+function baselineType(name: string): string {
+  const lower = name.toLowerCase()
+  for (const [names, type] of DIR_TYPE) if (names.includes(lower)) return type
+  // Unknown source directory. `backend` is the least wrong default for code:
+  // the alternative types all assert something specific that would be a
+  // stronger claim than "this folder holds source".
+  return 'backend'
+}
+
+/** archify ids are `^[a-zA-Z][a-zA-Z0-9_-]*$`. Directory names are not. */
+function baselineId(name: string, taken: Set<string>): string {
+  let id = name.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/^[^a-zA-Z]+/, '')
+  if (!id) id = 'dir'
+  let out = id
+  let n = 2
+  while (taken.has(out)) out = `${id}-${n++}`
+  taken.add(out)
+  return out
+}
+
+export type BaselineResult =
+  /** A diagram already existed, or the project has nothing worth drawing. */
+  | { created: false; reason: 'exists' | 'empty' | 'failed' }
+  | { created: true; name: string; type: ArchifyType; path: string }
+
+/**
+ * Write a first, factual diagram so the Archify tab is not empty on a project
+ * nobody has authored one for.
+ *
+ * This is the honest half of "create a diagram automatically". What the IDE can
+ * do without judgment is state facts it already has: these top-level
+ * directories exist, this is the detected stack. What it cannot do is infer how
+ * they actually relate -- so this writes NO connections. Drawing arrows between
+ * folders would be inventing an architecture and presenting it as read from the
+ * code, which is the failure mode this project's own rules exist to prevent.
+ * An agent replaces it with a real one; that is what the `archify` skill is for.
+ *
+ * Never overwrites. It only runs at all when the project has no diagram
+ * whatsoever, so an authored set is never joined by a generated stub, and an
+ * edited baseline is never reverted underneath the person editing it.
+ */
+export function ensureBaselineDiagram(
+  projectPath: string,
+  opts: { title?: string; subtitle?: string } = {}
+): BaselineResult {
+  const dir = diagramsDir(projectPath)
+
+  // Any existing diagram source means this project is authored. Leave it alone.
+  try {
+    if (readdirSync(dir).some((f) => parseName(f))) return { created: false, reason: 'exists' }
+  } catch {
+    /* no diagrams directory yet -- that is the case this function is for */
+  }
+
+  let entries: string[]
+  try {
+    entries = readdirSync(projectPath, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !BASELINE_SKIP.has(e.name) && !e.name.startsWith('.'))
+      .map((e) => e.name)
+      .sort()
+  } catch {
+    return { created: false, reason: 'failed' }
+  }
+  if (entries.length === 0) return { created: false, reason: 'empty' }
+
+  const taken = new Set<string>()
+  // No `sources`. Verified against the real renderer, not assumed from the
+  // schema: attaching a component `sources` entry makes archify demand
+  // `meta.repository` -- a pinned PUBLIC GitHub url plus a 40-hex revision
+  // ("Repository evidence requires /meta/repository", its own suggested fix
+  // being "remove component sources"). A local project need not have a GitHub
+  // remote at all, and writing a plausible-looking one to satisfy a validator
+  // would be inventing provenance. The directory name is already the label.
+  const picked = entries.slice(0, BASELINE_MAX_COMPONENTS)
+  const cols = picked.length > 6 ? 4 : 3
+  // row/col are explicit. The schema has them optional, but the architecture
+  // renderer rejects the whole diagram without them once layout.mode is "grid"
+  // ("Component X needs pos [x,y] or grid row/col") -- another thing only a real
+  // render surfaces, since the JSON schema alone validates happily.
+  const components = picked.map((name, i) => ({
+    id: baselineId(name, taken),
+    type: baselineType(name),
+    label: name,
+    sublabel: 'directory',
+    row: Math.floor(i / cols),
+    col: i % cols
+  }))
+
+  const doc = {
+    schema_version: 1,
+    diagram_type: 'architecture',
+    meta: {
+      title: opts.title || basename(projectPath) || 'Project map',
+      subtitle:
+        opts.subtitle ||
+        'Top-level directories. Generated from the folder layout -- no relationships inferred.',
+      legend: { mode: 'auto' }
+    },
+    layout: { mode: 'grid', cols },
+    components
+    // No `connections` on purpose -- see the doc comment above.
+  }
+
+  try {
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'project-map.architecture.json'), JSON.stringify(doc, null, 2) + '\n')
+  } catch {
+    return { created: false, reason: 'failed' }
+  }
+  return {
+    created: true,
+    name: 'project-map',
+    type: 'architecture',
+    path: join(dir, 'project-map.architecture.json')
+  }
 }

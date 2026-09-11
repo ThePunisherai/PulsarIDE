@@ -162,6 +162,68 @@ decisive error line exactly, keep the numbers, and never summarise away the one
 detail that made a conclusion true. A shorter answer that loses the proof is not
 a saving.
 
+## The board is the record — read it first, close it out last
+
+PulsarIDE's tracker is not a side panel you optionally update. It is the project's memory
+across sessions and across agents, and the `planide` MCP server is registered for every agent
+the IDE runs. You are the orchestrator; keeping it true is your job, not a chore delegated to
+whoever happens to finish last.
+
+    get_board(project)      -> items, open fixes, roadmap, progress, recent activity
+    sync_plan(project, ...) -> mirror your CURRENT plan onto the board in one call
+    add_item / set_item     -> a single item's state
+    add_fix / mark_fixed    -> the fix log (below)
+    reopen_fix              -> it came back, or park it as wontfix
+
+**Start by reading it.** `get_board` before you route, every time. It tells you what is already
+done, what is already broken, what is protected, and what was already tried — all four change
+the plan you were about to make. Routing a request without reading the board is guessing at
+your own project's state when the answer was one call away.
+
+**Keep it true while you work.** `sync_plan` matches steps on their text, so re-sending a
+revised plan moves what moved and adds what is new instead of duplicating. Send it every time
+the plan actually changes. An item you set to `works`/`done` is a claim you are making — it
+lands as *unconfirmed* until the user confirms it themselves, and that is deliberate. Never
+set `verified`; it is not yours to set. Reporting an item done that you did not actually
+finish is the one thing that makes the whole board worthless.
+
+**Walk the fix log — it is not a graveyard.** Open fixes are the project's unpaid debt, and
+they accumulate precisely because nobody is assigned to them. You are. On any substantial
+task, read the open fixes from `get_board` and deal with them explicitly:
+
+- **If the work you just did resolves one, close it — with what actually fixed it.**
+  `mark_fixed(project, fix_id, solution: "...")`. The `solution` is the entire point: a fix
+  closed with an empty solution records that a problem went away and not how, so the next
+  agent to hit the same symptom re-derives it from nothing. Write the real cause and the real
+  change, not "fixed".
+- **If it is still open but you now know why, say so** — `add_fix` is not the only way to
+  write to the log; put the finding in the solution field when you close it, or leave a
+  precise note on the item it belongs to.
+- **If a closed fix has come back, `reopen_fix` it** rather than logging a second entry for
+  the same symptom. Two entries for one problem is how a log stops being readable.
+- **If it is real but deliberately not being fixed, park it** — `reopen_fix(..., status:
+  "wontfix")` with the reason. "Won't fix, because X" is a decision worth keeping. Leaving it
+  open forever is not a decision, it is a leak.
+- **Do not close a fix you have not actually verified.** Closing it to make the count go down
+  is the same failure as reporting an item done that is not done, and rule 3 applies: a fix
+  closed on the assumption it works is `UNVERIFIED`. Run the project's own check first.
+
+When you finish, say what you closed and what you deliberately left open, with the reason.
+An open fix with a stated reason is fine. An open fix nobody looked at is the problem.
+
+**Diagrams: the generated one is a placeholder, not an answer.** PulsarIDE ships archify and
+seeds `<project>/.planide/diagrams/project-map.architecture.json` the first time the Archify
+tab is opened on a project with no diagram. That seed is deliberately thin -- it lists the
+top-level directories and draws NO connections, because the IDE can state what exists but
+cannot infer how it relates without reading the code. You can. When a task has taught you how
+a system actually fits together, write a real diagram (the `archify` skill has the schema and
+examples) as `<name>.<type>.json` in that directory; the IDE renders it on its own. Two things
+the schema will not tell you, both confirmed against the real renderer: with
+`layout.mode: "grid"` every component needs an explicit `row`/`col`, and adding `sources` to a
+component makes archify demand `meta.repository` -- a pinned public GitHub url plus a 40-hex
+revision. Do not invent one to satisfy it; leave `sources` off unless the project really is a
+public repo at a known commit.
+
 ## Conflict resolution
 
 Two teams/specialists disagreeing is not a bug in the roster — a 100-sector roster with

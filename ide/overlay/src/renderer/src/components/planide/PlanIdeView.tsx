@@ -14,6 +14,7 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from
 import {
   AlertTriangle,
   Archive,
+  Ban,
   Check,
   ClipboardCopy,
   Database,
@@ -25,6 +26,7 @@ import {
   Map as MapIcon,
   Plus,
   RefreshCw,
+  RotateCcw,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -50,10 +52,13 @@ import {
   aiReport,
   deleteItem,
   lockItem,
-  markFixDone,
   onBoardChanged,
   openProject,
+  parkFix,
   projectHistory,
+  removeFix,
+  reopenFix,
+  resolveFix,
   setItemStatus,
   toggleMilestone,
   updateItem,
@@ -88,6 +93,19 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number 
   { id: 'activity', label: 'Activity', icon: History },
   { id: 'history', label: 'History', icon: Database },
   { id: 'ai', label: 'AI briefing', icon: Sparkles }
+]
+
+/**
+ * The fix log keeps everything ever logged, which is the point -- a closed fix
+ * is the record of how it was closed. But it means the tab opens onto a pile
+ * where the few entries still asking for something are buried. Open first.
+ */
+type FixFilter = 'open' | 'fixed' | 'wontfix' | 'all'
+const FIX_FILTERS: { id: FixFilter; label: string; key: string }[] = [
+  { id: 'open', label: 'Open', key: 'planide.view.fixOpen' },
+  { id: 'fixed', label: 'Fixed', key: 'planide.view.fixFixed' },
+  { id: 'wontfix', label: 'Parked', key: 'planide.view.fixParked' },
+  { id: 'all', label: 'All', key: 'planide.view.fixAll' }
 ]
 
 /** Columns in board order: problems first, finished work last. */
@@ -555,6 +573,7 @@ export default function PlanIdeView(): React.JSX.Element {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('board')
+  const [fixFilter, setFixFilter] = useState<FixFilter>('open')
   const [filter, setFilter] = useState('')
   const [briefing, setBriefing] = useState('')
   const [history, setHistory] = useState<HistoryEvent[] | null>(null)
@@ -726,6 +745,14 @@ export default function PlanIdeView(): React.JSX.Element {
   const openFixes = useMemo(
     () => (project?.fixes ?? []).filter((f) => f.status === 'open'),
     [project]
+  )
+  // The fix log is append-only and gets long, so "42 open" was being read off a
+  // list that also held everything already closed. Default to open: that is the
+  // only bucket that is asking for something.
+  const allFixes = useMemo(() => project?.fixes ?? [], [project])
+  const shownFixes = useMemo(
+    () => (fixFilter === 'all' ? allFixes : allFixes.filter((f) => f.status === fixFilter)),
+    [allFixes, fixFilter]
   )
 
   if (!worktreePath) {
@@ -1119,25 +1146,52 @@ export default function PlanIdeView(): React.JSX.Element {
 
           {tab === 'fixes' && (
             <div className="flex flex-col gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  const title = window.prompt(translate('planide.view.newFix', 'What went wrong?'))
-                  if (!title) return
-                  const problem =
-                    window.prompt(translate('planide.view.fixProblem', 'Detail (optional)')) ?? ''
-                  void act(() => addFix(worktreePath, { title, problem }))
-                }}
-                className="mb-2 flex items-center gap-1.5 self-start rounded-md border border-border px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
-              >
-                <Wrench size={12} /> {translate('planide.view.addFix', 'Log a fix')}
-              </button>
-              {(project.fixes ?? []).length === 0 && (
+              <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const title = window.prompt(translate('planide.view.newFix', 'What went wrong?'))
+                    if (!title) return
+                    const problem =
+                      window.prompt(translate('planide.view.fixProblem', 'Detail (optional)')) ?? ''
+                    void act(() => addFix(worktreePath, { title, problem }))
+                  }}
+                  className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
+                >
+                  <Wrench size={12} /> {translate('planide.view.addFix', 'Log a fix')}
+                </button>
+                <div className="ml-auto flex items-center gap-1">
+                  {FIX_FILTERS.map((f) => {
+                    const n =
+                      f.id === 'all'
+                        ? allFixes.length
+                        : allFixes.filter((x) => x.status === f.id).length
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setFixFilter(f.id)}
+                        className={cn(
+                          'rounded-md border px-2 py-0.5 text-[11px] transition-colors',
+                          fixFilter === f.id
+                            ? 'border-ring bg-muted text-foreground'
+                            : 'border-border text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {translate(f.key, f.label)} {n}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              {shownFixes.length === 0 && (
                 <div className="rounded-lg border border-dashed border-border py-10 text-center text-[12px] text-muted-foreground">
-                  {translate('planide.view.noFixes', 'No fixes logged yet.')}
+                  {allFixes.length === 0
+                    ? translate('planide.view.noFixes', 'No fixes logged yet.')
+                    : translate('planide.view.noFixesHere', 'Nothing in this filter.')}
                 </div>
               )}
-              {(project.fixes ?? []).map((f) => (
+              {shownFixes.map((f) => (
                 <div
                   key={f.id}
                   className="flex items-start gap-3 border-b border-border/60 py-2.5 last:border-none"
@@ -1161,24 +1215,83 @@ export default function PlanIdeView(): React.JSX.Element {
                         <b>problem:</b> {f.problem}
                       </div>
                     )}
-                    {f.solution && (
+                    {f.solution ? (
                       <div className="text-[11px] text-muted-foreground">
                         <b>solution:</b> {f.solution}
                       </div>
+                    ) : (
+                      f.status === 'fixed' && (
+                        // Closed with nothing written down. Worth saying out loud:
+                        // this is the entry a future agent learns nothing from.
+                        <div className="text-[11px] text-amber-500/80">
+                          {translate(
+                            'planide.view.fixNoSolution',
+                            'closed without a solution — nobody can learn from this one'
+                          )}
+                        </div>
+                      )
                     )}
                     {f.agent && (
                       <div className="text-[10px] text-violet-400">agent: {f.agent}</div>
                     )}
                   </div>
-                  {f.status === 'open' && (
+                  <div className="flex shrink-0 items-center gap-1">
+                    {f.status === 'open' ? (
+                      <>
+                        <button
+                          type="button"
+                          title={translate('planide.view.fixClose', 'Close with a solution')}
+                          onClick={() => {
+                            const solution = window.prompt(
+                              translate(
+                                'planide.view.fixSolution',
+                                'What actually fixed it? (leave empty to just close)'
+                              ),
+                              f.solution || ''
+                            )
+                            if (solution === null) return
+                            void act(() => resolveFix(worktreePath, f.id, solution.trim()))
+                          }}
+                          className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-emerald-500 hover:text-emerald-500"
+                        >
+                          <Check size={11} />
+                        </button>
+                        <button
+                          type="button"
+                          title={translate('planide.view.fixPark', "Won't fix")}
+                          onClick={() => void act(() => parkFix(worktreePath, f.id))}
+                          className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-ring hover:text-foreground"
+                        >
+                          <Ban size={11} />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        title={translate('planide.view.fixReopen', 'Reopen')}
+                        onClick={() => void act(() => reopenFix(worktreePath, f.id))}
+                        className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-amber-500 hover:text-amber-500"
+                      >
+                        <RotateCcw size={11} />
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => void act(() => markFixDone(worktreePath, f.id))}
-                      className="shrink-0 rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-emerald-500 hover:text-emerald-500"
+                      title={translate('planide.view.fixDelete', 'Delete this entry')}
+                      onClick={() => {
+                        if (
+                          !window.confirm(
+                            translate('planide.view.fixDeleteAsk', 'Delete this fix entry?')
+                          )
+                        )
+                          return
+                        void act(() => removeFix(worktreePath, f.id))
+                      }}
+                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-destructive hover:text-destructive"
                     >
-                      <Check size={11} />
+                      <Trash2 size={11} />
                     </button>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>

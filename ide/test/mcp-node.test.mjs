@@ -78,7 +78,7 @@ ok('capabilities advertise tools', Boolean(init?.result?.capabilities?.tools))
 ok('a notification is never answered (2 frames for 3 messages)', hs.replies.length === 2)
 const tools = byId(hs.replies, 2).result.tools.map((t) => t.name)
 ok('every tracker tool is listed, roadmap included',
-  ['get_board', 'add_item', 'set_item', 'add_fix', 'mark_fixed', 'add_version', 'add_milestone', 'set_milestone', 'sync_plan'].every((t) => tools.includes(t)))
+  ['get_board', 'add_item', 'set_item', 'add_fix', 'mark_fixed', 'reopen_fix', 'add_version', 'add_milestone', 'set_milestone', 'sync_plan'].every((t) => tools.includes(t)))
 ok('every tool takes project and declares a schema',
   byId(hs.replies, 2).result.tools.every((t) => t.inputSchema?.properties?.project && t.inputSchema.required.includes('project')))
 ok('nothing but protocol frames on stdout', hs.stderr.length === 0 || !hs.stderr.includes('{'))
@@ -249,6 +249,51 @@ const run4 = await drive([
   call(40, 'set_item', { project: proj, item_id: first.id, status: 'broken', agent: 'codex' })
 ])
 ok('a status change drops the user confirmation', json(byId(run4.replies, 40)).verified === false)
+
+// --- a fix can come back ---------------------------------------------------- //
+// Closing stamps fixed_at. Nothing cleared it when a fix left `fixed`, which was
+// invisible until reopen existed: a reopened entry kept claiming the old close
+// date, and -- because the engine's guard was `status === 'fixed' && !fixed_at`
+// -- the SECOND close logged no activity at all. Both sides are checked here,
+// because the MCP server and the IDE store implement this separately.
+const runR = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(60, 'reopen_fix', { project: proj, fix_id: fixId, note: 'back on prod', agent: 'codex' }),
+  call(61, 'get_board', { project: proj })
+])
+const reopened = json(byId(runR.replies, 60))
+const boardR = json(byId(runR.replies, 61))
+ok('reopen_fix puts a closed fix back to open', reopened.status === 'open')
+ok('reopening clears the stale close date',
+  (store.loadState(proj).fixes.find((f) => f.id === fixId) || {}).fixed_at === '')
+ok('the reason it came back is kept, not a duplicate entry',
+  boardR.fixes.length === 1 && boardR.fixes[0].problem.includes('back on prod'))
+ok('reopening is on the activity trail',
+  store.loadState(proj).activity.some((a) => a.kind === 'fix-reopen'))
+
+// close it again: the second close has to log, which the old guard swallowed
+const runR2 = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(62, 'mark_fixed', { project: proj, fix_id: fixId, solution: 'guard the null session, properly', agent: 'codex' })
+])
+ok('a reopened fix can be closed again', json(byId(runR2.replies, 62)).status === 'fixed')
+ok('the second close is recorded too',
+  store.loadState(proj).activity.filter((a) => a.kind === 'fix-done').length === 2)
+
+// the IDE store's own updateFix has to agree, since the UI goes through it
+{
+  const s = store.loadState(proj)
+  store.updateFix(s, fixId, { status: 'open' })
+  const f = s.fixes.find((x) => x.id === fixId)
+  ok('the IDE store clears fixed_at on reopen too', f.status === 'open' && f.fixed_at === '')
+  store.updateFix(s, fixId, { status: 'wontfix' })
+  ok('and parking is a status of its own, not a close',
+    s.fixes.find((x) => x.id === fixId).status === 'wontfix' &&
+    s.activity.some((a) => a.kind === 'fix-wontfix'))
+  // put it back the way the parity assertions below expect it
+  store.updateFix(s, fixId, { status: 'fixed' })
+  store.saveState(proj, s)
+}
 
 // --- parity with the IDE's own store --------------------------------------- //
 const loaded = store.loadState(proj)

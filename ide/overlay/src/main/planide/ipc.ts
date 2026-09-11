@@ -18,7 +18,7 @@ import * as git from './git'
 import { detect } from './detect'
 import { graphPicture, memoryStatus } from './memory-status'
 import { readGraphReport, reindexGraph } from './graphify-run'
-import { archifyRender, archifyStatus } from './archify-run'
+import { archifyRender, archifyStatus, ensureBaselineDiagram } from './archify-run'
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { historySnapshot, readProjectHistory, recordHistory } from './history'
 import {
@@ -294,7 +294,29 @@ export function registerPlanIdeIpc(): void {
   // Archify: list this project's diagrams, and render one on request. The
   // render takes a name and a type rather than a path, so nothing from the
   // renderer is ever joined onto disk.
-  on('planide:archify-status', (path: string) => archifyStatus(path))
+  on('planide:archify-status', (path: string) => {
+    // "Archify wordt niet automatisch gemaakt": the tab rendered whatever JSON
+    // an agent had written, and on a project where none ever had, it was simply
+    // empty with nothing to explain why. Seed one factual diagram the first time
+    // this project is looked at -- a no-op the moment any diagram exists, so an
+    // authored set is never joined by a generated stub. The auto-render in the
+    // panel then turns it into HTML on its own.
+    // The title is a nicety; listing the diagrams is the job. This handler
+    // never used to read the board at all, so a state read that throws must not
+    // take the panel down with it.
+    let title = ''
+    try {
+      title = loadState(path).name
+    } catch {
+      /* fall back to the directory name inside ensureBaselineDiagram */
+    }
+    try {
+      ensureBaselineDiagram(path, { title })
+    } catch {
+      /* seeding is best-effort; an unwritable project still lists fine */
+    }
+    return archifyStatus(path)
+  })
   on('planide:archify-render', (path: string, name: string, type: string) =>
     archifyRender(path, name, type))
 

@@ -6,6 +6,34 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.79.0] - 2026-09-11
+
+### What's new
+- **The Fixes tab has actions.** Close a fix with the solution that actually
+  worked, reopen one that came back, park it as won't fix, or delete it. Filter
+  by Open / Fixed / Parked so the ones still asking for something are not buried
+  under everything already closed.
+- **Council works the board.** Its own persona now tells it to read `get_board`
+  before routing, keep the plan synced while it works, and walk the open fixes —
+  closing them with real evidence, reopening regressions, parking what is
+  deliberately not being fixed, and saying which it left open and why.
+- **Archify fills itself in.** A project with no diagram gets a factual one on
+  first open: the real top-level directories, typed and laid out. It draws no
+  connections on purpose — the IDE can say what exists, not how it relates. An
+  agent replaces it with the real thing; the seed is never written twice and
+  never over an authored diagram.
+- **`reopen_fix`** is a real tracker tool for every agent, not just a button.
+
+### What's fixed
+- **Brain Graph put the useless half first.** Because the graph is built with no
+  API key, communities never get names — so four sections said nothing ("Community
+  0" … "Community 9", the same numbers with raw cohesion floats, "file stats not
+  available"). Measured on a real report: 49 of 76 lines. They sat above god
+  nodes, surprising connections, import cycles and knowledge gaps. Those lead
+  now; the rest is one click away, with a line saying why it is quiet.
+- **A reopened fix kept its old close date** and, worse, logged nothing when it
+  was closed the second time.
+
 ## [0.78.0] - 2026-09-11
 
 ### What's new

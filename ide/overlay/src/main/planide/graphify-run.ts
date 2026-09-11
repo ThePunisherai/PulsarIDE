@@ -86,7 +86,73 @@ export async function reindexGraph(projectPath: string): Promise<ReindexResult> 
   return { ok: true, missing: false, log }
 }
 
-export type GraphReportSection = { heading: string; lines: string[] }
+export type GraphReportSection = {
+  heading: string
+  lines: string[]
+  /**
+   * False for a section that carries no information in the way the IDE runs
+   * graphify. See classifyReportSection.
+   */
+  useful: boolean
+}
+
+/**
+ * Which report sections are worth putting in front of someone.
+ *
+ * Not a taste call -- it follows from how the IDE runs graphify. Labelling
+ * communities needs an LLM backend, and PulsarIDE deliberately runs
+ * `cluster-only --no-label` so the graph works with no API key at all. The
+ * consequence, confirmed against a real 71-node report rather than assumed:
+ * every community comes out named "Community 0", "Community 1", ... So
+ *
+ *   ## Community Hubs (Navigation)   ->  a list of "Community 0" ... "Community 9"
+ *   ## Communities                   ->  the longest section in the file, every
+ *                                        entry titled "Community N", with raw
+ *                                        cohesion floats (0.10526315789473684)
+ *   ## Corpus Check                  ->  "cluster-only mode - file stats not available"
+ *   ## Suggested Questions           ->  questions phrased around those same numbers
+ *
+ * ...are four sections of noise sitting ABOVE the four that are real: God Nodes,
+ * Surprising Connections, Import Cycles and Knowledge Gaps, which are all actual
+ * symbol names and file paths. That ordering is why the useful half was only
+ * reachable by scrolling to the bottom -- reported as "moet helemaal naar
+ * beneden scrollen, staan dingen wat ik niets aan heb".
+ *
+ * Matched on a lowercased prefix of graphify's own heading, and anything
+ * unrecognised counts as useful: a section a future version adds should show up
+ * rather than be hidden by a list written today.
+ */
+/**
+ * Sections that only carry meaning once communities have real names.
+ * `Corpus Check` is separate: it is self-describing about having no data.
+ */
+const NEEDS_LABELS = ['community hubs', 'communities', 'suggested questions']
+
+/**
+ * True when graphify never named the communities -- the normal state here,
+ * since the IDE runs `--no-label`. Detected from the report itself rather than
+ * assumed, so a project someone DID label keeps its sections.
+ */
+export function communitiesAreUnlabelled(sections: { heading: string; lines: string[] }[]): boolean {
+  const communities = sections.find((s) => s.heading.trim().toLowerCase().startsWith('communities'))
+  if (!communities) return false
+  const named = communities.lines.filter((l) => /^###\s/.test(l.trim()))
+  if (named.length === 0) return false
+  // `### Community 3 - "Community 3"` -- the quoted label is just the number again.
+  return named.every((l) => /"Community\s+\d+"/.test(l))
+}
+
+export function classifyReportSection(
+  heading: string,
+  lines: string[],
+  unlabelled: boolean
+): boolean {
+  const h = heading.trim().toLowerCase()
+  // "cluster-only mode - file stats not available" is the whole section.
+  if (h.startsWith('corpus check')) return !lines.every((l) => /not available/i.test(l))
+  if (NEEDS_LABELS.some((low) => h.startsWith(low))) return !unlabelled
+  return true
+}
 
 /**
  * Split GRAPH_REPORT.md into its `##` sections, in the order graphify wrote
@@ -110,12 +176,18 @@ export function readGraphReport(projectPath: string): GraphReportSection[] {
     const h = /^##\s+(.*)$/.exec(line)
     if (h) {
       if (current) sections.push(current)
-      current = { heading: h[1].trim(), lines: [] }
+      current = { heading: h[1].trim(), lines: [], useful: true }
       continue
     }
     if (!current) continue
     if (line.trim()) current.lines.push(line)
   }
   if (current) sections.push(current)
-  return sections.filter((s) => s.lines.length > 0)
+  const kept = sections.filter((s) => s.lines.length > 0)
+  // Second pass: whether a section is worth showing depends on the report as a
+  // whole (are the communities named at all?), which is not known until every
+  // section has been read.
+  const unlabelled = communitiesAreUnlabelled(kept)
+  for (const s of kept) s.useful = classifyReportSection(s.heading, s.lines, unlabelled)
+  return kept
 }

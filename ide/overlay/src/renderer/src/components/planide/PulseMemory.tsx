@@ -119,6 +119,31 @@ function PanelHeader({
  * out of the code versus inferred. This shows them without leaving the IDE, and
  * refreshes itself when an agent works.
  */
+/** One `##` section of graphify's report. */
+function ReportSection({
+  section,
+  muted = false
+}: {
+  section: GraphReportSection
+  muted?: boolean
+}): React.JSX.Element {
+  return (
+    <div className={cn('rounded-lg border border-border p-3', muted && 'opacity-70')}>
+      <div className="mb-1.5 text-[12px] font-medium">{section.heading}</div>
+      <div className="flex flex-col gap-1">
+        {section.lines.map((line, i) => (
+          <div
+            key={i}
+            className="text-[11.5px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere]"
+          >
+            {line.replace(/^[-*]\s+/, '\u2022 ')}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function BrainGraphPanel({
   graph,
   loading,
@@ -146,6 +171,11 @@ export function BrainGraphPanel({
     INFERRED: 'bg-amber-500/80',
     AMBIGUOUS: 'bg-rose-500/70'
   }
+  const [showQuiet, setShowQuiet] = useState(false)
+  // The split is decided in the main process (readGraphReport), where it can be
+  // tested against a real report, rather than re-derived from headings here.
+  const useful = (report ?? []).filter((s) => s.useful)
+  const quiet = (report ?? []).filter((s) => !s.useful)
   return (
     <div className="flex flex-col gap-3">
       <PanelHeader
@@ -339,31 +369,53 @@ export function BrainGraphPanel({
             )}
           </div>
 
-          {/* graphify's own report, verbatim. The headings are its, not ours,
-              so a section a future version adds shows up on its own instead of
-              being dropped by a parser that only knows today's set. This is the
-              half of the graph the IDE never showed: god nodes, the connections
-              you did not know about, import cycles, and what it cannot answer. */}
-          {report && report.length > 0 ? (
+          {/* graphify's own report, but not in graphify's own order.
+              Its headings are still its own -- a section a future version adds
+              shows up rather than being dropped by a parser that knows only
+              today's set. What changed is which ones lead. Because the IDE runs
+              `cluster-only --no-label` (so the graph needs no API key), the
+              communities never get names, and four sections are left saying
+              nothing: a list of "Community 0..9", the same numbers again with
+              raw cohesion floats, "file stats not available", and questions
+              phrased around those numbers. Measured on a real 71-node report:
+              49 of 76 lines. They sat ABOVE god nodes, surprising connections,
+              import cycles and knowledge gaps -- which is why the useful half
+              was only reachable by scrolling to the bottom. */}
+          {useful.length > 0 ? (
             <div className="flex flex-col gap-3">
               <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 {translate('planide.brain.report', "Graphify's report")}
               </div>
-              {report.map((section) => (
-                <div key={section.heading} className="rounded-lg border border-border p-3">
-                  <div className="mb-1.5 text-[12px] font-medium">{section.heading}</div>
-                  <div className="flex flex-col gap-1">
-                    {section.lines.map((line, i) => (
-                      <div
-                        key={i}
-                        className="text-[11.5px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere]"
-                      >
-                        {line.replace(/^[-*]\s+/, '• ')}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {useful.map((section) => (
+                <ReportSection key={section.heading} section={section} />
               ))}
+
+              {quiet.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuiet((v) => !v)}
+                    className="self-start rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
+                  >
+                    {showQuiet
+                      ? translate('planide.brain.hideQuiet', 'Hide the unnamed-community sections')
+                      : `${translate('planide.brain.showQuiet', 'Show')} ${quiet.length} ${translate('planide.brain.quietRest', 'more sections (unnamed communities)')}`}
+                  </button>
+                  {showQuiet && (
+                    <>
+                      <div className="rounded-lg border border-dashed border-border p-3 text-[11px] leading-relaxed text-muted-foreground">
+                        {translate(
+                          'planide.brain.whyQuiet',
+                          'These stay collapsed because the communities have no names. Naming them needs an LLM backend, and the graph is built without one on purpose so it works with no API key. The numbers below are real; the labels are just "Community 0", "Community 1".'
+                        )}
+                      </div>
+                      {quiet.map((section) => (
+                        <ReportSection key={section.heading} section={section} muted />
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ) : null}
         </>

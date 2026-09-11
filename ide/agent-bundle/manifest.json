@@ -31,6 +31,7 @@
       "set_item",
       "add_fix",
       "mark_fixed",
+      "reopen_fix",
       "add_milestone",
       "set_milestone",
       "clean_doc",

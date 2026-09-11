@@ -11,13 +11,13 @@
  * the examples archify itself ships. It is slower than a unit test, and that is
  * the point: a mock of the CLI would have happily accepted the bad flag too.
  */
-import { cpSync, existsSync, mkdirSync, mkdtempSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const MOD = process.env.PULSAR_ARCHIFYRUN_CJS
-const { archifyRender, archifyStatus, ARCHIFY_TYPES } = await import(MOD)
+const { archifyRender, archifyStatus, ARCHIFY_TYPES, ensureBaselineDiagram } = await import(MOD)
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const SKILL = join(REPO, 'ide/agent-bundle/skills/archify')
@@ -77,6 +77,50 @@ ok('a missing archify reads as missing, not as a render failure',
 
 const nope = await archifyRender(proj, 'does-not-exist', 'dataflow', HOME)
 ok('a diagram that is not on disk is refused', nope.ok === false && nope.missing === false)
+
+// --- the baseline diagram -------------------------------------------------- //
+// "Archify wordt niet automatisch gemaakt": the tab only ever showed JSON an
+// agent had already written, so a project nobody authored one for was blank.
+// The generated one has to be REAL archify input, not merely well-intentioned
+// -- so it is rendered through the same CLI as everything above. A hand-checked
+// JSON shape would prove nothing; archify validates against its own schema.
+const fresh = join(work, 'fresh-project')
+for (const d of ['src', 'api', 'migrations', 'auth', 'infra', 'docs', 'node_modules', '.git', 'weird name!']) {
+  mkdirSync(join(fresh, d), { recursive: true })
+}
+const made = ensureBaselineDiagram(fresh, { title: 'Fresh Project' })
+ok('a project with no diagrams gets a baseline', made.created === true && made.type === 'architecture')
+
+const baseline = JSON.parse(readFileSync(join(fresh, '.planide/diagrams/project-map.architecture.json'), 'utf8'))
+const labels = baseline.components.map((c) => c.label)
+ok('build output and dotfiles are not drawn as components',
+   !labels.includes('node_modules') && !labels.includes('.git') &&
+   labels.includes('src') && labels.includes('api'))
+ok('directory names are classified, not all lumped together',
+   baseline.components.find((c) => c.label === 'migrations')?.type === 'database' &&
+   baseline.components.find((c) => c.label === 'auth')?.type === 'security' &&
+   baseline.components.find((c) => c.label === 'infra')?.type === 'cloud' &&
+   baseline.components.find((c) => c.label === 'src')?.type === 'backend')
+ok('a directory name that is not a legal archify id is made into one',
+   baseline.components.every((c) => /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(c.id)))
+// The honesty rule: it states what exists, it does not invent how they relate.
+ok('no relationships are invented', baseline.connections === undefined)
+
+const renderedBaseline = await archifyRender(fresh, 'project-map', 'architecture', HOME)
+ok('the generated baseline is valid archify input and really renders',
+   renderedBaseline.ok === true && !!renderedBaseline.html && existsSync(renderedBaseline.html))
+if (!renderedBaseline.ok) console.log('       archify said: ' + String(renderedBaseline.log).split('\n').slice(0, 3).join(' | '))
+
+// Never twice, and never over an authored set.
+const again = ensureBaselineDiagram(fresh, { title: 'Fresh Project' })
+ok('it is not written a second time', again.created === false && again.reason === 'exists')
+ok('the existing project with real diagrams is left alone',
+   ensureBaselineDiagram(proj).created === false)
+
+const bare = join(work, 'bare-project')
+mkdirSync(bare, { recursive: true })
+ok('a project with nothing in it gets no diagram rather than an empty one',
+   ensureBaselineDiagram(bare).created === false)
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)
