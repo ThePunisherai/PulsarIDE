@@ -40,6 +40,7 @@ PulsarIDE adds, in the sidebar, wired to the agents.
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
 | **Pulse Agent, pre-installed** | 100 team leads + **5,372 named specialists** + 77 skills + a **274-role agency library** and **44 ThreeUI 3D/design components** ship inside the app and deploy on launch — Claude Code, Codex, Gemini CLI and Qwen Code as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule, opencode through its own config, and every other agent through the repo's `AGENTS.md` — with graphify + Obsidian wired per project and the `planide` and `pulsar-tools` MCP servers registered, so every agent updates the board out of the box |
 | **The agent's own tools, everywhere** | `pulsar-tools` gives any agent — Codex and Cursor included, not just Claude Code — task routing across the whole roster, an anti-loop check so a failed approach is never retried, and binary triage through the bundled RE toolkit |
+| **Toolkit** | One page for what is actually wired into your agents, read back from your machine rather than claimed: whether the tracker server really starts (it is *launched*, not just found) and with which command, which config file each of the seven agents keeps and whether our servers are named in it, which agents keep the board current by themselves — plus Meshy's key, ECC's switch, and the Unreal Engine MCP |
 | **Automatic trail** | Every agent turn lands in Activity by name, straight from Orca's own agent hooks — nothing to install or call |
 | **Live board** | The tracker watches the project, so an agent writing to the board updates what you are looking at — no refreshing |
 | **Brain Graph** | What the project's knowledge graph actually holds: size, the pieces everything hangs off, how things relate, and how much was read from the code versus inferred — plus **Rebuild**, which re-indexes the project for real and surfaces graphify's own report: god nodes, connections you did not know about, import cycles, and what it still cannot answer |
@@ -202,7 +203,7 @@ if upstream drifts, `apply.py` fails loudly naming the file, instead of
 silently producing a half-patched IDE.
 
 **Nothing Orca does is removed.** The overlay adds 28 files, replaces 5 images
-(the icons), and makes 46 anchored edits — the ones that rewrite a line rather
+(the icons), and makes 64 anchored edits — the ones that rewrite a line rather
 than add around it are branding constants (app name, bundle id, protocol,
 executable names, release repo). `ide/check-additive.py` fails the suite if an
 edit ever drops upstream code, so a feature cannot go missing quietly.
@@ -234,6 +235,14 @@ To have an agent update the board itself, two ways — pick per agent:
   zero-dependency Node server run by the IDE's own binary, so there is no Python
   and no `pip install` in the path.
 
+**Your plan lands on the board by itself — for four of the seven.** Claude Code
+(`TodoWrite`), Codex (`update_plan`), Gemini CLI and Qwen Code (`write_todos`)
+each have a real hook on their own plan tool, wired to the same script: make a
+plan, it appears on the board, no call required. Antigravity, Cursor and
+opencode have no such hook, so they only get there when the agent calls
+`sync_plan` — which a model can skip. Toolkit says which is which per agent
+instead of implying it is automatic everywhere.
+
 Both write the same state the IDE reads, so a fix an agent logs mid-session
 shows up in the Tracker.
 
@@ -248,22 +257,18 @@ Worth knowing why that link breaks by itself: Claude Code owns `~/.claude.json`
 and rewrites it on its own schedule, so our entry can go missing through nobody's
 fault.
 
-### ECC, on tap
+### ECC, in the box
 
 [ECC](https://github.com/affaan-m/ECC) (MIT) is a third-party operator layer —
-354 skills and agents for CI, repo hygiene, security review, incidents and
-migrations. On first launch PulsarIDE puts its catalogue on this machine:
+**291 skills and 68 agents** for CI, releases, repo hygiene, security review,
+incidents and migrations. It **ships inside PulsarIDE** (7.5 MB of markdown) and
+is deployed on launch: no `git`, no network, no `npx`, nothing to fail. A copy
+you installed yourself is left untouched.
 
-```bash
-claude plugin marketplace add https://github.com/affaan-m/ECC   # or a plain git clone
-```
-
-**It is deliberately not installed.** As a Claude Code plugin ECC costs
-**~40,600 always-on tokens** in every session on every project — Claude Code's
-own `plugin details`, measured, not estimated — for a library you need on maybe
-one task in twenty. `marketplace add` clones the whole repository and installs
-nothing (`plugin list` afterwards: "No plugins installed"), so the catalogue
-sits on disk at zero context cost and the Council fetches from it:
+**On disk, not loaded.** As a Claude Code plugin ECC costs **~40,600 always-on
+tokens** in every session on every project — Claude Code's own `plugin details`,
+measured, not estimated — for a library you need on maybe one task in twenty.
+Sitting on disk it costs nothing until a tool is actually called:
 
 ```
 ecc_find("audit this codebase for HIPAA compliance")  ->  hipaa-compliance (strong)
@@ -271,29 +276,48 @@ ecc_find("audit this codebase for HIPAA compliance")  ->  hipaa-compliance (stro
 ecc_read("hipaa-compliance")                          ->  the file, followed inline
 ```
 
-Two tools on the `pulsar-tools` MCP server, so this works in Codex, Cursor,
-Gemini and Qwen too — not just Claude Code. Matches come back marked `strong` or
-`weak`, and `weak` means it shares a word with your task rather than a subject:
-ECC genuinely does not cover everything, and saying so beats returning a
-confident wrong answer. Same trade Pulse Agent already makes with its own 5,050
+Both tools live on the `pulsar-tools` MCP server, so this works in Codex,
+Cursor, Gemini and Qwen too — not just Claude Code. Matches come back marked
+`strong` or `weak`, and `weak` means it shares a word with your task rather than
+a subject: ECC genuinely does not cover everything, and saying so beats a
+confident wrong answer. Same trade Pulse Agent makes with its own 5,050
 specialists — catalogued, read on demand, never registered.
 
-Not mirrored into our installer either way: ECC's README asks people not to run
-unofficial copies, and 63 MB of someone else's plugin inside our exe is how the
-Windows Defender flag happened once already.
+**The Council's own persona names these tools**, not only the always-loaded
+`CLAUDE.md`/`AGENTS.md` block. That distinction is the whole feature: a subagent
+runs on its persona file and never reads that block, so until v0.76.0 the one
+thing whose job is deciding what to reach for was the one thing never told the
+catalogue existed. Three deploy checks now assert the persona carries
+`ecc_find`/`ecc_read` in every format the Council ships in.
+
+Switch it off in **Toolkit**, or:
 
 ```jsonc
 // ~/.config/pulsaride/settings.json
-{ "installEcc": false }   // don't fetch the catalogue at all
+{ "installEcc": false }
 ```
 
-Want it fully loaded anyway? `claude plugin install ecc@ecc` — the marketplace
-is already registered, so it is one command.
+Want it fully loaded as a plugin anyway? `claude plugin marketplace add
+https://github.com/affaan-m/ECC && claude plugin install ecc@ecc` — and pay the
+40,600 tokens knowingly.
+
+### Unreal Engine, if you have it
+
+The [Unreal MCP server](https://github.com/flopperam/unreal-engine-mcp) drives a
+running Unreal editor, so it only means anything on a machine that has Unreal.
+Pick a folder in **Toolkit** and the IDE downloads the server into it — into a
+named subfolder, so the folder you chose does not get filled with a repo's
+contents — then registers it for all seven agents. It checks the server file
+really landed rather than trusting `git`'s exit code, and re-picking the same
+folder just re-registers it.
+
+Two things stay yours, and the card says so: `uv` on `PATH`, and the UnrealMCP
+plugin enabled in your Unreal project.
 
 ## Verify
 
 ```bash
-./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 18 checks
+./verify.sh        # agent tools: 17 checks · IDE (tracker + overlay): 31 checks
 ```
 
 ## Credits & license
