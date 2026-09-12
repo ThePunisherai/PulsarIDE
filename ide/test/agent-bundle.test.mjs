@@ -106,6 +106,55 @@ ok('Qwen Code MCP registered at ~/.qwen/settings.json, user content preserved', 
 })())
 ok('claude/gemini/codex all get the roster', readdirSync(join(HOME, '.claude/agents')).filter(f => f.startsWith('pulse-')).length === 100 && readdirSync(join(HOME, '.gemini/agents')).length === 100 && readdirSync(join(HOME, '.codex/agents')).filter(f => f.endsWith('.toml')).length === 100)
 try { execSync('python3 -c "import tomllib,sys;[tomllib.load(open(f,\'rb\')) for f in sys.argv[1:]]" ' + readdirSync(join(HOME, '.codex/agents')).map(f => join(HOME, '.codex/agents', f)).join(' ')); ok('every codex toml parses', true) } catch { ok('every codex toml parses', false) }
+
+// Antigravity CLI had the MCP tools and the merged GEMINI.md block, but no entry
+// in `/agents` and nothing the primary agent could route to -- "in antigravity
+// cli zie ik geen pulse agent of council". Its custom agents are a DIRECTORY per
+// agent holding an `agent.md`, under its own global root, not `~/.gemini/agents`
+// (that is Gemini CLI's; the shared ~/.gemini is what hid this).
+const agRoot = join(HOME, '.gemini/config/agents')
+const agDirs = existsSync(agRoot) ? readdirSync(agRoot).filter((d) => d.startsWith('pulse-')) : []
+ok('Antigravity gets the whole roster as real custom agents',
+  agDirs.length === 100 && agDirs.every((d) => existsSync(join(agRoot, d, 'agent.md'))))
+ok('Antigravity gets the Council specifically',
+  existsSync(join(agRoot, 'pulse-council', 'agent.md')))
+// Both of Antigravity's global rules files, not one: the report was that Council
+// does not lead a session there even with the GEMINI.md block on disk, which is
+// what a build that reads AGENTS.md globally would look like.
+for (const f of ['.gemini/GEMINI.md', '.gemini/AGENTS.md']) {
+  const text = existsSync(join(HOME, f)) ? readFileSync(join(HOME, f), 'utf8') : ''
+  ok(`${f} carries the Council block, so the main session is led`,
+    text.includes('PULSAR:MAIN:BEGIN') && text.includes('Pulse Agent — Council') &&
+    text.includes('get_board'))
+}
+{
+  // Every one has to be loadable: real YAML frontmatter, marked as a subagent so
+  // the primary agent can invoke it, and a directory name matching its own name
+  // (Antigravity resolves an agent by its directory).
+  let bad = 0
+  let truncated = 0
+  for (const d of agDirs) {
+    const text = readFileSync(join(agRoot, d, 'agent.md'), 'utf8')
+    const m = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+    if (!m) { bad++; continue }
+    const front = m[1]
+    const name = front.match(/^name:\s*(.+)$/m)?.[1]?.trim()
+    const desc = front.match(/^description:\s*"((?:[^"\\]|\\.)*)"\s*$/m)?.[1]
+    if (name !== d) bad++
+    else if (!/^subagent:\s*true$/m.test(front)) bad++
+    else if (!desc || !desc.trim()) bad++
+    else if (!m[2].includes('# System Prompt')) bad++
+    // The description drives routing here, so a folded block cut at its first
+    // line ("...as the first and last") is a real defect, not a cosmetic one.
+    if (desc && /\b(and last|the first and)$/.test(desc.trim())) truncated++
+  }
+  ok('every Antigravity agent.md is well-formed and invocable', bad === 0)
+  ok('descriptions are the whole folded block, not the first line', truncated === 0)
+  const council = readFileSync(join(agRoot, 'pulse-council', 'agent.md'), 'utf8')
+  ok('and the persona itself survives the conversion',
+    council.includes('The Council') && council.includes('get_board') &&
+    council.includes('Pulse Agent —'))
+}
 ok('README.md is NOT deployed as an agent (would break Codex agent loading)',
   !existsSync(join(HOME, '.codex/agents/pulse-README.toml')) &&
   !existsSync(join(HOME, '.claude/agents/pulse-README.md')) &&

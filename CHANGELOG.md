@@ -6,6 +6,21 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.81.0] - 2026-09-12
+
+### What's fixed
+- **Antigravity CLI now gets the Pulse roster properly.** It had the tracker
+  tools and a Skill, but no Council and no team leads in `/agents` — nothing the
+  agent could route to, unlike Claude Code and Codex. All 100 team leads plus the
+  Council now deploy as real Antigravity custom agents, so they show up and can
+  be invoked the same way.
+- **Council now leads the session there too.** Antigravity has two global rules
+  files and we only wrote one of them; the block goes into both `~/.gemini/GEMINI.md`
+  and `~/.gemini/AGENTS.md` now, so it does not matter which one a given build reads.
+- **Agent descriptions are no longer cut mid-sentence.** A folded description
+  was truncated at its first line, losing the half that says what the agent is
+  for — which is exactly what Antigravity routes on.
+
 ## [0.80.0] - 2026-09-11
 
 ### What's new

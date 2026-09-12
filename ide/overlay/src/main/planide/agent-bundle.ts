@@ -272,15 +272,35 @@ function readMarker(home: string): Marker | null {
 }
 
 /** Front-matter name + body, for converting a team-lead .md to Codex TOML. */
-function parseAgent(md: string): { name: string; description: string; body: string } {
+function parseAgent(md: string): {
+  name: string
+  description: string
+  descriptionFull: string
+  body: string
+} {
   const m = md.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
   const front = m ? m[1] : ''
   const body = m ? m[2] : md
   const name = (front.match(/^name:\s*(.+)$/m)?.[1] ?? 'pulse-agent').trim()
   // description can be a folded (>) block; take the first line as a summary.
   const descLine = front.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? ''
-  const desc = descLine === '>' || descLine === '|' ? (front.match(/\n\s{2,}(.+)/)?.[1] ?? '').trim() : descLine
-  return { name, description: desc, body: body.trim() }
+  const folded = descLine === '>' || descLine === '|'
+  const desc = folded ? (front.match(/\n\s{2,}(.+)/)?.[1] ?? '').trim() : descLine
+  // ...and the whole block, joined. `description` above stops at the first line,
+  // which for a folded block cuts mid-sentence ("Use PROACTIVELY as the first and
+  // last" -- the half that says what the agent is FOR is on line two). Codex keeps
+  // the short form it has always had; Antigravity gets the full one, because there
+  // the description is what the primary agent routes on.
+  const descriptionFull = folded
+    ? (front
+        .match(/^description:\s*[>|]\s*\n((?:\s{2,}.*(?:\n|$))+)/m)?.[1] ?? '')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .join(' ')
+        .trim() || desc
+    : desc
+  return { name, description: desc, descriptionFull, body: body.trim() }
 }
 
 function toToml(md: string): string {
@@ -300,6 +320,58 @@ function toToml(md: string): string {
     `description = "${esc(description)}"\n` +
     `developer_instructions = '''\n${literalBody}\n'''\n`
   )
+}
+
+/**
+ * Antigravity's own custom-agent format.
+ *
+ * Antigravity CLI has a real subagent mechanism and we were not using it. It got
+ * the merged GEMINI.md block and a Skill, but no entry in `/agents` and nothing
+ * the primary agent could route to -- reported exactly that way: "in antigravity
+ * cli zie ik geen pulse agent of council geleid wordt zoals in codex en claude".
+ *
+ * Verified against Google's own sources rather than inferred from the Gemini
+ * fork, because the two products share `~/.gemini` and that is precisely how
+ * this went unwired before (see registerPlanideMcpAntigravity):
+ *   - google-antigravity/antigravity-cli CHANGELOG: "Custom Agents (Markdown
+ *     Format) ... defining custom agents using Markdown files (`agent.md`) with
+ *     YAML frontmatter and H1-delimited system prompts", supporting `mainAgent`,
+ *     `subagent`, `hidden`, `inheritMcp` and `commandExecutionPolicy`.
+ *   - the same CHANGELOG fixing the `/agents` panel for pointing at
+ *     `~/.gemini/antigravity-cli/` "instead of `~/.gemini/config/`, ensuring
+ *     users create global subagents in the location actively scanned during
+ *     startup discovery" -- so the global root is `~/.gemini/config/agents/`,
+ *     one directory per agent, matching the agent's own name.
+ *
+ * Only `subagent`/`mainAgent` are set. `model` and `commandExecutionPolicy` are
+ * deliberately left off: the documented minimal example pins `model: pro` and a
+ * sandbox policy, and pinning either would override the model the user actually
+ * chose (Claude Opus, in the report this fixes) and narrow what the agent may
+ * run. Omitted, they inherit -- per the same CHANGELOG, Markdown agents "inherit
+ * ambient skills, rules, and subagents by default".
+ */
+function toAntigravityAgent(md: string): string {
+  const { name, descriptionFull, body } = parseAgent(md)
+  // A YAML double-quoted scalar. The description is a folded block upstream, so
+  // it is flattened to one line first -- a raw newline would end the scalar, and
+  // a stray `:` in it would otherwise be read as a new key.
+  const esc = (s: string): string =>
+    s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\s*\n\s*/g, ' ').trim()
+  return [
+    '---',
+    `name: ${name}`,
+    `description: "${esc(descriptionFull)}"`,
+    'subagent: true',
+    'mainAgent: false',
+    '---',
+    '',
+    // The body is prose, not a heading, and the format is documented as
+    // H1-delimited -- so it gets the H1 the docs' own examples use.
+    '# System Prompt',
+    '',
+    body,
+    ''
+  ].join('\n')
 }
 
 /**
@@ -352,7 +424,10 @@ export function deployAgentBundle(
 
     // Reconcile: remove what a previous deploy of ours wrote, ours only.
     if (prev) {
-      for (const p of prev.agents) rmSync(p, { force: true })
+      // recursive: Antigravity's agents are directories, the other four are
+      // files. rmSync on a directory without it throws, which would abort the
+      // whole redeploy cleanup; on a file it changes nothing.
+      for (const p of prev.agents) rmSync(p, { force: true, recursive: true })
       for (const name of prev.skills) {
         // Both roots: a skill we stopped shipping has to go from Qwen's copy too,
         // or an update leaves it behind for one tool and not the other.
@@ -389,10 +464,16 @@ export function deployAgentBundle(
     // `join(Storage.getGlobalQwenDir(), AGENT_CONFIG_DIR)` with
     // AGENT_CONFIG_DIR = 'agents' -- not inferred from it being a Gemini fork.
     const qwenAgents = join(home, '.qwen', 'agents')
+    // Antigravity CLI: its own custom-agent root, one DIRECTORY per agent
+    // holding an `agent.md` -- not `<name>.md` like the four above, and not
+    // `~/.gemini/agents` (that is Gemini CLI's; the shared ~/.gemini is exactly
+    // what made this look covered when it never was). See toAntigravityAgent.
+    const antigravityAgents = join(home, '.gemini', 'config', 'agents')
     mkdirSync(claudeAgents, { recursive: true })
     mkdirSync(geminiAgents, { recursive: true })
     mkdirSync(codexAgents, { recursive: true })
     mkdirSync(qwenAgents, { recursive: true })
+    mkdirSync(antigravityAgents, { recursive: true })
 
     /**
      * Exactly one copy of this roster, and it is the one this app ships.
@@ -477,6 +558,15 @@ export function deployAgentBundle(
       const qwenPath = join(qwenAgents, base)
       writeFileSync(qwenPath, mdOut)
       wroteAgents.push(qwenPath)
+      // Antigravity: <root>/<agent-name>/agent.md. The directory has to match the
+      // agent's own name, and every team lead's frontmatter name is already
+      // `pulse-<basename>`, so the two line up by construction.
+      const antigravityDir = join(antigravityAgents, base.replace(/\.md$/, ''))
+      mkdirSync(antigravityDir, { recursive: true })
+      writeFileSync(join(antigravityDir, 'agent.md'), toAntigravityAgent(mdOut))
+      // The directory, not the file: a roster change has to take the whole
+      // agent with it, or `/agents` keeps listing an empty shell.
+      wroteAgents.push(antigravityDir)
     }
 
     // --- skills: curated set incl. orchestration -> Claude Code ----------- //
@@ -2306,6 +2396,19 @@ function registerTrackerForAllAgents(home: string): boolean {
   mergeManagedBlock(join(home, '.codex', 'AGENTS.md'), block)
   mergeManagedBlock(join(home, '.claude', 'CLAUDE.md'), block)
   mergeManagedBlock(join(home, '.gemini', 'GEMINI.md'), block)
+  // Antigravity's second global rules file, alongside GEMINI.md rather than
+  // instead of it: `~/.gemini/AGENTS.md` is the cross-tool global rules file
+  // (the AGENTS.md convention Antigravity, Cursor and Claude Code share),
+  // applied AFTER GEMINI.md so a genuine conflict still defers to GEMINI.md.
+  //
+  // Written because the report this fixes is that Council does not lead a
+  // session in Antigravity CLI even though the GEMINI.md block is on disk --
+  // which is what you would see on a build that reads AGENTS.md globally and
+  // not GEMINI.md. Both are merged now, so it does not matter which one a given
+  // Antigravity build prefers. The cost if it reads BOTH is the block twice in
+  // context; the content is identical, so there is nothing for it to conflict
+  // with, and it is delimited, so neither file is ever clobbered.
+  mergeManagedBlock(join(home, '.gemini', 'AGENTS.md'), block)
   // Qwen Code's user-scope context file. Its memory loader joins the global
   // `~/.qwen` dir with each entry of `currentMemoryFilename`, which defaults to
   // ['QWEN.md', 'AGENTS.md'] -- so QWEN.md alone reaches it, and writing both
