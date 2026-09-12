@@ -118,6 +118,43 @@ ok('Antigravity gets the whole roster as real custom agents',
   agDirs.length === 100 && agDirs.every((d) => existsSync(join(agRoot, d, 'agent.md'))))
 ok('Antigravity gets the Council specifically',
   existsSync(join(agRoot, 'pulse-council', 'agent.md')))
+
+// The deploy short-circuits when the bundle fingerprint is unchanged, and that
+// fingerprint includes DEPLOY_TARGETS precisely so "same bundle, NEW place to
+// write it" still redeploys. Adding Qwen Code needed that. Adding Antigravity
+// needed it too and did not get it: v0.81.0 shipped the agents and every
+// existing install answered "already at 2.0.0" and wrote nothing -- reported as
+// the Council still being invisible after the release that added it.
+//
+// Derived from what the deploy actually wrote rather than a hand-kept list, so
+// the NEXT tool is covered by having been added, not by someone remembering.
+{
+  const srcPath = join(process.env.PULSAR_REPO, 'ide/overlay/src/main/planide/agent-bundle.ts')
+  const targets = readFileSync(srcPath, 'utf8').match(/const DEPLOY_TARGETS = \[([\s\S]*?)\] as const/)?.[1] ?? ''
+  // Every directory under HOME holding agents this deploy wrote.
+  const roots = new Set()
+  const walk = (abs, rel, depth) => {
+    if (depth > 4) return
+    let entries
+    try { entries = readdirSync(abs, { withFileTypes: true }) } catch { return }
+    for (const e of entries) {
+      if (!e.isDirectory()) {
+        if (/^pulse-.+\.(md|toml)$/.test(e.name)) roots.add(rel)
+        continue
+      }
+      // Antigravity's shape: <root>/pulse-<name>/agent.md
+      if (/^pulse-/.test(e.name) && existsSync(join(abs, e.name, 'agent.md'))) roots.add(rel)
+      else walk(join(abs, e.name), rel ? `${rel}/${e.name}` : e.name, depth + 1)
+    }
+  }
+  for (const top of ['.claude', '.codex', '.gemini', '.qwen']) {
+    walk(join(HOME, top), top, 0)
+  }
+  const unlisted = [...roots].filter((r) => !targets.includes(`'${r}'`))
+  ok(`every directory the deploy writes agents to is in DEPLOY_TARGETS (${roots.size} found)`,
+    roots.size >= 5 && unlisted.length === 0)
+  if (unlisted.length) console.log('       not in DEPLOY_TARGETS: ' + unlisted.join(', '))
+}
 // Both of Antigravity's global rules files, not one: the report was that Council
 // does not lead a session there even with the GEMINI.md block on disk, which is
 // what a build that reads AGENTS.md globally would look like.

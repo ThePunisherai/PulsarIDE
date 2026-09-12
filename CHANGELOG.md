@@ -6,6 +6,19 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.83.0] - 2026-09-12
+
+### What's fixed
+- **v0.81.0's Antigravity fix never actually installed.** The deploy skips
+  itself when the bundled agents are unchanged — and they were: only the code
+  that writes them changed. So updating to v0.81.0 answered "already up to
+  date" and wrote nothing, which is why the Council still did not show up.
+  Fixed, and an existing install now redeploys on update.
+- **Guarded so it cannot happen a third time.** The same thing happened when
+  Qwen Code was added. The check now works out for itself where the deploy
+  writes agents and fails if any of those places is missing from the list that
+  triggers a redeploy.
+
 ## [0.82.0] - 2026-09-12
 
 ### What's fixed

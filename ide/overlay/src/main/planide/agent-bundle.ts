@@ -150,6 +150,13 @@ const DEPLOY_TARGETS = [
   '.claude/skills',
   '.codex/agents',
   '.gemini/agents',
+  // Antigravity's custom agents. Listed here for the reason the doc below
+  // spells out: adding it changed nothing under agent-bundle/, so without this
+  // entry the signature stayed identical and every existing install kept
+  // skipping the deploy -- exactly what happened when Qwen Code was added, and
+  // exactly what happened again here. Reported as "nog steeds zie ik niet van
+  // onze council / pulse agent" after the release that was supposed to fix it.
+  '.gemini/config/agents',
   '.qwen/agents',
   '.qwen/skills'
 ] as const
