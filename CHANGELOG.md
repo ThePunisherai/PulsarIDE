@@ -6,6 +6,15 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.82.0] - 2026-09-12
+
+### What's fixed
+- **The star button starred the wrong repo.** Every "Star on GitHub" in the app
+  — the landing screen, Settings › Support, and the two reminder prompts — sent
+  the star to `stablyai/orca` using your own GitHub login. All five entry points
+  (the API call plus the four browser fallbacks behind it) now point at
+  PulsarIDE, so starring the app actually stars the app.
+
 ## [0.81.0] - 2026-09-12
 
 ### What's fixed

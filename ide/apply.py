@@ -707,6 +707,44 @@ EDITS: list[tuple[str, str, str, str]] = [
         f"const RELEASES_DOWNLOAD_BASE = 'https://github.com/{RELEASE_REPO}/releases/download'",
         "update feed: release asset download base",
     ),
+    # The star button, and the nag behind it. Orca ships a whole star subsystem:
+    # a button on the landing screen, one in Settings > Support, a threshold nag
+    # toast and a card -- five entry points, all of them starring stablyai/orca
+    # with the user's own `gh` auth. Left alone, every one of our users who
+    # clicks "star" stars upstream instead of us. One constant drives the real
+    # API call; the other four are the browser fallback each surface opens when
+    # `gh` is unavailable, so all five have to move together or the button and
+    # its fallback disagree about which repo they mean.
+    (
+        "src/main/github/client/fetch/orca-star.ts",
+        "export const ORCA_REPO = 'stablyai/orca'",
+        f"export const ORCA_REPO = '{RELEASE_REPO}'",
+        "star button: the gh API call stars our repo, not Orca's",
+    ),
+    (
+        "src/renderer/src/components/Landing.tsx",
+        "const ORCA_GITHUB_URL = 'https://github.com/stablyai/orca'",
+        f"const ORCA_GITHUB_URL = 'https://github.com/{RELEASE_REPO}'",
+        "star button: landing-screen browser fallback",
+    ),
+    (
+        "src/renderer/src/components/settings/GeneralSupportSection.tsx",
+        "const ORCA_GITHUB_URL = 'https://github.com/stablyai/orca'",
+        f"const ORCA_GITHUB_URL = 'https://github.com/{RELEASE_REPO}'",
+        "star button: Settings > Support browser fallback",
+    ),
+    (
+        "src/renderer/src/components/StarNagCard.tsx",
+        "const ORCA_REPO_URL = 'https://github.com/stablyai/orca'",
+        f"const ORCA_REPO_URL = 'https://github.com/{RELEASE_REPO}'",
+        "star nag card: browser fallback",
+    ),
+    (
+        "src/renderer/src/components/star-nag/StarNagToastHost.tsx",
+        "const ORCA_REPO_URL = 'https://github.com/stablyai/orca'",
+        f"const ORCA_REPO_URL = 'https://github.com/{RELEASE_REPO}'",
+        "star nag toast: browser fallback",
+    ),
     # The window title, and so the taskbar and window-switcher label. Three
     # separate HTML entry points -- patch_source_strings only rewrites string
     # literals in .ts, so nothing here was ever reached. A window titled "Orca"

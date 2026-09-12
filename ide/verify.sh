@@ -535,6 +535,33 @@ PY
     else
       bad "an updater feed still points at Orca:$stray"
     fi
+
+    # The star button, same class of problem as the updater feeds above: it runs
+    # against the user's own `gh` auth, so every one of our users who clicks it
+    # stars upstream instead of us. Five entry points (landing, Settings >
+    # Support, the nag card, the nag toast, and the gh call behind all of them),
+    # and they have to agree -- a button that stars us while its browser
+    # fallback opens Orca is worse than either alone. Comment lines are excluded:
+    # upstream's own prose still says "star Orca on GitHub" and that is not a
+    # live link.
+    star_stray=""
+    star_files="$tmp/src/main/github/client/fetch/orca-star.ts
+$tmp/src/renderer/src/components/Landing.tsx
+$tmp/src/renderer/src/components/settings/GeneralSupportSection.tsx
+$tmp/src/renderer/src/components/StarNagCard.tsx
+$tmp/src/renderer/src/components/star-nag/StarNagToastHost.tsx"
+    star_ours=0
+    for sf in $star_files; do
+      [ -f "$sf" ] || { star_stray="$star_stray $(basename "$sf"):missing"; continue; }
+      hit=$(grep -nE "stablyai/orca" "$sf" 2>/dev/null | grep -vE "^\s*[0-9]+:\s*(//|\*)" || true)
+      [ -n "$hit" ] && star_stray="$star_stray $(basename "$sf"):$(echo "$hit" | head -1 | cut -d: -f1)"
+      grep -q "ThePunisherai/PulsarIDE" "$sf" 2>/dev/null && star_ours=$((star_ours+1))
+    done
+    if [ -z "$star_stray" ] && [ "$star_ours" = 5 ]; then
+      ok "the star button and its fallbacks ($star_ours) point at us, not Orca"
+    else
+      bad "the star button still points at Orca:$star_stray (ours: $star_ours/5)"
+    fi
     # re-run must be a no-op
     again=$(python3 "$HERE/apply.py" "$tmp" 2>&1 | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
     [ "$again" = "0" ] && ok "apply is idempotent (re-run changes nothing)" \

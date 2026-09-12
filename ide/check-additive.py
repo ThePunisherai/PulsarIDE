@@ -55,6 +55,16 @@ BRANDING = {
     "src/relay/workspace-session-handler.ts",
     "src/main/grok/grok-hook-owners.ts",
     "src/main/orcad/orcad-app-paths.ts",
+    # The star button and its four browser fallbacks. Same category as the
+    # release feed directly above: which repository this product IS. It stars
+    # with the user's own `gh` auth, so keeping upstream's constant verbatim
+    # means every one of our users who clicks "star" stars Orca -- keeping it
+    # is the bug, exactly as with the updater feed.
+    "src/main/github/client/fetch/orca-star.ts",
+    "src/renderer/src/components/Landing.tsx",
+    "src/renderer/src/components/settings/GeneralSupportSection.tsx",
+    "src/renderer/src/components/StarNagCard.tsx",
+    "src/renderer/src/components/star-nag/StarNagToastHost.tsx",
 }
 
 # Tuning constants, kept separate from BRANDING on purpose: these are not
