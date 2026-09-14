@@ -404,5 +404,37 @@ const noFb = await driveIn(bareCwd, [
 ok('a cwd that is not a project is refused, never scattered with a .planide',
   byId(noFb.replies, 82).result.isError === true && !existsSync(join(bareCwd, '.planide')))
 
+// --- the `id` alias: an agent naturally passes back the `id` that add_* returned
+// and get_board shows, so set_item/mark_fixed/set_milestone accept it in place of
+// item_id/fix_id/milestone_id. Antigravity has no plan-sync hook, so these manual
+// calls have to land first try; the prefixed names still work, this only adds the
+// bare alias (the real friction in "antigravity update de tracker niet automatisch").
+const aliasProj = mkdtempSync(join(tmpdir(), 'pulsar-alias-'))
+mkdirSync(join(aliasProj, '.git'))
+const aliasSeed = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(90, 'add_item', { project: aliasProj, title: 'Alias item', status: 'wip', agent: 'antigravity' }),
+  call(91, 'add_fix', { project: aliasProj, title: 'Alias bug', problem: 'x.ts:1', agent: 'antigravity' }),
+  call(92, 'add_milestone', { project: aliasProj, title: 'Alias phase', target: 'v9', agent: 'antigravity' })
+])
+const aliasItemId = json(byId(aliasSeed.replies, 90)).id
+const aliasFixId = json(byId(aliasSeed.replies, 91)).id
+const aliasMsId = json(byId(aliasSeed.replies, 92)).id
+const aliasRun = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(93, 'set_item', { project: aliasProj, id: aliasItemId, status: 'done', agent: 'antigravity' }),
+  call(94, 'mark_fixed', { project: aliasProj, id: aliasFixId, solution: 'guarded it' }),
+  call(95, 'set_milestone', { project: aliasProj, id: aliasMsId, done: true })
+])
+ok('set_item accepts the bare `id` alias (not just item_id)',
+  byId(aliasRun.replies, 93).result.isError !== true && json(byId(aliasRun.replies, 93)).status === 'done')
+ok('mark_fixed accepts the bare `id` alias (not just fix_id)',
+  byId(aliasRun.replies, 94).result.isError !== true && json(byId(aliasRun.replies, 94)).status === 'fixed')
+ok('set_milestone accepts the bare `id` alias (not just milestone_id)',
+  byId(aliasRun.replies, 95).result.isError !== true && json(byId(aliasRun.replies, 95)).done === true)
+const aliasState = store.loadState(aliasProj)
+ok('the id-alias writes landed in the real store',
+  aliasState.items[0].status === 'done' && aliasState.fixes[0].status === 'fixed' && aliasState.roadmap[0].done === true)
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

@@ -499,17 +499,26 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: P({
-        item_id: { type: 'string' },
+        item_id: {
+          type: 'string',
+          description:
+            "The item's id, exactly as add_item returned it and get_board shows it (starts with i_). The bare `id` field is accepted as an alias, so the value you got back from add_item/get_board works as-is."
+        },
+        id: { type: 'string', description: 'Alias for item_id (the id from get_board / add_item).' },
         status: { type: 'string', enum: ITEM_STATUSES },
         title: { type: 'string' },
         notes: { type: 'string' },
         agent: { type: 'string' }
       }),
-      required: ['project', 'item_id']
+      required: ['project']
     },
     run: (args) => {
       const path = resolveProject(args)
-      const itemId = str(args.item_id)
+      // add_item returns `id`; get_board shows `id`. Agents naturally pass that
+      // straight back, so accept the bare `id` as an alias for `item_id` (only
+      // Antigravity, which has no plan-sync hook, ever depended on this working).
+      const itemId = str(args.item_id) || str(args.id)
+      if (!itemId) throw new Error('item_id is required (the item id from get_board / add_item)')
       return mutate(path, (state) => {
         const item = (state.items ?? []).find((i) => i.id === itemId)
         if (!item) throw new Error(`no item with id ${itemId} (call get_board for the real ids)`)
@@ -594,15 +603,20 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: P({
-        fix_id: { type: 'string' },
+        fix_id: {
+          type: 'string',
+          description:
+            "The fix's id, exactly as add_fix returned it and get_board shows it (starts with f_). The bare `id` field is accepted as an alias."
+        },
+        id: { type: 'string', description: 'Alias for fix_id (the id from get_board / add_fix).' },
         solution: { type: 'string', description: 'What actually fixed it.' },
         agent: { type: 'string' }
       }),
-      required: ['project', 'fix_id']
+      required: ['project']
     },
     run: (args) => {
       const path = resolveProject(args)
-      const fixId = str(args.fix_id)
+      const fixId = str(args.fix_id) || str(args.id)
       return mutate(path, (state) => {
         const fix = (state.fixes ?? []).find((f) => f.id === fixId)
         if (!fix) throw new Error(`no fix with id ${fixId} (call get_board for the real ids)`)
@@ -621,7 +635,12 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: P({
-        fix_id: { type: 'string' },
+        fix_id: {
+          type: 'string',
+          description:
+            "The fix's id, exactly as add_fix returned it and get_board shows it (starts with f_). The bare `id` field is accepted as an alias."
+        },
+        id: { type: 'string', description: 'Alias for fix_id (the id from get_board / add_fix).' },
         status: {
           type: 'string',
           enum: ['open', 'wontfix'],
@@ -633,11 +652,11 @@ const TOOLS = [
         },
         agent: { type: 'string' }
       }),
-      required: ['project', 'fix_id']
+      required: ['project']
     },
     run: (args) => {
       const path = resolveProject(args)
-      const fixId = str(args.fix_id)
+      const fixId = str(args.fix_id) || str(args.id)
       const status = FIX_STATUSES.includes(str(args.status)) && str(args.status) !== 'fixed'
         ? str(args.status)
         : 'open'
@@ -698,16 +717,21 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: P({
-        milestone_id: { type: 'string' },
+        milestone_id: {
+          type: 'string',
+          description:
+            "The milestone's id, exactly as add_milestone returned it and get_board shows it (starts with m_). The bare `id` field is accepted as an alias."
+        },
+        id: { type: 'string', description: 'Alias for milestone_id (the id from get_board / add_milestone).' },
         done: { type: 'boolean' },
         title: { type: 'string' },
         target: { type: 'string' }
       }),
-      required: ['project', 'milestone_id']
+      required: ['project']
     },
     run: (args) => {
       const path = resolveProject(args)
-      const mid = str(args.milestone_id)
+      const mid = str(args.milestone_id) || str(args.id)
       return mutate(path, (state) => {
         const m = (state.roadmap ?? []).find((x) => x.id === mid)
         if (!m) throw new Error(`no milestone with id ${mid} (call get_board for the real ids)`)

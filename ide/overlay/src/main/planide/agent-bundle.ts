@@ -1931,7 +1931,11 @@ function mainSessionBlock(home: string): string {
     '  — punctuation, emoji, non-Latin scripts — untouched.',
     '',
     '- **Before you say "done" or "please test", update the board first**, so what it shows',
-    '  matches what you just claimed.',
+    '  matches what you just claimed. Finishing a piece of work while its item still reads',
+    '  `todo`/`wip` is the bug, not a detail: `set_item` it to `works`/`done` in the SAME turn',
+    '  you report it, and never wait to be asked. Claude Code, Codex and Gemini/Qwen have a',
+    '  hook that moves the board for you; Antigravity, Cursor and opencode do not, so there',
+    '  YOU are the hook — the board only moves if you call the tool.',
     '- Only report what is real; never green-wash. `verified`/`locked` stay the user\'s — you',
     '  cannot set them, by design.',
     ''

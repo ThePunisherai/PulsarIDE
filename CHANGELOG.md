@@ -6,6 +6,21 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.84.0] - 2026-09-14
+
+### What's fixed
+- **Antigravity now keeps the tracker current on its own.** In Antigravity the
+  agent's own board calls are the only thing that moves the tracker -- Claude Code,
+  Codex and Gemini/Qwen have a hook that does it for you, Antigravity does not -- and
+  those calls kept failing on a parameter-name mismatch, so the board sat still until
+  you asked. `set_item`, `mark_fixed`, `reopen_fix` and `set_milestone` now accept the
+  plain `id` an agent already has from `get_board`/`add_item`, not only the prefixed
+  `item_id`/`fix_id`/`milestone_id`, so a board update lands first try.
+- **The "finish means move the item" rule is now unmissable.** The bundled
+  instruction spells out that on hook-less agents (Antigravity, Cursor, opencode) the
+  agent itself is the hook: leaving finished work on `todo`/`wip` is the bug, and its
+  item moves to `works`/`done` in the same turn it is reported, never only when asked.
+
 ## [0.83.0] - 2026-09-12
 
 ### What's fixed
