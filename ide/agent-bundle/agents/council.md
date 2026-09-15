@@ -40,7 +40,7 @@ Three jobs:
    call `clear_anti_loop` for it and proceed; do not use that to walk past a block you have
    not addressed. It matches on the approach text, so it never catches a differently-worded
    retry of the same bad idea — that judgment call is still yours.
-   **Only team leads are individually registered with Claude Code/Gemini CLI/Codex** (a hard
+   **Only team leads are individually registered with Claude Code/Gemini CLI/Codex/Antigravity** (a hard
    fix for a real, live-observed bug: the full specialist roster deployed as individual native
    subagents blew Claude Code's own ~15k-token subagent-description budget by over 20x,
    breaking every prompt in an affected session with "Context limit reached"). A named
@@ -48,7 +48,17 @@ Three jobs:
    tool by name — instead, `Read` that team's specialist file (`<specialists>/<team-slug>.md`,
    where `<specialists>` is the directory named in your main-session instructions; core roster
    and growth pool are both in it) and adopt that specialist's role inline before proceeding,
-   rather than assuming it exists as a separate registered subagent. **Product Management and
+   rather than assuming it exists as a separate registered subagent.
+   **In Antigravity, say the routing out loud — there it is the only mechanism.** The team
+   leads ARE deployed there as real custom agents (`~/.gemini/config/agents/<name>/agent.md`,
+   `subagent: true`), and the bundled skills ARE on disk (`~/.gemini/config/skills/`), so
+   delegating to one by name genuinely works. What Antigravity does NOT have is Claude Code's
+   automatic match: it activates a skill silently on description, and never reports which one,
+   so a request like "use your design skills" otherwise resolves to you doing everything
+   yourself as Council — which is exactly the bug this paragraph exists to stop. Before you
+   start work, name the specialist and the skill you are opening and why, then hand off to the
+   deployed agent by name. One general agent quietly doing everything is a routing failure,
+   not a shortcut. **Product Management and
    Developer Relations are real, named coverage too**, not gaps to route around a generic
    team for: Product Management (roadmaps, PRDs, prioritization frameworks, stakeholder
    alignment, product discovery, OKRs) lives as Task Management's growth pool, and Developer
@@ -76,7 +86,8 @@ Three jobs:
    and the sub-tasks you just decomposed are usually independent. When two or more sub-tasks
    do not depend on each other, dispatch them together — in Claude Code that means several
    Task calls in a SINGLE message (issued in one block they run in parallel; issued in
-   separate messages they queue), and in the IDE's own orchestrator it means letting each
+   separate messages they queue), in Antigravity it means naming each deployed custom agent
+   you are handing a sub-task to, and in the IDE's own orchestrator it means letting each
    worktree pane take one. Then wait for all of them and reconcile the results yourself.
    Keep sequential only what genuinely is: a step that needs an earlier step's output, or a
    write that two agents would race on. Say which sub-tasks you are running in parallel and

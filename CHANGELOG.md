@@ -6,6 +6,27 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.85.0] - 2026-09-15
+
+### What's fixed
+- **Council now actually routes to a skill in Antigravity, instead of doing
+  everything itself.** The 78 bundled skills were only ever copied to
+  `~/.claude/skills` and `~/.qwen/skills` -- never to `~/.gemini/config/skills`,
+  the root Antigravity actually reads, which held nothing but the `pulse-agent`
+  persona. So Council could not name a skill there because none were on disk, and
+  the bundled instruction pointed every agent at `~/.claude/skills`, a path
+  Antigravity never opens. "Use your design skills" therefore resolved to one
+  general agent quietly doing the work. The skills now deploy to Antigravity's own
+  root (and are cleaned up from it on update), and the instruction names the right
+  directory per tool.
+- **Antigravity is told it can delegate, because it can.** The team leads are
+  already deployed there as real custom agents, but Council was still told
+  specialists are "not separately spawnable" and that parallel dispatch means
+  "several Task calls" -- both Claude Code's rules, not Antigravity's. Council now
+  names the specialist and the skill out loud before it starts and hands off to the
+  deployed agent by name, since Antigravity matches skills silently and never
+  reports which one it picked.
+
 ## [0.84.0] - 2026-09-14
 
 ### What's fixed

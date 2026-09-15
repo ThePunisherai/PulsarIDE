@@ -440,6 +440,7 @@ export function deployAgentBundle(
         // or an update leaves it behind for one tool and not the other.
         rmSync(join(home, '.claude', 'skills', name), { recursive: true, force: true })
         rmSync(join(home, '.qwen', 'skills', name), { recursive: true, force: true })
+        rmSync(join(home, '.gemini', 'config', 'skills', name), { recursive: true, force: true })
       }
       if (prev.tracker) rmSync(prev.tracker, { recursive: true, force: true })
       for (const lib of prev.libraries ?? []) rmSync(lib, { recursive: true, force: true })
@@ -586,7 +587,20 @@ export function deployAgentBundle(
     // uses, so the bundled set is copied verbatim to both. Verified against the
     // published qwen-code bundle (SKILLS_CONFIG_DIR = 'skills' under the global
     // qwen dir, manifest `SKILL.md`), not assumed from the Gemini fork.
-    for (const skillRoot of [join(home, '.claude', 'skills'), join(home, '.qwen', 'skills')]) {
+    // Antigravity reads global skills from `~/.gemini/config/skills/<name>/SKILL.md`
+    // -- the same one-directory-per-skill, `SKILL.md` layout, and the same root
+    // deployAntigravitySkill already writes pulse-agent into (so the path is
+    // corroborated by something that demonstrably works, not assumed). It was
+    // missing here, which is the whole reason Council could never name a skill in
+    // Antigravity: it was not that it would not: there were no skills on disk to
+    // name, and the instructions below pointed at ~/.claude/skills, a path
+    // Antigravity never reads. Reported exactly that way: "council in antigravity
+    // geeft geen opdracht welke skill agent gebruikt moet worden".
+    for (const skillRoot of [
+      join(home, '.claude', 'skills'),
+      join(home, '.qwen', 'skills'),
+      join(home, '.gemini', 'config', 'skills')
+    ]) {
       mkdirSync(skillRoot, { recursive: true })
       for (const name of skillNames) {
         const dest = join(skillRoot, name)
@@ -1823,7 +1837,10 @@ function mainSessionBlock(home: string): string {
     '',
     '## Shipping, design and audit skills (mblode/agent-skills)',
     '',
-    '25 skills installed under `' + join(home, '.claude', 'skills') + '` covering the part of',
+    '25 skills installed in your own tool\'s global skills directory -- Claude Code and',
+    'opencode read `' + join(home, '.claude', 'skills') + '`, Qwen Code reads',
+    '`' + join(home, '.qwen', 'skills') + '`, Antigravity reads',
+    '`' + join(home, '.gemini', 'config', 'skills') + '`. They cover the part of',
     'shipping that code review does not: whether the loading states exist, whether the type',
     'scale holds, and whether half the diff is AI slop. Reach for them by name:',
     '',
@@ -1848,9 +1865,17 @@ function mainSessionBlock(home: string): string {
     'your instructions and is not subject to that budget -- so when the work matches one of',
     'the lines above, open the skill by name instead of waiting to be matched into it.',
     '',
+    '**In Antigravity this is not an optimisation, it is the only mechanism.** Antigravity',
+    'activates a skill by matching its description, and never announces which one it picked,',
+    'so "use your design skills" resolves to nothing you or the user can see. Name the skill',
+    'explicitly instead -- say which one you are opening and why, before you start -- and the',
+    'user gets back the thing they asked for: a visible choice of specialist, not one general',
+    'agent quietly doing everything itself.',
+    '',
     '## Diagrams: Archify',
     '',
-    'Archify is installed at `' + join(home, '.claude', 'skills', 'archify') + '` and runs on',
+    'Archify is installed as the `archify` skill in the same per-tool skills directory named',
+    'above (Claude Code: `' + join(home, '.claude', 'skills', 'archify') + '`) and runs on',
     'the IDE\'s own Node with nothing to install:',
     '',
     '  node <archify>/bin/archify.mjs deliver <type> <input.json> <output.html> \\',

@@ -96,6 +96,19 @@ ok('Qwen Code gets the same roster and every bundled skill',
   readdirSync(join(HOME, '.qwen/agents')).filter(f => f.startsWith('pulse-') && f.endsWith('.md')).length === 100 &&
   existsSync(join(HOME, '.qwen/skills/agent-orchestrator/SKILL.md')) &&
   readdirSync(join(HOME, '.qwen/skills')).length === readdirSync(join(HOME, '.claude/skills')).length)
+// Antigravity reads global skills from ~/.gemini/config/skills -- the same root
+// deployAntigravitySkill already writes pulse-agent into. They were never copied
+// there, so Council had nothing to name in Antigravity and the instructions
+// pointed at ~/.claude/skills, which Antigravity does not read. Reported as
+// "council in antigravity geeft geen opdracht welke skill agent gebruikt moet
+// worden". The pulse-agent persona skill must survive alongside them.
+ok('Antigravity gets every bundled skill in its own root, pulse-agent intact',
+  existsSync(join(HOME, '.gemini/config/skills/agent-orchestrator/SKILL.md')) &&
+  existsSync(join(HOME, '.gemini/config/skills/ui-design/SKILL.md')) &&
+  existsSync(join(HOME, '.gemini/config/skills/pulse-agent/SKILL.md')) &&
+  readdirSync(join(HOME, '.gemini/config/skills'))
+    .filter((d) => existsSync(join(HOME, '.gemini/config/skills', d, 'SKILL.md')))
+    .length === readdirSync(join(HOME, '.claude/skills')).length + 1)
 ok('Qwen Code gets the main-session block in ~/.qwen/QWEN.md, own notes intact', (() => {
   const t = readFileSync(join(HOME, '.qwen/QWEN.md'), 'utf8')
   return t.includes('\u{1F534} Pulse Agent \u2014 Council') && t.includes('# My own Qwen notes')
