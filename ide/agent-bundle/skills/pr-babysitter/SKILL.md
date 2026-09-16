@@ -1,6 +1,6 @@
 ---
 name: pr-babysitter
-description: "Monitors or repairs an open GitHub PR: CI failures, conflicts, review threads, and merge readiness, reporting state changes. Use when asked to \"watch this PR\", \"fix CI\", \"resolve conflicts\", or \"address review comments\". For PR metadata use pr-creator; for npm release PRs use autoship."
+description: "Watch or repair an open GitHub PR: CI failures, conflicts, review threads, merge readiness."
 compatibility: Requires a Git checkout, authenticated GitHub CLI, and jq. Continuous monitoring also needs a supported scheduler or event subscription.
 ---
 

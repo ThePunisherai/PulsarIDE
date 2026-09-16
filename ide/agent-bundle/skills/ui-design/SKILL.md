@@ -1,6 +1,6 @@
 ---
 name: ui-design
-description: Designs and builds React/Next/Tailwind UI and audits visual and interaction defects. Use when asked to "build a landing page", "extract our design system", "add dark mode", "make this responsive", "remove UI slop", or "audit this component". For product decisions use product-design; for browser measurements use ui-verification; for motion use ui-animation.
+description: "Build and audit React/Next/Tailwind UI: landing pages, design systems, dark mode, responsive."
 ---
 
 # UI Design

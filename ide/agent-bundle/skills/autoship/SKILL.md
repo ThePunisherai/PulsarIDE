@@ -1,6 +1,6 @@
 ---
 name: autoship
-description: Runs a changesets npm release through the version PR, CI publish, and registry verification. Use when asked to "release this package", "autoship", "merge Version Packages", or diagnose a release that did not publish. For feature PRs use pr-creator or pr-babysitter.
+description: "Ship a changesets npm release: version PR, CI publish, registry verification, failed-publish triage."
 compatibility: Requires a Git checkout, GitHub CLI authentication, Node.js, and a changesets-based npm release workflow.
 ---
 

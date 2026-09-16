@@ -1,6 +1,6 @@
 ---
 name: product-design
-description: Specifies interaction choices, action scope, reversibility, recovery, and reachable states. Use when asked to "design the flow", "should delete be undoable", "choose the control", or "review this product decision". For visual implementation use ui-design; for motion use ui-animation; for wording use copywriting.
+description: "Interaction design: flows, action scope, undo and reversibility, recovery, reachable states."
 ---
 
 # Product Design

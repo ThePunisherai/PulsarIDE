@@ -1,6 +1,6 @@
 ---
 name: spec-kit
-description: Spec-driven development. Use when a request is a feature or a change big enough that jumping straight to code would guess at requirements - write the specification first, then a technical plan, then a task breakdown, then implement against them. Also use when asked to clarify vague requirements, to produce a spec, plan, task list, project constitution or a review checklist, or when the user names spec-driven development or spec-kit.
+description: "Spec-driven development: write the spec, technical plan and task breakdown before implementing."
 license: MIT
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: save-md
-description: Saves a named source to Markdown with provenance and faithful extraction through direct export endpoints. Use when asked to "save this article", "get the markdown", "transcribe this", or "keep this source". A URL supplied as task context alone does not trigger conversion; a chat summary stays in chat.
+description: "Save an article, page or transcript to Markdown with provenance and faithful extraction."
 ---
 
 # Save as Markdown

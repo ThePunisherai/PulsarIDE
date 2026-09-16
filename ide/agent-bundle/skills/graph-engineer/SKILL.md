@@ -1,7 +1,6 @@
 ---
 name: graph-engineer
-description: >-
-  Orchestrates a Claude↔Codex cycle where Claude Code designs the contract and arbitrates, while Codex by default (via the official openai/codex-plugin-cc plugin) writes, adversarially reviews, and fixes the code — the orchestrating Claude never edits implementation files. A per-cycle backend directive can opt into Claude workers instead without changing the Codex default. Use when the user asks to "implement with Codex", "have Codex review and fix", "peer review with Codex", "graph engineering", "orchestrator-workers with Codex", or wants an autonomous Claude+Codex implement→review→debate→refactor loop. (ES triggers: "implementar con Codex", "que Codex revise y corrija", "peer review con Codex", "graph engineering", "orchestrator-workers con Codex")
+description: "Autonomous Claude+Codex implement, review, debate and refactor loop; peer review with Codex."
 ---
 
 # Graph Engineer

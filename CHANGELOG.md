@@ -6,6 +6,28 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.87.0] - 2026-09-16
+
+### What's fixed
+- **"Skill descriptions were shortened to fit the skills context budget" is
+  gone.** Putting all 78 skills into Codex's own directory in v0.86.0 handed it a
+  catalog of 16,269 characters, and a host builds that catalog from name plus
+  description at startup under a hard cap -- 2% of model context for Codex,
+  falling back to 8,000 characters, and roughly 15,000 for Claude Code. Over the
+  cap the host shortens descriptions itself, and what it cuts first is the
+  trailing "Use when asked to build a landing page, add dark mode..." trigger
+  phrases -- the exact words that make a skill get picked, so the design skills
+  could go quiet again for the very requests they exist for. Rewritten to keep the
+  trigger words and drop the scaffolding instead: the catalog is now 6,755
+  characters and fits with room to spare. Nothing was removed -- all 78 skills
+  still ship, and each SKILL.md body is unchanged, since the host reads the full
+  file once a skill is selected.
+- **This was also over Claude Code's budget, silently.** At 16,269 characters
+  every host was truncating, not just the one that said so. Both are under now.
+- **`sharp-edges` could never be matched.** It shipped with `description:
+  sharp-edges` -- its real description was stranded in a second frontmatter block
+  no YAML parser reads. Restored.
+
 ## [0.86.0] - 2026-09-16
 
 ### What's fixed

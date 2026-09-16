@@ -88,6 +88,42 @@ ok(`every bundled skill deploys (${bundledSkills}), orchestration included`,
   existsSync(join(HOME, '.claude/skills/agent-orchestrator/SKILL.md')) &&
   existsSync(join(HOME, '.claude/skills/dispatch/SKILL.md')) &&
   existsSync(join(HOME, '.claude/skills/prompt-master/SKILL.md')))
+// Every host builds a skills CATALOG from name+description at startup and caps
+// it: Codex allows 2% of model context, falling back to 8000 characters when the
+// context size is unknown, and Claude Code allows roughly 15000. Over the cap the
+// host silently shortens descriptions -- which eats the "Use when..." trigger
+// words first, so the skill stops being picked for the request it exists for.
+// That is a real reported symptom, not a theory: "Skill descriptions were
+// shortened to fit the skills context budget". The full instructions live in each
+// SKILL.md body, read only AFTER selection, so a catalog entry stays short on
+// purpose. Guarded here because a re-vendor restores upstream's long descriptions
+// and would put us back over the cap with no other warning.
+const CATALOG_BUDGET = 8000
+const catalogChars = readdirSync(join(REPO, 'ide/agent-bundle/skills'))
+  .map((d) => {
+    const f = join(REPO, 'ide/agent-bundle/skills', d, 'SKILL.md')
+    if (!existsSync(f)) return ''
+    const m = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/.exec(readFileSync(f, 'utf8'))
+    if (!m) return ''
+    const dm = /^description:[ \t]*([\s\S]*?)(?=^[\w-]+:|$(?![\s\S]))/m.exec(m[1])
+    return dm ? dm[1].trim().replace(/^["']|["']$/g, '') : ''
+  })
+  .reduce((n, d) => n + d.length, 0)
+ok(`skill catalog fits the hosts' budget (${catalogChars} <= ${CATALOG_BUDGET} chars)`,
+  catalogChars > 0 && catalogChars <= CATALOG_BUDGET)
+// A skill with no description, or one that just repeats its own name, can never
+// be matched -- sharp-edges shipped exactly that way, its real description
+// stranded in a second frontmatter block no YAML parser reads.
+const uselessDesc = readdirSync(join(REPO, 'ide/agent-bundle/skills')).filter((d) => {
+  const f = join(REPO, 'ide/agent-bundle/skills', d, 'SKILL.md')
+  if (!existsSync(f)) return false
+  const m = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/.exec(readFileSync(f, 'utf8'))
+  if (!m) return true
+  const dm = /^description:[ \t]*([\s\S]*?)(?=^[\w-]+:|$(?![\s\S]))/m.exec(m[1])
+  const v = dm ? dm[1].trim().replace(/^["']|["']$/g, '') : ''
+  return v.length < 20 || v.toLowerCase() === d.toLowerCase()
+})
+ok('every bundled skill has a real, matchable description', uselessDesc.length === 0)
 // Qwen Code: same `<dir>/<name>.md` subagent shape as Gemini CLI, under ~/.qwen.
 // Paths taken from the published @qwen-code/qwen-code bundle itself
 // (QWEN_DIR='.qwen', AGENT_CONFIG_DIR='agents', SKILLS_CONFIG_DIR='skills',

@@ -1,6 +1,6 @@
 ---
 name: pr-creator
-description: Creates or updates GitHub PRs with house-style titles and bodies, issue linking, repository templates, and draft state. Use when asked to "create a PR", "rewrite the PR description", or "polish this PR". For code fixes use tidy; for CI and review threads use pr-babysitter; for npm releases use autoship.
+description: "Create or update GitHub PRs: titles, bodies, issue linking, templates, draft state."
 compatibility: Requires Git and authenticated GitHub access. The documented command workflow uses GitHub CLI.
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: docs-writing
-description: Writes and audits technical docs with Diataxis type gating, runnable examples, and 51 documentation rules. Use when asked to "review my docs", "write an API reference", or improve a documentation page. For a whole README use readme-creator; for agent instructions use agents-md.
+description: "Write and audit technical docs: Diataxis types, runnable examples, API references, doc reviews."
 ---
 
 # Documentation Writing

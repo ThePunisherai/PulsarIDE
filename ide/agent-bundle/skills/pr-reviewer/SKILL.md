@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: Reviews a diff or security scope read-only using evidence-tiered findings, structural and context-error rubrics, and repository review policy. Use when asked to "review my changes", "structural review", "review for AI patterns", or "security audit". For applying fixes use tidy; for UI defects use ui-design.
+description: "Read-only diff review: evidence-tiered findings, structural rubrics, AI patterns, security."
 ---
 
 # Local Review

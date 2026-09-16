@@ -1,6 +1,6 @@
 ---
 name: scaffold-cli
-description: Scaffolds a TypeScript CLI and npm package with the house toolchain, dual tsdown outputs, CLI contracts, changesets, and publishing templates. Use when asked to "scaffold a CLI" or "start an npm package". For an existing package release use autoship; for existing API ergonomics use dx-audit.
+description: "Scaffold a TypeScript CLI and npm package: tsdown outputs, changesets, publishing templates."
 compatibility: Requires a shell, Git, Node.js, and npm registry access. Remote publishing requires the relevant account authentication.
 ---
 

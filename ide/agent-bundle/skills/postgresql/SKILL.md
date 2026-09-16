@@ -1,6 +1,6 @@
 ---
 name: postgresql
-description: "Design a PostgreSQL-specific schema. Covers best-practices, data types, indexing, constraints, performance patterns, and advanced features"
+description: "PostgreSQL schema design: data types, indexing, constraints, performance, advanced features."
 risk: unknown
 source: community
 date_added: "2026-02-27"

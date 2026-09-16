@@ -1,6 +1,6 @@
 ---
 name: multi-tenant-architecture
-description: Designs tenant isolation, hostname routing, custom-domain lifecycle, and plan limits on Cloudflare or Vercel. Use when asked to "isolate tenant data", "support custom domains", "build a white-label platform", or assess PSL registration. For general module structure use codebase-architecture; for SEO content use seo.
+description: "Tenant isolation, hostname routing, custom domains, plan limits, white-label on Cloudflare/Vercel."
 ---
 
 # Multi-Tenant Platform Architecture (Cloudflare or Vercel)

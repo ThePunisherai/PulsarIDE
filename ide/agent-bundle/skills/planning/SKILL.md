@@ -1,6 +1,6 @@
 ---
 name: planning
-description: Creates and reviews executable implementation plans grounded in repository evidence, with vertical slices, explicit decisions, and verification criteria. Use when asked to "plan this feature", "stress-test this plan", "grill me", or "split this into tickets". For architecture use codebase-architecture; for code review use pr-reviewer.
+description: "Executable implementation plans from repo evidence: vertical slices, tickets, plan stress-tests."
 ---
 
 # Planning

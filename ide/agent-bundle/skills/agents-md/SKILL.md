@@ -1,6 +1,6 @@
 ---
 name: agents-md
-description: Audits and edits agent instruction files, verifies repository commands, and connects AGENTS.md and CLAUDE.md without duplicate sources. Use when asked to "improve my AGENTS.md", "write a CLAUDE.md", or make instructions work across agents. For SKILL.md use agent-skills-creator.
+description: "Audit and edit AGENTS.md and CLAUDE.md instruction files; verify repo commands; no duplicate sources."
 ---
 
 # AGENTS.md Setup and Audit

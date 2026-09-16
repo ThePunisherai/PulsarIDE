@@ -1,6 +1,6 @@
 ---
 name: android-dev
-description: "Production-grade Android app development guide covering native (Kotlin/Java), cross-platform (Flutter, RN, KMM), and hybrid architectures."
+description: "Production Android apps: native Kotlin/Java, Flutter, React Native, KMM, hybrid architectures."
 risk: safe
 source: community
 date_added: "2026-06-08"

@@ -43,3 +43,19 @@ team leads and skills available in every project, with no separate dashboard or 
 ThePunisher-Agent's own content is under its repository licence; the vendored
 skills keep their upstream MIT / CC-BY-4.0 licences. PulsarIDE bundles them
 verbatim and does not relicense them.
+
+## Skill descriptions are shortened on purpose
+
+The `description:` frontmatter of the bundled skills is rewritten to be shorter
+than upstream's. Hosts build a skills catalog from name + description at startup
+and cap it (Codex: 2% of model context, or 8000 characters when that is unknown;
+Claude Code: roughly 15000). Upstream's full descriptions total ~16k characters,
+which puts the catalog over the cap, and the host then shortens them itself --
+cutting the trigger phrases that decide whether a skill is selected at all.
+
+Each SKILL.md **body is untouched**; the host reads the full file once a skill is
+selected, so nothing is lost by a short catalog entry.
+
+If you re-vendor any of these skills, the long descriptions come back and the
+catalog goes over budget again. `ide/test/agent-bundle.test.mjs` fails in that
+case ("skill catalog fits the hosts' budget"), so it cannot pass unnoticed.

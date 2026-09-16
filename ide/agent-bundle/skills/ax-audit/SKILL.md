@@ -1,6 +1,6 @@
 ---
 name: ax-audit
-description: Audits agentic products for tool parity, authority, approval payloads, recovery, and trust using 27 rules and a ship verdict. Use when asked for an "AX audit", to review an agent approval flow, or whether an agent can operate the product. For human-facing API ergonomics use dx-audit; for ordinary UI use ui-design.
+description: "Agent-experience audit: tool parity, authority, approval payloads, recovery, trust, ship verdict."
 ---
 
 # AX Audit

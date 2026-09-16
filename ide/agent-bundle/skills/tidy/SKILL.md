@@ -1,6 +1,6 @@
 ---
 name: tidy
-description: Applies diff-scoped simplifications using reuse, ownership, efficiency, and test-value checks, including actionable review findings. Use when asked to "tidy this", "simplify my diff", or "apply the review findings". For a read-only report use pr-reviewer; for repository architecture use codebase-architecture.
+description: "Apply diff-scoped simplifications and review findings: reuse, ownership, efficiency, tests."
 ---
 
 # Tidy

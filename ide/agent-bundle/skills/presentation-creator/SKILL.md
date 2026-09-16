@@ -1,6 +1,6 @@
 ---
 name: presentation-creator
-description: Builds decks with a story spine, house visual system, setting-specific density, and speaker notes. Use when asked to "create a presentation", "write a pitch deck", or "turn this doc into slides". Defaults to Marp; use an available presentation tool for editable PowerPoint. For product UI use ui-design.
+description: "Build decks and pitch decks with a story spine, visual system and speaker notes; Marp default."
 ---
 
 # Presentation Creator

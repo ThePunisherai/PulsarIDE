@@ -1,6 +1,6 @@
 ---
 name: typography-audit
-description: Audits font loading, type scales, measure, spacing, OpenType, and rendered punctuation with 78 scoped rules. Use when asked to "audit typography", "fix the fonts", or "review my type system". For a new visual direction use ui-design Direction; for general UI defects use ui-design Audit.
+description: "Audit typography and fonts: loading, type scale, measure, spacing, OpenType, punctuation."
 ---
 
 # Typography Audit

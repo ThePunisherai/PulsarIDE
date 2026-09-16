@@ -1,6 +1,6 @@
 ---
 name: readme-creator
-description: Creates or rewrites a README for the project consumer, using verified install commands, a runnable quickstart, and house presentation conventions. Use when asked to "write a README", "rewrite our README", or replace scaffold boilerplate. For an in-place prose audit use docs-writing; for agent instructions use agents-md.
+description: "Create or rewrite a README for consumers: verified install commands, runnable quickstart."
 ---
 
 # README Creator

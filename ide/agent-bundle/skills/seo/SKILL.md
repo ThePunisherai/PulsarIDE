@@ -1,6 +1,6 @@
 ---
 name: seo
-description: Audits and fixes technical SEO, researches search demand, creates content briefs, and measures SEO/AEO performance. Use when asked to "audit SEO", "fix indexing", "improve AI visibility", "check keyword volume", "write an SEO brief", or "why did organic traffic drop". For writing the article use ghostwriter; for visual redesign use ui-design.
+description: "Technical SEO audit and fixes: indexing, keyword demand, content briefs, AI visibility, traffic."
 ---
 
 # SEO

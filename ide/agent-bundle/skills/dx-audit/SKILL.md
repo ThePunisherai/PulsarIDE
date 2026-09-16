@@ -1,6 +1,6 @@
 ---
 name: dx-audit
-description: Audits libraries, CLIs, and SDKs using 38 rules for public contracts, package exports, piped output, errors, and configuration. Use when asked to "audit my CLI", "review my SDK", "make this agent-friendly", or diagnose package type resolution. For agentic product trust use ax-audit; for docs use docs-writing.
+description: "Developer-experience audit of libraries, CLIs and SDKs: exports, errors, config, type resolution."
 ---
 
 # DX Audit

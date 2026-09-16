@@ -1,6 +1,6 @@
 ---
 name: ui-animation
-description: Builds, reviews, and measures UI motion, including springs, gestures, scroll effects, and curve fitting from recordings. Use when asked to "add animation", "match this easing", "reverse engineer this motion", or find animation opportunities. For action semantics use product-design; for visual layout use ui-design.
+description: "UI motion: add animation, springs, gestures, scroll effects, match easing, reverse-engineer it."
 ---
 
 # UI Animation

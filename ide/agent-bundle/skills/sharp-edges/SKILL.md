@@ -1,6 +1,6 @@
 ---
 name: sharp-edges
-description: sharp-edges
+description: "Find error-prone APIs, dangerous config and footgun designs that make insecure use the easy path."
 risk: unknown
 source: community
 ---

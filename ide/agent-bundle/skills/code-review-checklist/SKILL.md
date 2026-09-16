@@ -1,6 +1,6 @@
 ---
 name: code-review-checklist
-description: "Comprehensive checklist for conducting thorough code reviews covering functionality, security, performance, and maintainability"
+description: "Code review checklist: functionality, security, performance, maintainability."
 risk: unknown
 source: community
 date_added: "2026-02-27"

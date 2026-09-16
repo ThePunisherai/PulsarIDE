@@ -1,6 +1,6 @@
 ---
 name: agent-skills-creator
-description: Creates and improves portable Agent Skills with a validator, routing scenarios, and evidence-based keep, cut, merge, or retire decisions. Use when asked to "write a skill", "update all skills", "audit my SKILL.md", "remove redundant instructions", or fix skill triggering. For AGENTS.md or CLAUDE.md use agents-md.
+description: "Write, audit and improve SKILL.md Agent Skills; fix skill triggering; keep, cut, merge or retire."
 compatibility: Repository validation requires Bash, Ruby with YAML and JSON, Perl, and standard Unix utilities.
 ---
 

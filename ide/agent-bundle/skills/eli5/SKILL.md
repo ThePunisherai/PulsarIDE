@@ -1,6 +1,6 @@
 ---
 name: eli5
-description: "Applies the house explanation style: concrete terms, optional analogy, no minimizers or promotional vocabulary, and verbatim technical identifiers. Use when asked for \"ELI5\", \"plain English\", \"re-pitch that\", or \"stop using jargon\". For product copy use copywriting; for documentation use docs-writing."
+description: "Explain in plain English: ELI5, re-pitch that, stop using jargon; concrete terms, no hype."
 ---
 
 # Plain-language house style

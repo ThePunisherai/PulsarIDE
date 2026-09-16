@@ -1,10 +1,6 @@
 ---
 name: game-development
-description: >-
-  Game development orchestrator. Routes by platform, dimension, and engine fit
-  (web 2D/3D, hybrid DOM+canvas, narrative tools). Use when starting or
-  structuring a game project, choosing frameworks, or picking among Phaser,
-  PixiJS, Kaplay, Canvas/WebGL, Three.js, Babylon.js, Godot, Unity, or Ink/Twine.
+description: "Game projects by platform and engine: Phaser, PixiJS, Kaplay, Three.js, Babylon, Godot, Unity."
 risk: unknown
 source: community
 date_added: "2026-02-27"

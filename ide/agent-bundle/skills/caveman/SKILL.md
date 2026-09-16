@@ -1,9 +1,6 @@
 ---
 name: caveman
-description: >
-  Ultra-compressed communication mode that cuts output tokens while keeping
-  technical accuracy. Levels: lite, full, ultra and the wenyan variants. Use for
-  /caveman, "caveman mode", "talk like caveman", "be brief" or "less tokens".
+description: "Ultra-compressed output mode to cut tokens: caveman mode, talk like caveman, be brief, less tokens."
 ---
 
 Respond terse like smart caveman. All technical substance stay. Only fluff die.

@@ -1,6 +1,6 @@
 ---
 name: codebase-architecture
-description: Designs module contracts, deepens existing boundaries, and installs enforceable repository guardrails. Use when asked to "design the architecture", "simplify our modules", or "harden the repo". For one feature plan use planning; for diff cleanup use tidy; for tenancy use multi-tenant-architecture.
+description: "Design module contracts and boundaries; harden the repo with enforceable guardrails."
 ---
 
 # Codebase Architecture

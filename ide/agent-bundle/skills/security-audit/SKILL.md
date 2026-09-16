@@ -1,6 +1,6 @@
 ---
 name: security-audit
-description: "Comprehensive security auditing workflow covering web application testing, API security, penetration testing, vulnerability scanning, and security hardening."
+description: "Security audit: web app testing, API security, penetration testing, vulnerability scanning."
 category: workflow-bundle
 risk: safe
 source: personal

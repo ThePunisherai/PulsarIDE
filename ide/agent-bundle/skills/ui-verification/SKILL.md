@@ -1,6 +1,6 @@
 ---
 name: ui-verification
-description: Runs scoped browser probes for focus, hit targets, overflow, themes, request failures, and performance attribution, with evidence linked to UI rule IDs. Use when asked to "verify this in the browser", "reproduce this finding", or "check the fix". For source audits and severity use ui-design; field metrics require RUM or CrUX.
+description: "Browser probes with evidence: focus, hit targets, overflow, themes, request failures, perf."
 compatibility: Requires access to the target app and browser automation. Bundled JavaScript recipes use the Playwright page API.
 ---
 
