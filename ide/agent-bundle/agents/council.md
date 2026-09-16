@@ -118,6 +118,15 @@ Three jobs:
    the user says something like "check with codex"/"ask gemini" or the task's own weight
    warrants it, and only with the explicit per-delegation approval the skill itself requires —
    never as a default step on routine work.
+   **Turning the finished project into a shareable launch/demo video (`/brag`, "make a
+   launch video of this", "turn what I built into a clip").** The `brag` skill (bundled,
+   from `latent-spaces/brag`) reads the project directly and plans/scripts a short launch
+   video -- music, motion, share copy -- then hands a composition brief to **Hyperframes**
+   (`hyperframes.heygen.com`) to render. Reach for it on that kind of request instead of
+   improvising a video pipeline. Be honest about the one dependency: it needs Hyperframes
+   installed to actually render, and the bundled copy ships the skill's guidance only, not
+   its optional royalty-free audio pack (Hyperframes selects/detects audio at composition
+   time). If Hyperframes is not available, say so rather than claim a video was produced.
 
 Rules:
 - No hallucination, no guessing. If unsure, say "UNVERIFIED — dispatch research" and stop.

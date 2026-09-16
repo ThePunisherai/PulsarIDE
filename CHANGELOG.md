@@ -6,6 +6,17 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.89.0] - 2026-09-16
+
+### What's new
+- **`/brag` — turn your project into a shareable launch video.** New bundled skill
+  (from latent-spaces/brag, MIT): it reads your project, scripts a short launch clip
+  with music/motion/share copy, then hands off to Hyperframes to render. Council routes
+  a "make a launch video" request straight to it.
+- It needs Hyperframes (hyperframes.heygen.com) installed to render, and the bundle
+  ships the skill's guidance only — not its optional ~17 MB royalty-free audio pack
+  (Hyperframes handles audio) — so the whole skills bundle stays lean.
+
 ## [0.88.0] - 2026-09-16
 
 ### What's fixed
