@@ -6,6 +6,22 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.88.0] - 2026-09-16
+
+### What's fixed
+- **"Skipped loading 3 skill(s) due to invalid SKILL.md files" is gone.** The
+  files were never invalid: a redeploy deleted every skill it had written before
+  copying the new ones back, so for the length of an update the skills directory
+  was empty and filling up again. An agent that had already listed the directory
+  then could not open what it had just seen. Codex reported it as `failed to read
+  file ... (os error 3)` -- ERROR_PATH_NOT_FOUND, the directory rather than the
+  file -- on three alphabetically consecutive skills, which is simply how far the
+  re-copy had got. A skill that has not changed is now left alone entirely, a
+  changed one is staged beside the target and renamed in, and only skills that are
+  no longer shipped are deleted. Nothing is ever missing mid-update.
+- This affected Claude Code, Qwen and Antigravity too. Codex only hit it first
+  because v0.86.0 is what put skills in its directory to begin with.
+
 ## [0.87.0] - 2026-09-16
 
 ### What's fixed

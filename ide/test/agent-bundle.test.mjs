@@ -124,6 +124,49 @@ const uselessDesc = readdirSync(join(REPO, 'ide/agent-bundle/skills')).filter((d
   return v.length < 20 || v.toLowerCase() === d.toLowerCase()
 })
 ok('every bundled skill has a real, matchable description', uselessDesc.length === 0)
+// A redeploy must not delete a skill that is already correct. The old loop rm'd
+// then cp'd every skill on every deploy, so each one was absent for the length of
+// its own copy -- and an agent reading the directory in that window gets the name
+// but cannot open it (Codex: "failed to read file ... os error 3", which is
+// ERROR_PATH_NOT_FOUND -- the directory, not the file, on three alphabetically
+// consecutive skills). Inode identity is the proof: same inode means the
+// directory was never recreated, so the window never opened.
+ok('redeploy leaves unchanged skills completely untouched (no delete/copy window)', (() => {
+  const probe = ['autoship', 'aws-skills', 'ax-audit', 'ui-design']
+  const before = probe.map((n) => statSync(join(HOME, '.codex/skills', n)).ino)
+  deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false, force: true })
+  const after = probe.map((n) => statSync(join(HOME, '.codex/skills', n)).ino)
+  return probe.every((n, i) => before[i] === after[i]) &&
+    probe.every((n) => existsSync(join(HOME, '.codex/skills', n, 'SKILL.md')))
+})())
+// ...but a skill whose content really did change still gets replaced, and no
+// staging directory is left behind.
+ok('a changed skill is still redeployed, with no .tmp left behind', (() => {
+  const f = join(HOME, '.codex/skills/aws-skills/SKILL.md')
+  writeFileSync(f, 'tampered\n')
+  deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false, force: true })
+  const restored = readFileSync(f, 'utf8') !== 'tampered\n' && readFileSync(f, 'utf8').includes('description:')
+  const leftovers = readdirSync(join(HOME, '.codex/skills')).filter((d) => d.includes('.pulsar-'))
+  return restored && leftovers.length === 0
+})())
+// The reconcile now skips still-shipping skills, so prove the half it still owns:
+// a skill we STOPPED shipping must still be removed from every root, or an update
+// leaves it behind for one tool and not the others.
+ok('a skill we no longer ship is still removed from every root', (() => {
+  const roots = ['.claude/skills', '.codex/skills', '.qwen/skills', '.gemini/config/skills']
+  const gone = 'pulsar-retired-skill'
+  for (const r of roots) {
+    mkdirSync(join(HOME, r, gone), { recursive: true })
+    writeFileSync(join(HOME, r, gone, 'SKILL.md'), '---\nname: gone\ndescription: "x"\n---\n')
+  }
+  // record it as ours from a previous deploy, the way a real marker would
+  const mk = join(HOME, '.config/pulsaride/agent-bundle.json')
+  const marker = JSON.parse(readFileSync(mk, 'utf8'))
+  marker.skills = [...marker.skills, gone]
+  writeFileSync(mk, JSON.stringify(marker))
+  deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false, force: true })
+  return roots.every((r) => !existsSync(join(HOME, r, gone)))
+})())
 // Qwen Code: same `<dir>/<name>.md` subagent shape as Gemini CLI, under ~/.qwen.
 // Paths taken from the published @qwen-code/qwen-code bundle itself
 // (QWEN_DIR='.qwen', AGENT_CONFIG_DIR='agents', SKILLS_CONFIG_DIR='skills',

@@ -277,6 +277,34 @@ function writeConfigAtomic(path: string, text: string): void {
   }
 }
 
+/**
+ * Is `dest` already a byte-for-byte copy of the tree at `src`?
+ *
+ * Used to leave an unchanged skill completely untouched on redeploy: no delete,
+ * no copy, so no window where an agent can see the name but not the directory.
+ * Compares the relative file list and then the bytes; a mismatch anywhere is
+ * enough to answer no, and any error answers no so the caller just redeploys.
+ */
+function sameTree(src: string, dest: string): boolean {
+  const walk = (base: string, rel = '', out: string[] = []): string[] => {
+    for (const e of readdirSync(join(base, rel), { withFileTypes: true })) {
+      const r = rel ? `${rel}/${e.name}` : e.name
+      if (e.isDirectory()) walk(base, r, out)
+      else if (e.isFile()) out.push(r)
+    }
+    return out
+  }
+  try {
+    if (!existsSync(dest)) return false
+    const a = walk(src).sort()
+    const b = walk(dest).sort()
+    if (a.length !== b.length || a.some((f, i) => f !== b[i])) return false
+    return a.every((f) => readFileSync(join(src, f)).equals(readFileSync(join(dest, f))))
+  } catch {
+    return false
+  }
+}
+
 function configDir(home: string): string {
   return join(home, '.config', 'pulsaride')
 }
@@ -442,6 +470,14 @@ export function deployAgentBundle(
       return skip(`already at ${manifest.bundle_version}`, mcpWired, alreadyTracked)
     }
 
+    // What this bundle ships, needed by the reconcile below as well as the
+    // deploy further down, so work it out once before either runs.
+    const skillsSrc = join(root, 'skills')
+    const skillNames = existsSync(skillsSrc)
+      ? readdirSync(skillsSrc).filter((d) => existsSync(join(skillsSrc, d, 'SKILL.md')))
+      : []
+    const shipping = new Set(skillNames)
+
     // Reconcile: remove what a previous deploy of ours wrote, ours only.
     if (prev) {
       // recursive: Antigravity's agents are directories, the other four are
@@ -449,6 +485,14 @@ export function deployAgentBundle(
       // whole redeploy cleanup; on a file it changes nothing.
       for (const p of prev.agents) rmSync(p, { force: true, recursive: true })
       for (const name of prev.skills) {
+        // ONLY skills we have stopped shipping. Deleting the ones we are about to
+        // rewrite emptied every root for the whole length of the redeploy, and an
+        // agent that had already listed the directory then failed to open what it
+        // had just seen -- Codex reported that as "failed to read file ... (os
+        // error 3)", ERROR_PATH_NOT_FOUND, on three alphabetically consecutive
+        // skills: exactly how far the re-copy had got. The deploy loop below
+        // updates a still-shipping skill in place instead, so it is never absent.
+        if (shipping.has(name)) continue
         // Every root we deploy into: a skill we stopped shipping has to go from
         // all of them, or an update leaves it behind for one tool and not the
         // others. Keep this list in step with the deploy loop below.
@@ -593,10 +637,6 @@ export function deployAgentBundle(
     }
 
     // --- skills: curated set incl. orchestration -> Claude Code ----------- //
-    const skillsSrc = join(root, 'skills')
-    const skillNames = existsSync(skillsSrc)
-      ? readdirSync(skillsSrc).filter((d) => existsSync(join(skillsSrc, d, 'SKILL.md')))
-      : []
     // Qwen Code reads global skills from `~/.qwen/skills/<name>/SKILL.md` --
     // same manifest name and same one-directory-per-skill layout Claude Code
     // uses, so the bundled set is copied verbatim to both. Verified against the
@@ -629,9 +669,35 @@ export function deployAgentBundle(
     ]) {
       mkdirSync(skillRoot, { recursive: true })
       for (const name of skillNames) {
+        const src = join(skillsSrc, name)
         const dest = join(skillRoot, name)
-        rmSync(dest, { recursive: true, force: true })
-        cpSync(join(skillsSrc, name), dest, { recursive: true })
+        // Never delete a skill that is already correct. A redeploy used to rm
+        // then cp EVERY skill, so each one stopped existing for as long as its
+        // copy took -- and an agent that reads the directory in that window sees
+        // the name, then cannot open it. Codex reported exactly that, on three
+        // alphabetically consecutive skills (autoship, aws-skills, ax-audit):
+        // "failed to read file ... (os error 3)", which is ERROR_PATH_NOT_FOUND,
+        // the directory rather than the file. It hit Codex first only because
+        // ~/.codex/skills is new here; the same window was always open for the
+        // other three roots.
+        if (sameTree(src, dest)) continue
+        // Changed skills are staged beside the target and renamed in, so the
+        // gap where the skill is absent is one rename instead of a whole
+        // recursive copy. Windows cannot rename onto an existing directory, so
+        // the old one goes first -- that pair is as close to atomic as Node
+        // gets here.
+        const stage = `${dest}.pulsar-${process.pid}.tmp`
+        try {
+          rmSync(stage, { recursive: true, force: true })
+          cpSync(src, stage, { recursive: true })
+          rmSync(dest, { recursive: true, force: true })
+          renameSync(stage, dest)
+        } catch {
+          // Staging failed (a locked file, an antivirus hold). Fall back to the
+          // direct copy rather than leaving the skill missing entirely.
+          rmSync(stage, { recursive: true, force: true })
+          cpSync(src, dest, { recursive: true, force: true })
+        }
       }
     }
 
