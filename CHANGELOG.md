@@ -6,6 +6,29 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.86.0] - 2026-09-16
+
+### What's fixed
+- **Codex had none of the 78 skills on disk, so it never used the design ones.**
+  The skills were copied to Claude Code's, Qwen's and Antigravity's roots, but
+  never to `~/.codex/skills` -- Codex's own personal-scope skills directory. In a
+  real session that showed up as Codex reading
+  `C:/Users/<user>/.claude/skills/tidy/SKILL.md` by absolute path: reaching a
+  skill only through *another tool's* folder, which happens to work on a machine
+  that also has Claude Code and not at all otherwise. `ui-design`,
+  `product-design`, `ui-verification` and `typography-audit` were simply
+  unreachable, which is why frontend work came back without them. They now deploy
+  to Codex's own root (and are cleaned up from it on update), and the bundled
+  instruction names each tool's real skills directory instead of only Claude
+  Code's.
+- **Codex stopped asking you to review its hooks on every launch.**
+  `~/.codex/hooks.json` was rewritten at every start -- an atomic rename swaps the
+  file even when not one byte changed -- because the tracker registration runs
+  before the "nothing changed, skip" gate. Codex records hook trust against the
+  hook entry's content hash, so there was no reason for us to be touching that
+  file at all. An unchanged config is no longer written, which also stops the
+  same needless churn in every other agent's config we maintain.
+
 ## [0.85.0] - 2026-09-15
 
 ### What's fixed

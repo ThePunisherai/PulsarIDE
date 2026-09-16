@@ -250,6 +250,19 @@ function bundleSignature(root: string): string {
  * one, never half of one.
  */
 function writeConfigAtomic(path: string, text: string): void {
+  // Identical content is not a write. Several of these configs are rewritten on
+  // EVERY launch (registerTrackerForAllAgents runs before the bundle-signature
+  // gate), and an atomic rename swaps the inode even when not one byte changed.
+  // That is pure churn against files other tools own and watch -- most sharply
+  // Codex, which records hook trust against the hook entry's content hash and
+  // re-prompts "hooks need review" for anything it sees as new or changed, so a
+  // needlessly rewritten ~/.codex/hooks.json is a trust hash we should never be
+  // touching in the first place. Cheap guard, and it protects every caller.
+  try {
+    if (existsSync(path) && readFileSync(path, 'utf8') === text) return
+  } catch {
+    /* unreadable -- fall through and write, same as before */
+  }
   const tmp = `${path}.pulsar-${process.pid}.tmp`
   try {
     writeFileSync(tmp, text)
@@ -436,9 +449,11 @@ export function deployAgentBundle(
       // whole redeploy cleanup; on a file it changes nothing.
       for (const p of prev.agents) rmSync(p, { force: true, recursive: true })
       for (const name of prev.skills) {
-        // Both roots: a skill we stopped shipping has to go from Qwen's copy too,
-        // or an update leaves it behind for one tool and not the other.
+        // Every root we deploy into: a skill we stopped shipping has to go from
+        // all of them, or an update leaves it behind for one tool and not the
+        // others. Keep this list in step with the deploy loop below.
         rmSync(join(home, '.claude', 'skills', name), { recursive: true, force: true })
+        rmSync(join(home, '.codex', 'skills', name), { recursive: true, force: true })
         rmSync(join(home, '.qwen', 'skills', name), { recursive: true, force: true })
         rmSync(join(home, '.gemini', 'config', 'skills', name), { recursive: true, force: true })
       }
@@ -596,8 +611,19 @@ export function deployAgentBundle(
     // name, and the instructions below pointed at ~/.claude/skills, a path
     // Antigravity never reads. Reported exactly that way: "council in antigravity
     // geeft geen opdracht welke skill agent gebruikt moet worden".
+    // Codex is here for the same reason Antigravity was added above, and it was
+    // missing for the same reason: `$CODEX_HOME/skills` (default ~/.codex/skills)
+    // is Codex's own personal-scope skills root, and SKILL.md is the portable
+    // cross-agent format -- the identical folder works in ~/.claude/skills,
+    // ~/.codex/skills and ~/.openclaw/skills unmodified. Until this line existed
+    // Codex had ZERO skills on disk: reported as "lijkt of hij niet alles
+    // aanroept vooral de design skills voor web", and visible in that session as
+    // Codex reading `C:/Users/<user>/.claude/skills/tidy/SKILL.md` by absolute
+    // path -- reaching a skill only through ANOTHER tool's directory, which works
+    // by accident on a machine that also has Claude Code and not at all otherwise.
     for (const skillRoot of [
       join(home, '.claude', 'skills'),
+      join(home, '.codex', 'skills'),
       join(home, '.qwen', 'skills'),
       join(home, '.gemini', 'config', 'skills')
     ]) {
@@ -1838,7 +1864,8 @@ function mainSessionBlock(home: string): string {
     '## Shipping, design and audit skills (mblode/agent-skills)',
     '',
     '25 skills installed in your own tool\'s global skills directory -- Claude Code and',
-    'opencode read `' + join(home, '.claude', 'skills') + '`, Qwen Code reads',
+    'opencode read `' + join(home, '.claude', 'skills') + '`, Codex reads',
+    '`' + join(home, '.codex', 'skills') + '`, Qwen Code reads',
     '`' + join(home, '.qwen', 'skills') + '`, Antigravity reads',
     '`' + join(home, '.gemini', 'config', 'skills') + '`. They cover the part of',
     'shipping that code review does not: whether the loading states exist, whether the type',

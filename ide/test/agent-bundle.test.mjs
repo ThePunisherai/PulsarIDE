@@ -6,7 +6,7 @@
  * can find ide/agent-bundle.
  */
 import { execSync, spawn } from 'node:child_process'
-import { cpSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
+import { cpSync, mkdtempSync, mkdirSync, rmSync, statSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -109,6 +109,33 @@ ok('Antigravity gets every bundled skill in its own root, pulse-agent intact',
   readdirSync(join(HOME, '.gemini/config/skills'))
     .filter((d) => existsSync(join(HOME, '.gemini/config/skills', d, 'SKILL.md')))
     .length === readdirSync(join(HOME, '.claude/skills')).length + 1)
+// Codex reads $CODEX_HOME/skills (default ~/.codex/skills) and SKILL.md is the
+// portable cross-agent format, so the same folders serve it unchanged. Before
+// this it got NONE of them -- the design skills in particular -- and only ever
+// reached one by reading Claude Code's absolute path, which works by accident on
+// a machine that also has Claude Code and not at all otherwise.
+ok('Codex gets every bundled skill in its own root',
+  existsSync(join(HOME, '.codex/skills/ui-design/SKILL.md')) &&
+  existsSync(join(HOME, '.codex/skills/product-design/SKILL.md')) &&
+  existsSync(join(HOME, '.codex/skills/ui-verification/SKILL.md')) &&
+  existsSync(join(HOME, '.codex/skills/typography-audit/SKILL.md')) &&
+  readdirSync(join(HOME, '.codex/skills'))
+    .filter((d) => existsSync(join(HOME, '.codex/skills', d, 'SKILL.md')))
+    .length === readdirSync(join(HOME, '.claude/skills')).length)
+// Every tool is told where ITS OWN skills live, not just Claude Code's.
+ok('the skills instruction names Codex\'s own skills root',
+  readFileSync(join(HOME, '.codex/AGENTS.md'), 'utf8').includes(join(HOME, '.codex', 'skills')))
+// Codex records hook trust against the hook entry's content hash and re-prompts
+// "hooks need review" for anything it sees as changed, so an unchanged config
+// must not be rewritten: the atomic rename swaps the inode even byte-identical.
+ok('an unchanged config is not rewritten (Codex hook trust stays valid)', (() => {
+  const hooks = join(HOME, '.codex/hooks.json')
+  const before = statSync(hooks)
+  const txt = readFileSync(hooks, 'utf8')
+  deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
+  const after = statSync(hooks)
+  return readFileSync(hooks, 'utf8') === txt && after.ino === before.ino && after.mtimeMs === before.mtimeMs
+})())
 ok('Qwen Code gets the main-session block in ~/.qwen/QWEN.md, own notes intact', (() => {
   const t = readFileSync(join(HOME, '.qwen/QWEN.md'), 'utf8')
   return t.includes('\u{1F534} Pulse Agent \u2014 Council') && t.includes('# My own Qwen notes')
