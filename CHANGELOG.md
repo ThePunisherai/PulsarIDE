@@ -6,6 +6,26 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.90.0] - 2026-09-20
+
+### What's fixed
+- **Design work actually gets routed now.** Council and the design team leads knew
+  nothing about the design tooling on your machine — zero of the 101 team leads
+  mentioned ThreeUI or a single design skill by name. That knowledge only existed in
+  the main-session instructions, so the moment work went to a subagent it vanished and
+  the agent hand-built a palette next to a library that already solved it.
+- **ThreeUI's gallery images ship now.** The `gallery` component referenced five
+  `.webp` files that were never vendored, so it deployed with broken image
+  references. All 8 asset paths the components reference now resolve.
+
+### What's new
+- **152 brand design systems, searchable.** `design_find("calm premium hardware")`
+  finds a direction, `design_read("apple")` returns its full DESIGN.md plus
+  ready-to-paste tokens.css. From nexu-io/open-design (Apache-2.0); only the portable
+  core is bundled, not its 42 MB of previews. Brand-*inspired*, not official assets.
+- **`baoyu-design` skill** — mockups, prototypes, wireframes and decks as self-contained
+  HTML, plus offline Figma `.fig` import with no account (JimLiu/baoyu-design, MIT).
+
 ## [0.89.0] - 2026-09-16
 
 ### What's new

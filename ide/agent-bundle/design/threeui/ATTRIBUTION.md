@@ -24,9 +24,12 @@ and — inside `src/shaders/` — the `.html` demo dumps (one is 2.3 MB), the
 bundled `three.min.js` copies, and the `.webp` / `.woff2` demo assets. That takes
 8.4 MB down to 0.9 MB with no loss of reusable source.
 
-Consequence to know about: a handful of components reference demo assets that
-were not vendored (`./assets/*.webp`). Substitute your own — the shader code,
-which is the part worth having, is complete.
+Update: the demo assets those components actually reference ARE now vendored.
+`section-elements/assets/testimonials-*.svg` was already here; the five files that
+were genuinely missing, `gallery/assets/gallery-{1..5}.webp` (1.1 MB), are now
+included too, so `gallery` renders as-is instead of with broken image references.
+All 8 asset paths referenced in the component source now resolve. The rest of upstream's demo
+media (unreferenced imagery, `three.min.js` copies, `.woff2` fonts) is still left out.
 
 ## Two upstream routes deliberately NOT wired in
 

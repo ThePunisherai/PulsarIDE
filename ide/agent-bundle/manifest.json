@@ -5,7 +5,7 @@
   "generated": "2026-08-20",
   "note": "Team leads + curated skills + memory hooks + the built-in project tracker, pre-installed into PulsarIDE. The 5,050 specialist subagents are deliberately NOT bundled: deploying them all as native subagents blows Claude Code's ~15k-token agent-description budget (ThePunisher-Agent's own hard-won lesson). Team leads route to specialists on demand. The tracker (plan CLI + planide package + planide MCP server) lets agents read and update each project's .planide/state.json board directly, so the IDE's Tracker tab reflects agent work live.",
   "team_leads": 100,
-  "skills": 53,
+  "skills": 54,
   "orchestration_skills": [
     "agent-orchestrator",
     "dispatch",
@@ -47,6 +47,8 @@
       "clear_anti_loop",
       "ui_find",
       "ui_read",
+      "design_find",
+      "design_read",
       "ecc_find",
       "ecc_read",
       "re_triage"
@@ -165,6 +167,7 @@
     "appium-skill",
     "archify",
     "aws-skills",
+    "baoyu-design",
     "brag",
     "brainstorming",
     "cc-skill-continuous-learning",
@@ -228,6 +231,14 @@
       "components": 44,
       "deployed_to": "~/.config/pulsaride/design/threeui",
       "what": "Self-contained React + three.js shader/3D UI components, source only."
+    },
+    "design/design-systems": {
+      "upstream": "https://github.com/nexu-io/open-design",
+      "license": "Apache-2.0",
+      "design_systems": 152,
+      "deployed_to": "~/.config/pulsaride/design/design-systems",
+      "what": "Brand-grounded design systems: each a full DESIGN.md (palette, type scale, spacing, component grammar + rationale) plus ready-to-paste tokens.css. Searched with design_find, read with design_read.",
+      "vendored": "DESIGN.md + tokens.css only; upstream previews/sources/app are not vendored."
     }
   },
   "ecc": {

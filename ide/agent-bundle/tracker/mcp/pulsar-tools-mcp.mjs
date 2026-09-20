@@ -704,6 +704,130 @@ function threeUiRead(name) {
   }
 }
 
+// ------------------------------------------------------------------- design systems
+
+/**
+ * The 152 vendored brand design systems, searchable by the look you want.
+ *
+ * Same lesson as ThreeUI directly above: a library nobody can name is a library
+ * nobody uses. "Make it feel like a calm premium hardware brand" does not lead
+ * anyone to the directory called `apple`, so the collection needs to be searched
+ * on what each system actually IS -- its category and its own summary line --
+ * not on its folder name.
+ *
+ * `catalog.json` is generated from each DESIGN.md's own title/category/summary
+ * headers (nexu-io/open-design, Apache-2.0). Two steps, like ui_find/ui_read:
+ * find a direction, then read that one system in full and build on it.
+ */
+function designSystemsRoot() {
+  const home = process.env.HOME || process.env.USERPROFILE || ''
+  for (const dir of [
+    join(home, '.config', 'pulsaride', 'design', 'design-systems'),
+    join(BUNDLE_ROOT, 'design', 'design-systems')
+  ]) {
+    if (existsSync(join(dir, 'catalog.json'))) return dir
+  }
+  return null
+}
+
+function designSystemsCatalog(root) {
+  try {
+    return JSON.parse(readFileSync(join(root, 'catalog.json'), 'utf8'))
+  } catch {
+    return {}
+  }
+}
+
+function designFind(query, limit) {
+  const root = designSystemsRoot()
+  if (!root) {
+    return { available: false, note: 'The design-system library is not deployed on this machine.', matches: [] }
+  }
+  const catalog = designSystemsCatalog(root)
+  const terms = String(query || '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 2 && !ECC_STOP.has(t))
+  const scored = []
+  for (const [name, meta] of Object.entries(catalog)) {
+    const label = name.toLowerCase().replace(/[-_]/g, ' ')
+    const category = String(meta.category || '')
+    const desc = String(meta.description || '')
+    const title = String(meta.title || '')
+    const hay = (label + ' ' + title + ' ' + category + ' ' + desc).toLowerCase()
+    let score = 0
+    let nameHits = 0
+    for (const t of terms) {
+      if (label.includes(t)) {
+        score += 5
+        nameHits += 1
+      } else if (hay.includes(t)) {
+        score += 1
+      }
+    }
+    if (score > 0) scored.push({ name, category, description: desc, score, nameHits })
+  }
+  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+  if (!scored.length) {
+    return {
+      available: true,
+      total: Object.keys(catalog).length,
+      matches: [],
+      note:
+        'No design system matches that. Describe the FEEL or the sector instead of a ' +
+        'component ("calm premium hardware", "playful fintech", "editorial news"), or ' +
+        'name a brand whose look you want to start from.'
+    }
+  }
+  const strong = (m) => m.nameHits >= 1 || m.score >= 4
+  return {
+    available: true,
+    total: Object.keys(catalog).length,
+    root,
+    matches: scored.slice(0, limit).map((m) => ({
+      name: m.name,
+      category: m.category,
+      description: m.description,
+      confidence: strong(m) ? 'strong' : 'weak'
+    })),
+    note:
+      'Read one with design_read: you get its DESIGN.md (palette, type scale, spacing, ' +
+      'component grammar and the rationale) plus tokens.css you can paste straight in. ' +
+      'These are brand-INSPIRED reimplementations, not official brand assets.'
+  }
+}
+
+function designRead(name, withTokens) {
+  const root = designSystemsRoot()
+  if (!root) return { found: false, note: 'The design-system library is not deployed on this machine.' }
+  const catalog = designSystemsCatalog(root)
+  const wanted = String(name || '').trim()
+  const meta = catalog[wanted]
+  if (!meta) return { found: false, note: `No design system named "${name}". Use design_find first.` }
+  const dir = join(root, wanted)
+  const out = { found: true, name: wanted, dir, title: meta.title, category: meta.category }
+  let budget = 60000
+  try {
+    const body = readFileSync(join(dir, 'DESIGN.md'), 'utf8')
+    out.design_md = body.slice(0, budget)
+    out.design_md_truncated = body.length > budget
+    budget -= Math.min(body.length, budget)
+  } catch {
+    return { found: false, note: `${wanted} is in the catalogue but its DESIGN.md is not on disk.` }
+  }
+  if (withTokens !== false && budget > 0) {
+    try {
+      const css = readFileSync(join(dir, 'tokens.css'), 'utf8')
+      out.tokens_css = css.slice(0, budget)
+      out.tokens_css_truncated = css.length > budget
+    } catch {
+      /* tokens.css is optional -- the DESIGN.md is the part that matters */
+    }
+  }
+  return out
+}
+
+
 const TOOLS = [
   {
     name: 'route_task',
@@ -978,6 +1102,34 @@ const TOOLS = [
       required: ['name']
     },
     run: (args) => threeUiRead(str(args.name))
+  },
+  {
+    name: 'design_find',
+    description:
+      "Search 152 installed brand design systems by the LOOK you want ('calm premium hardware', 'playful fintech', 'editorial news') or by a brand name. Call this whenever a request is about visual direction, a redesign, a landing page, a theme or 'make it look good' -- before inventing a palette and type scale from scratch. Each hit has a full DESIGN.md plus ready-to-paste tokens.css.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The feel, sector or brand you want, in your own words.' },
+        limit: { type: 'number', description: 'Max matches (default 5).' }
+      },
+      required: ['query']
+    },
+    run: (args) => designFind(str(args.query), Math.max(1, Math.min(20, Number(args.limit) || 5)))
+  },
+  {
+    name: 'design_read',
+    description:
+      'Read one design system in full by the exact name design_find returned: its DESIGN.md (palette with real hex values, type scale, spacing, component grammar, and the rationale) plus tokens.css to paste into the project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Exact name from design_find.' },
+        tokens: { type: 'boolean', description: 'Include tokens.css (default true).' }
+      },
+      required: ['name']
+    },
+    run: (args) => designRead(str(args.name), args.tokens)
   },
   {
     name: 'ecc_find',

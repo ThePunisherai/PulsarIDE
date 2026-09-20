@@ -127,12 +127,83 @@ Three jobs:
    installed to actually render, and the bundled copy ships the skill's guidance only, not
    its optional royalty-free audio pack (Hyperframes selects/detects audio at composition
    time). If Hyperframes is not available, say so rather than claim a video was produced.
+   **Anything visual — a landing page, a dashboard, a redesign, a theme, "make it look
+   good".** Do not start by inventing a palette and a type scale. Go to the Design section
+   below: `design_find` for a direction out of 152 installed brand design systems,
+   `ui_find` for 3D/shader pieces, then the named design skills and the
+   `design-systems`/`web-frontend`/`specialized-creative` leads. This is the single most
+   under-used capability on the machine — treat "I designed it myself from scratch" as a
+   routing failure unless you checked first.
 
 Rules:
 - No hallucination, no guessing. If unsure, say "UNVERIFIED — dispatch research" and stop.
 - After 3 failed attempts on a sub-goal, force a different approach. After 5, write a root-cause
   summary and halt.
 - Keep output compressed: conclusions and sources, not raw dumps.
+
+## Design — 152 systems, 44 3D components, 15 skills, and why they go unused
+
+Anything visual routes through here first: a landing page, a dashboard, a redesign, a
+theme, "make it look good", "it looks AI-generated", a marketing site, an onboarding
+flow. Not because ceremony is good, but because this machine already has a large design
+inventory installed and it keeps going unused for one specific, repeatedly-observed
+reason: **nothing in a name like `bell-field`, `design-spells` or `apple` tells you what
+it is.** An agent that was never handed this list invents a palette and a type scale in
+its head and builds from scratch next to a library that already solved it. That is the
+failure this section exists to stop, and it is not host-specific -- it happens in Claude
+Code, Codex, Antigravity and Cursor alike.
+
+**Step 1 -- take a direction before writing any CSS.**
+
+    design_find("<the feel you want>")   -> matching brand design systems + what they are
+    design_read("<exact name>")          -> full DESIGN.md + ready-to-paste tokens.css
+
+152 brand-grounded systems (`nexu-io/open-design`, Apache-2.0). Each `DESIGN.md` carries
+real hex values, a type scale, spacing, component grammar *and the rationale*, so the
+system still holds in a case the file never names; `tokens.css` is the same system as CSS
+custom properties. Search the **feel or sector** -- "calm premium hardware", "playful
+fintech", "editorial news" -- not a component name. These are brand-*inspired*
+reimplementations, not official brand assets: say so plainly if someone asks for the real
+brand's system.
+
+**Step 2 -- for 3D, shader or "wow" surfaces, do not hand-write WebGL.**
+
+    ui_find("<the visual you want>")     -> matching ThreeUI components
+    ui_read("<exact name>")              -> the whole component, to copy and adapt
+
+44 self-contained React + three.js pieces (`MengTo/threeui`, MIT): animated backgrounds,
+heroes, docks, text effects. Use the tool, not a directory listing. They need `three` as a
+dependency; `gallery` and `section-elements` ship their own demo assets.
+
+**Step 3 -- the installed design skills, by name.** These are real directories in the
+skills folder, so name the one you are opening and why:
+
+  direction/build   `ui-design` (React/Next/Tailwind UI, landing pages, dark mode),
+                    `frontend-design` (designer-engineer judgment, not layout generation),
+                    `product-design`, `ui-skills` (opinionated interface constraints)
+  polish            `design-spells` (micro-interactions and the details that add
+                    personality), `ui-animation`, `iconsax-library` (icons),
+                    `threejs-skills`
+  check before ship `ui-verification`, `ax-audit` (accessibility), `typography-audit`,
+                    `dx-audit`, `webapp-testing`
+  mock it up first  `baoyu-design` -- mockups, prototypes, wireframes and decks as
+                    self-contained HTML, plus offline Figma `.fig` import (no account).
+                    Reach for it when the ask is "show me what it could look like"
+                    rather than "change the production code"
+  adjacent          `presentation-creator` (decks), `archify` (architecture diagrams)
+
+**Step 4 -- hand off to a specialist rather than doing it all as Council.** The team leads
+`design-systems`, `web-frontend` and `specialized-creative` are deployed as real, named
+agents. The `agency-agents` design division adds 10 role files to read and adopt inline --
+`design-ui-designer`, `design-ux-architect`, `design-ux-researcher`,
+`design-brand-guardian`, `design-ui-finish-gate-reviewer`, `design-whimsy-injector` and
+more. One general agent quietly doing all the design itself is a routing failure, not a
+shortcut.
+
+Say the routing out loud before you start: which system you took, which skill you opened,
+which specialist has it. In Antigravity that is the *only* signal the user gets, because
+it never reports which skill it activated -- but stating it is correct everywhere, since a
+silent choice cannot be corrected by the person who asked.
 
 ## ECC — 359 operator entries, on disk, free until you call them
 

@@ -713,11 +713,11 @@ export function deployAgentBundle(
     if (trackerRoot) mcpWired = registerTrackerForAllAgents(home)
     deployToolsFiles(home, root)
     deploySpecialists(home, root)
-    // Vendored libraries: the agency-agents role library and the ThreeUI design
-    // components. Deployed on every real deploy, so an update that changes them
+    // Vendored libraries: the agency-agents role library, the ThreeUI design
+    // components and the 152-system design-system library. Deployed on every real deploy, so an update that changes them
     // lands too -- bundleSignature covers both directories, so a change to either
     // is itself what triggers the redeploy.
-    const libraries = ['agency-agents', join('design', 'threeui')]
+    const libraries = ['agency-agents', join('design', 'threeui'), join('design', 'design-systems')]
       .map((rel) => deployLibrary(home, root, rel))
       .filter((p): p is string => p !== null)
 
@@ -1908,6 +1908,20 @@ function mainSessionBlock(home: string): string {
     'this project has shipped once already). Same rule as the specialist roster.',
     'Reach for one when it genuinely fits the work -- not as a ceremony on every task.',
     '',
+    '## Design: 152 brand design systems',
+    '',
+    'Before inventing a palette and a type scale for a landing page, dashboard, redesign',
+    'or theme, take a direction from the installed library:',
+    '',
+    '    design_find("<the feel you want>")  -> matching systems + what they are',
+    '    design_read("<exact name>")         -> full DESIGN.md + ready-to-paste tokens.css',
+    '',
+    'Search the feel or sector -- "calm premium hardware", "playful fintech", "editorial',
+    'news" -- not a component name. Each DESIGN.md carries real hex values, a type scale,',
+    'spacing, component grammar and the rationale; tokens.css is the same system as CSS',
+    'custom properties. They are brand-INSPIRED reimplementations, not official brand',
+    'assets -- say so if someone asks for the real brand. (nexu-io/open-design, Apache-2.0)',
+    '',
     '## Design: ThreeUI components',
     '',
     '44 self-contained React + three.js shader/3D components are installed. Before you',
@@ -1921,8 +1935,8 @@ function mainSessionBlock(home: string): string {
     'background, which is exactly why this library kept going unused while WebGL got',
     'written from scratch next to it. `ui_find` searches ThreeUI\'s own descriptions.',
     '',
-    'They need `three` as a dependency, and some reference demo assets that were not',
-    "vendored -- substitute the project's own. Two upstream routes are deliberately not",
+    'They need `three` as a dependency. The demo assets the components actually reference',
+    "are vendored too, so `gallery` and `section-elements` render as-is. Two upstream routes are deliberately not",
     "wired in: ThreeUI's remote MCP server (`https://threeui.com/api/mcp`) and `npx",
     '@designcodeio/threeui-cli add <name>`, both needing a paid account and a browser',
     'sign-in. Offer either only if the user asks for the live catalog or Pro components.',

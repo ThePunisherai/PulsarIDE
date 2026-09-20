@@ -58,7 +58,7 @@ ok('it echoes the protocol version the client asked for',
   byId(hs, 1).result.protocolVersion === '2026-06-18')
 const names = byId(hs, 2).result.tools.map((t) => t.name).sort()
 ok('it offers exactly the tools the agents are told to call',
-  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 'ecc_find', 'ecc_read', 're_triage', 'record_anti_loop_failure', 'record_solution', 'route_task', 'ui_find', 'ui_read']))
+  JSON.stringify(names) === JSON.stringify(['check_anti_loop', 'clear_anti_loop', 'design_find', 'design_read', 'ecc_find', 'ecc_read', 're_triage', 'record_anti_loop_failure', 'record_solution', 'route_task', 'ui_find', 'ui_read']))
 ok('an initialized notification is never answered', !hs.some((r) => r.id === undefined && r.result))
 
 // --- routing: the cases the first implementation got wrong ------------------ //
@@ -167,6 +167,35 @@ ok('ui_read returns the real component source', (() => {
 })())
 ok('and it says nothing matches rather than offering something unrelated',
   json(byId(ui, 82)).matches.length === 0)
+
+// --- design_find ------------------------------------------------------------ //
+// Same failure mode as ui_find, one level up: "make it feel like calm premium
+// hardware" leads nobody to a directory called `apple`, so the 152 systems get
+// rebuilt by hand instead of read. Searching has to work on the FEEL.
+const ds = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(90, 'design_find', { query: 'calm premium hardware brand with a lot of white space' }),
+  call(91, 'design_read', { name: 'apple' }),
+  call(92, 'design_read', { name: 'apple', tokens: false }),
+  call(93, 'design_find', { query: 'quantum tax accounting ledger' })
+])
+ok('design_find finds systems by the feel, not by the brand folder name', (() => {
+  const r = json(byId(ds, 90))
+  return r.available === true && r.total === 152 && r.matches.length > 0 &&
+    r.matches.every((m) => m.name && m.category && m.confidence)
+})())
+ok('design_read returns the real DESIGN.md and its tokens', (() => {
+  const r = json(byId(ds, 91))
+  return r.found === true && /Apple/i.test(r.title) &&
+    r.design_md.includes('Design System Inspired by Apple') &&
+    typeof r.tokens_css === 'string' && r.tokens_css.length > 0
+})())
+ok('design_read can skip the tokens when only the direction is wanted', (() => {
+  const r = json(byId(ds, 92))
+  return r.found === true && r.design_md.length > 0 && r.tokens_css === undefined
+})())
+ok('design_find says nothing matches rather than inventing a direction',
+  json(byId(ds, 93)).matches.length === 0)
 
 // --- ecc_find --------------------------------------------------------------- //
 // ECC is 354 entries sitting on disk, deliberately not loaded. With no

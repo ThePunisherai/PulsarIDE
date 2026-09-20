@@ -985,6 +985,27 @@ ok('the ThreeUI design components are deployed, with their index',
 ok('their licences travel with them',
   existsSync(join(HOME, '.config/pulsaride/agency-agents/LICENSE')) &&
   existsSync(join(HOME, '.config/pulsaride/design/threeui/LICENSE')))
+// The demo assets those components reference are vendored too -- gallery's five
+// .webp files were missing, so it deployed with broken image references, which is
+// what "the ThreeUI integration must actually work, including the assets" meant.
+ok('the ThreeUI components that need demo assets get them',
+  existsSync(join(HOME, '.config/pulsaride/design/threeui/gallery/assets/gallery-1.webp')) &&
+  existsSync(join(HOME, '.config/pulsaride/design/threeui/section-elements/assets/testimonials-keyboard.svg')))
+// The design-system library: 152 brand systems, searched with design_find and read
+// with design_read. Deployed the same way, and useless without its catalogue.
+ok('the design-system library is deployed, with its catalogue and licence',
+  existsSync(join(HOME, '.config/pulsaride/design/design-systems/catalog.json')) &&
+  existsSync(join(HOME, '.config/pulsaride/design/design-systems/LICENSE')) &&
+  readdirSync(join(HOME, '.config/pulsaride/design/design-systems')).length > 100)
+ok('each deployed design system carries a DESIGN.md and its tokens',
+  existsSync(join(HOME, '.config/pulsaride/design/design-systems/apple/DESIGN.md')) &&
+  existsSync(join(HOME, '.config/pulsaride/design/design-systems/apple/tokens.css')))
+// The whole point of this round: a subagent that never hears about the library
+// rebuilds it by hand. Council and the design leads must name the tools.
+ok('Council and the design team leads actually name the design tools',
+  ['council', 'design-systems', 'web-frontend', 'specialized-creative'].every((a) =>
+    /design_find/.test(readFileSync(join(HOME, '.claude/agents', `pulse-${a}.md`), 'utf8')) ||
+    /design_find/.test(readFileSync(join(REPO, 'ide/agent-bundle/agents', `${a}.md`), 'utf8'))))
 // The budget rule these libraries exist under: they are read inline, never
 // registered, because 296 more descriptions would break subagent dispatch.
 ok('none of the 274 roles is registered as a Claude Code subagent',

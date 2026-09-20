@@ -13,7 +13,7 @@ team leads and skills available in every project, with no separate dashboard or 
   subagents would blow Claude Code's agent-description context budget, which is
   ThePunisher-Agent's own documented lesson. A team lead reads and adopts a
   specialist on demand.
-- `skills/` — 77 curated skills, including the orchestration meta-skills
+- `skills/` — 80 curated skills, including the orchestration meta-skills
   (`agent-orchestrator`, `dispatch`, `antigravity-skill-orchestrator`). Vendored
   from several upstream libraries, each under its own permissive licence
   (MIT / CC-BY-4.0) — see the per-library `ATTRIBUTION.md` files in
@@ -34,6 +34,21 @@ team leads and skills available in every project, with no separate dashboard or 
   metadata and a `skills add` installer route; neither is vendored — PulsarIDE
   deploys the skill directories itself, so the installer would be a second,
   competing mechanism.
+- `design/threeui/` — 44 React + three.js shader/3D components
+  ([`MengTo/threeui`](https://github.com/MengTo/threeui), MIT), plus the 8 demo
+  assets the components actually reference, so `gallery` and `section-elements`
+  render as-is. Searched with `ui_find`, read with `ui_read`.
+- `design/design-systems/` — 152 brand-grounded design systems
+  ([`nexu-io/open-design`](https://github.com/nexu-io/open-design), Apache-2.0),
+  each a full `DESIGN.md` plus ready-to-paste `tokens.css`. Only that portable
+  core is vendored (3.7 MB of 42 MB upstream); previews, scraped sources and the
+  desktop app are not. Searched with `design_find`, read with `design_read`.
+  These are brand-*inspired* reimplementations, not official brand assets.
+- `skills/baoyu-design/` — design artifacts as self-contained HTML, and offline
+  Figma `.fig` import with no account
+  ([`JimLiu/baoyu-design`](https://github.com/JimLiu/baoyu-design), MIT). Its
+  frontmatter description was shortened on purpose — see its own
+  `ATTRIBUTION.md` and the catalog-budget note below.
 - `hooks/` — the graphify knowledge-graph bootstrap (`graphify-bootstrap.sh` /
   `.ps1`) and the Obsidian/council memory writer (`council-memory.py`), wired to
   run per project so graphify and Obsidian are used for every project.
@@ -59,3 +74,25 @@ selected, so nothing is lost by a short catalog entry.
 If you re-vendor any of these skills, the long descriptions come back and the
 catalog goes over budget again. `ide/test/agent-bundle.test.mjs` fails in that
 case ("skill catalog fits the hosts' budget"), so it cannot pass unnoticed.
+
+## Design repositories evaluated and deliberately not vendored
+
+Checked against the real repositories, not their descriptions:
+
+- [`VoltAgent/awesome-claude-design`](https://github.com/VoltAgent/awesome-claude-design)
+  (MIT) — an index, not a content repo. Its "68 DESIGN.md files" are links to
+  pages on getdesign.md; the repository itself contains a README and a licence
+  and zero `DESIGN.md` files. There is nothing to vendor. The
+  `design/design-systems/` library above is the same idea with the files
+  actually present.
+- [`maxritter/open-claude-design`](https://github.com/maxritter/open-claude-design)
+  — **licence blocks it.** The "Open Claude Design Free-Use Source License 1.0"
+  is source-available, not open source, and restriction 1 forbids redistributing
+  the software or a modified version to a third party. PulsarIDE ships its
+  bundle to users, so vendoring its 5 design skills would breach that licence.
+  Users may install it themselves for their own use, which the licence allows.
+- [`marvkr/better-design`](https://github.com/marvkr/better-design) (MIT) — the
+  skill is a workflow layer over the Better Design MCP server and its own
+  instructions say to stop and tell the user when those MCP tools are not
+  connected. Vendoring the skill without wiring that hosted server would add a
+  skill that refuses to work, so it is left out rather than shipped broken.

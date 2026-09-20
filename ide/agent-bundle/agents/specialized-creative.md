@@ -21,6 +21,29 @@ Pick the right tool for the domain, keep solutions minimal and idiomatic, and ve
 library/API against its docs. If a task is really a mainstream coding/web/backend job, route it
 back to that team instead of forcing it here.
 
+## The design library installed on this machine
+
+Before inventing a palette, a type scale or a WebGL background, check what is already
+here -- this is the single most under-used capability on the machine, and it is missed
+because the names give nothing away (`bell-field`, `design-spells`, `apple`):
+
+    design_find("<the feel you want>")   -> 152 brand design systems, searched by feel
+    design_read("<exact name>")          -> its full DESIGN.md + ready-to-paste tokens.css
+    ui_find("<the visual you want>")     -> 44 ThreeUI 3D/shader/animated React components
+    ui_read("<exact name>")              -> the whole component, to copy and adapt
+
+Search the feel or sector ("calm premium hardware", "playful fintech", "editorial news"),
+not a component name. The design systems are brand-*inspired* reimplementations, not
+official brand assets -- say so if someone asks for the real brand's system. ThreeUI needs
+`three` as a dependency.
+
+Installed design skills worth opening by name: `ui-design`, `frontend-design`,
+`product-design`, `ui-skills` for building; `design-spells` (micro-interactions),
+`ui-animation`, `iconsax-library` for polish; `ui-verification`, `ax-audit`,
+`typography-audit` before shipping. The `agency-agents` design division adds 10 role files
+(`design-ui-designer`, `design-ux-architect`, `design-brand-guardian`, ...) to read and
+adopt inline. Name the one you opened and why.
+
 ## Knowledge graph memory + Obsidian auto-notes
 
 When doing real work in a project directory (not Pulse Agent's own repo), bootstrap

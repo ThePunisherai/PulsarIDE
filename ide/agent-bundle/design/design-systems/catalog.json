@@ -1,0 +1,914 @@
+{
+ "agentic": {
+  "category": "Themed & Unique",
+  "description": "Conversational AI-first interface with minimal controls, clear outcomes, and delegated task flows for agentic workflows.",
+  "title": "Design System Inspired by Agentic",
+  "tokens_css": true
+ },
+ "airbnb": {
+  "category": "E-Commerce & Retail",
+  "description": "Travel marketplace. Warm coral accent, photography-driven, rounded UI.",
+  "title": "Design System Inspired by Airbnb",
+  "tokens_css": true
+ },
+ "airtable": {
+  "category": "Design & Creative",
+  "description": "Spreadsheet-database hybrid. Colorful, friendly, structured data aesthetic.",
+  "title": "Design System Inspired by Airtable",
+  "tokens_css": true
+ },
+ "ant": {
+  "category": "Professional & Corporate",
+  "description": "Structured, enterprise-focused design system emphasizing clarity, consistency, and efficiency for data-dense web applications.",
+  "title": "Design System Inspired by Ant",
+  "tokens_css": true
+ },
+ "apple": {
+  "category": "Media & Consumer",
+  "description": "Consumer electronics. Premium white space, SF Pro, cinematic imagery.",
+  "title": "Design System Inspired by Apple",
+  "tokens_css": true
+ },
+ "application": {
+  "category": "Professional & Corporate",
+  "description": "App dashboard with purple-themed aesthetic, top-bar navigation, card-based layouts, and developer-first workflows.",
+  "title": "Design System Inspired by Application",
+  "tokens_css": true
+ },
+ "arc": {
+  "category": "Productivity & SaaS",
+  "description": "\"The browser that browses for you.\" Translucent surfaces, gradient warmth, sidebar-first layout.",
+  "title": "Design System Inspired by Arc Browser",
+  "tokens_css": true
+ },
+ "artistic": {
+  "category": "Creative & Artistic",
+  "description": "High-contrast, expressive style with creative typography and bold color choices for visually striking interfaces.",
+  "title": "Design System Inspired by Artistic",
+  "tokens_css": true
+ },
+ "atelier-zero": {
+  "category": "Editorial · Studio",
+  "description": "A magazine-grade, collage-driven visual system: warm paper canvas, surreal",
+  "title": "Atelier Zero",
+  "tokens_css": true
+ },
+ "bento": {
+  "category": "Layout & Structure",
+  "description": "Modular grid layout with card-like blocks, clear hierarchy, soft spacing, and subtle visual contrast for organized, scannable interfaces.",
+  "title": "Design System Inspired by Bento",
+  "tokens_css": true
+ },
+ "binance": {
+  "category": "Fintech & Crypto",
+  "description": "Crypto exchange. Bold yellow accent on monochrome, trading-floor urgency.",
+  "title": "Design System Inspired by Binance.US",
+  "tokens_css": true
+ },
+ "bmw": {
+  "category": "Automotive",
+  "description": "Luxury automotive. Dark premium surfaces, precise German engineering aesthetic.",
+  "title": "Design System Inspired by BMW",
+  "tokens_css": true
+ },
+ "bmw-m": {
+  "category": "Automotive",
+  "description": "Motorsport performance sub-brand. Near-black cockpit surfaces, BMW M tricolor accents, sharp engineering geometry.",
+  "title": "Design System Inspired by BMW M",
+  "tokens_css": true
+ },
+ "bold": {
+  "category": "Bold & Expressive",
+  "description": "Strong visual presence with heavyweight typography, high-contrast colors, and commanding layouts.",
+  "title": "Design System Inspired by Bold",
+  "tokens_css": true
+ },
+ "brutalism": {
+  "category": "Bold & Expressive",
+  "description": "Raw, anti-design aesthetic inspired by concrete architecture with unadorned elements, jarring layouts, and functional minimalism.",
+  "title": "Design System Inspired by Brutalism",
+  "tokens_css": true
+ },
+ "bugatti": {
+  "category": "Automotive",
+  "description": "Hypercar brand. Cinema-black canvas, monochrome austerity, monumental display type.",
+  "title": "Design System Inspired by Bugatti",
+  "tokens_css": true
+ },
+ "cafe": {
+  "category": "Creative & Artistic",
+  "description": "Cozy cafe-inspired interface with warm tones, soft typography, and clean layouts for a relaxed browsing experience.",
+  "title": "Design System Inspired by Cafe",
+  "tokens_css": true
+ },
+ "cal": {
+  "category": "Productivity & SaaS",
+  "description": "Open-source scheduling. Clean neutral UI, developer-oriented simplicity.",
+  "title": "Design System Inspired by Cal.com",
+  "tokens_css": true
+ },
+ "canva": {
+  "category": "Design & Creative",
+  "description": "Visual creation platform. Vivid purple-blue gradient, generous spacing, friendly geometry.",
+  "title": "Design System Inspired by Canva",
+  "tokens_css": true
+ },
+ "cisco": {
+  "category": "Backend & Data",
+  "description": "Enterprise infrastructure brand. Dark trust surfaces, Cisco Blue signal, technical clarity.",
+  "title": "Design System Inspired by Cisco",
+  "tokens_css": true
+ },
+ "claude": {
+  "category": "AI & LLM",
+  "description": "Anthropic's AI assistant. Warm terracotta accent, clean editorial layout.",
+  "title": "Design System Inspired by Claude (Anthropic)",
+  "tokens_css": true
+ },
+ "clay": {
+  "category": "Design & Creative",
+  "description": "Creative agency. Organic shapes, soft gradients, art-directed layout.",
+  "title": "Design System Inspired by Clay",
+  "tokens_css": true
+ },
+ "claymorphism": {
+  "category": "Morphism & Effects",
+  "description": "Soft, rounded 3D-like shapes mimicking malleable clay with playful, puffy elements and colorful surfaces.",
+  "title": "Design System Inspired by Claymorphism",
+  "tokens_css": true
+ },
+ "clean": {
+  "category": "Modern & Minimal",
+  "description": "Simplicity-focused design with ample whitespace, legible typography, and a limited color palette to reduce visual clutter.",
+  "title": "Design System Inspired by Clean",
+  "tokens_css": true
+ },
+ "clickhouse": {
+  "category": "Backend & Data",
+  "description": "Fast analytics database. Yellow-accented, technical documentation style.",
+  "title": "Design System Inspired by ClickHouse",
+  "tokens_css": true
+ },
+ "cloudflare-kumo": {
+  "category": "Developer Tools",
+  "description": "A compact, semantic component language for modern web applications: layered neutral surfaces, precise Inter typography, accessible controls, automatic light/dark color roles, and task-appropriate chart palettes.",
+  "title": "Cloudflare Kumo UI Design System",
+  "tokens_css": true
+ },
+ "cohere": {
+  "category": "AI & LLM",
+  "description": "Enterprise AI platform. Vibrant gradients, data-rich dashboard aesthetic.",
+  "title": "Design System Inspired by Cohere",
+  "tokens_css": true
+ },
+ "coinbase": {
+  "category": "Fintech & Crypto",
+  "description": "Crypto exchange. Clean blue identity, trust-focused, institutional feel.",
+  "title": "Design System Inspired by Coinbase",
+  "tokens_css": true
+ },
+ "colorful": {
+  "category": "Bold & Expressive",
+  "description": "Vibrant, high-contrast palettes and gradients for engaging, memorable, and modern user experiences.",
+  "title": "Design System Inspired by Colorful",
+  "tokens_css": true
+ },
+ "composio": {
+  "category": "Backend & Data",
+  "description": "Tool integration platform. Modern dark with colorful integration icons.",
+  "title": "Design System Inspired by Composio",
+  "tokens_css": true
+ },
+ "contemporary": {
+  "category": "Modern & Minimal",
+  "description": "Current-era minimalist design with bento grids, dark mode support, and high-performance accessible layouts.",
+  "title": "Design System Inspired by Contemporary",
+  "tokens_css": true
+ },
+ "corporate": {
+  "category": "Professional & Corporate",
+  "description": "Professional, brand-aligned design with structured grids, minimalist layouts, and consistent enterprise patterns.",
+  "title": "Design System Inspired by Corporate",
+  "tokens_css": true
+ },
+ "cosmic": {
+  "category": "Creative & Artistic",
+  "description": "Futuristic sci-fi aesthetic with dark themes, vibrant neon accents, and immersive spatial elements.",
+  "title": "Design System Inspired by Cosmic",
+  "tokens_css": true
+ },
+ "creative": {
+  "category": "Creative & Artistic",
+  "description": "Playful, character-driven design with expressive typography and bold graphics for landing pages and creative projects.",
+  "title": "Design System Inspired by Creative",
+  "tokens_css": true
+ },
+ "cursor": {
+  "category": "Developer Tools",
+  "description": "AI-first code editor. Sleek dark interface, gradient accents.",
+  "title": "Design System Inspired by Cursor",
+  "tokens_css": true
+ },
+ "dashboard": {
+  "category": "Professional & Corporate",
+  "description": "Dark-themed cloud-platform aesthetic with modular grids, glass-like panels, and strong data hierarchy for productivity dashboards.",
+  "title": "Design System Inspired by Dashboard",
+  "tokens_css": true
+ },
+ "default": {
+  "category": "Starter",
+  "description": "A clean, product-oriented default. Use when the brief doesn't call for a",
+  "title": "Neutral Modern",
+  "tokens_css": true
+ },
+ "discord": {
+  "category": "Productivity & SaaS",
+  "description": "Voice / chat platform. Deep blurple, dark-first surfaces, playful accent moments.",
+  "title": "Design System Inspired by Discord",
+  "tokens_css": true
+ },
+ "dithered": {
+  "category": "Retro & Nostalgic",
+  "description": "Dot-pattern rendering technique that simulates shades with a limited palette for nostalgic, retro, high-contrast visuals.",
+  "title": "Design System Inspired by Dithered",
+  "tokens_css": true
+ },
+ "doodle": {
+  "category": "Creative & Artistic",
+  "description": "Hand-drawn, sketch-like style with doodles, handwritten fonts, and imperfect lines for a playful, informal feel.",
+  "title": "Design System Inspired by Doodle",
+  "tokens_css": true
+ },
+ "dramatic": {
+  "category": "Bold & Expressive",
+  "description": "High-contrast, theatrical design with bold layouts, immersive visuals, and unconventional compositions that command attention.",
+  "title": "Design System Inspired by Dramatic",
+  "tokens_css": true
+ },
+ "duolingo": {
+  "category": "Productivity & SaaS",
+  "description": "Language-learning platform. Bright owl green, chunky shadows, gamified joy.",
+  "title": "Design System Inspired by Duolingo",
+  "tokens_css": true
+ },
+ "editorial": {
+  "category": "Creative & Artistic",
+  "description": "Magazine-inspired editorial layout with refined serif typography, structured grids, and elegant reading experiences.",
+  "title": "Design System Inspired by Editorial",
+  "tokens_css": true
+ },
+ "elegant": {
+  "category": "Professional & Corporate",
+  "description": "Graceful, refined aesthetic with delicate typography, minimal palettes, and polished layouts that exude sophistication.",
+  "title": "Design System Inspired by Elegant",
+  "tokens_css": true
+ },
+ "elevenlabs": {
+  "category": "AI & LLM",
+  "description": "AI voice platform. Dark cinematic UI, audio-waveform aesthetics.",
+  "title": "Design System Inspired by ElevenLabs",
+  "tokens_css": true
+ },
+ "energetic": {
+  "category": "Bold & Expressive",
+  "description": "Dynamic, vibrant style with thick borders, geometric shapes, high-contrast colors, and expressive typography conveying motion and vitality.",
+  "title": "Design System Inspired by Energetic",
+  "tokens_css": true
+ },
+ "enterprise": {
+  "category": "Professional & Corporate",
+  "description": "Clean, high-contrast enterprise design for data-driven workflows with intuitive drag-and-drop patterns and structured layouts.",
+  "title": "Design System Inspired by Enterprise",
+  "tokens_css": true
+ },
+ "expo": {
+  "category": "Developer Tools",
+  "description": "React Native platform. Dark theme, tight letter-spacing, code-centric.",
+  "title": "Design System Inspired by Expo",
+  "tokens_css": true
+ },
+ "expressive": {
+  "category": "Bold & Expressive",
+  "description": "Vibrant, personality-driven design with bold colors, playful graphics, and dynamic layouts that balance creativity with structure.",
+  "title": "Design System Inspired by Expressive",
+  "tokens_css": true
+ },
+ "fantasy": {
+  "category": "Creative & Artistic",
+  "description": "Game-inspired fantasy aesthetic with bold, premium visuals, rich color palettes, and immersive thematic elements.",
+  "title": "Design System Inspired by Fantasy",
+  "tokens_css": true
+ },
+ "ferrari": {
+  "category": "Automotive",
+  "description": "Luxury automotive. Chiaroscuro editorial, Ferrari Red accents, cinematic black.",
+  "title": "Design System Inspired by Ferrari",
+  "tokens_css": true
+ },
+ "figma": {
+  "category": "Design & Creative",
+  "description": "Collaborative design tool. Vibrant multi-color, playful yet professional.",
+  "title": "Design System Inspired by Figma",
+  "tokens_css": true
+ },
+ "flat": {
+  "category": "Modern & Minimal",
+  "description": "Two-dimensional minimalist style with vibrant colors, clean typography, and no 3D effects for fast, user-friendly interfaces.",
+  "title": "Design System Inspired by Flat",
+  "tokens_css": true
+ },
+ "framer": {
+  "category": "Design & Creative",
+  "description": "Website builder. Bold black and blue, motion-first, design-forward.",
+  "title": "Design System Inspired by Framer",
+  "tokens_css": true
+ },
+ "friendly": {
+  "category": "Creative & Artistic",
+  "description": "Approachable, intuitive design with rounded elements, ample whitespace, and soft pastel color palettes.",
+  "title": "Design System Inspired by Friendly",
+  "tokens_css": true
+ },
+ "futuristic": {
+  "category": "Themed & Unique",
+  "description": "Forward-looking design with tech-inspired typography, modern layouts, and a sleek, innovation-driven aesthetic.",
+  "title": "Design System Inspired by Futuristic",
+  "tokens_css": true
+ },
+ "github": {
+  "category": "Developer Tools",
+  "description": "Code-forward platform. Functional density, blue-on-white precision, Primer foundations.",
+  "title": "Design System Inspired by GitHub",
+  "tokens_css": true
+ },
+ "glassmorphism": {
+  "category": "Morphism & Effects",
+  "description": "Frosted glass effect with translucent layers, subtle blur, and luminous borders for depth and modern elegance.",
+  "title": "Design System Inspired by Glassmorphism",
+  "tokens_css": true
+ },
+ "gradient": {
+  "category": "Morphism & Effects",
+  "description": "Smooth color transitions and gradient-rich surfaces for modern, playful interfaces with visual depth.",
+  "title": "Design System Inspired by Gradient",
+  "tokens_css": true
+ },
+ "hashicorp": {
+  "category": "Backend & Data",
+  "description": "Infrastructure automation. Enterprise-clean, black and white.",
+  "title": "Design System Inspired by HashiCorp",
+  "tokens_css": true
+ },
+ "hud": {
+  "category": "Themed & Unique",
+  "description": "Fighter jet / helicopter head-up display. Phosphor green on near-black, all-caps data overlays, angular geometry. Zero ambiguity at speed and altitude.",
+  "title": "HUD Design System",
+  "tokens_css": true
+ },
+ "huggingface": {
+  "category": "AI & LLM",
+  "description": "ML community hub. Sunny yellow accent, monospace identity, cheerful and dense.",
+  "title": "Design System Inspired by Hugging Face",
+  "tokens_css": true
+ },
+ "ibm": {
+  "category": "Media & Consumer",
+  "description": "Enterprise technology. Carbon design system, structured blue palette.",
+  "title": "Design System Inspired by IBM",
+  "tokens_css": true
+ },
+ "intercom": {
+  "category": "Productivity & SaaS",
+  "description": "Customer messaging. Friendly blue palette, conversational UI patterns.",
+  "title": "Design System Inspired by Intercom",
+  "tokens_css": true
+ },
+ "kami": {
+  "category": "Editorial & Print",
+  "description": "Editorial paper system: warm parchment canvas, ink-blue accent, serif-led hierarchy. Built for resumes, one-pagers, white papers, portfolios, slide decks — anything that should feel like high-quality print rather than UI. Multilingual by design (EN · zh-CN · ja).",
+  "title": "Design System Inspired by kami (紙 / 纸)",
+  "tokens_css": true
+ },
+ "kraken": {
+  "category": "Fintech & Crypto",
+  "description": "Crypto trading. Purple-accented dark UI, data-dense dashboards.",
+  "title": "Design System Inspired by Kraken",
+  "tokens_css": true
+ },
+ "lamborghini": {
+  "category": "Automotive",
+  "description": "Supercar brand. True black surfaces, gold accents, dramatic uppercase typography.",
+  "title": "Design System Inspired by Lamborghini",
+  "tokens_css": true
+ },
+ "levels": {
+  "category": "Layout & Structure",
+  "description": "Conversion-focused design that removes friction and guides users toward action through clarity, trust, and speed.",
+  "title": "Design System Inspired by Levels",
+  "tokens_css": true
+ },
+ "linear-app": {
+  "category": "Productivity & SaaS",
+  "description": "Project management. Ultra-minimal, precise, purple accent.",
+  "title": "Design System Inspired by Linear",
+  "tokens_css": true
+ },
+ "lingo": {
+  "category": "Creative & Artistic",
+  "description": "Playful, minimal design with bright colors, rounded shapes, tactile 3D borders, and friendly illustrations for approachable interfaces.",
+  "title": "Design System Inspired by Lingo",
+  "tokens_css": true
+ },
+ "loom": {
+  "category": "Themed & Unique",
+  "description": "Loom async video. Purple primary, friendly surfaces, video-first layout. Clean and professional without being corporate.",
+  "title": "Loom Design System",
+  "tokens_css": true
+ },
+ "lovable": {
+  "category": "Developer Tools",
+  "description": "AI full-stack builder. Playful gradients, friendly dev aesthetic.",
+  "title": "Design System Inspired by Lovable",
+  "tokens_css": true
+ },
+ "luxury": {
+  "category": "Professional & Corporate",
+  "description": "High-end dark aesthetic with bold headings, monochromatic palette, and premium feel for luxury brand experiences.",
+  "title": "Design System Inspired by Luxury",
+  "tokens_css": true
+ },
+ "mastercard": {
+  "category": "Fintech & Crypto",
+  "description": "Global payments network. Warm cream canvas, orbital pill shapes, editorial warmth.",
+  "title": "Design System Inspired by Mastercard",
+  "tokens_css": true
+ },
+ "material": {
+  "category": "Professional & Corporate",
+  "description": "Google's Material Design with layered surfaces, dynamic theming, built-in motion, and responsive cross-platform patterns.",
+  "title": "Design System Inspired by Material",
+  "tokens_css": true
+ },
+ "meta": {
+  "category": "E-Commerce & Retail",
+  "description": "Tech retail store. Photography-first, binary light/dark surfaces, Meta Blue CTAs.",
+  "title": "Design System Inspired by Meta (Store)",
+  "tokens_css": true
+ },
+ "minimal": {
+  "category": "Modern & Minimal",
+  "description": "Stripped-back design emphasizing whitespace, clean typography, and restrained color for maximum clarity and focus.",
+  "title": "Design System Inspired by Minimal",
+  "tokens_css": true
+ },
+ "minimax": {
+  "category": "AI & LLM",
+  "description": "AI model provider. Bold dark interface with neon accents.",
+  "title": "Design System Inspired by MiniMax",
+  "tokens_css": true
+ },
+ "mintlify": {
+  "category": "Productivity & SaaS",
+  "description": "Documentation platform. Clean, green-accented, reading-optimized.",
+  "title": "Design System Inspired by Mintlify",
+  "tokens_css": true
+ },
+ "miro": {
+  "category": "Design & Creative",
+  "description": "Visual collaboration. Bright yellow accent, infinite canvas aesthetic.",
+  "title": "Design System Inspired by Miro",
+  "tokens_css": true
+ },
+ "mission-control": {
+  "category": "Developer Tools",
+  "description": "Space/aerospace mission monitoring. Dark command center, amber telemetry, monospace precision. Functional clarity above all else.",
+  "title": "Mission Control Design System",
+  "tokens_css": true
+ },
+ "mistral-ai": {
+  "category": "AI & LLM",
+  "description": "Open-weight LLM provider. French-engineered minimalism, purple-toned.",
+  "title": "Design System Inspired by Mistral AI",
+  "tokens_css": true
+ },
+ "modern": {
+  "category": "Modern & Minimal",
+  "description": "Contemporary editorial style with serif typography, minimal palettes, and clean layouts for polished digital products.",
+  "title": "Design System Inspired by Modern",
+  "tokens_css": true
+ },
+ "mongodb": {
+  "category": "Backend & Data",
+  "description": "Document database. Green leaf branding, developer documentation focus.",
+  "title": "Design System Inspired by MongoDB",
+  "tokens_css": true
+ },
+ "mono": {
+  "category": "Modern & Minimal",
+  "description": "Monospace-driven, matrix-inspired design with high-contrast elements, compact density, and a hacker-chic aesthetic.",
+  "title": "Design System Inspired by Mono",
+  "tokens_css": true
+ },
+ "neobrutalism": {
+  "category": "Bold & Expressive",
+  "description": "Modern take on brutalism with bold borders, vivid accent colors, and raw, high-contrast layouts on warm surfaces.",
+  "title": "Design System Inspired by Neobrutalism",
+  "tokens_css": true
+ },
+ "neon": {
+  "category": "Morphism & Effects",
+  "description": "Electric neon glow effects with high-contrast color pairings for bold, attention-grabbing interfaces.",
+  "title": "Design System Inspired by Neon",
+  "tokens_css": true
+ },
+ "neumorphism": {
+  "category": "Morphism & Effects",
+  "description": "Soft, extruded UI elements with inner and outer shadows on monochromatic surfaces for a tactile, embedded look.",
+  "title": "Design System Inspired by Neumorphism",
+  "tokens_css": true
+ },
+ "nike": {
+  "category": "E-Commerce & Retail",
+  "description": "Athletic retail. Monochrome UI, massive uppercase type, full-bleed photography.",
+  "title": "Design System Inspired by Nike",
+  "tokens_css": true
+ },
+ "notion": {
+  "category": "Productivity & SaaS",
+  "description": "All-in-one workspace. Warm minimalism, serif headings, soft surfaces.",
+  "title": "Design System Inspired by Notion",
+  "tokens_css": true
+ },
+ "nvidia": {
+  "category": "Media & Consumer",
+  "description": "GPU computing. Green-black energy, technical power aesthetic.",
+  "title": "Design System Inspired by NVIDIA",
+  "tokens_css": true
+ },
+ "ollama": {
+  "category": "AI & LLM",
+  "description": "Run LLMs locally. Terminal-first, monochrome simplicity.",
+  "title": "Design System Inspired by Ollama",
+  "tokens_css": true
+ },
+ "openai": {
+  "category": "AI & LLM",
+  "description": "Calm, near-monochrome system anchored in deep teal-black with generous white space and editorial typography.",
+  "title": "Design System Inspired by OpenAI",
+  "tokens_css": true
+ },
+ "opencode-ai": {
+  "category": "AI & LLM",
+  "description": "AI coding platform. Developer-centric dark theme.",
+  "title": "Design System Inspired by OpenCode",
+  "tokens_css": true
+ },
+ "pacman": {
+  "category": "Themed & Unique",
+  "description": "Retro arcade-inspired design with pixel fonts, dotted borders, playful high-contrast colors, and 8-bit game aesthetics.",
+  "title": "Design System Inspired by Pacman",
+  "tokens_css": true
+ },
+ "paper": {
+  "category": "Retro & Nostalgic",
+  "description": "Paper-textured, print-inspired design with minimal colors, clean serif/sans typography, and tactile surface qualities.",
+  "title": "Design System Inspired by Paper",
+  "tokens_css": true
+ },
+ "perplexity": {
+  "category": "AI & LLM",
+  "description": "Conversational AI search engine. Deep-dark canvas, sharp typography, single violet accent, dense information hierarchy.",
+  "title": "Design System Inspired by Perplexity AI",
+  "tokens_css": true
+ },
+ "perspective": {
+  "category": "Layout & Structure",
+  "description": "Spatial depth design with isometric views, vanishing points, and layered elements that guide attention through 3D-like realism.",
+  "title": "Design System Inspired by Perspective",
+  "tokens_css": true
+ },
+ "pinterest": {
+  "category": "Media & Consumer",
+  "description": "Visual discovery. Red accent, masonry grid, image-first.",
+  "title": "Design System Inspired by Pinterest",
+  "tokens_css": true
+ },
+ "playstation": {
+  "category": "Media & Consumer",
+  "description": "Gaming console retail. Three-surface channel layout, quiet-authority display type, cyan hover-scale.",
+  "title": "Design System Inspired by PlayStation",
+  "tokens_css": true
+ },
+ "posthog": {
+  "category": "Backend & Data",
+  "description": "Product analytics. Playful hedgehog branding, developer-friendly dark UI.",
+  "title": "Design System Inspired by PostHog",
+  "tokens_css": true
+ },
+ "premium": {
+  "category": "Professional & Corporate",
+  "description": "Apple-inspired premium aesthetic with precise spacing, modern typography, and a refined, polished visual language.",
+  "title": "Design System Inspired by Premium",
+  "tokens_css": true
+ },
+ "professional": {
+  "category": "Professional & Corporate",
+  "description": "Polished, business-ready design with modern typography, structured layouts, and a trustworthy visual identity.",
+  "title": "Design System Inspired by Professional",
+  "tokens_css": true
+ },
+ "publication": {
+  "category": "Creative & Artistic",
+  "description": "Print-inspired visual language for books, magazines, and reports with editorial grids and expressive typography.",
+  "title": "Design System Inspired by Publication",
+  "tokens_css": true
+ },
+ "raycast": {
+  "category": "Developer Tools",
+  "description": "Productivity launcher. Sleek dark chrome, vibrant gradient accents.",
+  "title": "Design System Inspired by Raycast",
+  "tokens_css": true
+ },
+ "refined": {
+  "category": "Modern & Minimal",
+  "description": "Carefully curated, modern minimal style with elegant serif typography and understated, sophisticated palettes.",
+  "title": "Design System Inspired by Refined",
+  "tokens_css": true
+ },
+ "renault": {
+  "category": "Automotive",
+  "description": "French automotive. Vibrant aurora gradients, NouvelR typography, bold energy.",
+  "title": "Design System Inspired by Renault",
+  "tokens_css": true
+ },
+ "replicate": {
+  "category": "AI & LLM",
+  "description": "Run ML models via API. Clean white canvas, code-forward.",
+  "title": "Design System Inspired by Replicate",
+  "tokens_css": true
+ },
+ "resend": {
+  "category": "Productivity & SaaS",
+  "description": "Email API. Minimal dark theme, monospace accents.",
+  "title": "Design System Inspired by Resend",
+  "tokens_css": true
+ },
+ "retro": {
+  "category": "Retro & Nostalgic",
+  "description": "Throwback design with vintage-inspired typography, high-contrast retro palettes, and nostalgic visual elements.",
+  "title": "Design System Inspired by Retro",
+  "tokens_css": true
+ },
+ "revolut": {
+  "category": "Fintech & Crypto",
+  "description": "Digital banking. Sleek dark interface, gradient cards, fintech precision.",
+  "title": "Design System Inspired by Revolut",
+  "tokens_css": true
+ },
+ "runwayml": {
+  "category": "AI & LLM",
+  "description": "AI video generation. Cinematic dark UI, media-rich layout.",
+  "title": "Design System Inspired by Runway",
+  "tokens_css": true
+ },
+ "sanity": {
+  "category": "Backend & Data",
+  "description": "Headless CMS. Red accent, content-first editorial layout.",
+  "title": "Design System Inspired by Sanity",
+  "tokens_css": true
+ },
+ "sentry": {
+  "category": "Backend & Data",
+  "description": "Error monitoring. Dark dashboard, data-dense, pink-purple accent.",
+  "title": "Design System Inspired by Sentry",
+  "tokens_css": true
+ },
+ "shadcn": {
+  "category": "Modern & Minimal",
+  "description": "Shadcn/ui-inspired design with minimal, clean components, monochrome palette, and utility-first patterns.",
+  "title": "Design System Inspired by Shadcn",
+  "tokens_css": true
+ },
+ "shopify": {
+  "category": "E-Commerce & Retail",
+  "description": "E-commerce platform. Dark-first cinematic, neon green accent, ultra-light type.",
+  "title": "Design System Inspired by Shopify",
+  "tokens_css": true
+ },
+ "simple": {
+  "category": "Modern & Minimal",
+  "description": "Straightforward, no-frills design with clean typography, neutral colors, and intuitive layouts that stay out of the way.",
+  "title": "Design System Inspired by Simple",
+  "tokens_css": true
+ },
+ "skeumorphism": {
+  "category": "Morphism & Effects",
+  "description": "Real-world mimicry with textured surfaces, 3D effects, and familiar physical metaphors for intuitive digital interfaces.",
+  "title": "Design System Inspired by Skeumorphism",
+  "tokens_css": true
+ },
+ "slack": {
+  "category": "Productivity & SaaS",
+  "description": "Workplace communication platform. Aubergine-primary, multi-accent logo palette, light surfaces with dark sidebar, warm and approachable.",
+  "title": "Design System Inspired by Slack",
+  "tokens_css": true
+ },
+ "sleek": {
+  "category": "Modern & Minimal",
+  "description": "Modern minimalist aesthetic with clean lines, intentional color palette, subtle interactions, and consistent spacing.",
+  "title": "Design System Inspired by Sleek",
+  "tokens_css": true
+ },
+ "spacex": {
+  "category": "Media & Consumer",
+  "description": "Space technology. Stark black and white, full-bleed imagery, futuristic.",
+  "title": "Design System Inspired by SpaceX",
+  "tokens_css": true
+ },
+ "spacious": {
+  "category": "Layout & Structure",
+  "description": "Generous whitespace, consistent padding, and grid-based layouts for clean, readable, and breathing interfaces.",
+  "title": "Design System Inspired by Spacious",
+  "tokens_css": true
+ },
+ "spotify": {
+  "category": "Media & Consumer",
+  "description": "Music streaming. Vibrant green on dark, bold type, album-art-driven.",
+  "title": "Design System Inspired by Spotify",
+  "tokens_css": true
+ },
+ "starbucks": {
+  "category": "E-Commerce & Retail",
+  "description": "Global coffee retail brand. Four-tier green system, warm cream canvas, full-pill buttons.",
+  "title": "Design System Inspired by Starbucks",
+  "tokens_css": true
+ },
+ "storytelling": {
+  "category": "Creative & Artistic",
+  "description": "Narrative-driven design using visuals, copy, and interaction to guide users through engaging, emotionally resonant journeys.",
+  "title": "Design System Inspired by Storytelling",
+  "tokens_css": true
+ },
+ "stripe": {
+  "category": "Fintech & Crypto",
+  "description": "Payment infrastructure. Signature purple gradients, weight-300 elegance.",
+  "title": "Design System Inspired by Stripe",
+  "tokens_css": true
+ },
+ "supabase": {
+  "category": "Backend & Data",
+  "description": "Open-source Firebase alternative. Dark emerald theme, code-first.",
+  "title": "Design System Inspired by Supabase",
+  "tokens_css": true
+ },
+ "superhuman": {
+  "category": "Developer Tools",
+  "description": "Fast email client. Premium dark UI, keyboard-first, purple glow.",
+  "title": "Design System Inspired by Superhuman",
+  "tokens_css": true
+ },
+ "tesla": {
+  "category": "Automotive",
+  "description": "Electric automotive. Radical subtraction, full-viewport photography, near-zero UI.",
+  "title": "Design System Inspired by Tesla",
+  "tokens_css": true
+ },
+ "tetris": {
+  "category": "Themed & Unique",
+  "description": "Classic block-game inspired design with playful colors, bold display fonts, and compact, high-energy layouts.",
+  "title": "Design System Inspired by Tetris",
+  "tokens_css": true
+ },
+ "theverge": {
+  "category": "Media & Consumer",
+  "description": "Tech editorial media. Acid-mint and ultraviolet accents, Manuka display, rave-flyer story tiles.",
+  "title": "Design System Inspired by The Verge",
+  "tokens_css": true
+ },
+ "together-ai": {
+  "category": "AI & LLM",
+  "description": "Open-source AI infrastructure. Technical, blueprint-style design.",
+  "title": "Design System Inspired by Together AI",
+  "tokens_css": true
+ },
+ "tom-modern": {
+  "category": "Starter",
+  "description": "Editorial-technical design system. Neutral canvas, single vermillion accent, sharp corners, Geist typography, hard shadows, structured composition.",
+  "title": "Tom Modern Design",
+  "tokens_css": true
+ },
+ "totality-festival": {
+  "category": "",
+  "description": "",
+  "title": "totality-festival",
+  "tokens_css": true
+ },
+ "trading-terminal": {
+  "category": "Themed & Unique",
+  "description": "Bloomberg-style financial trading terminal. Dark-only, data-dense, cyan/coral buy/sell signals. Everything readable at a glance from two meters away.",
+  "title": "Trading Terminal Design System",
+  "tokens_css": true
+ },
+ "uber": {
+  "category": "Media & Consumer",
+  "description": "Mobility platform. Bold black and white, tight type, urban energy.",
+  "title": "Design System Inspired by Uber",
+  "tokens_css": true
+ },
+ "urdu": {
+  "category": "Editorial / Personal / Publication",
+  "description": "",
+  "title": "Urdu Modern (Indus Script System)",
+  "tokens_css": true
+ },
+ "vercel": {
+  "category": "Developer Tools",
+  "description": "Frontend deployment. Black and white precision, Geist font.",
+  "title": "Design System Inspired by Vercel",
+  "tokens_css": true
+ },
+ "vibrant": {
+  "category": "Bold & Expressive",
+  "description": "Lively, colorful design with bold playful typography, warm accents, and dynamic visual energy.",
+  "title": "Design System Inspired by Vibrant",
+  "tokens_css": true
+ },
+ "vintage": {
+  "category": "Retro & Nostalgic",
+  "description": "1950s-1990s nostalgia with skeuomorphic touches, grainy textures, retro color palettes, and pixel-style typography.",
+  "title": "Design System Inspired by Vintage",
+  "tokens_css": true
+ },
+ "vodafone": {
+  "category": "Media & Consumer",
+  "description": "Global telecom brand. Monumental uppercase display, Vodafone Red chapter bands.",
+  "title": "Design System Inspired by Vodafone",
+  "tokens_css": true
+ },
+ "voltagent": {
+  "category": "AI & LLM",
+  "description": "AI agent framework. Void-black canvas, emerald accent, terminal-native.",
+  "title": "Design System Inspired by VoltAgent",
+  "tokens_css": true
+ },
+ "warm-editorial": {
+  "category": "Starter",
+  "description": "A serif-led magazine aesthetic. Terracotta accent on warm off-white paper —",
+  "title": "Warm Editorial",
+  "tokens_css": true
+ },
+ "warp": {
+  "category": "Developer Tools",
+  "description": "Modern terminal. Dark IDE-like interface, block-based command UI.",
+  "title": "Design System Inspired by Warp",
+  "tokens_css": true
+ },
+ "webex": {
+  "category": "Productivity & SaaS",
+  "description": "Collaboration platform. Momentum typography, blue action system, multi-user accent spectrum.",
+  "title": "Design System Inspired by Webex",
+  "tokens_css": true
+ },
+ "webflow": {
+  "category": "Design & Creative",
+  "description": "Visual web builder. Blue-accented, polished marketing site aesthetic.",
+  "title": "Design System Inspired by Webflow",
+  "tokens_css": true
+ },
+ "wechat": {
+  "category": "Social & Messaging",
+  "description": "Brand visual language for WeChat Mini Programs, official accounts, and open ecosystem extensions.",
+  "title": "WeChat Design System",
+  "tokens_css": true
+ },
+ "wired": {
+  "category": "Media & Consumer",
+  "description": "Tech magazine. Paper-white broadsheet density, custom serif display, mono kickers, ink-blue links.",
+  "title": "Design System Inspired by WIRED",
+  "tokens_css": true
+ },
+ "wise": {
+  "category": "Fintech & Crypto",
+  "description": "Money transfer. Bright green accent, friendly and clear.",
+  "title": "Design System Inspired by Wise",
+  "tokens_css": true
+ },
+ "x-ai": {
+  "category": "AI & LLM",
+  "description": "Elon Musk's AI lab. Stark monochrome, futuristic minimalism.",
+  "title": "Design System Inspired by xAI",
+  "tokens_css": true
+ },
+ "xiaohongshu": {
+  "category": "Media & Consumer",
+  "description": "Lifestyle UGC social platform. Singular brand red, generous radius, content-first.",
+  "title": "Design System Inspired by Xiaohongshu",
+  "tokens_css": true
+ },
+ "zapier": {
+  "category": "Productivity & SaaS",
+  "description": "Automation platform. Warm orange, friendly illustration-driven.",
+  "title": "Design System Inspired by Zapier",
+  "tokens_css": true
+ }
+}
