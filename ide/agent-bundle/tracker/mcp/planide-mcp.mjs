@@ -479,6 +479,19 @@ const TOOLS = [
       const status = ITEM_STATUSES.includes(str(args.status)) ? args.status : 'todo'
       const agent = str(args.agent)
       return mutate(path, (state) => {
+        // Don't stack duplicates. Agents re-post their plan every turn, so the
+        // same title arrives again and again; sync_plan already dedupes on the
+        // normalised title, and add_item -- the tool agents call directly -- was
+        // the one path that did not, quietly growing the board. Match an item
+        // that is still OPEN; a title whose only match is already 'done' is
+        // allowed through, because work can legitimately recur.
+        const key = normTitle(title)
+        const open = (state.items ?? []).find(
+          (i) => normTitle(i.title) === key && i.status !== 'done'
+        )
+        if (open) {
+          return { id: open.id, title: open.title, status: open.status, existing: true }
+        }
         const item = {
           id: newId('i_'), title, status,
           notes: str(args.notes), tags: arr(args.tags), priority: str(args.priority, 'normal'),

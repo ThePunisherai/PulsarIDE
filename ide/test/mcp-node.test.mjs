@@ -93,6 +93,43 @@ const run = await drive([
 ])
 const first = json(byId(run.replies, 10))
 ok('add_item creates the board from nothing and returns an id', first.id.startsWith('i_') && first.status === 'todo')
+
+// --- add_item does not stack duplicates ----------------------------------- //
+// Agents re-post their plan every turn, so the same title arrives again and
+// again. sync_plan already deduped on the normalised title; add_item -- the tool
+// agents call directly -- did not, so a board grew a new row per turn for work
+// that was already on it. Same normalised match, and only against items that are
+// still OPEN: a title whose only match is 'done' must still be allowed through,
+// because real work legitimately recurs.
+const dupProj = mkdtempSync(join(tmpdir(), 'pulsar-dup-'))
+const dup = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(40, 'add_item', { project: dupProj, title: 'Fix the login bug' }),
+  call(41, 'add_item', { project: dupProj, title: 'fix   the LOGIN bug!' }),
+  call(42, 'get_board', { project: dupProj })
+])
+const made = json(byId(dup.replies, 40))
+const again = json(byId(dup.replies, 41))
+ok('re-adding the same work returns the existing item instead of a second row',
+  again.id === made.id && again.existing === true)
+ok('and the board really holds one item, not two',
+  json(byId(dup.replies, 42)).items.length === 1)
+
+// Two passes, because closing the item needs the id the first pass returns.
+const doneProj = mkdtempSync(join(tmpdir(), 'pulsar-done-'))
+const shipId = json(byId((await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(45, 'add_item', { project: doneProj, title: 'Ship the release' })
+])).replies, 45)).id
+const recur2 = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(48, 'set_item', { project: doneProj, item_id: shipId, status: 'done' }),
+  call(49, 'add_item', { project: doneProj, title: 'Ship the release' }),
+  call(50, 'get_board', { project: doneProj })
+])
+ok('work that was already closed can come back as a new item',
+  json(byId(recur2.replies, 49)).existing !== true &&
+  json(byId(recur2.replies, 50)).items.length >= 2)
 const fixId = json(byId(run.replies, 12)).id
 const board = json(byId(run.replies, 13))
 ok('get_board reports what was written', board.items.length === 2 && board.fixes.length === 1)

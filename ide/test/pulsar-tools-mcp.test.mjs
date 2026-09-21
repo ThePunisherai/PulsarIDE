@@ -70,7 +70,11 @@ const ROUTES = [
   ['reverse engineer this packed binary', 'Reverse Engineering Command'],
   ['review this pull request for bugs', 'Code Review & Quality'],
   ['brainstorm three architectures for a chat app', 'Brainstorm & Ideation'],
-  ['set up a ci pipeline and deploy to kubernetes', 'DevOps & Automation']
+  ['set up a ci pipeline and deploy to kubernetes', 'DevOps & Automation'],
+  // Was a real miss before coverage weighting: 'learning' alone pulled it to
+  // Learning & Error Prevention; scoring by how many query words a team covers
+  // let the fuller 'machine learning model' match win. Guards that fix.
+  ['train a machine learning model', 'Natural Language Processing & Search Engineering']
 ]
 const routeFrames = [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }]
 ROUTES.forEach(([q], i) => routeFrames.push(call(100 + i, 'route_task', { query: q })))
@@ -91,6 +95,29 @@ const nonsense = await drive([
 ])
 ok('a query of nothing but stopwords routes nowhere rather than guessing',
   json(byId(nonsense, 20)).matches.length === 0)
+
+// Honest about the limit: three queries share their strongest word with a sector
+// team that repeats it dozens of times ("server" 32x in Game Hacking, "process"
+// 24x in Chemical Process, "monitoring" 29x in Home Security). A TF cap and a
+// name-bonus exclusion were both tried and MEASURED to only move the miss
+// elsewhere, so neither shipped. This asserts the router still RETURNS a ranked
+// list for them (the real backstop is council.md's "don't trust the top score
+// blindly", not a scoring trick) -- if a future change ever makes one of these
+// route correctly without regressing the battery, tighten this into an equality.
+const hard = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(30, 'route_task', { query: 'implement a websocket server' }),
+  call(31, 'route_task', { query: 'set up monitoring and alerting' })
+])
+ok('a lexically-ambiguous query still returns a ranked shortlist to judge', (() => {
+  const a = json(byId(hard, 30)).matches
+  const b = json(byId(hard, 31)).matches
+  return a.length >= 2 && b.length >= 2 &&
+    a.every((m) => typeof m.score === 'number') &&
+    // DevOps is in the shortlist for monitoring even when not #1 -- the signal is
+    // present, the ranking is the hard part.
+    b.some((m) => m.team === 'DevOps & Automation')
+})())
 
 // --- anti-loop -------------------------------------------------------------- //
 const proj = mkdtempSync(join(tmpdir(), 'pulsar-loop-'))

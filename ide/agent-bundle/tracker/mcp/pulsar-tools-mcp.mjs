@@ -123,7 +123,11 @@ const NORMALIZE = {
 }
 
 /** 'water' is a unique team-name word that is also an ordinary noun: a GLSL
- *  water-ripple query is graphics, not utilities. Same curation precedent. */
+ *  water-ripple query is graphics, not utilities. Same curation precedent.
+ *  Kept deliberately small: excluding server/process/monitoring was tried and
+ *  measured to only SHIFT the misroute (the name-bonus was not the deciding
+ *  factor once coverage weighting was in), so it was reverted rather than
+ *  shipped as a fix that is not one. */
 const NAME_BONUS_EXCLUDE = new Set(['water'])
 
 function tokenize(text) {
@@ -219,6 +223,14 @@ function routeTask(query, top) {
       hits.push(w)
     }
     if (score <= 0) continue
+    // Coverage: the share of the query's own words this team matched. A niche team
+    // that repeats one word ("server" 32x in Game Hacking, "process" 24x in
+    // Chemical Process) could beat a team that matched more of what was asked.
+    // Scaling by coverage lets breadth outweigh one loud word; 0.4 was chosen by a
+    // sweep as the value that fixed a real miss with no new one. Not a hard
+    // override -- a single-word query still has coverage 1.
+    const coverage = hits.length / new Set(words).size
+    score *= 0.4 + 0.6 * coverage
     // Which named specialists inside the team actually match the words.
     const agents = t.agents
       .map((a) => {

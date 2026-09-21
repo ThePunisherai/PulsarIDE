@@ -6,6 +6,23 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.93.0] - 2026-09-21
+
+### What's fixed
+- **The board stops filling up with the same task.** Agents re-post their plan every
+  turn, and `add_item` added a new row each time. It now returns the item that is
+  already there — while still letting work you finished come back later as a new one.
+- **Routing weighs how much of your question a team actually matches.** "Train a
+  machine learning model" went to *Learning & Error Prevention* because one word hit;
+  the team matching the whole phrase now wins.
+
+### Known limit, measured not guessed
+- Three queries still misroute because their strongest word belongs to a sector team
+  that repeats it dozens of times ("server" 32× in Game Hacking, "process" 24× in
+  Chemical Process). A TF cap and a name-bonus exclusion were both tried and measured
+  to only move the problem, so neither shipped. Council's "don't trust the top score
+  blindly" stays the real backstop.
+
 ## [0.92.1] - 2026-09-21
 
 ### What's new
