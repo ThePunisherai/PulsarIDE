@@ -197,6 +197,42 @@ ok('design_read can skip the tokens when only the direction is wanted', (() => {
 ok('design_find says nothing matches rather than inventing a direction',
   json(byId(ds, 93)).matches.length === 0)
 
+// --- design_find: the query battery -------------------------------------- //
+// Twenty realistic requests were run against the real catalogue before any of
+// this was written down, and the first version failed 7 of them: `label.includes`
+// meant the word "app" scored a full name hit against `apple`, `application` and
+// `linear-app`, so "food delivery app" and "calm meditation app" were both
+// answered with Apple. Filler words ("make it look like a bank") outvoted the one
+// word that carried meaning. These are the cases that were actually broken, so a
+// future change to the scoring cannot quietly undo them.
+const WANTED = [
+  ['make it look like a bank', ['wise', 'revolut']],
+  ['sports fitness tracker', ['nike']],
+  ['music streaming service', ['spotify']],
+  ['crypto web3 landing page', ['binance', 'coinbase']],
+  ['travel booking site', ['airbnb']],
+  ['luxury fashion e-commerce', ['luxury']],
+  ['editorial news magazine', ['editorial']],
+  ['enterprise SaaS admin panel', ['enterprise']],
+  ['retro synthwave neon', ['neon', 'retro']],
+  ['dark developer tool aesthetic', ['cursor']]
+]
+const battery = [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }]
+WANTED.forEach(([q], i) => battery.push(call(200 + i, 'design_find', { query: q, limit: 3 })))
+battery.push(call(300, 'design_find', { query: 'a calm meditation app' }))
+const bat = await drive(battery)
+const missed = WANTED.filter(([, expected], i) => {
+  const names = (json(byId(bat, 200 + i)).matches || []).map((m) => m.name)
+  return !expected.some((e) => names.includes(e))
+}).map(([q]) => q)
+ok(`all ${WANTED.length} battery queries reach the system they should` +
+   (missed.length ? ` -- missed: ${missed.join(' | ')}` : ''), missed.length === 0)
+// The exact regression that made this worth measuring.
+ok('a query containing "app" is not hijacked by apple/application', (() => {
+  const names = (json(byId(bat, 300)).matches || []).map((m) => m.name)
+  return !names.includes('apple') && !names.includes('application')
+})())
+
 // --- ecc_find --------------------------------------------------------------- //
 // ECC is 354 entries sitting on disk, deliberately not loaded. With no
 // catalogue there at all, the tool has to say so and point at how to get it --

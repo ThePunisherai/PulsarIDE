@@ -1002,6 +1002,22 @@ ok('each deployed design system carries a DESIGN.md and its tokens',
   existsSync(join(HOME, '.config/pulsaride/design/design-systems/apple/tokens.css')))
 // The whole point of this round: a subagent that never hears about the library
 // rebuilds it by hand. Council and the design leads must name the tools.
+// Knowing the tools exist is the difference between a lead that calls route_task
+// and one that answers as a generic assistant. This knowledge used to live only in
+// the main-session instructions, so it vanished the moment work went to a subagent:
+// route_task and record_solution were named in 0 of the 100 leads, ecc_find in 1.
+ok('every deployed team lead knows the tools on this machine', (() => {
+  const dir = join(HOME, '.claude/agents')
+  const leads = readdirSync(dir).filter((f) => f.startsWith('pulse-') && f.endsWith('.md'))
+  if (leads.length < 90) return false
+  const missing = leads.filter((f) => {
+    const body = readFileSync(join(dir, f), 'utf8')
+    return !['route_task', 'check_anti_loop', 'record_solution', 'ecc_find',
+             'agency-agents', 'design_find'].every((t) => body.includes(t))
+  })
+  if (missing.length) console.log('    leads missing tool knowledge:', missing.slice(0, 5).join(', '))
+  return missing.length === 0
+})())
 ok('Council and the design team leads actually name the design tools',
   ['council', 'design-systems', 'web-frontend', 'specialized-creative'].every((a) =>
     /design_find/.test(readFileSync(join(HOME, '.claude/agents', `pulse-${a}.md`), 'utf8')) ||

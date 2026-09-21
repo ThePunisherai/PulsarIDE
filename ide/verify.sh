@@ -388,6 +388,29 @@ else
   bad "manifest.json has drifted: $manifest_drift"
 fi
 
+# 4b2. design-systems/catalog.json is generated from the DESIGN.md files, and
+# design_find can only find what is in it -- a system added without regenerating
+# is invisible to every agent. Regenerate into a copy and compare, restoring the
+# original either way so verify never leaves the tree modified.
+DS_CATALOG="$ROOT/ide/agent-bundle/design/design-systems/catalog.json"
+if [ -f "$DS_CATALOG" ] && command -v python3 >/dev/null 2>&1; then
+  ds_backup=$(mktemp)
+  cp "$DS_CATALOG" "$ds_backup"
+  if python3 "$HERE/build-design-catalog.py" >/dev/null 2>&1; then
+    if diff -q "$ds_backup" "$DS_CATALOG" >/dev/null 2>&1; then
+      ok "design-systems/catalog.json matches the DESIGN.md files it is built from"
+    else
+      bad "design-systems/catalog.json has drifted -- run ide/build-design-catalog.py"
+    fi
+  else
+    bad "ide/build-design-catalog.py failed to run"
+  fi
+  cp "$ds_backup" "$DS_CATALOG"
+  rm -f "$ds_backup"
+else
+  skip "design-system catalogue drift (no catalogue or no python3)"
+fi
+
 # 4c2. the Brain Graph's rebuild path: the button that used to only re-read.
 # Runs the real graphify when it is installed, and skips those checks when it
 # is not -- a machine without it is a normal state, not a failure.

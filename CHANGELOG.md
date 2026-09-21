@@ -6,6 +6,25 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.91.0] - 2026-09-21
+
+### What's fixed
+- **Design search actually finds the right system now.** Twenty realistic requests
+  were run against the real catalogue: seven failed. The word "app" was matching
+  `apple` and `application` as a full name hit, so "food delivery app" and "calm
+  meditation app" were both answered with Apple. "Make it look like a bank" missed
+  Wise and Revolut entirely; "sports fitness tracker" found nothing at all. All three
+  work now, and the battery is a test so they cannot quietly break again.
+- **Every team lead knows what is on the machine.** `route_task` and `record_solution`
+  were named in 0 of the 100 leads, `ecc_find` in 1. That knowledge existed only in the
+  main-session instructions, so it disappeared whenever work moved to a subagent —
+  including the anti-loop memory, which only works if agents actually write to it.
+
+### What's new
+- Design systems are searched on keywords harvested from their own DESIGN.md files, so
+  Wise answers "banking" and Nike answers "athletic" without anyone hand-writing
+  synonyms. `ide/build-design-catalog.py` regenerates it; verify.sh fails on drift.
+
 ## [0.90.0] - 2026-09-20
 
 ### What's fixed

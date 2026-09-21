@@ -719,6 +719,43 @@ function threeUiRead(name) {
  * headers (nexu-io/open-design, Apache-2.0). Two steps, like ui_find/ui_read:
  * find a direction, then read that one system in full and build on it.
  */
+/**
+ * Filler that carries no design signal. ECC_STOP is shared with ecc_find and
+ * ui_find and is left alone; this is added on top for design queries only,
+ * where a request reads "make it look like a bank" and the three filler words
+ * each scored a point against unrelated systems, outvoting the one word that
+ * meant something. Measured: it moved "bank" from canva/mistral-ai to
+ * wise/revolut.
+ */
+const DESIGN_STOP = new Set([
+  'look', 'looks', 'looking', 'like', 'feel', 'feels', 'feeling', 'site', 'website',
+  'page', 'app', 'apps', 'build', 'building', 'create', 'creating', 'design', 'designs',
+  'designed', 'style', 'styling', 'theme', 'themed', 'give', 'something', 'anything',
+  'good', 'nice', 'great', 'better', 'best', 'really', 'very', 'more', 'some', 'kind',
+  'sort', 'thing', 'things', 'new', 'own', 'one', 'get', 'got', 'put', 'add', 'turn',
+  'work', 'works', 'should', 'would', 'could', 'about', 'around', 'they', 'them', 'their'
+])
+
+/**
+ * Sector words a person types mapped onto the vocabulary the DESIGN.md files
+ * actually use. Same idea as the router's NORMALIZE map, and kept just as
+ * short: each entry below was added only after the query battery showed a real
+ * miss, never pre-emptively, because a wrong alias silently hijacks a query.
+ */
+const DESIGN_SYNONYMS = {
+  sport: 'athletic', sports: 'athletic', fitness: 'athletic', gym: 'athletic',
+  workout: 'athletic', running: 'athletic', training: 'athletic',
+  bank: 'banking', banks: 'banking', finance: 'financial', money: 'payment',
+  shop: 'shopping', store: 'shopping', ecommerce: 'commerce', retailer: 'retail',
+  medical: 'health', healthcare: 'health', clinic: 'health', wellness: 'health',
+  kids: 'playful', children: 'playful', child: 'playful', toy: 'playful',
+  news: 'editorial', magazine: 'editorial', blog: 'editorial', publishing: 'publication',
+  game: 'gaming', games: 'gaming', music: 'audio', video: 'streaming',
+  travel: 'booking', flight: 'booking', hotel: 'booking',
+  education: 'learning', school: 'learning',
+  crypto: 'blockchain', web3: 'blockchain', developer: 'technical', dev: 'technical'
+}
+
 function designSystemsRoot() {
   const home = process.env.HOME || process.env.USERPROFILE || ''
   for (const dir of [
@@ -744,28 +781,49 @@ function designFind(query, limit) {
     return { available: false, note: 'The design-system library is not deployed on this machine.', matches: [] }
   }
   const catalog = designSystemsCatalog(root)
-  const terms = String(query || '')
+  const raw = String(query || '')
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((t) => t.length > 2 && !ECC_STOP.has(t))
+    .filter((t) => t.length > 2 && !ECC_STOP.has(t) && !DESIGN_STOP.has(t))
+  // Keep the word the user typed AND its sector alias: "sports" should still
+  // match a system that literally says sports, not only the athletic ones.
+  const terms = [...new Set(raw.flatMap((t) => (DESIGN_SYNONYMS[t] ? [t, DESIGN_SYNONYMS[t]] : [t])))]
   const scored = []
   for (const [name, meta] of Object.entries(catalog)) {
-    const label = name.toLowerCase().replace(/[-_]/g, ' ')
+    // Whole words, never substrings. `label.includes(t)` scored a full name hit
+    // for "app" against `apple`, `application` and `linear-app`, so every request
+    // mentioning an app -- most of them -- was answered with Apple.
+    const labelWords = new Set(name.toLowerCase().split(/[-_]/).filter(Boolean))
     const category = String(meta.category || '')
     const desc = String(meta.description || '')
     const title = String(meta.title || '')
-    const hay = (label + ' ' + title + ' ' + category + ' ' + desc).toLowerCase()
+    const keywords = Array.isArray(meta.keywords) ? meta.keywords : []
+    const hay = (title + ' ' + category + ' ' + desc).toLowerCase()
     let score = 0
     let nameHits = 0
+    let keywordHits = 0
     for (const t of terms) {
-      if (label.includes(t)) {
+      if (labelWords.has(t)) {
         score += 5
         nameHits += 1
+        continue
+      }
+      // Keywords are harvested from each DESIGN.md and kept only when rare across
+      // the collection, so a hit here is real signal rather than filler. Prefix
+      // both ways so bank/banking and sport/sports meet, but only for terms long
+      // enough that a shared prefix actually means something.
+      // Only keyword-starts-with-term: bank->banking and sport->sports still meet,
+      // but the reverse direction let the query word "accounting" match the prose
+      // keyword "account" and call a motorsport system a strong match for a ledger.
+      const kw = t.length >= 4 && keywords.some((k) => k === t || k.startsWith(t))
+      if (kw) {
+        score += 3
+        keywordHits += 1
       } else if (hay.includes(t)) {
         score += 1
       }
     }
-    if (score > 0) scored.push({ name, category, description: desc, score, nameHits })
+    if (score > 0) scored.push({ name, category, description: desc, score, nameHits, keywordHits })
   }
   scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
   if (!scored.length) {
@@ -779,7 +837,10 @@ function designFind(query, limit) {
         'name a brand whose look you want to start from.'
     }
   }
-  const strong = (m) => m.nameHits >= 1 || m.score >= 4
+  // A keyword hit is already evidence: keywords are harvested only from terms
+  // that are rare across the 152 systems, so matching one is not a coincidence
+  // the way matching a word in a one-line summary can be.
+  const strong = (m) => m.nameHits >= 1 || m.keywordHits >= 1 || m.score >= 4
   return {
     available: true,
     total: Object.keys(catalog).length,

@@ -43,6 +43,22 @@ Installed design skills worth opening by name: `ui-design`, `frontend-design`,
 (`design-ui-designer`, `design-ux-architect`, `design-brand-guardian`, ...) to read and
 adopt inline. Name the one you opened and why.
 
+## Tools on this machine
+
+Real MCP tools, registered for every agent. They cost nothing until called, and each
+one exists because the thing it replaces went wrong often enough to be worth building.
+
+- `route_task("<the task>")` -- which team and which named specialists actually fit.
+  Call it before non-trivial work rather than answering as a generic assistant: the
+  specialist roster is thousands of entries deep and you are one lead of a hundred.
+- `check_anti_loop("<approach>")` before retrying something that already failed, and
+  `record_anti_loop_failure(...)` the moment an approach fails; `record_solution(...)`
+  when one works. This is the memory that stops a later session re-breaking a settled
+  problem, and it only holds if agents actually write to it.
+- `ecc_find("<operator task>")` / `ecc_read(...)` -- 291 skills and 68 agents for CI,
+  releases, repo hygiene, security review, incidents and migrations. They sit on disk
+  and are never loaded into your context until you ask for one.
+
 ## Knowledge graph memory + Obsidian auto-notes
 
 When doing real work in a project directory (not Pulse Agent's own repo), bootstrap

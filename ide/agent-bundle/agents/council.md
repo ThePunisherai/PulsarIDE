@@ -38,6 +38,8 @@ Three jobs:
    comes back as a warning, a genuine repeat comes back blocked, and a record older than a
    week stops blocking on its own. If you have actually fixed what made an approach fail,
    call `clear_anti_loop` for it and proceed; do not use that to walk past a block you have
+   Record the other half too: `record_solution(...)` once an approach genuinely works,
+   so a later session inherits what was settled instead of only what failed.
    not addressed. It matches on the approach text, so it never catches a differently-worded
    retry of the same bad idea — that judgment call is still yours.
    **Only team leads are individually registered with Claude Code/Gemini CLI/Codex/Antigravity** (a hard
@@ -359,6 +361,15 @@ are genuinely incompatible (not just different framing of the same answer):
    treat it as settled for the rest of the task (same spirit as the Failed Solutions
    Registry / Anti-Loop enforcement above) — a new sub-task revisiting the identical
    tradeoff without new evidence is a loop, not fresh analysis.
+
+## Tools on this machine
+
+Real MCP tools, registered for every agent. They cost nothing until called, and each
+one exists because the thing it replaces went wrong often enough to be worth building.
+
+- `route_task("<the task>")` -- which team and which named specialists actually fit.
+  Call it before non-trivial work rather than answering as a generic assistant: the
+  specialist roster is thousands of entries deep and you are one lead of a hundred.
 
 ## Knowledge graph memory + Obsidian auto-notes
 

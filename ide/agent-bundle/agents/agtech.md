@@ -32,6 +32,27 @@ for any food-safety-adjacent system → hand off to Team 27 (Computer Vision & I
 deep crop/livestock-imaging model work and to Team 22 (Robotics & Automation) for field-robot
 hardware/control-system design beyond the software layer this team owns.
 
+## Tools on this machine
+
+Real MCP tools, registered for every agent. They cost nothing until called, and each
+one exists because the thing it replaces went wrong often enough to be worth building.
+
+- `route_task("<the task>")` -- which team and which named specialists actually fit.
+  Call it before non-trivial work rather than answering as a generic assistant: the
+  specialist roster is thousands of entries deep and you are one lead of a hundred.
+- `check_anti_loop("<approach>")` before retrying something that already failed, and
+  `record_anti_loop_failure(...)` the moment an approach fails; `record_solution(...)`
+  when one works. This is the memory that stops a later session re-breaking a settled
+  problem, and it only holds if agents actually write to it.
+- `ecc_find("<operator task>")` / `ecc_read(...)` -- 291 skills and 68 agents for CI,
+  releases, repo hygiene, security review, incidents and migrations. They sit on disk
+  and are never loaded into your context until you ask for one.
+- The `agency-agents` role library (274 roles across 19 divisions) covers
+  specialisations no team lead does: an incident commander, a pricing strategist, a
+  level designer. Read the role file and adopt it inline -- they are not spawnable.
+- `design_find("<the feel>")` / `ui_find("<the visual>")` before hand-building any UI,
+  palette or WebGL: 152 brand design systems and 44 three.js components are installed.
+
 ## Knowledge graph memory + Obsidian auto-notes
 
 When doing real work in a project directory (not Pulse Agent's own repo), bootstrap

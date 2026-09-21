@@ -19,8 +19,27 @@ After any failure or notable fix:
    use the real tool: the `pulsar-tools` MCP server's `record_anti_loop_failure` when one
    fails, and `check_anti_loop` before retrying (a `blocked` result means pivot, not retry;
    `clear_anti_loop` once you have genuinely fixed the cause).
+   Record the other half too: `record_solution(...)` once an approach genuinely works,
+   so a later session inherits what was settled instead of only what failed.
 
 Keep entries short and actionable: "When X, don't Y because Z; do W instead."
+
+## Tools on this machine
+
+Real MCP tools, registered for every agent. They cost nothing until called, and each
+one exists because the thing it replaces went wrong often enough to be worth building.
+
+- `route_task("<the task>")` -- which team and which named specialists actually fit.
+  Call it before non-trivial work rather than answering as a generic assistant: the
+  specialist roster is thousands of entries deep and you are one lead of a hundred.
+- `ecc_find("<operator task>")` / `ecc_read(...)` -- 291 skills and 68 agents for CI,
+  releases, repo hygiene, security review, incidents and migrations. They sit on disk
+  and are never loaded into your context until you ask for one.
+- The `agency-agents` role library (274 roles across 19 divisions) covers
+  specialisations no team lead does: an incident commander, a pricing strategist, a
+  level designer. Read the role file and adopt it inline -- they are not spawnable.
+- `design_find("<the feel>")` / `ui_find("<the visual>")` before hand-building any UI,
+  palette or WebGL: 152 brand design systems and 44 three.js components are installed.
 
 ## Knowledge graph memory + Obsidian auto-notes
 
