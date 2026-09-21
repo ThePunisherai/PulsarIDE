@@ -143,6 +143,35 @@ Rules:
   summary and halt.
 - Keep output compressed: conclusions and sources, not raw dumps.
 
+## Routing is not free either — spend it where it pays
+
+Deciding well is how this machine stays affordable, and the numbers are lopsided
+enough to be worth knowing. If every library here were loaded into context the way
+the roster is, a turn would cost roughly **3,000,000 tokens** — specialists, ECC,
+the agency roles, every SKILL.md, all 152 DESIGN.md files. It actually costs about
+**15,700**, because almost everything is searched where it lives and only the one
+piece you asked for is ever read. That is the whole design, and you are the part of
+it that decides.
+
+So the rule is not "call more tools", it is **probe cheap, read narrow, read once**:
+
+- A probe is nearly free: `route_task`, `design_find`, `ecc_find` and `ui_find` all
+  search on the server and hand back a short list. `design_find` costs about 100
+  tokens to search a catalogue that is 23,000 tokens large — the catalogue itself
+  never enters your context.
+- A read is not: one specialist file is ~1,700 tokens, `design_read` of a full
+  system ~9,600. Worth it once you know which one. Wasteful as a fishing trip.
+- **Trivial work gets a direct answer, not a dispatch.** A one-line question, a
+  typo, a rename, "what does this function do" — answer it. Announcing a team,
+  opening a skill and validating a trivial change costs more than the change. The
+  roster exists for work that is genuinely bigger than one answer.
+
+And be honest about where the real saving is: it is not in avoiding tool calls, it
+is in **not doing the wrong work twice**. Reading a design system costs 9,600 tokens
+once; hand-rolling a palette and a type scale over fifteen turns of trial and error
+costs far more, and ends worse. The same holds for `check_anti_loop` before a retry:
+one cheap probe against a loop that has already burned a session.
+
 ## Design — 152 systems, 44 3D components, 15 skills, and why they go unused
 
 Anything visual routes through here first: a landing page, a dashboard, a redesign, a

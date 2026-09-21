@@ -6,6 +6,16 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.92.1] - 2026-09-21
+
+### What's new
+- **Council now knows what things cost.** It had no rule against routing work that
+  did not need routing — announcing a team and opening a skill for a typo costs more
+  than the typo. It now answers trivial work directly, probes cheap (`route_task`,
+  `design_find` ~100 tokens) before reading expensive (a specialist ~1,700, a full
+  design system ~9,600), and knows the real saving is not fewer tool calls but not
+  doing the wrong work twice.
+
 ## [0.92.0] - 2026-09-21
 
 ### What's new
