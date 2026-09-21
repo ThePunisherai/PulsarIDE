@@ -1,10 +1,9 @@
 ---
 name: pulse-voice-conversational-tech
 description: >
-  Voice-first product engineering end to end — assistant platforms, conversation design, and the
-  speech-interface product layer connecting speech models to real user-facing experiences.
-  Distinct from Team 28's speech-model engineering; this team owns the voice-product/platform
-  layer. Use for tasks about voice assistants, conversational UX, or voice-application product
+  Voice-first product engineering end to end — assistant platforms, conversation design, and
+  the speech-interface product layer connecting speech models to real user-facing experiences.
+  Use for tasks about voice assistants, conversational UX, or voice-application product
   engineering.
 ---
 
@@ -30,6 +29,16 @@ real latency budgets → verify with real, noisy, accented speech input, not jus
 recordings → hand off to Natural Language Processing & Search Engineering for the underlying
 speech/NLU model work, and to Data Privacy Engineering for anything involving voice-biometric
 data collection or retention.
+
+## Scope boundaries
+
+Which neighbouring team owns what. This used to sit in this agent's
+`description`, where it was loaded into every session of every project and cost
+tokens on every turn -- and it carried other teams' keywords, which pulled their
+work towards this one. It is the same information, read only when this agent runs.
+
+Distinct from Team 28's speech-model engineering; this team owns the voice-
+product/platform layer.
 
 ## Tools on this machine
 

@@ -6,6 +6,21 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.92.0] - 2026-09-21
+
+### What's new
+- **Every session got ~2,900 tokens cheaper.** The bundle ships ~15,700 tokens of
+  always-on context now instead of ~18,600 — paid on every turn, in every project,
+  so it adds up fast. `ide/token-cost.py` prints exactly where those tokens go, and
+  verify.sh now fails if the total creeps back over its ceiling.
+
+### What's fixed
+- **Team descriptions no longer carry other teams' keywords.** 43 of the 100 leads
+  spent their description explaining which neighbouring team owns what ("Distinct
+  from Team 43 (Aerospace)'s spacecraft focus"). That text was loaded into every
+  session — and by naming other teams' subjects it pulled their work towards the
+  wrong lead. It now lives in each agent's body, read only when that agent runs.
+
 ## [0.91.0] - 2026-09-21
 
 ### What's fixed

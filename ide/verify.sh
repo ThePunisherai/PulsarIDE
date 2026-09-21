@@ -392,6 +392,20 @@ fi
 # design_find can only find what is in it -- a system added without regenerating
 # is invisible to every agent. Regenerate into a copy and compare, restoring the
 # original either way so verify never leaves the tree modified.
+# 4b1. what the bundle costs on every turn. The roster descriptions, the skill
+# catalogue and the main-session block ship before the user has said anything, in
+# every session of every project -- so a paragraph added there is a recurring bill,
+# not a one-off. This is the ratchet that keeps it from creeping back up.
+if command -v python3 >/dev/null 2>&1; then
+  if tc=$(python3 "$HERE/token-cost.py" --check 2>&1); then
+    ok "always-on token cost is under its ceiling ($(echo "$tc" | grep -oE '~[0-9,]+ tokens' | tail -2 | head -1 | tr -d '~'))"
+  else
+    bad "always-on token cost is over its ceiling -- run ide/token-cost.py to see where"
+  fi
+else
+  skip "always-on token cost (no python3)"
+fi
+
 DS_CATALOG="$ROOT/ide/agent-bundle/design/design-systems/catalog.json"
 if [ -f "$DS_CATALOG" ] && command -v python3 >/dev/null 2>&1; then
   ds_backup=$(mktemp)
