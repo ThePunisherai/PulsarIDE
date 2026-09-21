@@ -13,7 +13,7 @@
  *     what keeps the two implementations from drifting apart.
  */
 import { spawn } from 'node:child_process'
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -93,6 +93,28 @@ const run = await drive([
 ])
 const first = json(byId(run.replies, 10))
 ok('add_item creates the board from nothing and returns an id', first.id.startsWith('i_') && first.status === 'todo')
+
+// --- a failed write must not litter --------------------------------------- //
+// The board is written write-then-rename, with the pid in the temp name so the
+// IDE and an agent's server never share one. When renameSync throws -- on
+// Windows an AV scanner or the indexer holding the target is enough -- the temp
+// used to stay on disk, and because it carries a pid a new orphan accumulated
+// per process instead of overwriting the last. Reproduced by making the target
+// a directory, which makes rename fail for certain.
+{
+  const litter = mkdtempSync(join(tmpdir(), 'pulsar-litter-'))
+  mkdirSync(join(litter, '.planide'), { recursive: true })
+  mkdirSync(join(litter, '.planide', 'state.json'))
+  let threw = false
+  try {
+    store.saveState(litter, { items: [], fixes: [], roadmap: [], versions: [], activity: [] })
+  } catch {
+    threw = true
+  }
+  const leftovers = readdirSync(join(litter, '.planide')).filter((f) => f.endsWith('.tmp'))
+  ok('a board write that cannot be renamed still fails loudly', threw)
+  ok('and cleans up its temp file instead of leaving an orphan', leftovers.length === 0)
+}
 
 // --- add_item does not stack duplicates ----------------------------------- //
 // Agents re-post their plan every turn, so the same title arrives again and

@@ -28,7 +28,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, isAbsolute, join, resolve, sep } from 'node:path'
 
@@ -143,8 +143,22 @@ function saveState(projectPath, state) {
   // writes land inside the live board. A pid-unique name means the two never
   // touch the same temp, and rename stays atomic.
   const tmp = `${file}.${process.pid}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
-  renameSync(tmp, file)
+  // Clean up after a failed rename. On Windows an AV scanner or the search
+  // indexer can hold the target just long enough for renameSync to throw, and
+  // the old shape left the temp behind -- with a pid in its name, so a new one
+  // accumulated per process rather than overwriting the last. The write still
+  // fails loudly; it just does not litter.
+  try {
+    writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+    renameSync(tmp, file)
+  } catch (err) {
+    try {
+      rmSync(tmp, { force: true })
+    } catch {
+      /* best effort -- the original error is what matters */
+    }
+    throw err
+  }
 }
 
 function logActivity(state, kind, text, who = 'agent') {
@@ -787,8 +801,17 @@ const TOOLS = [
       const report = cleanMarks(before)
       if (!args.inspect_only && report.changed) {
         const tmp = `${file}.${process.pid}.tmp`
-        writeFileSync(tmp, report.cleaned, 'utf8')
-        renameSync(tmp, file)
+        try {
+          writeFileSync(tmp, report.cleaned, 'utf8')
+          renameSync(tmp, file)
+        } catch (err) {
+          try {
+            rmSync(tmp, { force: true })
+          } catch {
+            /* best effort */
+          }
+          throw err
+        }
       }
       return {
         path: rel,

@@ -67,9 +67,16 @@ const dbPath = (projectPath: string): string => join(projectPath, '.planide', 'h
 const iso = (): string => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
 
 function open(projectPath: string): SqliteDb | null {
+  // `db` lives outside the try so the catch can close it. Opening succeeds and
+  // the schema step then fails on a real machine more often than it looks --
+  // a corrupted history.db, a full disk, a read-only checkout -- and the old
+  // shape returned null with the handle still open, leaking it (and its file
+  // lock) with no way for the caller to clean up. This runs on every board
+  // change, so that was a leak per write, not a one-off.
+  let db: SqliteDb | null = null
   try {
     mkdirSync(join(projectPath, '.planide'), { recursive: true })
-    const db = new DatabaseSync(dbPath(projectPath)) as unknown as SqliteDb
+    db = new DatabaseSync(dbPath(projectPath)) as unknown as SqliteDb
     try {
       db.exec('PRAGMA journal_mode = WAL')
     } catch {
@@ -86,6 +93,11 @@ function open(projectPath: string): SqliteDb | null {
     )
     return db
   } catch {
+    try {
+      db?.close()
+    } catch {
+      /* it may never have opened -- nothing to close */
+    }
     return null
   }
 }

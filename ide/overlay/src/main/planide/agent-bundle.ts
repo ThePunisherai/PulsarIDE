@@ -1429,13 +1429,34 @@ export async function installUnrealMcp(
     return { configured: false, path: '', ready: false, problem: `Cannot write to ${dest}.` }
   }
 
+  // Bounded, because a clone is the one step here that talks to the network. A
+  // stalled transfer does not fail -- it sits there, and an unbounded promise
+  // means the child stays alive and whoever asked for this never gets an answer.
+  // The git --version probe above already uses a timeout; this is the same rule
+  // applied to the call that can actually hang.
+  const CLONE_TIMEOUT_MS = 10 * 60 * 1000
   const code = await new Promise<number>((resolve) => {
     const child = spawn('git', ['clone', '--depth', '1', UNREAL_REPO, target], {
       stdio: 'ignore',
       windowsHide: true
     })
-    child.on('error', () => resolve(-1))
-    child.on('close', (c) => resolve(c ?? -1))
+    let settled = false
+    const done = (c: number): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(c)
+    }
+    const timer = setTimeout(() => {
+      try {
+        child.kill()
+      } catch {
+        /* already gone -- nothing to kill */
+      }
+      done(-1)
+    }, CLONE_TIMEOUT_MS)
+    child.on('error', () => done(-1))
+    child.on('close', (c) => done(c ?? -1))
   })
 
   // Checking for the server file rather than trusting the exit code: a clone can

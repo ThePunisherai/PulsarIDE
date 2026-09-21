@@ -41,19 +41,21 @@ import sys
 # reworking exactly that area -- two of them explicitly render-loop fixes. We
 # pinned back to 61e0100 and stayed there for five releases.
 #
-# This bump crosses 715 commits, which sounds worse than it measured: only 3 of
-# 64 anchors drifted (both electron-builder Windows-signing anchors, which
-# upstream restructured, and the PowerShell agent-hook line, now anchored on the
-# path fragment alone so its next reshuffle cannot break us again). verify.sh is
-# green, all 64 edits resolve, and Orca's own tsc passes over the patched tree
-# in CI.
+# The 7294915 bump crossed 715 commits and measured better than it sounded: only
+# 3 of 64 anchors drifted, verify.sh green, Orca's own tsc green in CI.
+#
+# This one (7294915 -> 33ba1ff) crosses 795 commits, 1613 files, +72k/-25k lines,
+# and measured better still: ZERO of the 69 anchors drifted, apply is idempotent,
+# and the full suite is green with nothing skipped -- including both real
+# typechecks (React types for the renderer, strict real node types for main),
+# which is what would catch an upstream API change under us.
 #
 # None of that can see a render loop. A green typecheck and a green verify both
 # passed on b0df874 too, and neither could: it is a runtime fault. So the standing
 # rule holds -- the only thing that clears a bump is a real boot on Windows. If
 # #185 comes back on this revision, pin straight back to 61e0100 and ship that
 # as a patch release, exactly as v0.55.1 did.
-PINNED_COMMIT = "729491597f33031089148bc2fba41a99e0b95de7"  # 2026-09-11, upstream HEAD
+PINNED_COMMIT = "33ba1ff3df247652c546985201d9a6f4edaec80b"  # 2026-09-20, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")

@@ -6,6 +6,25 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.94.0] - 2026-09-21
+
+### What's fixed
+- **Three resource leaks.** A corrupted or unwritable `history.db` left its SQLite
+  handle open on every board change. A failed board save left a `.tmp` file behind
+  — with a pid in the name, so they piled up instead of overwriting. And the Unreal
+  server download could hang forever on a stalled network with no timeout.
+
+### What's new
+- **Orca updated to the latest upstream** (795 commits, 1613 files). All 69 overlay
+  edits still apply with zero drift, and the full suite is green with nothing
+  skipped — including both real typechecks. Upstream also brings its own listener
+  and watcher leak fixes.
+
+### Worth knowing
+- A green suite cannot see a boot-time render loop, which is how a previous Orca
+  bump broke Windows. If the app crashes seconds into boot, say so and it gets
+  pinned straight back.
+
 ## [0.93.0] - 2026-09-21
 
 ### What's fixed
