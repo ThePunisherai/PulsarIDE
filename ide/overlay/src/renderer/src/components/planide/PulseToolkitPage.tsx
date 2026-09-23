@@ -21,6 +21,8 @@ import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { useActiveWorktree } from '@/store/selectors'
 import {
+  agentBudget,
+  agentBudgetPrune,
   eccInstall,
   eccSetEnabled,
   eccStatus,
@@ -32,6 +34,7 @@ import {
   unrealSetPath,
   unrealStatus,
   withVisibleSpin,
+  type AgentBudgetStatus,
   type EccStatus,
   type RtkStatus,
   type TrackerHealth,
@@ -91,6 +94,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
   const [ecc, setEcc] = useState<EccStatus | null>(null)
   const [unreal, setUnreal] = useState<UnrealStatus | null>(null)
   const [rtk, setRtk] = useState<RtkStatus | null>(null)
+  const [budget, setBudget] = useState<AgentBudgetStatus | null>(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
@@ -99,7 +103,8 @@ export default function PulseToolkitPage(): React.JSX.Element {
       trackerHealth(folder || undefined).then(setHealth),
       eccStatus().then(setEcc),
       unrealStatus().then(setUnreal),
-      rtkStatus().then(setRtk)
+      rtkStatus().then(setRtk),
+      agentBudget(folder || undefined).then(setBudget)
     ])
   }, [folder])
 
@@ -127,6 +132,14 @@ export default function PulseToolkitPage(): React.JSX.Element {
         await load()
       }),
     [load]
+  )
+
+  const pruneRoster = useCallback(
+    () =>
+      withVisibleSpin(setBusy, async () => {
+        setBudget(await agentBudgetPrune(folder || undefined))
+      }),
+    [folder]
   )
 
   const toggleEcc = useCallback(
@@ -389,6 +402,64 @@ export default function PulseToolkitPage(): React.JSX.Element {
                 <Folder size={12} className="mr-1" />
                 {translate('planide.toolkit.unrealChoose', 'Choose a folder and install…')}
               </Button>
+            )}
+          </Card>
+
+          {/* --- Claude Code's agent-description cap, read back, not assumed -- */}
+          <Card
+            title={translate('planide.toolkit.agentBudget', 'Agent descriptions')}
+            subtitle={translate(
+              'planide.toolkit.agentBudgetSub',
+              "Claude Code counts the description of every agent it can load -- plugins, ~/.claude/agents and this project's .claude/agents -- and warns over 15,000 tokens. Stale copies of the team-lead roster are removed on every launch; anything else here is yours or a plugin's, and is never deleted for you."
+            )}
+          >
+            {budget ? (
+              <>
+                <div className="mt-2 flex items-center gap-2 text-[12px]">
+                  <Dot ok={!budget.over} />
+                  <span>
+                    {`~${budget.total.toLocaleString()} / ${budget.limit.toLocaleString()} ` +
+                      translate('planide.toolkit.agentBudgetTokens', 'tokens') +
+                      ` · Pulse Agent ~${budget.ours.toLocaleString()}`}
+                  </span>
+                </div>
+                <ul className="mt-1.5 space-y-0.5 text-[11px] text-muted-foreground">
+                  {budget.sources.map((s) => (
+                    <li key={s.source} className="flex justify-between gap-3">
+                      <span className="truncate">{`${s.source} · ${s.agents}`}</span>
+                      <span className="tabular-nums">{`~${s.tokens.toLocaleString()}`}</span>
+                    </li>
+                  ))}
+                </ul>
+                {budget.over && budget.largest.length > 0 && (
+                  <p className="mt-1.5 text-[11px] text-amber-500">
+                    {translate('planide.toolkit.agentBudgetLargest', 'Largest:') + ' '}
+                    {budget.largest
+                      .slice(0, 5)
+                      .map((e) => `${e.name} ~${e.tokens}`)
+                      .join(', ')}
+                  </p>
+                )}
+                {budget.pruned.length > 0 && (
+                  <p className="mt-1 text-[11px] text-muted-foreground" title={budget.pruned.join('\n')}>
+                    {translate('planide.toolkit.agentBudgetPruned', 'Stale roster copies removed:') +
+                      ` ${budget.pruned.length}`}
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 h-7 text-[11px]"
+                  disabled={busy}
+                  onClick={() => void pruneRoster()}
+                >
+                  {translate('planide.toolkit.agentBudgetPrune', 'Remove stale roster copies')}
+                </Button>
+              </>
+            ) : (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {translate('planide.toolkit.checking', 'Checking...')}
+              </p>
             )}
           </Card>
 

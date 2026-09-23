@@ -26,6 +26,7 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
+  type Dirent,
   chmodSync,
   cpSync,
   existsSync,
@@ -423,6 +424,344 @@ function toAntigravityAgent(md: string): string {
 }
 
 /**
+ * Claude Code's cap on agent descriptions, and exactly how it counts them.
+ *
+ * Read off the CLI itself (2.1.281), not the docs: for every active agent that
+ * is not built in -- enabled plugins, ~/.claude/agents, the project's
+ * .claude/agents, deduped by name -- it takes `${name}: ${description}`, rounds
+ * its length / 4, and sums. Over 15,000 it prints "Agent descriptions are over
+ * the 15.0k-token limit" on every launch.
+ */
+export const CLAUDE_AGENT_BUDGET = 15000
+
+/** Every prefix a generated copy of the team-lead roster has ever been deployed under. */
+const ROSTER_PREFIX = /^(pulse|pulsar|thepunisher)-/
+
+/**
+ * Is this a generated copy of the team-lead roster -- ours from any version, or
+ * ThePunisher-Agent's standalone install -- rather than an agent someone wrote?
+ *
+ * Content decides, never the name alone. Every lead PulsarIDE deploys gets the
+ * tracker section appended, every lead in the roster carries its Activation
+ * signal section, and ThePunisher-Agent's copies name themselves. A hand-written
+ * agent that happens to share a prefix has none of these and is never touched.
+ */
+function isGeneratedRoster(body: string): boolean {
+  return (
+    body.includes('## PulsarIDE built-in tracker') ||
+    /^## Activation signal/m.test(body) ||
+    body.includes('ThePunisher —') ||
+    /^name:\s*thepunisher-/m.test(body) ||
+    /^name\s*=\s*"thepunisher-/m.test(body)
+  )
+}
+
+/**
+ * The team-lead files in the bundle: only real agents, a .md with a `name:`
+ * frontmatter. This excludes the bundle's own README.md, which was once
+ * deployed as a malformed agent (empty description, generic name) and could make
+ * Codex reject the whole ~/.codex/agents set -- the "subagents suddenly stopped
+ * working" report.
+ */
+function rosterFiles(agentDir: string): string[] {
+  try {
+    return readdirSync(agentDir).filter((f) => {
+      if (!f.endsWith('.md')) return false
+      try {
+        return /^name:\s*\S/m.test(readFileSync(join(agentDir, f), 'utf8').slice(0, 600))
+      } catch {
+        return false
+      }
+    })
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Exactly one copy of the roster on disk, checked on every launch.
+ *
+ * "Agent descriptions are over the 15.0k-token limit (~36.8k tokens)" is what
+ * several copies of the same 100 leads look like: one costs ~8.1k by Claude
+ * Code's own count. The copies come from three places, and the old cleanup
+ * covered one of them, and only on a launch that also redeployed:
+ *
+ *  - ThePunisher-Agent's standalone installer (`thepunisher-*`). It was
+ *    superseded only when our bundle changed, so re-running that installer put
+ *    its copy straight back and nothing removed it until the next update;
+ *  - the roster's earlier `pulsar-*` names, which the marker reconcile removes
+ *    only if the marker written by that deploy survived;
+ *  - a lead this bundle no longer ships -- same condition.
+ *
+ * So this depends on neither the marker nor a redeploy. It runs before the
+ * version gate and removes, from all five agent roots, every generated roster
+ * copy whose name is not one this bundle writes. Reading ~500 small files is
+ * cheap next to a session loaded with three rosters. Returns what it removed.
+ */
+export function pruneStaleRoster(home: string, root: string | null): string[] {
+  if (!root) return []
+  const leads = rosterFiles(join(root, 'agents'))
+  // Nothing to compare against -- a broken or partial bundle. Sweeping against
+  // an empty keep-set would delete the working roster along with the stale ones.
+  if (leads.length === 0) return []
+  const keepMd = new Set(leads.map((f) => `pulse-${f}`))
+  const keepToml = new Set(leads.map((f) => `pulse-${f.replace(/\.md$/, '.toml')}`))
+  const keepDir = new Set(leads.map((f) => `pulse-${f.replace(/\.md$/, '')}`))
+  const removed: string[] = []
+
+  const sweep = (dir: string, keep: Set<string>, entryFile: (name: string) => string | null): void => {
+    let names: string[]
+    try {
+      names = readdirSync(dir)
+    } catch {
+      return // this tool is not installed -- nothing to sweep
+    }
+    for (const name of names) {
+      if (!ROSTER_PREFIX.test(name) || keep.has(name)) continue
+      const file = entryFile(name)
+      if (!file) continue
+      try {
+        if (!isGeneratedRoster(readFileSync(file, 'utf8'))) continue
+        // recursive: Antigravity's agents are directories, the rest are files.
+        rmSync(join(dir, name), { recursive: true, force: true })
+        removed.push(join(dir, name))
+      } catch {
+        /* unreadable or already gone -- leave it alone */
+      }
+    }
+  }
+  for (const dir of [
+    join(home, '.claude', 'agents'),
+    join(home, '.gemini', 'agents'),
+    join(home, '.qwen', 'agents')
+  ]) {
+    sweep(dir, keepMd, (name) => (name.endsWith('.md') ? join(dir, name) : null))
+  }
+  const codex = join(home, '.codex', 'agents')
+  sweep(codex, keepToml, (name) => (name.endsWith('.toml') ? join(codex, name) : null))
+  const antigravity = join(home, '.gemini', 'config', 'agents')
+  sweep(antigravity, keepDir, (name) => {
+    const f = join(antigravity, name, 'agent.md')
+    return existsSync(f) ? f : null
+  })
+  return removed
+}
+
+/**
+ * `name` and `description` from an agent's frontmatter, read the way Claude Code
+ * reads them: a folded (`>`) block joins its lines with spaces, a literal (`|`)
+ * block keeps its newlines, a plain or quoted scalar may continue on indented
+ * lines. Claude Code does not load an agent missing either, so it costs nothing
+ * and this returns null for it.
+ */
+function agentFrontmatter(md: string): { name: string; description: string } | null {
+  const m = md.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (!m) return null
+  const lines = m[1].split(/\r?\n/)
+  const scalar = (key: string): string => {
+    const i = lines.findIndex((l) => l.startsWith(`${key}:`))
+    if (i < 0) return ''
+    const head = lines[i].slice(key.length + 1).trim()
+    const rest: string[] = []
+    for (const l of lines.slice(i + 1)) {
+      if (l.trim() !== '' && !/^\s/.test(l)) break
+      rest.push(l.trim())
+    }
+    if (/^[>|][+-]?$/.test(head)) {
+      return head.startsWith('>') ? rest.filter(Boolean).join(' ') : rest.join('\n').trim()
+    }
+    const joined = [head, ...rest.filter(Boolean)].join(' ').trim()
+    const quoted = /^(['"])([\s\S]*)\1$/.exec(joined)
+    return (quoted ? quoted[2] : joined).trim()
+  }
+  const name = scalar('name')
+  const description = scalar('description')
+  return name && description ? { name, description } : null
+}
+
+/** Every .md under `dir`, the way Claude Code finds agents in nested folders too. */
+function markdownUnder(dir: string, depth = 0): string[] {
+  if (depth > 6) return []
+  let entries: Dirent[]
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  const out: string[] = []
+  for (const e of entries) {
+    const p = join(dir, e.name)
+    if (e.isDirectory()) out.push(...markdownUnder(p, depth + 1))
+    else if (e.name.endsWith('.md')) out.push(p)
+  }
+  return out
+}
+
+/**
+ * The agents folders of the Claude Code plugins that are installed AND enabled.
+ * Best-effort: a plugin that declares its agents somewhere else in plugin.json
+ * is not seen, which can only make this read low, never invent a cost.
+ */
+function pluginAgentDirs(home: string): Array<{ id: string; dir: string }> {
+  const readJson = (p: string): Record<string, unknown> | null => {
+    try {
+      return JSON.parse(readFileSync(p, 'utf8')) as Record<string, unknown>
+    } catch {
+      return null
+    }
+  }
+  const enabled = (readJson(join(home, '.claude', 'settings.json'))?.enabledPlugins ?? {}) as Record<
+    string,
+    unknown
+  >
+  const installed = (readJson(join(home, '.claude', 'plugins', 'installed_plugins.json'))?.plugins ??
+    {}) as Record<string, unknown>
+  const out: Array<{ id: string; dir: string }> = []
+  for (const [id, entry] of Object.entries(installed)) {
+    if (enabled[id] !== true) continue
+    // installed_plugins.json v2 keeps a list of installs per plugin, v1 one object.
+    for (const inst of Array.isArray(entry) ? entry : [entry]) {
+      const path = (inst as { installPath?: unknown } | null)?.installPath
+      if (typeof path === 'string') out.push({ id, dir: join(path, 'agents') })
+    }
+  }
+  return out
+}
+
+export type AgentBudgetSource = {
+  /** `pulse` (this app's roster), `user`, `project`, or `plugin:<id>`. */
+  source: string
+  agents: number
+  tokens: number
+}
+
+export type AgentBudgetEntry = { name: string; source: string; tokens: number; path: string }
+
+export type AgentBudgetStatus = {
+  limit: number
+  total: number
+  over: boolean
+  /** What this app's own roster costs of that total. */
+  ours: number
+  /** Where the total comes from, largest first. */
+  sources: AgentBudgetSource[]
+  /** The ten largest single descriptions, largest first. */
+  largest: AgentBudgetEntry[]
+  /** Generated roster copies removed at launch or by the last cleanup. */
+  pruned: string[]
+  /** The project whose own .claude/agents were counted, if one was given. */
+  project: string | null
+}
+
+/**
+ * What Claude Code will count against its 15k agent-description cap, by its
+ * own formula, and where it comes from. The project's .claude/agents is only
+ * known per project, so it is counted when one is given.
+ */
+export function measureAgentBudget(
+  home: string = homedir(),
+  project: string | null = null
+): Omit<AgentBudgetStatus, 'pruned'> {
+  // Claude Code's precedence, lowest first: plugins, then the user's own
+  // folder, then the project. A later agent with the same name replaces the
+  // earlier one, so it is counted once, as the one that is actually active.
+  const byName = new Map<string, AgentBudgetEntry>()
+  const add = (dir: string, source: (file: string, body: string) => string, prefix = ''): void => {
+    for (const file of markdownUnder(dir)) {
+      let body: string
+      try {
+        body = readFileSync(file, 'utf8')
+      } catch {
+        continue
+      }
+      const fm = agentFrontmatter(body)
+      if (!fm) continue
+      const name = prefix + fm.name
+      byName.set(name, {
+        name,
+        source: source(file, body),
+        tokens: Math.round(`${name}: ${fm.description}`.length / 4),
+        path: file
+      })
+    }
+  }
+  for (const { id, dir } of pluginAgentDirs(home)) {
+    add(dir, () => `plugin:${id}`, `${id.split('@')[0]}:`)
+  }
+  const userDir = join(home, '.claude', 'agents')
+  add(userDir, (file, body) =>
+    dirname(file) === userDir && /^pulse-/.test(file.slice(userDir.length + 1)) && isGeneratedRoster(body)
+      ? 'pulse'
+      : 'user'
+  )
+  if (project) add(join(project, '.claude', 'agents'), () => 'project')
+
+  const entries = [...byName.values()]
+  const groups = new Map<string, AgentBudgetSource>()
+  for (const e of entries) {
+    const g = groups.get(e.source) ?? { source: e.source, agents: 0, tokens: 0 }
+    g.agents += 1
+    g.tokens += e.tokens
+    groups.set(e.source, g)
+  }
+  const total = entries.reduce((n, e) => n + e.tokens, 0)
+  return {
+    limit: CLAUDE_AGENT_BUDGET,
+    total,
+    over: total > CLAUDE_AGENT_BUDGET,
+    ours: groups.get('pulse')?.tokens ?? 0,
+    sources: [...groups.values()].sort((a, b) => b.tokens - a.tokens),
+    largest: entries.sort((a, b) => b.tokens - a.tokens).slice(0, 10),
+    project
+  }
+}
+
+/** What the last prune removed, for the Toolkit to show. Per process. */
+let lastPruned: string[] = []
+/** The bundle root the launch deploy resolved; IPC calls carry no paths of their own. */
+let lastBundleRoot: string | null = null
+
+function currentBundleRoot(): string | null {
+  return (
+    lastBundleRoot ??
+    bundleRoot({ resourcesPath: (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath })
+  )
+}
+
+export function agentBudgetStatus(project?: string | null, home: string = homedir()): AgentBudgetStatus {
+  return { ...measureAgentBudget(home, project || null), pruned: lastPruned }
+}
+
+/** Sweep stale roster copies now -- e.g. right after re-running another installer. */
+export function pruneAgentRosterNow(
+  project?: string | null,
+  home: string = homedir(),
+  root: string | null = currentBundleRoot()
+): AgentBudgetStatus {
+  lastPruned = pruneStaleRoster(home, root)
+  return agentBudgetStatus(project, home)
+}
+
+/**
+ * Say so when the cap is still exceeded after the sweep, naming what fills it.
+ * Whatever is left is not ours to delete -- a plugin, or agents the user
+ * installed -- so the Toolkit shows it and the user decides.
+ */
+function reportAgentBudget(home: string): void {
+  try {
+    const b = measureAgentBudget(home)
+    if (!b.over) return
+    const where = b.sources.map((s) => `${s.source} ${s.agents} agents ~${s.tokens}`).join(', ')
+    console.warn(
+      `[pulsar] Claude Code agent descriptions ~${b.total} tokens, over its ${b.limit} cap ` +
+        `(${where}) -- see Toolkit > Agent descriptions`
+    )
+  } catch {
+    /* a report must never break startup */
+  }
+}
+
+/**
  * Deploy the bundle. `opts.home` overrides the home dir (tests); `opts.force`
  * redeploys even if the version is unchanged.
  */
@@ -449,8 +788,21 @@ export function deployAgentBundle(
   try {
     const root = bundleRoot(opts)
     if (!root) return skip('bundle not found')
+    lastBundleRoot = root
     const manifest = readManifest(root)
     const prev = readMarker(home)
+
+    // Every launch, before the version gate: one roster copy, never two or
+    // three. Gating this on a redeploy is how a second roster could sit in
+    // ~/.claude/agents for as long as our bundle did not change. See
+    // pruneStaleRoster.
+    lastPruned = pruneStaleRoster(home, root)
+    if (lastPruned.length > 0) {
+      console.info(
+        `[pulsar] removed ${lastPruned.length} stale copies of the team-lead roster -- ` +
+          'more than one copy puts Claude Code over its agent-description cap'
+      )
+    }
 
     // Runs EVERY launch (cheap, idempotent), before the version gate: keep the
     // self-contained Python venv provisioned and re-point the planide MCP at the
@@ -467,6 +819,7 @@ export function deployAgentBundle(
     // by content, not by a version constant someone has to remember to bump.
     const signature = bundleSignature(root)
     if (!opts.force && prev && prev.signature === signature) {
+      reportAgentBudget(home)
       return skip(`already at ${manifest.bundle_version}`, mcpWired, alreadyTracked)
     }
 
@@ -507,18 +860,7 @@ export function deployAgentBundle(
 
     // --- agents: team leads -> Claude Code, Gemini CLI, Codex, Qwen Code -- //
     const agentDir = join(root, 'agents')
-    // Only real agents — a .md with a `name:` frontmatter. This excludes the
-    // bundle's own README.md, which was being deployed as a malformed agent
-    // (empty description, generic name) and could make Codex reject the whole
-    // ~/.codex/agents set — the "subagents suddenly stopped working" report.
-    const agentFiles = readdirSync(agentDir).filter((f) => {
-      if (!f.endsWith('.md')) return false
-      try {
-        return /^name:\s*\S/m.test(readFileSync(join(agentDir, f), 'utf8').slice(0, 600))
-      } catch {
-        return false
-      }
-    })
+    const agentFiles = rosterFiles(agentDir)
     const wroteAgents: string[] = []
 
     const claudeAgents = join(home, '.claude', 'agents')
@@ -542,70 +884,16 @@ export function deployAgentBundle(
     mkdirSync(qwenAgents, { recursive: true })
     mkdirSync(antigravityAgents, { recursive: true })
 
-    /**
-     * Exactly one copy of this roster, and it is the one this app ships.
-     *
-     * PulsarIDE's bundle IS ThePunisher-Agent's roster, renamed to Pulse Agent
-     * and kept current with the app. Someone who also ran that project's
-     * standalone installer has the identical 101 team leads in these very
-     * directories under a `thepunisher-` prefix -- and because our prefix is
-     * `pulse-`, the two do not overwrite, they ADD.
-     *
-     * Claude Code budgets ~15k tokens for agent descriptions. One roster costs
-     * ~10.1k (measured off these files). Two costs ~20.3k, which puts Claude
-     * Code over the limit -- that is how "subagents suddenly stopped working"
-     * happens: the roster is not broken, it is too big to load.
-     *
-     * This used to keep theirs and skip OURS. That held the budget but was the
-     * wrong way round: PulsarIDE then never deployed the agent it ships, so the
-     * app kept answering as "ThePunisher" and no rename or update we made ever
-     * reached the user. Reported exactly that way, and it is why this changed.
-     *
-     * So we supersede: drop the older roster, write ours. Only a file whose
-     * NAME carries that prefix AND whose CONTENT is that generated roster is
-     * touched, so a hand-written agent that happens to share the prefix
-     * survives. Nothing is lost -- it is the same roster under a new name, and
-     * re-running ThePunisher-Agent's own installer restores its copies.
-     */
-    const supersedeForeignRoster = (dir: string): number => {
-      let names: string[]
-      try {
-        names = readdirSync(dir)
-      } catch {
-        return 0
-      }
-      let removed = 0
-      for (const name of names) {
-        if (!/^thepunisher-.+\.(md|toml)$/.test(name)) continue
-        const file = join(dir, name)
-        try {
-          const body = readFileSync(file, 'utf8')
-          // The generated roster names itself two ways: the activation banner it
-          // instructs the persona to print, and its own frontmatter/TOML name.
-          const isGeneratedRoster =
-            body.includes('ThePunisher —') ||
-            /^name:\s*thepunisher-/m.test(body) ||
-            /^name\s*=\s*"thepunisher-/m.test(body)
-          if (!isGeneratedRoster) continue
-          rmSync(file)
-          removed += 1
-        } catch {
-          /* unreadable or already gone -- leave it alone */
-        }
-      }
-      return removed
-    }
-    const superseded =
-      supersedeForeignRoster(claudeAgents) +
-      supersedeForeignRoster(geminiAgents) +
-      supersedeForeignRoster(codexAgents) +
-      supersedeForeignRoster(qwenAgents)
-    if (superseded > 0) {
-      console.info(
-        `[pulsar] replaced ${superseded} older ThePunisher-Agent roster file(s) with the Pulse ` +
-          'Agent roster this app ships -- two copies of one roster exceed the description budget'
-      )
-    }
+    // Exactly one copy of this roster, and it is the one this app ships.
+    // PulsarIDE's bundle IS ThePunisher-Agent's roster under the `pulse-` name,
+    // so someone who also ran that project's standalone installer has the same
+    // leads here as `thepunisher-*` -- different names, so they ADD rather than
+    // overwrite. Keeping theirs and skipping ours held the budget but meant this
+    // app never deployed the agent it ships and kept answering as "ThePunisher".
+    // So ours is written and the older copy goes: pruneStaleRoster already swept
+    // it at the top of this launch, along with any stale `pulsar-*` or retired
+    // `pulse-*` lead. A hand-written agent sharing a prefix survives, and
+    // re-running ThePunisher-Agent's installer restores its copies.
 
     for (const file of agentFiles) {
       const md = readFileSync(join(agentDir, file), 'utf8')
@@ -733,6 +1021,7 @@ export function deployAgentBundle(
     }
     mkdirSync(configDir(home), { recursive: true })
     writeFileSync(join(configDir(home), 'agent-bundle.json'), JSON.stringify(marker, null, 2))
+    reportAgentBudget(home)
 
     return {
       deployed: true,
@@ -2503,7 +2792,7 @@ export function deployProjectAgentsMd(projectPath: string, home: string = homedi
  * context for the MAIN session, which is not a subagent and so was never covered
  * by superseding the roster files.
  *
- * Same rule as supersedeForeignRoster: PulsarIDE's copy wins, and only the other
+ * Same rule as pruneStaleRoster: PulsarIDE's copy wins, and only the other
  * installer's own delimited block is removed. Anything the user wrote themselves
  * is outside those markers and is kept verbatim. Nothing is lost either -- it is
  * the same content under the new name, and re-running that installer restores it.

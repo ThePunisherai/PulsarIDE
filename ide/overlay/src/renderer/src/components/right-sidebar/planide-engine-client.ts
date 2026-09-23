@@ -451,6 +451,27 @@ export function eccInstall(): Promise<EccStatus> {
   return call<EccStatus>('eccInstall')
 }
 
+export type AgentBudgetStatus = {
+  limit: number
+  total: number
+  over: boolean
+  ours: number
+  sources: Array<{ source: string; agents: number; tokens: number }>
+  largest: Array<{ name: string; source: string; tokens: number; path: string }>
+  pruned: string[]
+  project: string | null
+}
+
+/** Claude Code's agent-description cap, counted its own way; `path` adds that project's agents. */
+export function agentBudget(path?: string): Promise<AgentBudgetStatus> {
+  return call<AgentBudgetStatus>('agentBudget', path)
+}
+
+/** Remove stale copies of the team-lead roster now, then measure again. */
+export function agentBudgetPrune(path?: string): Promise<AgentBudgetStatus> {
+  return call<AgentBudgetStatus>('agentBudgetPrune', path)
+}
+
 /** Write the planide MCP entry back into every agent's own config. */
 export function trackerRepair(): Promise<boolean> {
   return call<boolean>('trackerRepair')

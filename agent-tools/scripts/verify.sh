@@ -124,6 +124,54 @@ else
   echo "  SKIP contract check (needs node + ide/test/state-compat.mjs)"
 fi
 
+# --- agent-budget.py: Claude Code's agent-description cap ------------------ #
+# "Agent descriptions are over the 15.0k-token limit" is stacked copies of the
+# roster. The diagnostic has to count the way Claude Code counts, remove only
+# generated roster copies, and never an agent someone wrote.
+AB="$DIR/scripts/agent-budget.py"
+BH="$(mktemp -d)"
+mkdir -p "$BH/.claude/agents" "$BH/.codex/agents" "$BH/.gemini/config/agents/pulsar-council"
+roster() { printf -- '---\nname: %s\ndescription: %s\n---\n\nPersona.\n\n## Activation signal\n' "$1" "$2"; }
+roster pulse-council  "$(printf 'c%.0s' $(seq 1 390))" > "$BH/.claude/agents/pulse-council.md"
+roster pulsar-council "$(printf 'c%.0s' $(seq 1 390))" > "$BH/.claude/agents/pulsar-council.md"
+roster thepunisher-council "x" > "$BH/.claude/agents/thepunisher-council.md"
+roster pulsar-council "x" > "$BH/.gemini/config/agents/pulsar-council/agent.md"
+printf 'name = "pulsar-council"\ndeveloper_instructions = %s\n## Activation signal\n%s\n' "'''" "'''" > "$BH/.codex/agents/pulsar-council.toml"
+printf -- '---\nname: pulse-mine\ndescription: my own helper\n---\nhi\n' > "$BH/.claude/agents/pulse-mine.md"
+printf -- '---\nname: reviewer\ndescription: >\n  reviews\n  my PRs\n---\nhi\n' > "$BH/.claude/agents/reviewer.md"
+
+python3 -m py_compile "$AB" 2>/dev/null && ok "agent-budget: compiles" || bad "agent-budget: compiles"
+# pulse-council: "pulse-council: " + 390 = 405 -> 101; pulsar-council 406 -> 102 (round half to even);
+# thepunisher-council: 22 -> 6; pulse-mine: 24 -> 6; reviewer (folded "reviews my PRs"): 24 -> 6.
+python3 "$AB" --home "$BH" --json | python3 -c "
+import json, sys
+r = json.load(sys.stdin)
+sys.exit(0 if r['total'] == 101 + 102 + 6 + 6 + 6 and r['over'] is False and len(r['stale']) == 4 else 1)" \
+  && ok "agent-budget: counts like Claude Code and finds the stale copies in every root" \
+  || bad "agent-budget: count or stale detection"
+python3 "$AB" --home "$BH" --prune --dry-run >/dev/null 2>&1
+[ -f "$BH/.claude/agents/pulsar-council.md" ] \
+  && ok "agent-budget: --dry-run removes nothing" || bad "agent-budget: --dry-run removed files"
+python3 "$AB" --home "$BH" --prune >/dev/null 2>&1
+{ [ ! -e "$BH/.claude/agents/pulsar-council.md" ] && [ ! -e "$BH/.claude/agents/thepunisher-council.md" ] \
+  && [ ! -e "$BH/.codex/agents/pulsar-council.toml" ] && [ ! -e "$BH/.gemini/config/agents/pulsar-council" ]; } \
+  && ok "agent-budget: --prune removes old-prefix copies (no marker: pulse-* is current)" \
+  || bad "agent-budget: --prune left a stale copy"
+{ [ -f "$BH/.claude/agents/pulse-council.md" ] && [ -f "$BH/.claude/agents/pulse-mine.md" ] \
+  && [ -f "$BH/.claude/agents/reviewer.md" ]; } \
+  && ok "agent-budget: the current roster and hand-written agents survive" \
+  || bad "agent-budget: removed something that was not a stale copy"
+for i in $(seq 1 160); do
+  printf -- '---\nname: role-%s\ndescription: %s\n---\n' "$i" "$(printf 'r%.0s' $(seq 1 400))" > "$BH/.claude/agents/role-$i.md"
+done
+python3 "$AB" --home "$BH" >/dev/null 2>&1; rc=$?
+[ "$rc" = 1 ] && [ "$(ls "$BH/.claude/agents" | grep -c '^role-')" = 160 ] \
+  && ok "agent-budget: over the cap exits 1 and deletes none of the user's agents" \
+  || bad "agent-budget: over-cap exit ($rc) or user agents touched"
+python3 "$AB" --home "$BH/nope" >/dev/null 2>&1; [ $? = 2 ] \
+  && ok "agent-budget: a missing home is an error (exit 2)" || bad "agent-budget: missing home exit code"
+rm -rf "$BH"
+
 rm -rf "$TESTCFG" "$PROJ"
 echo
 echo "PASS=$PASS FAIL=$FAIL"

@@ -24,7 +24,11 @@ const {
   meshyStatus,
   setMeshyKey,
   installEccNow,
-  setUnrealPath
+  setUnrealPath,
+  pruneStaleRoster,
+  measureAgentBudget,
+  pruneAgentRosterNow,
+  CLAUDE_AGENT_BUDGET
 } = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
@@ -865,6 +869,125 @@ ok('and what remains still fits the description budget',
   descTokens(join(HOME2, '.claude/agents'), 'pulse-') < 15000)
 ok('the tracker still reaches the main session in that case (managed block)',
   readFileSync(join(HOME2, '.claude/CLAUDE.md'), 'utf8').includes('get_board'))
+
+// --- "over the 15.0k-token limit (~36.8k tokens)": copies that piled up ------ //
+// The warning a user kept getting on every launch. One roster is ~8k by Claude
+// Code's own count; ~36.8k is several copies of it. Copies came from an older
+// `pulsar-*` naming, a retired lead, and ThePunisher-Agent's installer -- in
+// every agent root, not only Claude Code's -- and the old cleanup only ever
+// caught the last one, and only on a launch that redeployed.
+const BUNDLE = join(res, 'pulsar-agents')
+const generated = (name) => `---\nname: ${name}\ndescription: an old roster copy\n---\n\nPersona.\n\n## Activation signal\n\nbanner\n`
+const HOME_ACC = join(work, 'home-accumulated'); mkdirSync(HOME_ACC)
+for (const d of ['.claude/agents', '.gemini/agents', '.qwen/agents', '.codex/agents', '.gemini/config/agents/pulsar-council']) {
+  mkdirSync(join(HOME_ACC, d), { recursive: true })
+}
+writeFileSync(join(HOME_ACC, '.claude/agents/pulsar-council.md'), generated('pulsar-council'))
+writeFileSync(join(HOME_ACC, '.claude/agents/pulse-retired-team.md'),
+  '---\nname: pulse-retired-team\ndescription: gone from the bundle\n---\n\nx\n\n## PulsarIDE built-in tracker — keep it in sync\n')
+writeFileSync(join(HOME_ACC, '.claude/agents/thepunisher-debug.md'), '---\nname: thepunisher-debug\ndescription: x\n---\n')
+writeFileSync(join(HOME_ACC, '.gemini/agents/pulsar-debug.md'), generated('pulsar-debug'))
+writeFileSync(join(HOME_ACC, '.qwen/agents/pulsar-debug.md'), generated('pulsar-debug'))
+writeFileSync(join(HOME_ACC, '.codex/agents/pulsar-council.toml'),
+  'name = "pulsar-council"\ndescription = "x"\ndeveloper_instructions = \'\'\'\n## Activation signal\n\'\'\'\n')
+writeFileSync(join(HOME_ACC, '.gemini/config/agents/pulsar-council/agent.md'), generated('pulsar-council'))
+// What the user wrote: one sharing our prefix, one not. Neither may be touched.
+writeFileSync(join(HOME_ACC, '.claude/agents/pulse-mine.md'), '---\nname: pulse-mine\ndescription: my own helper\n---\nhello\n')
+writeFileSync(join(HOME_ACC, '.claude/agents/reviewer.md'), '---\nname: reviewer\ndescription: reviews my PRs\n---\nhi\n')
+deployAgentBundle({ home: HOME_ACC, resourcesPath: res, provisionPyEnv: false })
+ok('an older pulsar-* roster copy is removed (Claude Code)',
+  !existsSync(join(HOME_ACC, '.claude/agents/pulsar-council.md')))
+ok('a lead the bundle no longer ships is removed, marker or not',
+  !existsSync(join(HOME_ACC, '.claude/agents/pulse-retired-team.md')))
+ok('ThePunisher-Agent\'s copy is removed', !existsSync(join(HOME_ACC, '.claude/agents/thepunisher-debug.md')))
+ok('stale copies go from Gemini CLI and Qwen Code too',
+  !existsSync(join(HOME_ACC, '.gemini/agents/pulsar-debug.md')) && !existsSync(join(HOME_ACC, '.qwen/agents/pulsar-debug.md')))
+ok('and from Codex (.toml) and Antigravity (a directory per agent)',
+  !existsSync(join(HOME_ACC, '.codex/agents/pulsar-council.toml')) &&
+  !existsSync(join(HOME_ACC, '.gemini/config/agents/pulsar-council')))
+ok('a hand-written agent sharing the pulse- prefix survives',
+  existsSync(join(HOME_ACC, '.claude/agents/pulse-mine.md')))
+ok('an agent the user wrote under any other name survives',
+  existsSync(join(HOME_ACC, '.claude/agents/reviewer.md')))
+ok('the current roster is in place', existsSync(join(HOME_ACC, '.claude/agents/pulse-council.md')))
+const b4 = measureAgentBudget(HOME_ACC)
+ok(`what is left fits Claude Code's cap by its own count (~${b4.total} of ${CLAUDE_AGENT_BUDGET})`,
+  b4.total > 0 && !b4.over && b4.total < CLAUDE_AGENT_BUDGET)
+ok('our roster is counted as ours, the user\'s agents as theirs',
+  b4.ours > 0 && b4.sources.find((s) => s.source === 'user')?.agents === 2)
+ok('one roster leaves real room for the user\'s own agents (under 60% of the cap)',
+  b4.ours < CLAUDE_AGENT_BUDGET * 0.6)
+
+// The sweep must not wait for our bundle to change: re-running the other
+// installer puts its roster straight back, and a skipped deploy used to leave it.
+writeFileSync(join(HOME_ACC, '.claude/agents/thepunisher-council.md'), '---\nname: thepunisher-council\ndescription: x\n---\n')
+const again = deployAgentBundle({ home: HOME_ACC, resourcesPath: res, provisionPyEnv: false })
+ok('an unchanged bundle skips the deploy...', again.deployed === false)
+ok('...but still removes a roster copy that reappeared since',
+  !existsSync(join(HOME_ACC, '.claude/agents/thepunisher-council.md')))
+
+// A broken bundle must never read as "every copy is stale".
+const emptyRoot = join(work, 'empty-bundle'); mkdirSync(join(emptyRoot, 'agents'), { recursive: true })
+ok('a bundle with no leads prunes nothing -- the working roster stays',
+  pruneStaleRoster(HOME_ACC, emptyRoot).length === 0 && existsSync(join(HOME_ACC, '.claude/agents/pulse-council.md')))
+ok('no bundle at all prunes nothing', pruneStaleRoster(HOME_ACC, null).length === 0)
+
+// On demand, from the Toolkit: sweep now and measure again.
+writeFileSync(join(HOME_ACC, '.claude/agents/pulsar-debug.md'), generated('pulsar-debug'))
+const now = pruneAgentRosterNow(null, HOME_ACC, BUNDLE)
+ok('the Toolkit cleanup removes it and says what it removed',
+  !existsSync(join(HOME_ACC, '.claude/agents/pulsar-debug.md')) &&
+  now.pruned.some((p) => p.endsWith('pulsar-debug.md')) && now.over === false)
+
+// --- the count itself: Claude Code's formula, not an estimate of it ---------- //
+// round(`${name}: ${description}`.length / 4) per active non-built-in agent,
+// deduped by name with the project winning over the user and the user over a
+// plugin. Read off the CLI; a folded description joins its lines with spaces.
+const HOME_COUNT = join(work, 'home-count'); mkdirSync(join(HOME_COUNT, '.claude/agents/nested'), { recursive: true })
+writeFileSync(join(HOME_COUNT, '.claude/agents/a.md'), `---\nname: a\ndescription: ${'x'.repeat(397)}\n---\nbody\n`)
+writeFileSync(join(HOME_COUNT, '.claude/agents/nested/folded.md'),
+  '---\nname: folded\ndescription: >\n  one two\n  three\n---\nbody\n')
+writeFileSync(join(HOME_COUNT, '.claude/agents/no-description.md'), '---\nname: nodesc\n---\nnot loaded, not counted\n')
+writeFileSync(join(HOME_COUNT, '.claude/agents/shared.md'), `---\nname: shared\ndescription: ${'u'.repeat(200)}\n---\n`)
+const plug = join(work, 'plugin-install'); mkdirSync(join(plug, 'agents'), { recursive: true })
+writeFileSync(join(plug, 'agents/helper.md'), `---\nname: helper\ndescription: ${'y'.repeat(34)}\n---\n`)
+const offPlug = join(work, 'plugin-off'); mkdirSync(join(offPlug, 'agents'), { recursive: true })
+writeFileSync(join(offPlug, 'agents/big.md'), `---\nname: big\ndescription: ${'z'.repeat(4000)}\n---\n`)
+writeFileSync(join(HOME_COUNT, '.claude/settings.json'), JSON.stringify({ enabledPlugins: { 'p@m': true, 'off@m': false } }))
+mkdirSync(join(HOME_COUNT, '.claude/plugins'), { recursive: true })
+writeFileSync(join(HOME_COUNT, '.claude/plugins/installed_plugins.json'), JSON.stringify({
+  version: 2, plugins: { 'p@m': [{ installPath: plug }], 'off@m': [{ installPath: offPlug }] }
+}))
+const PROJ5 = join(work, 'proj-count'); mkdirSync(join(PROJ5, '.claude/agents'), { recursive: true })
+writeFileSync(join(PROJ5, '.claude/agents/shared.md'), `---\nname: shared\ndescription: ${'p'.repeat(12)}\n---\n`)
+const c5 = measureAgentBudget(HOME_COUNT)
+// a: "a: " + 397 = 400 -> 100. folded: "folded: one two three" = 21 -> 5.
+// shared: "shared: " + 200 = 208 -> 52. p:helper: "p:helper: " + 34 = 44 -> 11.
+ok('a user agent costs round(`name: description` / 4)', c5.largest.find((e) => e.name === 'a')?.tokens === 100)
+ok('a folded description is joined the way YAML folds it',
+  c5.largest.find((e) => e.name === 'folded')?.tokens === 5)
+ok('agents in nested folders count, one with no description does not',
+  c5.sources.find((s) => s.source === 'user')?.agents === 3)
+ok('an enabled plugin\'s agents count under their plugin-qualified name',
+  c5.largest.find((e) => e.name === 'p:helper')?.tokens === 11 && c5.sources.some((s) => s.source === 'plugin:p@m'))
+ok('a disabled plugin costs nothing', !c5.largest.some((e) => e.name.startsWith('off:')))
+ok('the total is the sum', c5.total === 100 + 5 + 52 + 11)
+const c5p = measureAgentBudget(HOME_COUNT, PROJ5)
+ok('a project agent replaces a user agent of the same name -- counted once, as the project\'s',
+  c5p.total === 100 + 5 + 11 + Math.round(('shared: ' + 'p'.repeat(12)).length / 4) &&
+  c5p.largest.find((e) => e.name === 'shared')?.source === 'project')
+
+// Over the cap with agents that are not ours: reported, never deleted.
+const HOME_OVER = join(work, 'home-over'); mkdirSync(join(HOME_OVER, '.claude/agents'), { recursive: true })
+for (let i = 0; i < 160; i++) {
+  writeFileSync(join(HOME_OVER, `.claude/agents/role-${i}.md`), `---\nname: role-${i}\ndescription: ${'r'.repeat(400)}\n---\n`)
+}
+deployAgentBundle({ home: HOME_OVER, resourcesPath: res, provisionPyEnv: false })
+const b6 = measureAgentBudget(HOME_OVER)
+ok('over the cap with someone else\'s agents reads as over, and says whose',
+  b6.over === true && b6.sources[0].source === 'user' && b6.sources[0].agents === 160)
+ok('and not one of them is deleted to make it fit',
+  readdirSync(join(HOME_OVER, '.claude/agents')).filter((f) => f.startsWith('role-')).length === 160)
 
 // --- never destroy ~/.claude/settings.json ---------------------------------- //
 // That file is not ours. Claude Code keeps env/permissions there, and Orca

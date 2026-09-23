@@ -6,6 +6,35 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.95.0] - 2026-09-23
+
+### What's fixed
+- **"Agent descriptions are over the 15.0k-token limit (~36.8k tokens)" goes away,
+  and stays away.** One Pulse Agent roster costs ~8,100 tokens by Claude Code's own
+  count, so ~36.8k is the same 100 team leads loaded several times over: under the
+  older `pulsar-` names, as a lead the bundle stopped shipping, and as ThePunisher-
+  Agent's standalone `thepunisher-` copy. The old cleanup only knew the last of
+  those, and only ran on a launch that also redeployed, so running that installer
+  again put its copy back until the next PulsarIDE update. Every launch now removes
+  every generated roster copy that is not the current one, from all five agent
+  folders (Claude Code, Gemini CLI, Qwen Code, Codex, Antigravity), whether or not
+  anything was redeployed. An agent you wrote yourself is never touched, even one
+  whose name starts the same way.
+
+### What's new
+- **Toolkit > Agent descriptions** shows the number Claude Code will warn about,
+  counted exactly the way Claude Code counts it (read off the CLI, not guessed),
+  split into the Pulse Agent roster, your own agents, the open project's agents and
+  each plugin. If it is still over after the cleanup, the largest ones are named:
+  what is left is yours or a plugin's, and is never deleted for you.
+- **`agent-tools/scripts/agent-budget.py`** gives the same report from a terminal,
+  and `--prune` does the same cleanup, so a machine can be fixed before it gets
+  this update. `--dry-run` lists what would go first.
+
+### Worth knowing
+- The roster now has a hard ceiling of 9,000 of Claude Code's 15,000, checked by
+  `ide/token-cost.py`, so it always leaves most of the room to your own agents.
+
 ## [0.94.0] - 2026-09-21
 
 ### What's fixed

@@ -22,11 +22,13 @@ import { archifyRender, archifyStatus, ensureBaselineDiagram } from './archify-r
 import { stopWatchingBoard, watchBoard } from './board-watch'
 import { historySnapshot, readProjectHistory, recordHistory } from './history'
 import {
+  agentBudgetStatus,
   deployCursorRule,
   deployProjectAgentsMd,
   eccStatus,
   installEccNow,
   meshyStatus,
+  pruneAgentRosterNow,
   setUnrealPath,
   installUnrealMcp,
   rtkStatus,
@@ -247,6 +249,10 @@ export function registerPlanIdeIpc(): void {
   // Fetching is its own action, so turning ECC on in the Toolkit installs it now
   // instead of quietly waiting for the next launch.
   on('planide:ecc-install', () => installEccNow())
+  // Claude Code's 15k agent-description cap, counted its own way, and where the
+  // total comes from. The project path adds that project's .claude/agents.
+  on('planide:agent-budget', (path?: string) => agentBudgetStatus(path))
+  on('planide:agent-budget-prune', (path?: string) => pruneAgentRosterNow(path))
   // Meshy's 3D generation is a paid API, so the key is the whole gate: with one
   // its MCP server is registered for every agent, without one it is removed.
   on('planide:meshy-status', () => meshyStatus())

@@ -14,6 +14,11 @@ sentence added there is not a one-off cost. This prints the split, and with
 
     python3 ide/token-cost.py            # the report
     python3 ide/token-cost.py --check    # non-zero exit if over the ceiling
+
+The roster is also measured the way Claude Code itself measures it, because that
+is the number behind "Agent descriptions are over the 15.0k-token limit": per
+agent round(len(f"{name}: {description}") / 4), summed over every agent it can
+load. Ours has to leave most of that 15k to the user's own agents and plugins.
 """
 import glob
 import os
@@ -26,6 +31,10 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # numbers here and the number that test prints stay comparable.
 CHARS_PER_TOKEN = 3.6
 CEILING_TOKENS = 17000
+# Claude Code's cap on all agent descriptions together, and the share of it this
+# roster may take. Read off the CLI (2.1.281): the warning fires over 15000.
+CLAUDE_AGENT_CAP = 15000
+ROSTER_SHARE_CEILING = 9000
 
 
 def tokens(n_chars: int) -> int:
@@ -51,6 +60,19 @@ def roster_chars() -> tuple[int, int]:
             total += len(d)
             count += 1
     return total, count
+
+
+def roster_claude_tokens() -> int:
+    """The roster as Claude Code counts it: round(len("name: description") / 4) per lead."""
+    total = 0
+    for f in glob.glob(str(ROOT / 'ide/agent-bundle/agents/*.md')):
+        if f.endswith('README.md'):
+            continue
+        fm = frontmatter(pathlib.Path(f).read_text(encoding='utf-8'))
+        name, d = field(fm, 'name'), field(fm, 'description')
+        if name and d:
+            total += round(len(f'{name}: {d}') / 4)
+    return total
 
 
 def skills_chars() -> tuple[int, int]:
@@ -87,11 +109,21 @@ def main() -> int:
     print(f'  {"":32} {"":7}        {"-" * 13}')
     print(f'  {"TOTAL":32} {total:7,} chars  ~{tokens(total):6,} tokens')
     print(f'\n  ceiling {CEILING_TOKENS:,} tokens -- headroom {CEILING_TOKENS - tokens(total):,}')
+    cc = roster_claude_tokens()
+    print(f'\nClaude Code agent-description cap: the roster takes ~{cc:,} of {CLAUDE_AGENT_CAP:,}')
+    print(f'  share ceiling {ROSTER_SHARE_CEILING:,} -- leaves {CLAUDE_AGENT_CAP - cc:,} for the user\'s own agents')
     print('\nRead on demand, costing nothing until called: the specialist roster,')
     print('ECC, the 152 design systems, ThreeUI, the 274 agency roles.')
-    if '--check' in sys.argv and tokens(total) > CEILING_TOKENS:
-        print(f'\nOVER CEILING by {tokens(total) - CEILING_TOKENS:,} tokens', file=sys.stderr)
-        return 1
+    if '--check' in sys.argv:
+        failed = False
+        if tokens(total) > CEILING_TOKENS:
+            print(f'\nOVER CEILING by {tokens(total) - CEILING_TOKENS:,} tokens', file=sys.stderr)
+            failed = True
+        if cc > ROSTER_SHARE_CEILING:
+            print(f'\nROSTER OVER ITS SHARE of Claude Code\'s agent cap by {cc - ROSTER_SHARE_CEILING:,} tokens',
+                  file=sys.stderr)
+            failed = True
+        return 1 if failed else 0
     return 0
 
 
