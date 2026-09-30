@@ -86,9 +86,15 @@ jobs:
           key: electron-builder-mac-${{ steps.pin.outputs.sha }}
           restore-keys: electron-builder-mac-
 
-      - name: Install dependencies
+      # install:release, not a plain install: it is `pnpm install --frozen-lockfile
+      # --cpu=current,x64,arm64`, which fetches BOTH macOS architectures' native
+      # variants (@parcel/watcher, sherpa-onnx, ...). The mac config packages a
+      # universal .dmg per arch, and electron-builder's beforePack refuses to pack
+      # an arch whose natives are missing -- which is what an arm64-only install on
+      # the Apple-Silicon runner produced.
+      - name: Install dependencies (both macOS architectures)
         working-directory: work/orca
-        run: pnpm install --frozen-lockfile
+        run: pnpm install:release
 
       # Orca packages its mobile web companion into the desktop app, and
       # electron-builder's beforePack asserts that bundle exists -- so the
