@@ -90,6 +90,16 @@ jobs:
         working-directory: work/orca
         run: pnpm install --frozen-lockfile
 
+      # Orca packages its mobile web companion into the desktop app, and
+      # electron-builder's beforePack asserts that bundle exists -- so the
+      # mobile workspace (excluded from the root install by pnpm-workspace.yaml)
+      # has to be installed too. It became a real dependency in the b99462a
+      # bump: earlier mobile-web built with the root install alone. Its
+      # postinstall builds a few webview engines with esbuild -- no native pods.
+      - name: Install the mobile web companion's dependencies
+        working-directory: work/orca/mobile
+        run: pnpm install --frozen-lockfile
+
       - name: Build
         working-directory: work/orca
         run: pnpm build:desktop
