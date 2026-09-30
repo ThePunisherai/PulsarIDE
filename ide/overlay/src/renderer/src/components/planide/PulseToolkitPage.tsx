@@ -365,12 +365,12 @@ export default function PulseToolkitPage(): React.JSX.Element {
               </pre>
             )}
           </Card>
-          {/* --- jevgrep: code search by behaviour, the user's to switch on -- */}
+          {/* --- jevgrep: code search the agents run themselves ------------ */}
           <Card
             title={translate('planide.toolkit.jevgrep', 'Code search (jevgrep)')}
             subtitle={translate(
               'planide.toolkit.jevgrepSub',
-              'Council and the team leads ask jg how or where something works and get ranked files and source excerpts back. It needs your own model-provider key, and each search sends eligible source to that provider -- so it is yours to install, never installed for you.'
+              'Council and the team leads run jg themselves to find code by what it does -- you never type it. They use it only when it is already on this machine with a provider saved; otherwise they search with their own tools, and nothing is asked of you.'
             )}
           >
             {jevgrep ? (
@@ -384,21 +384,14 @@ export default function PulseToolkitPage(): React.JSX.Element {
                           'Not available on Windows: the package is published for macOS and Linux only. It works inside WSL; here agents fall back to rg.'
                         )
                       : !jevgrep.installed
-                        ? translate('planide.toolkit.jevgrepOff', 'Not installed. Agents fall back to rg until it is.')
+                        ? translate('planide.toolkit.jevgrepOff', 'Not on this machine. Agents use their own search instead -- nothing to do.')
                         : translate('planide.toolkit.jevgrepOn', 'on PATH') +
                           ` (${jevgrep.version}) · ` +
                           (jevgrep.authenticated
                             ? translate('planide.toolkit.jevgrepReady', 'provider saved. Agents start code discovery with it.')
-                            : translate('planide.toolkit.jevgrepNoAuth', 'no provider saved yet -- run jg auth in a terminal.'))}
+                            : translate('planide.toolkit.jevgrepNoAuth', 'no provider saved, so agents use their own search instead.'))}
                   </span>
                 </div>
-                {jevgrep.supported && !(jevgrep.installed && jevgrep.authenticated) && (
-                  <pre className="mt-2 overflow-x-auto rounded-md bg-muted/40 px-2 py-1.5 font-mono text-[10px] text-muted-foreground">
-                    {jevgrep.installed
-                      ? 'jg auth\njg doctor'
-                      : 'npm install -g @dzhng/jevgrep\njg auth\njg doctor'}
-                  </pre>
-                )}
               </>
             ) : (
               <p className="mt-2 text-[11px] text-muted-foreground">

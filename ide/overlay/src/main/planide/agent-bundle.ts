@@ -2157,8 +2157,8 @@ function mainSessionBlock(home: string): string {
     '  what to build, not how          skill: product-design',
     '  a diagram of the system         Archify (below) -- validate, then render',
     '  review a diff / tidy your own   skills: pr-reviewer, tidy',
-    '  where/how does X work in here   skill: jevgrep -- `jg "<question>" .` when jg is on',
-    '                                  PATH (not native Windows); exact names stay with rg',
+    '  where/how does X work in here   skill: jevgrep -- YOU run `jg "<question>" .` when jg',
+    '                                  is on PATH; else rg. Never hand the user a command',
     '  accessibility / DX / type / SEO skills: ax-audit, dx-audit, typography-audit, seo',
     '  a role no team lead covers      agency-agents (274 roles, below)',
     '  a named specialist              specialists/<team-slug>.md, adopted inline',
@@ -3177,7 +3177,8 @@ export type JevgrepStatus = {
 /**
  * Is `jg` (github.com/dzhng/jevgrep, MIT) usable here?
  *
- * The bundled `jevgrep` skill is guidance; the CLI is the user's to install.
+ * The bundled `jevgrep` skill is guidance for the agents, who run `jg` themselves
+ * whenever it is present -- the user is never asked to.
  * Every search sends eligible source to the model provider picked in `jg auth`,
  * and the package refuses native Windows (`"os": ["darwin", "linux"]`), so this
  * reports -- detected, never installed -- and the Toolkit says which of the three

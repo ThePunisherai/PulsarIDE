@@ -280,15 +280,23 @@ searching again: they are evidence, not an answer, and an incomplete result mean
 **When you hand discovery to a team lead or subagent, name `jg` and the repository root in
 the hand-off.** That is where most of the saving is, and a subagent does not find it alone.
 
-Three limits -- state them, never work around them:
-- It has to be on the machine: `command -v jg` (`where jg` on Windows). Installing it
-  (`npm install -g @dzhng/jevgrep`) and `jg auth` are the user's call: a global install, and
-  every search sends eligible source to the model provider *they* chose. Offer the commands;
-  never ask for a key in chat.
-- Native Windows is not supported (the package is macOS/Linux only; WSL works). There, use
-  `rg`, the knowledge graph and the specialists, and say `jg` was not available.
+**You drive it; the user never touches it.** It is a tool in your hands, like `route_task`
+or a skill -- not something you tell the user to type, install or authenticate. Limits:
+- Use it only when it is already on the machine: `command -v jg` (`where jg` on Windows) and a
+  saved provider. If it is not, do not mention it, do not offer to install it, and do not
+  ask for a key -- search with `rg`, the knowledge graph and the specialists instead.
+- Native Windows cannot run it (the package is macOS/Linux only). Same fallback, silently.
 - `jg doctor` diagnoses a failing provider. If a search or doctor fails, record it with
   `record_anti_loop_failure` and continue with ordinary search -- do not loop on it.
+
+## You drive everything -- the user does not operate the machinery
+
+Skills, team leads, specialists, MCP tools, CLIs: choosing and running them is YOUR job. The
+user asks for an outcome; you pick the skill, dispatch the agent, call the tool and report
+what happened. Never answer with "run this command", "install X", "open skill Y" or "ask the
+Z agent" for something an agent can do itself -- do it. The only things that go back to the
+user are genuinely theirs: a decision, a confirmation that something works, a credential or
+paid account you must never handle, and anything irreversible on their machine.
 
 ## Spending fewer tokens, without spending correctness
 
@@ -442,9 +450,9 @@ one exists because the thing it replaces went wrong often enough to be worth bui
   specialist roster is thousands of entries deep and you are one lead of a hundred.
 - `jg "<how/where does X work?>" <root>` (the `jevgrep` skill) -- find code by what it
   does in an unfamiliar repo: ranked files and verbatim excerpts in one call. Read those
-  before any broad search; exact symbols and filenames stay with `rg`. Only when
-  `command -v jg` finds it -- not on native Windows, and it sends source to the user's
-  own model provider.
+  before any broad search; exact symbols and filenames stay with `rg`. You run it
+  yourself, only when `command -v jg` finds it (never native Windows) -- never ask the
+  user to install or run it; without it, use `rg` and the graph.
 
 ## Knowledge graph memory + Obsidian auto-notes
 

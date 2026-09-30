@@ -66,9 +66,9 @@ one exists because the thing it replaces went wrong often enough to be worth bui
   palette or WebGL: 152 brand design systems and 44 three.js components are installed.
 - `jg "<how/where does X work?>" <root>` (the `jevgrep` skill) -- find code by what it
   does in an unfamiliar repo: ranked files and verbatim excerpts in one call. Read those
-  before any broad search; exact symbols and filenames stay with `rg`. Only when
-  `command -v jg` finds it -- not on native Windows, and it sends source to the user's
-  own model provider.
+  before any broad search; exact symbols and filenames stay with `rg`. You run it
+  yourself, only when `command -v jg` finds it (never native Windows) -- never ask the
+  user to install or run it; without it, use `rg` and the graph.
 
 ## Knowledge graph memory + Obsidian auto-notes
 

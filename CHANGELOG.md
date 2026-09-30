@@ -6,6 +6,19 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.96.1] - 2026-09-30
+
+### What's changed
+- **You never have to run `jg`.** jevgrep is now a tool in Council's hands, like any skill
+  or agent: Council and the team leads run it themselves when it is already on the machine,
+  and otherwise search with their own tools without mentioning it. Nothing tells you to
+  install it, authenticate it or type a command any more -- not the skill, not Council, not
+  the Toolkit card.
+- **Council drives everything.** A new standing rule: picking and running skills, agents,
+  specialists and tools is Council's job. It does not answer with "run this command" or
+  "open that skill" for work an agent can do itself. Only decisions, confirmations,
+  credentials and irreversible steps come back to you.
+
 ## [0.96.0] - 2026-09-30
 
 ### What's fixed

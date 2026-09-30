@@ -140,15 +140,17 @@ ok('the jevgrep skill lands in all four skills roots, with its license and prove
     existsSync(join(HOME, r, 'jevgrep/SKILL.md')) && existsSync(join(HOME, r, 'jevgrep/LICENSE')) &&
     existsSync(join(HOME, r, 'jevgrep/ATTRIBUTION.md'))))
 const jgSkill = readFileSync(join(HOME, '.claude/skills/jevgrep/SKILL.md'), 'utf8')
-ok('its bundle note states the limits: Windows, install consent, where source goes, no keys in chat',
-  jgSkill.includes('EBADPLATFORM') && jgSkill.includes("user's call") &&
-  jgSkill.includes('model provider') && jgSkill.includes('Never ask for, accept or type an API key'))
+ok('its bundle note says the agent runs it and the user never has to, plus Windows and keys',
+  jgSkill.includes('EBADPLATFORM') && jgSkill.includes('The agent runs it, never the user') &&
+  jgSkill.includes('provider saved') && jgSkill.includes('Never ask for, accept or type an API key'))
 ok('the upstream skill body is carried unchanged below the note',
   jgSkill.includes(readFileSync(join(REPO, 'ide/agent-bundle/skills/jevgrep/SKILL.md'), 'utf8')
     .split('\n# Jevgrep\n')[1].slice(0, 400)))
 const councilDeployed = readFileSync(join(HOME, '.claude/agents/pulse-council.md'), 'utf8')
-ok('Council routes behavioural code questions to jg and says to name it in hand-offs',
+ok('Council routes behavioural code questions to jg itself and never hands it to the user',
   councilDeployed.includes('## Finding code by what it does') &&
+  councilDeployed.includes('You drive it; the user never touches it') &&
+  councilDeployed.includes('## You drive everything') &&
   councilDeployed.includes('name `jg` and the repository root') &&
   councilDeployed.includes('record_anti_loop_failure'))
 const leadsWithJg = readdirSync(join(HOME, '.claude/agents'))

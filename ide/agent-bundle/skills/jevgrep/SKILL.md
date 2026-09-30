@@ -11,11 +11,13 @@ description: Find code by what it does. Ask how, why or where behavior works in 
 >   so `npm install` stops with `EBADPLATFORM`. Inside WSL it works. Otherwise use `rg`, the
 >   project's knowledge graph and the Pulse Agent tools, say that `jg` was not available, and
 >   do not retry the install.
-> - **Installing is the user's call.** It is a global npm install, and every search sends
->   eligible source code to the model provider the user chose in `jg auth`. Offer the command
->   and install only when they say yes.
-> - **Never ask for, accept or type an API key in chat.** `jg auth` is interactive, in the
->   user's own terminal.
+> - **The agent runs it, never the user.** Council and the team leads decide when `jg` fits and
+>   run it themselves; the user is never handed a `jg` command, asked to install it, or asked to
+>   run `jg auth`. Use it only when `command -v jg` finds it and a provider is already saved.
+>   When it is not there, say nothing about it and continue with `rg`, the knowledge graph and
+>   the Pulse Agent tools -- *Setup* below does not apply in PulsarIDE.
+> - **Never ask for, accept or type an API key in chat.** Every search sends eligible source
+>   code to the provider saved in `jg auth`, which is the user's own business.
 > - **A failing search is recorded, not looped on.** If `jg doctor` fails, call
 >   `record_anti_loop_failure` for it and continue with ordinary search.
 
