@@ -158,6 +158,7 @@ function loadState(project) {
 }
 
 function saveState(project, state) {
+  syncRoadmap(state)
   state.updated_at = nowIso()
   mkdirSync(join(project, '.planide'), { recursive: true })
   const file = join(project, '.planide', 'state.json')
@@ -180,6 +181,30 @@ function release(item, why) {
   item.notes = item.notes ? `${item.notes}\n${line}` : line
 }
 
+/**
+ * The roadmap follows the items linked to it -- the rule the IDE and the MCP
+ * server apply on every write, applied here too, since a plan step finishing is
+ * exactly what completes a phase.
+ */
+function syncRoadmap(state) {
+  const byId = new Map((state.items ?? []).map((i) => [i.id, i]))
+  for (const m of state.roadmap ?? []) {
+    if (m.manual) continue
+    const linked = (m.item_ids ?? []).map((id) => byId.get(id)).filter(Boolean)
+    if (!linked.length) continue
+    const finished = linked.every((i) => i.status === 'works' || i.status === 'done')
+    if (finished && !m.done) {
+      m.done = true
+      m.auto_done = true
+      logActivity(state, 'milestone', `roadmap: ${m.title} -> done (all ${linked.length} linked items finished)`, 'tracker')
+    } else if (!finished && m.done && m.auto_done) {
+      m.done = false
+      delete m.auto_done
+      logActivity(state, 'milestone', `roadmap: ${m.title} reopened -- a linked item is no longer finished`, 'tracker')
+    }
+  }
+}
+
 function logActivity(state, kind, text, who) {
   state.activity.unshift({ id: newId('a_'), at: nowIso(), kind, text, who: who || 'agent' })
   if (state.activity.length > 500) state.activity.length = 500
@@ -200,7 +225,7 @@ async function main() {
     const project = resolveProject(payload.cwd)
     if (!project || !existsSync(join(project, '.planide', 'state.json'))) return
     const state = loadState(project)
-    const before = JSON.parse(JSON.stringify({ items: state.items, fixes: state.fixes ?? [], milestones: state.milestones ?? [], version: state.version }))
+    const before = JSON.parse(JSON.stringify({ items: state.items, fixes: state.fixes ?? [], roadmap: state.roadmap ?? [], version: state.version }))
     let released = 0
     for (const item of state.items) {
       if (item.plan_owner !== owner) continue
@@ -232,7 +257,7 @@ async function main() {
 
   const agent = String(payload.agent_type || 'agent').slice(0, 40)
   const state = loadState(project)
-  const before = JSON.parse(JSON.stringify({ items: state.items, fixes: state.fixes ?? [], milestones: state.milestones ?? [], version: state.version }))
+  const before = JSON.parse(JSON.stringify({ items: state.items, fixes: state.fixes ?? [], roadmap: state.roadmap ?? [], version: state.version }))
 
   let added = 0
   let moved = 0

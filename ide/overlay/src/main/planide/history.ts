@@ -59,6 +59,8 @@ export type HistoryResult = { available: boolean; events: HistoryEvent[]; total:
 type Boardish = {
   items?: Array<Record<string, unknown>>
   fixes?: Array<Record<string, unknown>>
+  /** The board's roadmap. `milestones` is the name older snapshots used for it. */
+  roadmap?: Array<Record<string, unknown>>
   milestones?: Array<Record<string, unknown>>
   version?: unknown
 }
@@ -167,7 +169,9 @@ export function recordHistory(projectPath: string, before: Boardish, after: Boar
     const rows: unknown[][] = [
       ...diffCollection('item', before?.items, after?.items, actor, ts),
       ...diffCollection('fix', before?.fixes, after?.fixes, actor, ts),
-      ...diffCollection('milestone', before?.milestones, after?.milestones, actor, ts)
+      // The board keeps milestones under `roadmap`. Diffing `milestones` -- a field no
+      // writer ever set -- is why no roadmap change ever reached the History tab.
+      ...diffCollection('milestone', before?.roadmap ?? before?.milestones, after?.roadmap ?? after?.milestones, actor, ts)
     ]
     const ov = asText(before?.version)
     const nv = asText(after?.version)
@@ -219,7 +223,7 @@ export function historySnapshot(state: Boardish): Boardish {
   return {
     items: structuredClone(state.items ?? []),
     fixes: structuredClone(state.fixes ?? []),
-    milestones: structuredClone(state.milestones ?? []),
+    roadmap: structuredClone(state.roadmap ?? state.milestones ?? []),
     version: state.version
   }
 }

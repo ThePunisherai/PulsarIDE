@@ -29,7 +29,8 @@ Keep entries short and actionable: "When X, don't Y because Z; do W instead."
 Real MCP tools, registered for every agent. They cost nothing until called, and each
 one exists because the thing it replaces went wrong often enough to be worth building.
 
-- `route_task("<the task>")` -- which team and which named specialists actually fit.
+- `route_task("<the task>")` -- which team and named specialists fit, and in `use_first`
+  which skills, design systems, 3D pieces and design roles to open. Open them.
   Call it before non-trivial work rather than answering as a generic assistant: the
   specialist roster is thousands of entries deep and you are one lead of a hundred.
 - `ecc_find("<operator task>")` / `ecc_read(...)` -- 291 skills and 68 agents for CI,

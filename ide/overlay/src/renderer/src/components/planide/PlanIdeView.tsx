@@ -1338,7 +1338,21 @@ export default function PlanIdeView(): React.JSX.Element {
                   >
                     <Check size={11} />
                   </button>
-                  <div className="min-w-0 flex-1 break-words text-[13px]">{m.title}</div>
+                  <div className="min-w-0 flex-1 break-words text-[13px]">
+                    {m.title}
+                    {(m.item_ids ?? []).length > 0 && (
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        {(project.items ?? []).filter(
+                          (i) => (m.item_ids ?? []).includes(i.id) && (i.status === 'works' || i.status === 'done')
+                        ).length}
+                        /{(m.item_ids ?? []).length}{' '}
+                        {translate('planide.view.milestoneItems', 'linked items finished')}
+                        {m.done && m.auto_done
+                          ? ` · ${translate('planide.view.milestoneAuto', 'completed by its items')}`
+                          : ''}
+                      </div>
+                    )}
+                  </div>
                   {/* `target` is free text an agent writes, and they write
                       sentences into it. With shrink-0 a long one refused to give
                       up any width, so the title next to it was squeezed down to

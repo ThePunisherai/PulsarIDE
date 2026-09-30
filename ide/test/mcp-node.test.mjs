@@ -415,6 +415,79 @@ ok('a plan written in another script keeps one card per step',
 ok('accents, case and punctuation do not make a new step',
   uniBoard.items.find((i) => i.title === 'Écrire les tests')?.status === 'works')
 
+// --- the roadmap follows the work ------------------------------------------- //
+// Milestones carried item_ids that no tool ever filled, so the roadmap only
+// moved when an agent remembered set_milestone -- it drifted from the board the
+// moment work started. Now items link to a milestone and drive it.
+const roadProj = mkdtempSync(join(tmpdir(), 'pulsar-road-'))
+const road1 = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(100, 'add_item', { project: roadProj, title: 'Design the schema', agent: 'Council' }),
+  call(101, 'add_milestone', { project: roadProj, title: 'Phase 1: data layer', items: ['design the schema', 'no such item'] }),
+  call(102, 'sync_plan', { project: roadProj, agent: 'Council', milestone: 'Phase 1: data layer', todos: [
+    { content: 'Write the migration', status: 'in_progress' }
+  ] }),
+  call(103, 'add_item', { project: roadProj, title: 'Seed the fixtures', milestone: 'phase 1 data layer', agent: 'Council' }),
+  call(104, 'get_board', { project: roadProj })
+])
+const phase = json(byId(road1.replies, 101))
+const board1 = json(byId(road1.replies, 104))
+const m1 = board1.roadmap[0]
+ok('add_milestone links items already on the board, by title, and says which it could not',
+  phase.linked === 1 && /no such item/.test(phase.warning ?? ''))
+ok('sync_plan and add_item link their items to a milestone named by title',
+  m1.items === 3 && board1.items.filter((i) => i.milestone === m1.id).length === 3)
+ok('get_board shows how far each milestone is', m1.finished === 0 && m1.done === false)
+const ids = Object.fromEntries(board1.items.map((i) => [i.title, i.id]))
+const road2 = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(110, 'set_item', { project: roadProj, id: ids['Design the schema'], status: 'done', agent: 'Council' }),
+  call(111, 'set_item', { project: roadProj, id: ids['Write the migration'], status: 'works', agent: 'Council' }),
+  call(112, 'get_board', { project: roadProj }),
+  call(113, 'set_item', { project: roadProj, id: ids['Seed the fixtures'], status: 'works', agent: 'Council' }),
+  call(114, 'get_board', { project: roadProj }),
+  call(115, 'set_item', { project: roadProj, id: ids['Write the migration'], status: 'broken', agent: 'Council' }),
+  call(116, 'get_board', { project: roadProj })
+])
+ok('a milestone stays open while any linked item is unfinished',
+  json(byId(road2.replies, 112)).roadmap[0].done === false)
+const closed = json(byId(road2.replies, 114))
+ok('it completes by itself when every linked item works, and the trail says so',
+  closed.roadmap[0].done === true && closed.roadmap[0].finished === 3 &&
+  closed.recent_activity.some((a) => /Phase 1: data layer -> done/.test(a.text)))
+ok('and reopens when one of them breaks again',
+  json(byId(road2.replies, 116)).roadmap[0].done === false)
+const mid = closed.roadmap[0].id
+const road3 = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(120, 'set_milestone', { project: roadProj, id: mid, done: true, agent: 'you' }),
+  call(121, 'set_item', { project: roadProj, id: ids['Seed the fixtures'], status: 'wip', agent: 'Council' }),
+  call(122, 'get_board', { project: roadProj }),
+  call(123, 'add_item', { project: roadProj, title: 'Orphan', milestone: 'Phase 9' })
+])
+ok('a milestone ticked by hand stays as it was set -- the items no longer decide it',
+  json(byId(road3.replies, 122)).roadmap[0].done === true)
+ok('linking to a milestone that does not exist says so instead of failing silently',
+  /no milestone matches/.test(json(byId(road3.replies, 123)).warning ?? ''))
+// Roadmap changes used to be invisible to History: the diff read `milestones`,
+// a field no writer ever set, while the board keeps them under `roadmap`.
+const roadHist = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  { jsonrpc: '2.0', id: 130, method: 'tools/call', params: { name: 'get_board', arguments: { project: roadProj } } }
+])
+void roadHist
+let milestoneRows = -1
+try {
+  const { DatabaseSync } = await import('node:sqlite')
+  const db = new DatabaseSync(join(roadProj, '.planide', 'history.db'))
+  milestoneRows = db.prepare("SELECT COUNT(*) AS n FROM events WHERE entity = 'milestone'").get().n
+  db.close()
+} catch {
+  milestoneRows = -2
+}
+ok(`roadmap changes reach History now (${milestoneRows} milestone events)`,
+  milestoneRows > 0)
+
 // --- parity with the IDE's own store --------------------------------------- //
 const loaded = store.loadState(proj)
 // 3 items: the two real ones plus the "Sneaky" one the trust-boundary check added.

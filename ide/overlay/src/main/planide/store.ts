@@ -88,6 +88,10 @@ export type Milestone = {
   done: boolean
   order: number
   item_ids: string[]
+  /** Completed by its items rather than by hand -- so it reopens if one of them regresses. */
+  auto_done?: boolean
+  /** Ticked or unticked by hand: its items no longer decide it. */
+  manual?: boolean
 }
 
 export type Version = {
@@ -226,6 +230,9 @@ export function loadState(projectPath: string): ProjectState {
 }
 
 export function saveState(projectPath: string, state: ProjectState): void {
+  // Every IDE write -- your clicks, agent turns -- keeps the roadmap level with
+  // the items linked to it, the same rule the MCP server and the plan hook apply.
+  for (const line of syncRoadmap(state)) logActivity(state, 'milestone', line, 'tracker')
   state.updated_at = nowIso()
   const dir = join(projectPath, '.planide')
   mkdirSync(dir, { recursive: true })
@@ -489,6 +496,46 @@ export function deleteFix(state: ProjectState, fixId: string): boolean {
 }
 
 // --------------------------------------------------------------------------- roadmap
+/**
+ * The roadmap follows the work linked to it.
+ *
+ * A milestone used to move only when someone remembered to tick it, and its
+ * `item_ids` were never filled, so the roadmap drifted away from the board the
+ * moment work started. Now: a milestone with linked items is done when every one
+ * of them works or is complete, and one it completed that way reopens when a
+ * linked item stops working. A milestone ticked by hand is never reopened for
+ * you. Returns what changed, for the activity trail.
+ */
+export function syncRoadmap(state: ProjectState): string[] {
+  const lines: string[] = []
+  const byId = new Map((state.items ?? []).map((i) => [i.id, i]))
+  for (const m of state.roadmap ?? []) {
+    if (m.manual) continue
+    const linked = (m.item_ids ?? []).map((id) => byId.get(id)).filter((i): i is Item => Boolean(i))
+    if (!linked.length) continue
+    const finished = linked.every((i) => DONE_ITEM.includes(i.status))
+    if (finished && !m.done) {
+      m.done = true
+      m.auto_done = true
+      lines.push(`roadmap: ${m.title} -> done (all ${linked.length} linked items finished)`)
+    } else if (!finished && m.done && m.auto_done) {
+      m.done = false
+      delete m.auto_done
+      lines.push(`roadmap: ${m.title} reopened -- a linked item is no longer finished`)
+    }
+  }
+  return lines
+}
+
+/** Link an item to a milestone (an item belongs to at most one). */
+export function linkItemToMilestone(state: ProjectState, itemId: string, mid: string): boolean {
+  const m = (state.roadmap ?? []).find((x) => x.id === mid)
+  if (!m || !(state.items ?? []).some((i) => i.id === itemId)) return false
+  for (const other of state.roadmap) other.item_ids = (other.item_ids ?? []).filter((id) => id !== itemId)
+  m.item_ids = [...(m.item_ids ?? []), itemId]
+  return true
+}
+
 export function addMilestone(state: ProjectState, title: string, target = ''): Milestone {
   const m: Milestone = {
     id: newId('m_'),
@@ -513,6 +560,11 @@ export function updateMilestone(
   for (const [k, v] of Object.entries(fields)) {
     if (!WRITABLE.has(k)) continue
     ;(m as unknown as Record<string, unknown>)[k] = v
+  }
+  // Ticked or unticked by hand: that is your call, and the items no longer decide it.
+  if (fields.done !== undefined) {
+    delete m.auto_done
+    m.manual = true
   }
   return m
 }

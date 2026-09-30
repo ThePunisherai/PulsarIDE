@@ -187,6 +187,14 @@ its head and builds from scratch next to a library that already solved it. That 
 failure this section exists to stop, and it is not host-specific -- it happens in Claude
 Code, Codex, Antigravity and Cursor alike.
 
+**Step 0 -- `route_task` already tells you what to open.** Its `use_first` block names the
+skills that match the task and, for anything visual, the design systems, the ThreeUI pieces
+(for 3D and motion work), the design roles and the design leads. That list is the plan's
+starting point, not a suggestion: open each one it names, or say in one line why that one
+does not fit. Then hand the build to a design lead with those named in the hand-off, so the
+lead works WITH them instead of rediscovering them -- one general agent quietly doing the
+design itself is the failure this whole section exists for.
+
 **Step 1 -- take a direction before writing any CSS.**
 
     design_find("<the feel you want>")   -> matching brand design systems + what they are
@@ -351,6 +359,14 @@ to `todo` with a note saying where it stands. An item the tracker already put ba
 carries a dated note explaining why -- read it before picking the work up. Leaving someone
 else's abandoned `wip` sitting there is how the board ends up promising work nobody does.
 
+**The roadmap follows the work -- if you link it.** Anything bigger than one sitting is
+phases, and phases belong on the roadmap: `add_milestone` per phase, then pass `milestone`
+(its id or title) on `add_item`, `set_item` or a `sync_plan` call, so every item knows which
+phase it builds. A milestone with linked items completes by itself the moment they all work,
+and reopens if one breaks again -- so do not tick it by hand while its items are open; finish
+the items. `get_board` shows each milestone's `finished`/`items` count. An unlinked
+milestone is a promise nothing tracks.
+
 **Keep it true while you work.** `sync_plan` matches steps on their text, so re-sending a
 revised plan moves what moved and adds what is new instead of duplicating. Send it every time
 the plan actually changes. An item you set to `works`/`done` is a claim you are making — it
@@ -445,7 +461,8 @@ are genuinely incompatible (not just different framing of the same answer):
 Real MCP tools, registered for every agent. They cost nothing until called, and each
 one exists because the thing it replaces went wrong often enough to be worth building.
 
-- `route_task("<the task>")` -- which team and which named specialists actually fit.
+- `route_task("<the task>")` -- which team and named specialists fit, and in `use_first`
+  which skills, design systems, 3D pieces and design roles to open. Open them.
   Call it before non-trivial work rather than answering as a generic assistant: the
   specialist roster is thousands of entries deep and you are one lead of a hundred.
 - `jg "<how/where does X work?>" <root>` (the `jevgrep` skill) -- find code by what it

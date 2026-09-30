@@ -107,7 +107,16 @@ export type PlanIdeActivity = {
   who: string
 }
 
-export type PlanIdeMilestone = { id: string; title: string; target: string; done: boolean }
+export type PlanIdeMilestone = {
+  id: string
+  title: string
+  target: string
+  done: boolean
+  /** The items this milestone follows; it completes when they all work. */
+  item_ids?: string[]
+  /** Completed by its items rather than by hand. */
+  auto_done?: boolean
+}
 
 export type PlanIdeVersion = {
   version: string

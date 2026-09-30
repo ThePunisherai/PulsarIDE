@@ -159,7 +159,9 @@ export function recordDiff(projectPath, before, after, actor = 'agent') {
     let n = 0
     n += diffCollection(db, 'item', before?.items, after?.items, actor, ts)
     n += diffCollection(db, 'fix', before?.fixes, after?.fixes, actor, ts)
-    n += diffCollection(db, 'milestone', before?.milestones, after?.milestones, actor, ts)
+    // The board keeps milestones under `roadmap`; `milestones` is only what older
+    // snapshots called it. Diffing the wrong field hid every roadmap change.
+    n += diffCollection(db, 'milestone', before?.roadmap ?? before?.milestones, after?.roadmap ?? after?.milestones, actor, ts)
     // Version bumps are a real project event and cheap to record.
     const ov = asText(before?.version)
     const nv = asText(after?.version)

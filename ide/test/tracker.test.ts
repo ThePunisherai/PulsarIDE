@@ -9,6 +9,7 @@ import * as store from '../overlay/src/main/planide/store'
 import { detect } from '../overlay/src/main/planide/detect'
 import { buildReport } from '../overlay/src/main/planide/report'
 import * as backup from '../overlay/src/main/planide/backup'
+import { historySnapshot } from '../overlay/src/main/planide/history'
 import {
   autoPushEnabled,
   resetAutoPush,
@@ -293,6 +294,33 @@ ok('titles match across case, punctuation and accents',
    normalizeTitle('Café: fix the LOGIN.') === normalizeTitle('cafe fix the login'))
 ok('a title in another script keeps its letters',
    normalizeTitle('修复登录页面') !== '' && normalizeTitle('修复登录页面') !== normalizeTitle('添加导出按钮'))
+
+console.log('== the roadmap follows its items (IDE writes) ==')
+{
+  const road = mkdtempSync(join(tmpdir(), 'road-ide-'))
+  let st = store.loadState(road)
+  const a = store.addItem(st, { title: 'build the importer', status: 'wip' })
+  const b = store.addItem(st, { title: 'test the importer', status: 'todo' })
+  const m = store.addMilestone(st, 'Importer')
+  ok('items link to a milestone', store.linkItemToMilestone(st, a.id, m.id) && store.linkItemToMilestone(st, b.id, m.id))
+  store.saveState(road, st)
+  st = store.loadState(road)
+  store.updateItem(st, a.id, { status: 'works' })
+  store.updateItem(st, b.id, { status: 'done' })
+  store.saveState(road, st)
+  st = store.loadState(road)
+  ok('finishing every linked item completes the milestone on save', st.roadmap[0].done === true && st.roadmap[0].auto_done === true)
+  store.updateItem(st, a.id, { status: 'broken' })
+  store.saveState(road, st)
+  st = store.loadState(road)
+  ok('a linked item breaking reopens it', st.roadmap[0].done === false)
+  store.updateMilestone(st, m.id, { done: true })
+  store.saveState(road, st)
+  st = store.loadState(road)
+  ok('your own tick is kept even while an item is broken', st.roadmap[0].done === true && st.roadmap[0].manual === true)
+  const snap = historySnapshot(st)
+  ok('the history snapshot carries the roadmap it diffs', Array.isArray(snap.roadmap) && snap.roadmap.length === 1)
+}
 
 console.log('== backup (own zip writer) ==')
 store.saveState(proj, st)

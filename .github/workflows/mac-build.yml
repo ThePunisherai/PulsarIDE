@@ -1,0 +1,159 @@
+# Build PulsarIDE for macOS: a .dmg for Apple Silicon and one for Intel.
+#
+# Same three moves as every other build here -- clone Orca at the pinned
+# revision, apply ide/apply.py, build inside that clone with Orca's own scripts
+# -- plus the three small Swift helpers Orca's macOS app ships (computer use,
+# keyboard layout, notification status), built on the runner with Xcode.
+#
+# Signed ad-hoc, not with a Developer ID: this project has no Apple developer
+# certificate or notary account. Upstream's release path (ORCA_MAC_RELEASE=1)
+# forces Developer ID signing and notarization and fails without them, so it is
+# deliberately not set. An ad-hoc signature is what an Apple Silicon Mac needs to
+# run the app at all; Gatekeeper still quarantines a download it cannot trace to
+# an identified developer, which the release notes explain how to clear once.
+#
+# Called by release.yml with a tag (uploads into that release). Run by hand from
+# the Actions tab, or by a change to this file, it builds the current branch and
+# keeps the .dmg files as a workflow artifact for a week -- a Mac build of a
+# branch without cutting a release.
+name: mac-build
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Release to upload into (empty: keep as a workflow artifact)'
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/mac-build.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-15
+    # The whole desktop build plus two architectures of native modules: well
+    # over an hour on a hosted runner, so the limit leaves real headroom.
+    timeout-minutes: 150
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - name: Checkout PulsarIDE
+        uses: actions/checkout@v4
+
+      - name: Read the pinned Orca revision
+        id: pin
+        run: |
+          pin=$(grep -oE '^PINNED_COMMIT = "[a-f0-9]{40}"' ide/apply.py | grep -oE '[a-f0-9]{40}')
+          [ -n "$pin" ] || { echo "could not read PINNED_COMMIT"; exit 1; }
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch Orca at the pinned revision
+        run: |
+          mkdir -p work/orca && cd work/orca
+          git init -q
+          git remote add origin https://github.com/stablyai/orca.git
+          git fetch -q --depth 1 origin ${{ steps.pin.outputs.sha }}
+          git checkout -q FETCH_HEAD
+
+      - name: Apply the PulsarIDE overlay
+        run: python3 ide/apply.py work/orca
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: work/orca/package.json
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: work/orca/package.json
+          cache: pnpm
+          cache-dependency-path: work/orca/pnpm-lock.yaml
+
+      - name: Cache electron-builder downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: electron-builder-mac-${{ steps.pin.outputs.sha }}
+          restore-keys: electron-builder-mac-
+
+      - name: Install dependencies
+        working-directory: work/orca
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: work/orca
+        run: pnpm build:desktop
+
+      # Orca's own build:mac chain, minus the release-only environment checks:
+      # the helpers are universal (arm64 + x86_64) and signed ad-hoc when no
+      # signing identity is configured, which is the case here.
+      - name: Build the native macOS helpers
+        working-directory: work/orca
+        run: |
+          pnpm run build:computer-macos
+          pnpm run build:keyboard-layout-macos
+          pnpm run build:notification-status-macos
+          pnpm run ensure:electron-runtime
+
+      - name: Package the .dmg files
+        working-directory: work/orca
+        env:
+          # Never go looking for a Developer ID in the runner's keychain.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          # identity "-" = ad-hoc signature: required to launch on Apple Silicon,
+          # needs no certificate. Layered over Orca's own config in a wrapper
+          # rather than on the command line, where -c is an alias of --config.
+          cat > config/electron-builder.adhoc-mac.cjs <<'JS'
+          const base = require('./electron-builder.config.cjs')
+          module.exports = { ...base, mac: { ...base.mac, identity: '-' } }
+          JS
+          pnpm exec electron-builder --config config/electron-builder.adhoc-mac.cjs --mac \
+            --publish never
+          ls -la dist
+          for arch in arm64 x64; do
+            if [ ! -f "dist/pulsar-macos-$arch.dmg" ]; then
+              echo "pulsar-macos-$arch.dmg was not produced" >&2
+              exit 1
+            fi
+          done
+          # Prove the app inside is really signed (ad-hoc) and structurally sound.
+          app=$(find dist/mac-arm64 -maxdepth 1 -name '*.app' | head -1)
+          [ -n "$app" ] || { echo "no arm64 .app in dist/mac-arm64" >&2; exit 1; }
+          codesign --verify --deep --strict --verbose=2 "$app"
+
+      # Not latest-mac.yml: macOS only installs an update whose signature matches
+      # the running app's designated requirement, and an ad-hoc signature changes
+      # with every build. Publishing the feed would offer an update that then
+      # fails to install; without it, a new version is a new .dmg download.
+      - name: Attach the .dmg files to the release
+        if: inputs.tag != ''
+        working-directory: work/orca
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release upload "${{ inputs.tag }}" \
+            dist/pulsar-macos-arm64.dmg \
+            dist/pulsar-macos-x64.dmg \
+            --clobber
+
+      - name: Keep the .dmg files as a build artifact
+        if: inputs.tag == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: pulsar-macos
+          path: |
+            work/orca/dist/pulsar-macos-arm64.dmg
+            work/orca/dist/pulsar-macos-x64.dmg
+          retention-days: 7

@@ -119,6 +119,39 @@ ok('a lexically-ambiguous query still returns a ranked shortlist to judge', (() 
     b.some((m) => m.team === 'DevOps & Automation')
 })())
 
+// --- route_task names what to OPEN, not only who to be ---------------------- //
+// Council calls route_task first, and it used to answer with a team and its
+// specialists only -- never a skill, a design system or a ThreeUI piece. So
+// design requests went to one generic lead who hand-rolled everything next to
+// a library that already solved it: "Council does not use the design skills".
+const open = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(40, 'route_task', { query: 'build a landing page with a 3D hero for a fintech startup' }),
+  call(41, 'route_task', { query: 'maak de instellingen pagina mooier met dark mode' }),
+  call(42, 'route_task', { query: 'add an animated globe background to the homepage' }),
+  call(43, 'route_task', { query: 'write a README for the CLI' })
+])
+const land = json(byId(open, 40)).use_first
+ok('a visual request names the design skill to open',
+  land.skills.some((s) => s.name === 'ui-design'))
+ok('and the design systems to take a direction from, the design roles and the design leads',
+  land.design_systems.length > 0 &&
+  land.design_roles.includes('design-ui-designer') &&
+  land.design_leads.includes('pulse-web-frontend') && land.design_leads.includes('pulse-design-systems'))
+ok('and says what to do with them, in order, before any CSS',
+  /ui-design/.test(land.how) && /before any CSS/.test(land.how) && /design lead/.test(land.how))
+const dutch = json(byId(open, 41)).use_first
+ok('a request in Dutch is recognised as design work too',
+  Array.isArray(dutch.design_systems) && dutch.skills.some((s) => s.name === 'ui-design'))
+ok('a plain restyle is not offered 3D components -- ThreeUI is for motion work only',
+  dutch.ui_components.length === 0)
+ok('3D and motion work is offered the matching ThreeUI pieces',
+  json(byId(open, 42)).use_first.ui_components.includes('globe'))
+const readme = json(byId(open, 43)).use_first
+ok('non-visual work gets its own skills and no design block',
+  readme.skills.some((s) => /readme/.test(s.name)) && readme.design_systems === undefined)
+ok('the team routing is still there beside it', json(byId(open, 43)).matches.length > 0)
+
 // --- anti-loop -------------------------------------------------------------- //
 const proj = mkdtempSync(join(tmpdir(), 'pulsar-loop-'))
 const loop = await drive([

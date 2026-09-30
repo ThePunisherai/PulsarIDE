@@ -267,3 +267,14 @@ jobs:
         run: |
           gh release upload "${{ needs.create-release.outputs.tag }}" \
             dist/*.AppImage dist/latest-linux.yml --clobber
+
+  # macOS: the same pinned-Orca-plus-overlay build, in its own reusable workflow
+  # so a branch can be built for Mac without cutting a release. Apple Silicon
+  # and Intel .dmg files, signed ad-hoc (see mac-build.yml for why).
+  macos:
+    needs: create-release
+    uses: ./.github/workflows/mac-build.yml
+    with:
+      tag: ${{ needs.create-release.outputs.tag }}
+    permissions:
+      contents: write

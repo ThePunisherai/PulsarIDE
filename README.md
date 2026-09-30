@@ -130,9 +130,21 @@ in italics, and every line says who did it.</sub>
 Windows: grab **`pulsar-windows-setup.exe`** from
 [Releases](https://github.com/ThePunisherai/PlanIDE/releases) and run it.
 Linux: the `.AppImage` from the same page (`chmod +x`, then run).
+macOS: **`pulsar-macos-arm64.dmg`** (Apple Silicon, M1 and later) or
+**`pulsar-macos-x64.dmg`** (Intel) from the same page. Drag PulsarIDE into
+Applications. It is signed ad-hoc, not with an Apple Developer ID, so the first
+launch is blocked as "damaged" or "unidentified developer" -- clear the download
+quarantine once and it opens normally from then on:
 
-Every release is built by GitHub Actions on a real Windows runner
-(`.github/workflows/release.yml`): it clones Orca at the pinned revision,
+```sh
+xattr -dr com.apple.quarantine /Applications/PulsarIDE.app
+```
+
+On macOS a new version is a new `.dmg` download: in-app updates need a Developer
+ID signature, which this project does not have.
+
+Every release is built by GitHub Actions on real Windows, Linux and macOS runners
+(`.github/workflows/release.yml`, macOS in `mac-build.yml`): it clones Orca at the pinned revision,
 applies the overlay, and packages it with Orca's own release scripts. Nothing is
 built by hand.
 

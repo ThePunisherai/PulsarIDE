@@ -27,6 +27,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const SERVER_NAME = 'pulsar-tools'
@@ -247,12 +248,179 @@ function routeTask(query, top) {
   }
   scored.sort((a, b) => b.score - a.score)
   return {
+    // First: what to open. The team says who does the work; this says what they
+    // work WITH, and it is what went unused when only the team was named.
+    use_first: useFirst(query),
     matches: scored.slice(0, 3),
     note:
       scored.length === 0
         ? 'No team matched. Take it to the Council rather than guessing.'
         : 'Read the named team file under the specialists directory and adopt the specialist inline.'
   }
+}
+
+// --------------------------------------------------------------------------- what to open
+
+/**
+ * The installed skills, searchable -- so routing can NAME the skill to open.
+ *
+ * route_task used to answer only with a team and its specialists. For "make a
+ * landing page" that was the Web Frontend lead and nothing else: not ui-design,
+ * not the 152 design systems, not ThreeUI. The instructions said to use them,
+ * but the one tool Council calls first said nothing, and agents do what the tool
+ * answer says. Reported as "Council does not use the design skills". So the
+ * answer now carries what to open, not only who to be.
+ */
+let SKILLS = null
+function skillCatalog() {
+  if (SKILLS) return SKILLS
+  // The bundle's own copy when it ships beside this server (dev checkout), else
+  // the per-tool skills folders the deploy writes -- whichever holds skills.
+  const roots = [
+    join(BUNDLE_ROOT, 'skills'),
+    join(homedir(), '.claude', 'skills'),
+    join(homedir(), '.codex', 'skills'),
+    join(homedir(), '.qwen', 'skills'),
+    join(homedir(), '.gemini', 'config', 'skills')
+  ]
+  SKILLS = []
+  for (const root of roots) {
+    let dirs = []
+    try {
+      dirs = readdirSync(root)
+    } catch {
+      continue
+    }
+    for (const d of dirs) {
+      let text
+      try {
+        text = readFileSync(join(root, d, 'SKILL.md'), 'utf8').slice(0, 4000)
+      } catch {
+        continue
+      }
+      const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)
+      if (!fm) continue
+      const name = (/^name:\s*(.+)$/m.exec(fm[1])?.[1] ?? d).trim().replace(/^["']|["']$/g, '')
+      const dm = /^description:[ \t]*([\s\S]*?)(?=^[\w-]+:|$(?![\s\S]))/m.exec(fm[1])
+      const description = (dm ? dm[1] : '').replace(/^[>|]-?/, '').replace(/\s+/g, ' ').trim().replace(/^["']|["']$/g, '')
+      SKILLS.push({ name, description, nameWords: new Set(tokenize(name.replace(/[-_]/g, ' '))), words: new Set(tokenize(description)) })
+    }
+    if (SKILLS.length) break
+  }
+  return SKILLS
+}
+
+function skillFind(query, limit) {
+  const words = [...new Set(tokenize(query))]
+  if (!words.length) return []
+  const scored = []
+  for (const sk of skillCatalog()) {
+    let score = 0
+    for (const w of words) {
+      if (sk.nameWords.has(w)) score += 3
+      else if (sk.words.has(w)) score += 1
+    }
+    // One shared word is noise across 80 descriptions; ask for real overlap.
+    if (score >= 2) scored.push({ name: sk.name, score, description: sk.description })
+  }
+  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+  return scored.slice(0, limit).map((m) => ({
+    name: m.name,
+    about: m.description.length > 140 ? `${m.description.slice(0, 139)}…` : m.description
+  }))
+}
+
+/** Words that make a request visual work -- in English and in Dutch. */
+const DESIGN_INTENT = new RegExp(
+  '\\b(design|designs|redesign|ui|ux|landing|website|webpage|homepage|dashboard|theme|themes|dark mode|' +
+    'light mode|style|styling|restyle|look|looks|visual|visuals|animation|animations|animate|motion|3d|' +
+    'three\\.?js|shader|shaders|webgl|hero|layout|css|tailwind|brand|branding|logo|palette|colou?rs?|font|' +
+    'fonts|typography|mockup|mock-up|prototype|wireframe|figma|pretty|beautiful|modern|sleek|responsive|' +
+    'onboarding|marketing site|ontwerp|ontwerpen|mooi|mooier|pagina|stijl|kleur|kleuren|lettertype|' +
+    'animatie|uiterlijk|vormgeving)\\b',
+  'i'
+)
+
+/**
+ * Words that make it 3D, shader or motion work -- the only kind ThreeUI is for.
+ * A plain restyle offered a shader button is noise that teaches agents to skip
+ * the list; its components are named only when the request is that kind of work.
+ */
+const MOTION_INTENT = new RegExp(
+  '\\b(3d|three\\.?js|shader|shaders|webgl|hero|animation|animations|animate|animated|motion|' +
+    'particles?|glow|orb|globe|background|backgrounds|wow|immersive|interactive|scroll effect|' +
+    'animatie|geanimeerd|bewegend|achtergrond)\\b',
+  'i'
+)
+
+/** The agency-agents design division: roles to read and adopt inline. */
+function designRoles(query, limit) {
+  const dir = join(BUNDLE_ROOT, 'agency-agents', 'design')
+  let files = []
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith('.md'))
+  } catch {
+    return []
+  }
+  const words = new Set(tokenize(query))
+  const scored = files.map((f) => {
+    const label = f.replace(/\.md$/, '')
+    let score = 0
+    for (const w of tokenize(label.replace(/-/g, ' '))) if (words.has(w)) score += 1
+    return { name: label, score }
+  })
+  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+  // The two roles that fit almost any visual build go first when nothing matches better.
+  const core = ['design-ui-designer', 'design-ux-architect']
+  const picked = scored.filter((r) => r.score > 0).map((r) => r.name)
+  for (const c of core) if (!picked.includes(c) && files.includes(`${c}.md`)) picked.push(c)
+  return picked.slice(0, limit)
+}
+
+/**
+ * Everything on this machine that should be opened for this task, beside the
+ * team: matching skills always, and for visual work the design systems, the
+ * ThreeUI pieces, the design roles and the design leads.
+ */
+function useFirst(query) {
+  const skills = skillFind(query, 3)
+  const visual = DESIGN_INTENT.test(query)
+  const out = { skills }
+  if (visual) {
+    const ds = designFind(query, 3)
+    const ui = threeUiFind(query, 3)
+    out.design_systems = (ds.matches ?? []).map((m) => ({ name: m.name, confidence: m.confidence }))
+    out.ui_components = MOTION_INTENT.test(query)
+      ? (ui.matches ?? []).filter((m) => m.confidence === 'strong').map((m) => m.name)
+      : []
+    out.design_roles = designRoles(query, 3)
+    out.design_leads = ['pulse-design-systems', 'pulse-web-frontend', 'pulse-specialized-creative']
+    if (!skills.some((s) => /design|ui-/.test(s.name))) {
+      // Visual work always has these; say so even when the words did not match them.
+      for (const name of ['ui-design', 'frontend-design']) {
+        if (skillCatalog().some((s) => s.name === name)) out.skills.push({ name, about: 'the core UI build skill for visual work' })
+      }
+      out.skills = out.skills.slice(0, 4)
+    }
+  }
+  const parts = []
+  if (out.skills.length) parts.push(`open ${out.skills.map((s) => '`' + s.name + '`').join(', ')} by name`)
+  if (visual) {
+    // A project that already has its own look keeps it; a direction is for new
+    // surfaces or when the user asks for a new look.
+    parts.push(
+      out.design_systems.length
+        ? `take a direction before any CSS -- keep the project's own design language if it has one, ` +
+            `otherwise design_read one of ${out.design_systems.map((d) => '`' + d.name + '`').join(', ')}`
+        : 'take a direction before any CSS -- the project\'s own design language, or design_find("<the feel>")'
+    )
+    if (out.ui_components.length) parts.push(`copy ${out.ui_components.map((n) => '`' + n + '`').join(', ')} with ui_read instead of hand-writing WebGL`)
+    parts.push(`hand the build to a design lead (${out.design_leads.join(' / ')}) with these named in the hand-off`)
+  }
+  out.how = parts.length
+    ? `Before you build: ${parts.join('; ')}. Say out loud which ones you took; skipping one needs a reason.`
+    : 'No skill here matches; the team below is the route.'
+  return out
 }
 
 // --------------------------------------------------------------------------- anti-loop
@@ -905,7 +1073,7 @@ const TOOLS = [
   {
     name: 'route_task',
     description:
-      'Which Pulse Agent team and which named specialists fit a task. Call this before starting non-trivial work so you adopt the right specialist instead of answering as a generic assistant.',
+      "Which Pulse Agent team and named specialists fit a task -- AND, in `use_first`, which installed skills to open and, for any visual work, which design systems, ThreeUI components, design roles and design leads to use. Call this before non-trivial work and act on `use_first`: open what it names, or say why not.",
     inputSchema: {
       type: 'object',
       properties: {

@@ -6,6 +6,37 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.97.0] - 2026-09-30
+
+### What's new
+- **A Mac build.** Every release now also carries `pulsar-macos-arm64.dmg` (Apple
+  Silicon) and `pulsar-macos-x64.dmg` (Intel), built on a real macOS runner with
+  Orca's own recipe, including its native macOS helpers. It is signed ad-hoc: there is
+  no Apple Developer ID behind this project, so the first launch needs the download
+  quarantine cleared once (`xattr -dr com.apple.quarantine /Applications/PulsarIDE.app`),
+  and a new version is a new `.dmg` rather than an in-app update. A branch can be built
+  for Mac without a release from the Actions tab (*mac-build*).
+- **The roadmap follows the work.** Milestones could not be linked to anything: no tool
+  filled their item list, so the roadmap only moved when an agent remembered to tick it.
+  Items now link to a milestone (`milestone` on `add_item`, `set_item` and `sync_plan`,
+  `items` on `add_milestone`, by id or title). A milestone completes by itself when all
+  its items work, and reopens if one breaks again. A milestone you tick or untick by
+  hand stays the way you set it. The Roadmap tab shows how many of its items are
+  finished.
+
+### What's fixed
+- **Council actually uses the design tooling.** `route_task`, the first thing Council
+  calls, only ever answered with a team and its specialists. It never named a skill, a
+  design system or a ThreeUI piece, so design work went to one lead who built
+  everything by hand. Its answer now starts with `use_first`: the matching skills for any
+  task, and for visual work the design systems to take a direction from, the ThreeUI
+  components (only for 3D and motion work), the design roles and the design leads to
+  hand the build to. Council, every main session and all 100 team leads are told to open
+  what it names, or say why not. This works for requests in Dutch too.
+- **Roadmap changes were missing from History.** History compared a field called
+  `milestones`, but the board has always kept them under `roadmap`. Milestone changes
+  now appear in History.
+
 ## [0.96.1] - 2026-09-30
 
 ### What's changed

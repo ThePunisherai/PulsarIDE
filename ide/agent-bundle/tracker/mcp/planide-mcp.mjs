@@ -294,6 +294,55 @@ const STALLED_HELD_MINUTES = 360
  * reporting -- each left an item "in progress" that no agent ever picked back
  * up. Handed to every agent in get_board, so the next one resolves them.
  */
+/**
+ * A milestone named by its id, or by its title (case and punctuation ignored).
+ * Agents naturally refer to a phase by name; asking for the exact id would just
+ * mean links silently not being made.
+ */
+function findMilestone(state, ref) {
+  const key = str(ref).trim()
+  if (!key) return null
+  const roadmap = state.roadmap ?? []
+  return roadmap.find((m) => m.id === key) ?? roadmap.find((m) => sameTitle(m.title, key)) ?? null
+}
+
+/** Link an item to one milestone (an item belongs to at most one). */
+function linkToMilestone(state, itemId, m) {
+  for (const other of state.roadmap ?? []) other.item_ids = (other.item_ids ?? []).filter((id) => id !== itemId)
+  m.item_ids = [...(m.item_ids ?? []), itemId]
+}
+
+/**
+ * The roadmap follows the work linked to it -- the same rule as store.ts's
+ * syncRoadmap, run on every write. A milestone with linked items is done when
+ * all of them work or are complete; one completed that way reopens when a linked
+ * item stops working. One ticked by hand is never reopened for anyone.
+ */
+function syncRoadmap(state) {
+  const byId = new Map((state.items ?? []).map((i) => [i.id, i]))
+  for (const m of state.roadmap ?? []) {
+    if (m.manual) continue
+    const linked = (m.item_ids ?? []).map((id) => byId.get(id)).filter(Boolean)
+    if (!linked.length) continue
+    const finished = linked.every((i) => i.status === 'works' || i.status === 'done')
+    if (finished && !m.done) {
+      m.done = true
+      m.auto_done = true
+      logActivity(state, 'milestone', `roadmap: ${m.title} -> done (all ${linked.length} linked items finished)`, 'tracker')
+    } else if (!finished && m.done && m.auto_done) {
+      m.done = false
+      delete m.auto_done
+      logActivity(state, 'milestone', `roadmap: ${m.title} reopened -- a linked item is no longer finished`, 'tracker')
+    }
+  }
+}
+
+const MILESTONE_PARAM = {
+  type: 'string',
+  description:
+    "Optional: the roadmap milestone this belongs to, by its id (m_...) or its title. Linked items drive the milestone -- it completes by itself when all of them work."
+}
+
 function stalledInProgress(state, now = Date.now()) {
   const out = []
   for (const i of state.items ?? []) {
@@ -315,10 +364,11 @@ function mutate(path, fn) {
   const before = {
     items: structuredClone(state.items ?? []),
     fixes: structuredClone(state.fixes ?? []),
-    milestones: structuredClone(state.milestones ?? []),
+    roadmap: structuredClone(state.roadmap ?? []),
     version: state.version
   }
   const result = fn(state)
+  syncRoadmap(state)
   saveState(path, state)
   // Best-effort, and only after the board is safely written: the history DB is
   // memory, not the ledger, so a failure here must never cost the board update.
@@ -397,16 +447,24 @@ const TOOLS = [
         path,
         version: state.version,
         progress: progress(state),
-        items: (state.items ?? []).map((i) => ({
-          id: i.id, title: i.title, status: i.status, notes: i.notes,
-          verified: i.verified, locked: i.locked, claimed_by: i.claimed_by
-        })),
+        items: (state.items ?? []).map((i) => {
+          const m = (state.roadmap ?? []).find((x) => (x.item_ids ?? []).includes(i.id))
+          return {
+            id: i.id, title: i.title, status: i.status, notes: i.notes,
+            verified: i.verified, locked: i.locked, claimed_by: i.claimed_by,
+            ...(m ? { milestone: m.id } : {})
+          }
+        }),
         fixes: (state.fixes ?? []).map((f) => ({
           id: f.id, title: f.title, status: f.status, problem: f.problem, solution: f.solution
         })),
-        roadmap: (state.roadmap ?? []).map((m) => ({
-          id: m.id, title: m.title, target: m.target, done: m.done
-        })),
+        roadmap: (state.roadmap ?? []).map((m) => {
+          const ids = m.item_ids ?? []
+          const finished = (state.items ?? []).filter(
+            (i) => ids.includes(i.id) && (i.status === 'works' || i.status === 'done')
+          ).length
+          return { id: m.id, title: m.title, target: m.target, done: m.done, items: ids.length, finished }
+        }),
         recent_activity: (state.activity ?? []).slice(0, 15)
       }
     }
@@ -434,7 +492,12 @@ const TOOLS = [
             required: ['content']
           }
         },
-        agent: { type: 'string', description: 'Your name, recorded as who claimed these.' }
+        agent: { type: 'string', description: 'Your name, recorded as who claimed these.' },
+        milestone: {
+          ...MILESTONE_PARAM,
+          description:
+            "Optional: the roadmap milestone every step in this call belongs to, by id or title. Send one sync_plan per phase to link each phase's steps; the milestone then completes by itself when they all work."
+        }
       }),
       required: ['project', 'todos']
     },
@@ -450,6 +513,10 @@ const TOOLS = [
         let added = 0
         let moved = 0
         const skipped = []
+        const milestone = args.milestone ? findMilestone(state, args.milestone) : null
+        const link = (id) => {
+          if (milestone) linkToMilestone(state, id, milestone)
+        }
         for (const todo of todos) {
           const title = String(
             typeof todo === 'string'
@@ -476,9 +543,11 @@ const TOOLS = [
               created_at: nowIso(), updated_at: nowIso(), claimed_by: agent,
               verified: false, verified_at: '', verified_by: '', locked: false, locked_at: ''
             })
+            link(state.items[state.items.length - 1].id)
             added += 1
             continue
           }
+          link(item.id)
           // A step the user protected is theirs; a plan never moves it.
           if (item.locked) continue
           if (item.status !== status) {
@@ -501,7 +570,12 @@ const TOOLS = [
         // and nothing else is how a plan fails to reach the board while the agent
         // is told it worked -- which reads to the user as "the tracker is broken"
         // with nothing anywhere to say so.
-        if (!skipped.length) return { added, moved, total: todos.length }
+        const roadmapNote = args.milestone
+          ? milestone
+            ? { milestone: milestone.id }
+            : { warning: `no milestone matches "${str(args.milestone)}" -- the steps are on the board but not linked; add_milestone first` }
+          : {}
+        if (!skipped.length) return { added, moved, total: todos.length, ...roadmapNote }
 
         const shape = skipped
           .map((t) => (t && typeof t === 'object' ? Object.keys(t).join('+') || '{}' : typeof t))
@@ -543,7 +617,8 @@ const TOOLS = [
         notes: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
         priority: { type: 'string' },
-        agent: { type: 'string', description: 'Your name, recorded as who claimed this.' }
+        agent: { type: 'string', description: 'Your name, recorded as who claimed this.' },
+        milestone: MILESTONE_PARAM
       }),
       required: ['project', 'title']
     },
@@ -563,8 +638,13 @@ const TOOLS = [
         const open = (state.items ?? []).find(
           (i) => sameTitle(i.title, title) && i.status !== 'done'
         )
+        const milestone = args.milestone ? findMilestone(state, args.milestone) : null
+        const unmatched = args.milestone && !milestone
+          ? { warning: `no milestone matches "${str(args.milestone)}" -- not linked; add_milestone first` }
+          : {}
         if (open) {
-          return { id: open.id, title: open.title, status: open.status, existing: true }
+          if (milestone) linkToMilestone(state, open.id, milestone)
+          return { id: open.id, title: open.title, status: open.status, existing: true, ...(milestone ? { milestone: milestone.id } : unmatched) }
         }
         const item = {
           id: newId('i_'), title, status,
@@ -574,8 +654,9 @@ const TOOLS = [
           locked: false, locked_at: ''
         }
         state.items.push(item)
+        if (milestone) linkToMilestone(state, item.id, milestone)
         logActivity(state, 'item-add', `added ${item.title} (${status})`, agent)
-        return { id: item.id, title: item.title, status: item.status }
+        return { id: item.id, title: item.title, status: item.status, ...(milestone ? { milestone: milestone.id } : unmatched) }
       })
     }
   },
@@ -595,7 +676,8 @@ const TOOLS = [
         status: { type: 'string', enum: ITEM_STATUSES },
         title: { type: 'string' },
         notes: { type: 'string' },
-        agent: { type: 'string' }
+        agent: { type: 'string' },
+        milestone: MILESTONE_PARAM
       }),
       required: ['project']
     },
@@ -633,6 +715,11 @@ const TOOLS = [
         if (typeof args.title === 'string') item.title = args.title
         if (typeof args.notes === 'string') item.notes = args.notes
         if (typeof args.agent === 'string') item.claimed_by = args.agent
+        if (args.milestone) {
+          const m = findMilestone(state, args.milestone)
+          if (!m) throw new Error(`no milestone matches "${str(args.milestone)}" (get_board lists the roadmap)`)
+          linkToMilestone(state, item.id, m)
+        }
         item.updated_at = nowIso()
         const who = str(args.agent)
         if (statusChanged) {
@@ -774,7 +861,13 @@ const TOOLS = [
       type: 'object',
       properties: P({
         title: { type: 'string', description: 'What this milestone delivers.' },
-        target: { type: 'string', description: 'Optional target: a date, version or phase.' }
+        target: { type: 'string', description: 'Optional target: a date, version or phase.' },
+        items: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Optional: items already on the board that this milestone is made of, by id or title. It then completes by itself when they all work.'
+        }
       }),
       required: ['project', 'title']
     },
@@ -793,8 +886,18 @@ const TOOLS = [
           item_ids: []
         }
         state.roadmap.push(m)
+        const refs = arr(args.items)
+        const unknown = []
+        for (const ref of refs) {
+          const it = (state.items ?? []).find((i) => i.id === ref) ?? (state.items ?? []).find((i) => sameTitle(i.title, ref))
+          if (it) linkToMilestone(state, it.id, m)
+          else unknown.push(ref)
+        }
         logActivity(state, 'milestone-add', `roadmap: ${m.title}`, str(args.agent))
-        return { id: m.id, title: m.title, target: m.target }
+        return {
+          id: m.id, title: m.title, target: m.target, linked: m.item_ids.length,
+          ...(unknown.length ? { warning: `not on the board, not linked: ${unknown.slice(0, 5).join(', ')}` } : {})
+        }
       })
     }
   },
@@ -822,7 +925,12 @@ const TOOLS = [
       return mutate(path, (state) => {
         const m = (state.roadmap ?? []).find((x) => x.id === mid)
         if (!m) throw new Error(`no milestone with id ${mid} (call get_board for the real ids)`)
-        if (typeof args.done === 'boolean') m.done = args.done
+        if (typeof args.done === 'boolean') {
+          m.done = args.done
+          // Ticked or unticked by hand: the items no longer decide it.
+          delete m.auto_done
+          m.manual = true
+        }
         if (typeof args.title === 'string') m.title = args.title
         if (typeof args.target === 'string') m.target = args.target
         logActivity(state, 'milestone', `${m.title}${m.done ? ' -> done' : ''}`, str(args.agent))
