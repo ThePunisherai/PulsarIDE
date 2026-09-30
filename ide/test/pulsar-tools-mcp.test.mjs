@@ -152,6 +152,17 @@ ok('non-visual work gets its own skills and no design block',
   readme.skills.some((s) => /readme/.test(s.name)) && readme.design_systems === undefined)
 ok('the team routing is still there beside it', json(byId(open, 43)).matches.length > 0)
 
+// Vendored design skills surface through the same use_first channel.
+const vend = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(50, 'route_task', { query: 'draw an architecture diagram of the auth flow' }),
+  call(51, 'route_task', { query: 'add an animated bell icon to the notifications button' })
+])
+ok('a diagram request surfaces the diagram-design skill',
+  json(byId(vend, 50)).use_first.skills.some((sk) => sk.name === 'diagram-design'))
+ok('an animated-icon request surfaces the animateicons skill',
+  json(byId(vend, 51)).use_first.skills.some((sk) => sk.name === 'animateicons'))
+
 // --- anti-loop -------------------------------------------------------------- //
 const proj = mkdtempSync(join(tmpdir(), 'pulsar-loop-'))
 const loop = await drive([

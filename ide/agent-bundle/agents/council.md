@@ -223,9 +223,12 @@ skills folder, so name the one you are opening and why:
   direction/build   `ui-design` (React/Next/Tailwind UI, landing pages, dark mode),
                     `frontend-design` (designer-engineer judgment, not layout generation),
                     `product-design`, `ui-skills` (opinionated interface constraints)
-  polish            `design-spells` (micro-interactions and the details that add
-                    personality), `ui-animation`, `iconsax-library` (icons),
-                    `threejs-skills`
+  polish            `design-spells` (micro-interactions), `ui-animation`, `animateicons`
+                    (1000+ animated React SVG icons via @animateicons/react), `iconsax-library`
+                    (static icons), `threejs-skills`
+  diagrams          `diagram-design` -- branded editorial diagrams (architecture, flow,
+                    sequence, ER, Sankey, Wardley, UML and 40+ more) as HTML/SVG/PNG, importing
+                    .drawio/.mermaid/.excalidraw. Use it for ANY diagram instead of raw Mermaid
   check before ship `ui-verification`, `ax-audit` (accessibility), `typography-audit`,
                     `dx-audit`, `webapp-testing`
   mock it up first  `baoyu-design` -- mockups, prototypes, wireframes and decks as

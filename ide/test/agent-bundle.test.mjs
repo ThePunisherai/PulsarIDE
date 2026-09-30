@@ -130,6 +130,29 @@ const uselessDesc = readdirSync(join(REPO, 'ide/agent-bundle/skills')).filter((d
 })
 ok('every bundled skill has a real, matchable description', uselessDesc.length === 0)
 
+// --- vendored design skills (diagram-design, animateicons) ------------------ //
+for (const sk of ['diagram-design', 'animateicons']) {
+  ok(`the ${sk} skill deploys to every root with its license and provenance`,
+    ['.claude/skills', '.codex/skills', '.qwen/skills', '.gemini/config/skills'].every((r) =>
+      existsSync(join(HOME, r, sk, 'SKILL.md')) && existsSync(join(HOME, r, sk, 'LICENSE')) &&
+      existsSync(join(HOME, r, sk, 'ATTRIBUTION.md'))))
+}
+ok('the diagram-design skill carries its brains (references + stdlib scripts), not the demo gallery',
+  existsSync(join(HOME, '.claude/skills/diagram-design/references/type-sequence.md')) &&
+  existsSync(join(HOME, '.claude/skills/diagram-design/scripts/export_svg.py')) &&
+  !existsSync(join(HOME, '.claude/skills/diagram-design/assets')))
+ok('the animateicons skill ships the offline icon catalogue, not the app',
+  existsSync(join(HOME, '.claude/skills/animateicons/data/lucide-icons.json')) &&
+  existsSync(join(HOME, '.claude/skills/animateicons/data/huge-icons.json')))
+ok('Council names both in its design section',
+  readFileSync(join(HOME, '.claude/agents/pulse-council.md'), 'utf8').includes('`diagram-design`') &&
+  readFileSync(join(HOME, '.claude/agents/pulse-council.md'), 'utf8').includes('`animateicons`'))
+// paperclip contributed no skill: its one standalone skill duplicates PulsarIDE's own memory.
+ok('the app-coupled paperclip skills are NOT bundled',
+  !existsSync(join(HOME, '.claude/skills/paperclip')) &&
+  !existsSync(join(HOME, '.claude/skills/agentmail')) &&
+  !existsSync(join(HOME, '.claude/skills/para-memory-files')))
+
 // --- jevgrep: code search by behaviour, wired where the work is routed ------ //
 // Bundling a skill nobody is told about is how the design skills went unused for
 // months. So the skill has to land in every tool's own skills root, and Council,

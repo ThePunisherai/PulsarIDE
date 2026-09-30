@@ -1,6 +1,6 @@
 ---
 name: baoyu-design
-description: Create polished design artifacts as self-contained HTML -- UI mockups, interactive prototypes, wireframes, landing pages, dashboards, app screens, slide decks (PPT/PowerPoint), posters, resumes, diagrams and animations. Also imports a local Figma .fig file offline (no Figma account). Use when asked to mock up, prototype, visualise or make a deck rather than to change production code.
+description: Design artifacts as self-contained HTML -- mockups, prototypes, wireframes, landing pages, dashboards, slide decks, posters, resumes. Imports a local Figma .fig offline. To mock up or prototype, not change production code.
 ---
 
 # Design

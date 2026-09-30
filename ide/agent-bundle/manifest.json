@@ -5,7 +5,7 @@
   "generated": "2026-08-20",
   "note": "Team leads + curated skills + memory hooks + the built-in project tracker, pre-installed into PulsarIDE. The 5,050 specialist subagents are deliberately NOT bundled: deploying them all as native subagents blows Claude Code's ~15k-token agent-description budget (ThePunisher-Agent's own hard-won lesson). Team leads route to specialists on demand. The tracker (plan CLI + planide package + planide MCP server) lets agents read and update each project's .planide/state.json board directly, so the IDE's Tracker tab reflects agent work live.",
   "team_leads": 100,
-  "skills": 55,
+  "skills": 57,
   "orchestration_skills": [
     "agent-orchestrator",
     "dispatch",
@@ -161,6 +161,7 @@
     "andrej-karpathy",
     "android-dev",
     "android-jetpack-compose-expert",
+    "animateicons",
     "antigravity-skill-orchestrator",
     "api-documentation",
     "api-patterns",
@@ -176,6 +177,7 @@
     "context-manager",
     "database-design",
     "design-spells",
+    "diagram-design",
     "differential-review",
     "dispatch",
     "error-diagnostics-error-analysis",
@@ -186,6 +188,7 @@
     "graph-engineer",
     "iconsax-library",
     "ios-developer",
+    "jevgrep",
     "kotlin-coroutines-expert",
     "matplotlib",
     "planning-with-files",
@@ -210,8 +213,7 @@
     "vibe-code-auditor",
     "webapp-testing",
     "writing-plans",
-    "writing-skills",
-    "jevgrep"
+    "writing-skills"
   ],
   "tools": [
     "reverse-engineering"

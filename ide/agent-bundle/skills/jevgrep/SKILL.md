@@ -1,6 +1,6 @@
 ---
 name: jevgrep
-description: Find code by what it does. Ask how, why or where behavior works in a repository, even one naming a function or setting, and jg returns ranked files and source excerpts. Start discovery with it before broad text search or git history, and tell subagents to use it too. For exact symbols or filenames use grep.
+description: Find code by what it does. Ask how or where behaviour works in a repo, even naming a function, and jg returns ranked files and source excerpts. Discovery before broad text search; exact symbols stay with grep.
 ---
 
 > **PulsarIDE bundle note** -- vendored from `dzhng/jevgrep` (MIT, see `ATTRIBUTION.md`).

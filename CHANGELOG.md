@@ -6,6 +6,28 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.98.0] - 2026-09-30
+
+### What's new
+- **`diagram-design` skill** (cathrynlavery/diagram-design, MIT). Branded, editorial diagrams as
+  self-contained HTML/SVG/PNG -- architecture, flowchart, sequence, ER, Sankey, Wardley map, UML,
+  Gantt and 40+ more -- with .drawio/.mermaid/.excalidraw import. Council routes any diagram request
+  to it (and `route_task` surfaces it), so agents stop emitting raw Mermaid. Brains only: the
+  reference docs and the five pure-stdlib import/export scripts, not the ~2.7 MB example gallery.
+- **`animateicons` skill** (Avijit07x/animateicons, MIT). Guidance for `@animateicons/react` -- 1000+
+  animated SVG icons (Lucide + Hugeicons) -- plus the icon-name catalogue so an agent can pick one
+  offline. The icons are an npm package the user installs; the website, MCP server and app are not
+  bundled. Council names it under design polish.
+
+### Worth knowing
+- **Paperclip contributed no skill, on purpose.** paperclipai/paperclip is an app for managing AI
+  agents; six of its seven skills drive that app (its board, its assigned inbox, its Slack bot) and
+  do not stand alone, and the seventh (`para-memory-files`) duplicates PulsarIDE's own graphify +
+  Obsidian memory. Bundling either would cost the skill-catalogue budget for nothing, so neither
+  ships -- prefer the memory the IDE already wires per project.
+- The skill catalogue stays under every host's budget (7,763 / 8,000 chars): the six longest
+  descriptions were tightened to make room without losing their trigger words.
+
 ## [0.97.0] - 2026-09-30
 
 ### What's new
