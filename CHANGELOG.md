@@ -6,6 +6,20 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.0] - 2026-09-30
+
+### What's new
+- **Council closes the loop instead of stopping at "the coder did it".** A non-trivial change
+  now runs a real pipeline, using the leads already on the machine and coming back to Council
+  between stages: build (the coding or domain lead) -> review (`code-review`, `pr-reviewer`,
+  `tidy`) -> test (`testing-qa`, `debug` on failure, running THIS project's own checks) ->
+  secure (`security-pentest`, and `blue-team-defense` for defensive work, whenever the change
+  touches auth, crypto, input, file/network I/O, secrets, permissions or dependencies) -> back
+  to Council to reconcile. An item reaches `works`/`done` only when review is clean, the checks
+  pass and the security surface is cleared -- "the coder said it works" is no longer the last
+  word. Trivial work still gets a direct answer. The loop is in Council's own instructions and
+  in the main-session block, so Codex, Cursor and the rest follow it too.
+
 ## [0.98.0] - 2026-09-30
 
 ### What's new

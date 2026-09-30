@@ -184,6 +184,24 @@ ok('the main session is told too, in the "check what is installed" table',
   readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('skill: jevgrep') &&
   readFileSync(join(HOME, '.codex/AGENTS.md'), 'utf8').includes('skill: jevgrep'))
 
+// --- close the loop: build -> review -> test -> secure -> back to Council ---- //
+// Work must not be "executed and done": after the coder, the review, test and
+// security leads run, and it comes back to Council before anything is reported.
+const councilBody = readFileSync(join(HOME, '.claude/agents/pulse-council.md'), 'utf8')
+ok('Council carries the build-review-test-secure loop, named lead by lead',
+  councilBody.includes('Close the loop') &&
+  councilBody.includes('code-review') && councilBody.includes('testing-qa') &&
+  councilBody.includes('security-pentest') && councilBody.includes('Back to Council'))
+ok('and the main session (Codex/Cursor/etc.) gets the same loop',
+  ['.claude/CLAUDE.md', '.codex/AGENTS.md'].every((f) => {
+    const t = readFileSync(join(HOME, f), 'utf8')
+    return t.includes('Close the loop') && t.includes('code-review') &&
+      t.includes('testing-qa') && t.includes('security-pentest')
+  }))
+ok('those review/test/security leads are really deployed for Council to route to',
+  ['pulse-code-review.md', 'pulse-testing-qa.md', 'pulse-security-pentest.md', 'pulse-debug.md']
+    .every((f) => existsSync(join(HOME, '.claude/agents', f))))
+
 // Detected, never installed -- and it reports which of the three pieces is missing.
 const jgBin = join(work, 'jg-bin'); mkdirSync(jgBin)
 writeFileSync(join(jgBin, 'jg'), '#!/bin/sh\necho "0.7.0"\n'); chmodSync(join(jgBin, 'jg'), 0o755)

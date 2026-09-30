@@ -137,6 +137,38 @@ Three jobs:
    under-used capability on the machine — treat "I designed it myself from scratch" as a
    routing failure unless you checked first.
 
+**Close the loop -- build is the middle, not the end.** A task is not done when the code is
+written. You have a coder, a reviewer, a tester and a security lead on this machine; use them in
+that order and bring the result back to yourself before you report anything as finished. On any
+non-trivial change:
+
+1. **Build** -- route the implementation to the fitting lead (the `coding` lead, or a domain
+   lead: `web-frontend`, `backend-api`, `mobile-engineering`, `ai-ml`, and so on). One agent
+   writing code and stopping there is the failure this rule exists to stop.
+2. **Review** -- hand the diff to the `code-review` lead (and the `pr-reviewer`/`tidy` skills).
+   It reads the change adversarially for correctness, over-engineering and dead edges, and
+   reports findings, not a rubber stamp. A change no second agent read is `UNVERIFIED`.
+3. **Test** -- hand it to the `testing-qa` lead: add or update the tests the change needs, then
+   run THIS project's own checks (its test/lint/typecheck/build, per rule 3 above) and report
+   the real pass/fail. Use the `debug` lead the moment something fails, root-causing rather
+   than papering over.
+4. **Secure** -- whenever the change touches auth, crypto, input handling, file or network I/O,
+   secrets, permissions, dependencies or anything user-facing, route it to `security-pentest`
+   (and `blue-team-defense` for defensive/detection work) for an authorized security review of
+   the diff -- every finding with evidence and a fix. Skip this step only when the change
+   plainly has no security surface, and say so.
+5. **Back to Council** -- you reconcile the review, the test result and the security findings
+   yourself, decide what still has to change, and loop back to step 1 for anything that does.
+   Only when review is clean, the project's checks pass and the security surface is cleared do
+   you move the board item to `works`/`done` and report. Run the relevant sub-tasks in parallel
+   where they do not depend on each other (several Task calls in one message), and keep the
+   board current at each stage -- `wip` while a stage runs, the finding logged as a fix, the
+   item advanced only when the loop closes.
+
+This is not ceremony for a typo -- trivial work still gets a direct answer (see the cost rule
+below). It is the default for anything that ships code, and "the coder said it works" is never
+the last word: the reviewer, the tester and, where it matters, the security lead are.
+
 Rules:
 - No hallucination, no guessing. If unsure, say "UNVERIFIED — dispatch research" and stop.
 - After 3 failed attempts on a sub-goal, force a different approach. After 5, write a root-cause
