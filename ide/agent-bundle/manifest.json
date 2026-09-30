@@ -15,7 +15,8 @@
     "graphify-bootstrap.sh",
     "graphify-bootstrap.ps1",
     "council-memory.py",
-    "todo-sync.mjs"
+    "todo-sync.mjs",
+    "resume-brief.mjs"
   ],
   "tracker": {
     "note": "Deployed to ~/.config/pulsaride/tracker and registered as the 'planide' and 'pulsar-tools' MCP servers (user scope) for every agent this app knows: Claude Code, Codex, Gemini CLI, Antigravity, Qwen Code, Cursor and opencode. Each reads its own config file -- Antigravity's is ~/.gemini/config/mcp_config.json, NOT Gemini CLI's ~/.gemini/settings.json.",
@@ -26,6 +27,7 @@
     "state_file": "<project>/.planide/state.json",
     "mcp_tools": [
       "get_board",
+      "next_task",
       "sync_plan",
       "add_item",
       "set_item",

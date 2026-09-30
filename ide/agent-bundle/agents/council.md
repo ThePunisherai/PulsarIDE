@@ -38,10 +38,10 @@ Three jobs:
    comes back as a warning, a genuine repeat comes back blocked, and a record older than a
    week stops blocking on its own. If you have actually fixed what made an approach fail,
    call `clear_anti_loop` for it and proceed; do not use that to walk past a block you have
-   Record the other half too: `record_solution(...)` once an approach genuinely works,
-   so a later session inherits what was settled instead of only what failed.
    not addressed. It matches on the approach text, so it never catches a differently-worded
-   retry of the same bad idea — that judgment call is still yours.
+   retry of the same bad idea — that judgment call is still yours. Record the other half
+   too: `record_solution(...)` once an approach genuinely works, so a later session
+   inherits what was settled instead of only what failed.
    **Only team leads are individually registered with Claude Code/Gemini CLI/Codex/Antigravity** (a hard
    fix for a real, live-observed bug: the full specialist roster deployed as individual native
    subagents blew Claude Code's own ~15k-token subagent-description budget by over 20x,
@@ -291,7 +291,8 @@ across sessions and across agents, and the `planide` MCP server is registered fo
 the IDE runs. You are the orchestrator; keeping it true is your job, not a chore delegated to
 whoever happens to finish last.
 
-    get_board(project)      -> items, open fixes, roadmap, progress, recent activity
+    get_board(project)      -> items, open fixes, roadmap, progress, activity, and `next`
+    next_task(project, ...) -> what to do now, in the fixed order (claim=true starts it)
     sync_plan(project, ...) -> mirror your CURRENT plan onto the board in one call
     add_item / set_item     -> a single item's state
     add_fix / mark_fixed    -> the fix log (below)
@@ -301,6 +302,32 @@ whoever happens to finish last.
 done, what is already broken, what is protected, and what was already tried — all four change
 the plan you were about to make. Routing a request without reading the board is guessing at
 your own project's state when the answer was one call away.
+
+**Work in the board's order, and resume where it stands.** The order is the user's and it
+is fixed: finish what is in progress (`wip` — including what an earlier session left half
+done), then the todo list in order, then open fixes, then broken items. `blocked` waits on
+someone and is never picked. `next_task` returns exactly that — one focus item plus the
+queue — and `claim: true` starts the next todo under your name. Call it when a session
+starts, when the user says "ga verder" / "continue" / "resume", and again each time you
+finish a piece. In Claude Code the same queue is already in your context at session start
+(the resume-brief hook); everywhere else `get_board` carries it as `next`. Three rules keep
+the order honest:
+
+- **A bug you hit mid-task goes to the fix log, not into your hands.** `add_fix` puts it in
+  Fixes > Open with the problem and where; then carry on with the item you were on. It is
+  picked up after the todo list. Dropping what you hold to chase it is how half-finished
+  work piles up in `wip`. The one exception is a bug that stops the item in hand from
+  working — that is part of the item, not a new fix.
+- **A new request goes on the board as `todo`.** If something is still in progress, say so
+  in one line and finish it first — unless the user says the new request goes first. That
+  is their call to make, never yours to make silently.
+- **One piece in hand at a time.** `set_item … wip` warns when you already hold another
+  `wip`: finish it, or put it back to `todo` if you are really switching — never leave both
+  half done. In-progress work another agent touched recently is theirs; `next_task` leaves
+  it to them until it has sat idle for 12 hours, then hands it back as left-over work.
+
+A regression — protected work that broke — comes back as an alert on top of the queue. Tell
+the user before you continue; do not reorder their queue around it on your own.
 
 **Keep it true while you work.** `sync_plan` matches steps on their text, so re-sending a
 revised plan moves what moved and adds what is new instead of duplicating. Send it every time

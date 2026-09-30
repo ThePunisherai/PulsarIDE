@@ -32,7 +32,12 @@
  *
  * Deliberately conservative:
  *  - One board item per distinct step, matched on its text, so revising a plan
- *    updates the same items instead of stacking duplicates.
+ *    updates the same items instead of stacking duplicates. The match itself
+ *    lives in tracker/mcp/work-queue.mjs, shared with sync_plan: two private
+ *    copies drifted once ("Write tests." and "Write tests" became two rows).
+ *  - A step already closed out to `done` stays `done`. Agents re-send finished
+ *    steps on every plan change, and "completed" maps to `works` -- which used
+ *    to drop `done` back to `works` and wipe the user's confirmation with it.
  *  - A finished step becomes `works`, never `done` and never verified: the agent
  *    saying it did something is a claim, and confirming it stays the user's.
  *  - Steps are never deleted when they leave the agent's list. The plan is the
@@ -43,12 +48,22 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { basename, dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { homedir } from 'node:os'
 
 const nowIso = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
 const newId = (p) => p + randomUUID().replace(/-/g, '').slice(0, 12)
-const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim()
+
+/**
+ * The shared step match, from the deployed tracker beside this hook
+ * (<config>/hooks and <config>/tracker are siblings, as they are in the repo).
+ * Loaded, not bundled, so there is one definition -- and if it is ever missing
+ * the hook does nothing rather than write the board with a match of its own.
+ */
+async function loadQueue() {
+  const here = dirname(fileURLToPath(import.meta.url))
+  return import(pathToFileURL(join(here, '..', 'tracker', 'mcp', 'work-queue.mjs')).href)
+}
 
 /** The agents' todo states, mapped onto the board's columns. */
 const STATUS = {
@@ -157,6 +172,7 @@ async function main() {
   const project = resolveProject(payload.cwd)
   if (!project) return
 
+  const { planStep } = await loadQueue()
   const agent = String(payload.agent_type || 'agent').slice(0, 40)
   const state = loadState(project)
   const before = JSON.parse(JSON.stringify({ items: state.items, fixes: state.fixes ?? [], milestones: state.milestones ?? [], version: state.version }))
@@ -169,9 +185,8 @@ async function main() {
     const raw = String(todo?.status || 'pending')
     if (SKIP_STATUS.has(raw)) continue
     const status = STATUS[raw] ?? 'todo'
-    const key = norm(title)
-    const item = state.items.find((i) => norm(i.title) === key)
-    if (!item) {
+    const step = planStep(state.items, title, status)
+    if (step.action === 'add') {
       state.items.push({
         id: newId('i_'),
         title: title.length > 160 ? `${title.slice(0, 159)}…` : title,
@@ -191,9 +206,10 @@ async function main() {
       added += 1
       continue
     }
-    // A step the user has protected is theirs; never move it from a plan.
-    if (item.locked) continue
-    if (item.status !== status) {
+    // 'keep' covers a protected step (the user's, never moved from a plan), a
+    // step already in that state, and a `done` step the plan reports finished.
+    if (step.action === 'move') {
+      const item = step.item
       item.status = status
       item.updated_at = nowIso()
       if (!item.claimed_by) item.claimed_by = agent
@@ -214,7 +230,7 @@ async function main() {
   // The durable record, so the plan's history survives the board's 500-line cap.
   try {
     const here = dirname(fileURLToPath(import.meta.url))
-    const { recordDiff } = await import(join(here, '..', 'tracker', 'mcp', 'history-db.mjs'))
+    const { recordDiff } = await import(pathToFileURL(join(here, '..', 'tracker', 'mcp', 'history-db.mjs')).href)
     recordDiff(project, before, state, agent)
   } catch {
     /* history is memory, not the ledger */

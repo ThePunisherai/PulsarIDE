@@ -96,6 +96,10 @@ never need to be asked, and the board is created on first use, so it always work
 - **Read it first.** Call the \`planide\` MCP tool \`get_board\` before you start, so
   you build on the real state instead of guessing. Pass \`project\` = the project's
   absolute path to every tool.
+- **Work in the board's order.** \`next_task\` returns it: finish \`wip\` first (also
+  what an earlier session left half done), then \`todo\`, then open fixes. A bug you hit
+  mid-task → \`add_fix\` (it lands in Fixes > Open) and stay on what you were doing; it
+  is picked up after the todo list.
 - **Mirror the conversation onto the board, in the same turn the fact appears:**
   - The user asks for something, or you plan a step you have not started yet →
     \`add_item\` (status \`todo\`), so the plan is on the board before any code moves.
@@ -836,35 +840,7 @@ function wireHooks(home: string, root: string): boolean {
   if (existsSync(todoScript)) {
     const todoDest = join(hookDir, 'todo-sync.mjs')
     cpSync(todoScript, todoDest)
-    // A launcher rather than an inline command: the runner needs environment
-    // (Electron has to be told to behave as Node), and quoting that inside a
-    // JSON command string differs per platform and is easy to get subtly wrong.
-    // A one-line script keeps settings.json holding nothing but a path.
-    const stable = findStableNode()
-    const runner = stable ?? process.execPath
-    const asNode = stable ? '' : 'ELECTRON_RUN_AS_NODE=1 '
-    let launcher: string
-    if (onWindows) {
-      launcher = join(hookDir, 'todo-sync.cmd')
-      writeFileSync(
-        launcher,
-        '@echo off\r\n' +
-          (stable ? '' : 'set ELECTRON_RUN_AS_NODE=1\r\n') +
-          'set NODE_NO_WARNINGS=1\r\n' +
-          `"${runner}" "${todoDest}"\r\n`
-      )
-    } else {
-      launcher = join(hookDir, 'todo-sync.sh')
-      writeFileSync(
-        launcher,
-        `#!/usr/bin/env bash\nexec env ${asNode}NODE_NO_WARNINGS=1 "${runner}" "${todoDest}"\n`
-      )
-      try {
-        chmodSync(launcher, 0o755)
-      } catch {
-        /* non-fatal on filesystems without exec bits */
-      }
-    }
+    const launcher = writeNodeLauncher(hookDir, 'todo-sync', todoDest, onWindows)
     const post = (hooks.PostToolUse ?? []) as unknown[]
     const keptPost = post.filter((entry) => {
       if (typeof entry !== 'object' || entry === null) return true
@@ -884,8 +860,72 @@ function wireHooks(home: string, root: string): boolean {
     wireGeminiPlanHook(home)
   }
 
+  // --- where to resume, at the start of every session ---------------------- //
+  // A second SessionStart entry beside the graphify bootstrap: it reads the
+  // board and hands the session what is still in progress, the next todo and
+  // the open fixes, in the fixed work order (resume-brief.mjs). Claude Code
+  // merges additionalContext from every SessionStart hook, so the two stay
+  // independent -- and this one runs on node, not python, so it works on a
+  // machine the bootstrap has to skip. Codex is deliberately left out: it
+  // records hook trust against the entry's content hash, and a new entry is a
+  // "hooks need review" prompt on every machine; there the planide `next_task`
+  // tool and get_board's `next` carry the same queue.
+  const resumeScript = join(hookSrc, 'resume-brief.mjs')
+  if (existsSync(resumeScript)) {
+    const resumeDest = join(hookDir, 'resume-brief.mjs')
+    cpSync(resumeScript, resumeDest)
+    const launcher = writeNodeLauncher(hookDir, 'resume-brief', resumeDest, onWindows)
+    const starts = (hooks.SessionStart ?? []) as unknown[]
+    const keptStarts = starts.filter((entry) => {
+      if (typeof entry !== 'object' || entry === null) return true
+      const inner = (entry as { hooks?: unknown[] }).hooks ?? []
+      return !inner.some(
+        (h) =>
+          typeof h === 'object' &&
+          h !== null &&
+          String((h as { command?: string }).command ?? '').includes('resume-brief')
+      )
+    })
+    keptStarts.push({ hooks: [{ type: 'command', command: launcher, timeout: 15 }] })
+    hooks.SessionStart = keptStarts
+  }
+
   writeConfigAtomic(settingsPath, JSON.stringify(settings, null, 2))
   return true
+}
+
+/**
+ * A one-line launcher that runs a hook script on node, and its path.
+ *
+ * A launcher rather than an inline command: the runner needs environment
+ * (Electron has to be told to behave as Node), and quoting that inside a JSON
+ * command string differs per platform and is easy to get subtly wrong. A
+ * one-line script keeps settings.json holding nothing but a path. The name is
+ * `<base>.cmd` / `<base>.sh`, which Codex's and Gemini's hook entries point at.
+ */
+function writeNodeLauncher(hookDir: string, base: string, script: string, onWindows: boolean): string {
+  const stable = findStableNode()
+  const runner = stable ?? process.execPath
+  const asNode = stable ? '' : 'ELECTRON_RUN_AS_NODE=1 '
+  if (onWindows) {
+    const launcher = join(hookDir, `${base}.cmd`)
+    writeFileSync(
+      launcher,
+      '@echo off\r\n' +
+        (stable ? '' : 'set ELECTRON_RUN_AS_NODE=1\r\n') +
+        'set NODE_NO_WARNINGS=1\r\n' +
+        `"${runner}" "${script}"\r\n`
+    )
+    return launcher
+  }
+  const launcher = join(hookDir, `${base}.sh`)
+  writeFileSync(launcher, `#!/usr/bin/env bash\nexec env ${asNode}NODE_NO_WARNINGS=1 "${runner}" "${script}"\n`)
+  try {
+    chmodSync(launcher, 0o755)
+  } catch {
+    /* non-fatal on filesystems without exec bits */
+  }
+  return launcher
 }
 
 /**
@@ -2067,6 +2107,10 @@ function mainSessionBlock(home: string): string {
     '  plan you never sync is a Tracker that never moves. Call it anyway wherever you are —',
     '  it is free: a re-sent plan that has not changed moves nothing.',
     '- `get_board` — read it first, every task.',
+    '- `next_task` — what to do now, in the fixed order: finish `wip` first (also what an',
+    '  earlier session left), then `todo`, then open fixes. Call it at the start, on',
+    '  "continue" / "ga verder", and after each finished piece. A bug you hit mid-task:',
+    '  `add_fix` it (Fixes > Open) and stay on what you were doing.',
     '- **Never write `.planide/state.json` yourself**, and never script around these tools.',
     '  The board is a live file the IDE and other agents also write; the tools take the',
     '  lock, keep the rollups honest and record who did what. A hand-rolled writer has',

@@ -6,6 +6,42 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.95.0] - 2026-09-30
+
+### What's new
+- **The board has a work order, and every session resumes on it.** Finish what is in
+  progress — including what an earlier session left half done — then the todo list,
+  then **Fixes → Open**. `next_task` returns the one thing to do now plus the queue;
+  `claim: true` starts the next todo under the agent's name. In-progress work another
+  agent touched in the last 12 hours is left to them, and after that it comes back as
+  left-over work instead of sitting in `wip` forever. `get_board` carries the same
+  queue as `next`, so every agent that reads the board first sees where to resume.
+- **Claude Code sessions start where the board stands.** A new `SessionStart` hook
+  hands the session what is in progress, the next todo and the open fixes — on start,
+  resume, `/clear` and compaction — so "ga verder" continues the real work instead of
+  starting over. Quiet on an untracked repo and on a board with nothing open.
+- **A bug found mid-task waits its turn.** `add_fix` puts it in Fixes → Open and tells
+  the agent to stay on what it was doing; Council now says so in its own rules. Starting
+  a second `wip` while one is in hand warns: finish it first.
+
+### What's fixed
+- **Finished work stopped falling back to `works`.** Agents re-send their whole plan on
+  every change, finished steps included, and the plan hook turned `done` back into
+  `works` — wiping your confirmation with it. A done step now stays done.
+- **The same bug is one entry.** Logging it again returns the open fix, with any new
+  detail kept on it, instead of a second row in Fixes → Open.
+- **Non-Latin titles no longer swallow each other.** Two different Cyrillic, Greek or
+  Chinese titles both matched as "the same work", so the second was silently dropped.
+  Accented letters (`Categorieën`) were cut up the same way.
+- **The plan hook and `sync_plan` agree on what a step is.** "Write tests." and "Write
+  tests" were two rows depending on which route wrote them; both share one match now.
+- **Plan changes reach the history log on Windows.** The plan hook imported the history
+  recorder by a bare `C:\\…` path, which Node's ESM loader rejects on Windows; the error
+  was swallowed, so no plan change there was ever recorded. It imports by file URL now.
+- **Council's anti-loop rule read as nonsense** — a sentence about `record_solution` had
+  landed in the middle of another. `mark_fixed` with no id now says which argument is
+  missing, and closing a fix with no solution says why that costs the next agent.
+
 ## [0.94.0] - 2026-09-21
 
 ### What's fixed

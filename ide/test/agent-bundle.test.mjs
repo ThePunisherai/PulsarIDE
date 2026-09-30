@@ -389,6 +389,11 @@ for (const [label, file] of [
   ok(`${label}: and to close open fixes with a real solution, or reopen/park them`,
     text.includes('mark_fixed') && text.includes('reopen_fix') &&
     text.includes('wontfix'))
+  // The user's own rule: finish what is in progress, then todo; a bug found on
+  // the way goes to Fixes > Open and is picked up later, not chased mid-task.
+  ok(`${label}: Council works the board in its fixed order and parks new bugs in Fixes > Open`,
+    text.includes('next_task') && text.includes('Fixes > Open') &&
+    /finish what is in progress/.test(text))
 }
 
 // The caveman skill is MIT and pure prose -- no binary, no endpoint, no key. It
@@ -970,6 +975,52 @@ for (const [label, file] of [['Gemini CLI', '.gemini/settings.json'], ['Qwen Cod
 
 ok('a redeploy leaves exactly one plan hook',
    postAgain.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync'))).length === 1)
+
+// --- where to resume: a SessionStart hook of its own ------------------------ //
+// The board knew what a previous session left half done; nothing told the next
+// one. The resume brief is a second SessionStart entry beside the graphify
+// bootstrap, running on node, and it has to land, stay single, and keep
+// everyone else's hooks.
+const startsAgain = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8')).hooks.SessionStart
+const resumeEntries = startsAgain.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('resume-brief')))
+ok('the resume brief is wired as a SessionStart hook, exactly once after a redeploy',
+  resumeEntries.length === 1)
+ok('beside the graphify bootstrap and the user\'s own SessionStart hook, not instead of them',
+  startsAgain.some((e) => JSON.stringify(e).includes('graphify-bootstrap')) &&
+  startsAgain.some((e) => JSON.stringify(e).includes('mine.sh')))
+const resumeLauncher = resumeEntries[0]?.hooks?.[0]?.command ?? ''
+ok('its launcher and script are both on disk',
+  existsSync(resumeLauncher) && existsSync(join(HOME, '.config/pulsaride/hooks/resume-brief.mjs')))
+ok('Codex is left alone: no new entry for it to re-prompt "hooks need review" over',
+  !readFileSync(join(HOME, '.codex/hooks.json'), 'utf8').includes('resume-brief'))
+
+// Both hooks import the shared work order from the DEPLOYED tracker
+// (<config>/hooks -> ../tracker/mcp/work-queue.mjs). The repo tests prove the
+// logic; this proves the deployed layout actually resolves it, through the very
+// launchers the agents are handed.
+if (process.platform !== 'win32') {
+  const deployedProj = mkdtempSync(join(tmpdir(), 'pulsar-deployed-hooks-'))
+  mkdirSync(join(deployedProj, '.git'))
+  const todoLauncher = todoEntry.hooks[0].command
+  execSync(`"${todoLauncher}"`, {
+    input: JSON.stringify({ tool_name: 'TodoWrite', cwd: deployedProj, tool_input: { todos: [
+      { content: 'Resume me', status: 'in_progress' }, { content: 'Then me', status: 'pending' }] } })
+  })
+  const deployedBoard = existsSync(join(deployedProj, '.planide/state.json'))
+    ? JSON.parse(readFileSync(join(deployedProj, '.planide/state.json'), 'utf8'))
+    : { items: [] }
+  ok('the deployed plan hook finds the deployed tracker and writes the plan',
+    deployedBoard.items.map((i) => `${i.title}:${i.status}`).join() === 'Resume me:wip,Then me:todo')
+  const briefRaw = execSync(`"${resumeLauncher}"`, { input: JSON.stringify({ cwd: deployedProj, source: 'startup' }) }).toString()
+  let briefCtx = ''
+  try {
+    briefCtx = JSON.parse(briefRaw).hookSpecificOutput.additionalContext
+  } catch {
+    briefCtx = ''
+  }
+  ok('the deployed resume hook hands a new session the item to finish first, then the todo',
+    /finish first: "Resume me"/.test(briefCtx) && briefCtx.includes('Next todo: 1. "Then me"'))
+}
 
 // --- the vendored libraries: pre-installed, and still there after an update -- //
 // agency-agents (296 roles) and the ThreeUI design components are read off disk

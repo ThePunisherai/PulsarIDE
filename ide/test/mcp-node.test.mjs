@@ -12,7 +12,7 @@
  *     TypeScript store (PULSAR_STORE_CJS) and agree with its rollups. That is
  *     what keeps the two implementations from drifting apart.
  */
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
@@ -494,6 +494,281 @@ ok('set_milestone accepts the bare `id` alias (not just milestone_id)',
 const aliasState = store.loadState(aliasProj)
 ok('the id-alias writes landed in the real store',
   aliasState.items[0].status === 'done' && aliasState.fixes[0].status === 'fixed' && aliasState.roadmap[0].done === true)
+
+// --- the work order: finish wip, then todo, then open fixes ----------------- //
+// Asked for directly: "als iets in tracker in behandeling staat moet afgerond
+// worden daarna verder met todo, en nieuwe bugs bij fixes onder open, later
+// opgepakt". next_task is that order as a tool; get_board carries it as `next`.
+const HOOKS = join(REPO, 'ide/agent-bundle/hooks')
+const runHook = (script, payload) =>
+  spawnSync(process.execPath, [join(HOOKS, script)], {
+    input: typeof payload === 'string' ? payload : JSON.stringify(payload),
+    encoding: 'utf8'
+  })
+const statePathOf = (p) => join(p, '.planide', 'state.json')
+const readBoard = (p) => JSON.parse(readFileSync(statePathOf(p), 'utf8'))
+const writeBoard = (p, s) => writeFileSync(statePathOf(p), JSON.stringify(s, null, 2))
+
+const qProj = mkdtempSync(join(tmpdir(), 'pulsar-queue-'))
+mkdirSync(join(qProj, '.git'))
+const qSeed = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(100, 'add_item', { project: qProj, title: 'Half-done login', status: 'wip', agent: 'claude' }),
+  call(101, 'add_item', { project: qProj, title: 'Normal todo', status: 'todo' }),
+  call(102, 'add_item', { project: qProj, title: 'Urgent todo', status: 'todo', priority: 'high' }),
+  call(103, 'add_item', { project: qProj, title: 'Waiting on design', status: 'blocked' }),
+  call(104, 'add_item', { project: qProj, title: 'Checkout flow', status: 'broken' })
+])
+const wipId = json(byId(qSeed.replies, 100)).id
+const q1run = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(105, 'add_fix', { project: qProj, title: 'Cart total rounds wrong', problem: 'cart.ts:40', agent: 'claude' }),
+  call(106, 'next_task', { project: qProj }),
+  call(107, 'get_board', { project: qProj })
+])
+const loggedFix = json(byId(q1run.replies, 105))
+const q1 = json(byId(q1run.replies, 106))
+ok('a bug found mid-task is logged as open and the agent is told to stay on its wip',
+  loggedFix.status === 'open' && /Fixes > Open/.test(loggedFix.next) && loggedFix.next.includes('Half-done login'))
+ok('next_task: in-progress work comes first',
+  q1.phase === 'finish' && q1.focus?.id === wipId && q1.focus.lane === 'in_progress')
+ok('then todo, higher priority first, then oldest',
+  q1.todo.map((t) => t.title).join('|') === 'Urgent todo|Normal todo')
+ok('then open fixes, then broken items -- and blocked is never in the queue',
+  q1.open_fixes[0]?.title === 'Cart total rounds wrong' && q1.broken[0]?.title === 'Checkout flow' &&
+  q1.counts.blocked === 1 && q1.focus.title !== 'Waiting on design')
+ok('get_board carries the same focus as `next`, so every agent that reads the board sees it',
+  json(byId(q1run.replies, 107)).next?.focus?.id === wipId)
+
+// Parallel agents: in-progress work another agent touched recently is theirs.
+const q2 = json(byId((await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(108, 'next_task', { project: qProj, agent: 'codex' })
+])).replies, 108))
+ok("another agent's fresh wip is not handed out twice -- it is listed as elsewhere",
+  q2.focus?.title === 'Urgent todo' && q2.elsewhere.some((e) => e.id === wipId))
+
+// Left over by an earlier session: 2 days idle comes back as unfinished work.
+{
+  const s = readBoard(qProj)
+  s.items.find((i) => i.id === wipId).updated_at = new Date(Date.now() - 2 * 86400e3).toISOString().replace(/\.\d{3}Z$/, 'Z')
+  writeBoard(qProj, s)
+}
+const q3run = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(109, 'next_task', { project: qProj, agent: 'codex', claim: true })
+])
+const q3 = json(byId(q3run.replies, 109))
+ok('a wip left idle for days is resumed first, by whoever picks up',
+  q3.claimed?.id === wipId && q3.claimed.taken_over_from === 'claude')
+ok('and the take-over is recorded on the board and in activity',
+  readBoard(qProj).items.find((i) => i.id === wipId).claimed_by === 'codex' &&
+  readBoard(qProj).activity.some((a) => a.kind === 'item-claim' && a.who === 'codex'))
+
+// claim starts the next todo: todo -> wip under the agent's name.
+const claimProj = mkdtempSync(join(tmpdir(), 'pulsar-claim-'))
+mkdirSync(join(claimProj, '.git'))
+await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(110, 'add_item', { project: claimProj, title: 'First todo' }),
+  call(111, 'add_item', { project: claimProj, title: 'Second todo' })
+])
+const claimRun = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(112, 'next_task', { project: claimProj, agent: 'gemini', claim: true }),
+  call(113, 'add_item', { project: claimProj, title: 'Side quest', status: 'wip', agent: 'gemini' })
+])
+const claimed = json(byId(claimRun.replies, 112))
+ok('claim=true starts the first todo under the agent\'s name',
+  claimed.claimed?.title === 'First todo' && claimed.claimed.to === 'wip' &&
+  readBoard(claimProj).items.find((i) => i.title === 'First todo').claimed_by === 'gemini')
+ok('and the queue it returns already reflects that', claimed.focus?.title === 'First todo' && claimed.phase === 'finish')
+ok('starting a second wip while one is in hand warns: finish it first',
+  /finish it first/i.test(json(byId(claimRun.replies, 113)).warning || ''))
+{
+  const s = store.loadState(claimProj)
+  ok('the IDE store loads a claimed board and agrees it is in progress',
+    s.items.find((i) => i.title === 'First todo').status === 'wip' && store.progress(s).counts.wip === 2)
+}
+
+// A peek never writes: the board file the IDE watches must not churn.
+const fixOnly = mkdtempSync(join(tmpdir(), 'pulsar-fixonly-'))
+mkdirSync(join(fixOnly, '.git'))
+await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(114, 'add_fix', { project: fixOnly, title: 'Only a bug left' })
+])
+const beforePeek = readFileSync(statePathOf(fixOnly), 'utf8')
+const peekRun = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(115, 'next_task', { project: fixOnly, claim: true })
+])
+const peek = json(byId(peekRun.replies, 115))
+ok('with only fixes left the fix queue is the focus', peek.phase === 'fixes' && peek.focus?.lane === 'fix')
+ok('and claiming a fix writes nothing -- the board file is byte-identical',
+  peek.claimed === null && readFileSync(statePathOf(fixOnly), 'utf8') === beforePeek)
+
+// A protected item is the user's: claim never moves it, and never writes for it.
+const lockedTodo = mkdtempSync(join(tmpdir(), 'pulsar-lockedtodo-'))
+{
+  const s = store.loadState(lockedTodo)
+  const it = store.addItem(s, { title: 'Hands off', status: 'todo' })
+  store.lockItem(s, it.id, true)
+  store.saveState(lockedTodo, s)
+}
+const beforeLocked = readFileSync(statePathOf(lockedTodo), 'utf8')
+const lockedClaim = json(byId((await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(117, 'next_task', { project: lockedTodo, agent: 'codex', claim: true })
+])).replies, 117))
+ok('claim leaves a protected item alone, says why, and writes nothing',
+  lockedClaim.claimed === null && /protected/.test(lockedClaim.note) &&
+  readFileSync(statePathOf(lockedTodo), 'utf8') === beforeLocked)
+
+// A regression is surfaced, not silently reordered around.
+const regProj = mkdtempSync(join(tmpdir(), 'pulsar-reg-'))
+mkdirSync(join(regProj, '.git'))
+{
+  const s = store.loadState(regProj)
+  const it = store.addItem(s, { title: 'Payments', status: 'works' })
+  store.lockItem(s, it.id, true)
+  store.updateItem(s, it.id, { status: 'broken', claimed_by: 'codex' })
+  store.addItem(s, { title: 'Next feature', status: 'todo' })
+  store.saveState(regProj, s)
+}
+const reg = json(byId((await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(116, 'next_task', { project: regProj })
+])).replies, 116))
+ok('a broken protected item comes back as an alert on top of the queue',
+  reg.alerts.some((a) => a.includes('REGRESSION') && a.includes('Payments')) && reg.focus?.title === 'Next feature')
+
+// --- the fix log: one bug, one entry --------------------------------------- //
+const fixProj = mkdtempSync(join(tmpdir(), 'pulsar-fixdup-'))
+mkdirSync(join(fixProj, '.git'))
+const fd = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(120, 'add_fix', { project: fixProj, title: 'Login crash', problem: 'auth.ts:12 throws' }),
+  call(121, 'add_fix', { project: fixProj, title: 'login crash!', problem: 'also on Safari' }),
+  call(122, 'add_fix', { project: fixProj, title: 'login crash', problem: 'auth.ts:12 throws' })
+])
+const fd1 = json(byId(fd.replies, 120))
+const fd2 = json(byId(fd.replies, 121))
+const fixBoard = readBoard(fixProj)
+ok('logging the same open bug again returns the entry already there',
+  fd2.id === fd1.id && fd2.existing === true && json(byId(fd.replies, 122)).id === fd1.id)
+ok('the board holds one open fix, with the new detail kept on it (and no repeat)',
+  fixBoard.fixes.length === 1 &&
+  fixBoard.fixes[0].problem === 'auth.ts:12 throws\nalso on Safari')
+const fd3 = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(123, 'mark_fixed', { project: fixProj, fix_id: fd1.id }),
+  call(124, 'add_fix', { project: fixProj, title: 'Login crash' }),
+  call(125, 'mark_fixed', { project: fixProj })
+])
+ok('closing a fix with no solution still closes it, and says why that is a problem',
+  json(byId(fd3.replies, 123)).status === 'fixed' && /no solution/i.test(json(byId(fd3.replies, 123)).warning || ''))
+ok('a bug that comes back after being fixed is a new entry, not a silent merge into the closed one',
+  json(byId(fd3.replies, 124)).id !== fd1.id && readBoard(fixProj).fixes.length === 2)
+ok('mark_fixed with no id says which argument is missing',
+  byId(fd3.replies, 125).result.isError === true && text(byId(fd3.replies, 125)).includes('fix_id is required'))
+ok('the IDE store counts the deduplicated log the same way',
+  store.progress(store.loadState(fixProj)).open_fixes === 1)
+
+// --- titles outside ASCII are real titles ---------------------------------- //
+// The old match erased every non-ASCII letter, so any two Cyrillic/CJK titles
+// normalised to '' and "matched": the second add was silently dropped.
+const uniProj = mkdtempSync(join(tmpdir(), 'pulsar-uni-'))
+mkdirSync(join(uniProj, '.git'))
+const uni = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(130, 'add_item', { project: uniProj, title: 'Исправить вход' }),
+  call(131, 'add_item', { project: uniProj, title: 'Добавить поиск' }),
+  call(132, 'add_item', { project: uniProj, title: '修复登录' }),
+  call(133, 'add_item', { project: uniProj, title: 'исправить  вход!' }),
+  call(134, 'add_item', { project: uniProj, title: 'Categorieën bijwerken' }),
+  call(135, 'add_item', { project: uniProj, title: 'Categorien bijwerken' })
+])
+ok('two different non-Latin titles are two items, not one swallowed by the other',
+  json(byId(uni.replies, 131)).existing !== true && json(byId(uni.replies, 132)).existing !== true)
+ok('the same non-Latin title still deduplicates (case and punctuation ignored)',
+  json(byId(uni.replies, 133)).existing === true && json(byId(uni.replies, 133)).id === json(byId(uni.replies, 130)).id)
+ok('an accented letter is a letter, not a word break',
+  json(byId(uni.replies, 135)).existing !== true && readBoard(uniProj).items.length === 5)
+
+// --- the plan hook and sync_plan: one match, and done stays done ----------- //
+const planHookProj = mkdtempSync(join(tmpdir(), 'pulsar-planhook-'))
+mkdirSync(join(planHookProj, '.git'))
+await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(140, 'sync_plan', { project: planHookProj, todos: [{ content: 'Write tests.', status: 'pending' }] })
+])
+runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: planHookProj, tool_input: { todos: [{ content: 'Write tests', status: 'in_progress' }] } })
+ok('the plan hook and sync_plan match a step the same way (no second row over a full stop)',
+  readBoard(planHookProj).items.filter((i) => /write tests/i.test(i.title)).map((i) => i.status).join() === 'wip')
+
+// Closed out to done by the agent, then confirmed by the user in the IDE.
+runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: planHookProj, tool_input: { todos: [{ content: 'Write tests', status: 'completed' }] } })
+{
+  const s = store.loadState(planHookProj)
+  const it = s.items.find((i) => /write tests/i.test(i.title))
+  store.updateItem(s, it.id, { status: 'done', claimed_by: 'claude' })
+  store.verifyItem(s, it.id, true)
+  store.saveState(planHookProj, s)
+}
+// The agent re-sends its whole plan, finished step included, on the next change.
+runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: planHookProj, tool_input: { todos: [
+  { content: 'Write tests', status: 'completed' }, { content: 'Ship it', status: 'in_progress' }] } })
+await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(141, 'sync_plan', { project: planHookProj, todos: [{ content: 'Write tests', status: 'completed' }] })
+])
+{
+  const it = readBoard(planHookProj).items.find((i) => /write tests/i.test(i.title))
+  ok('a done step stays done when the plan re-sends it as completed (hook and sync_plan)', it.status === 'done')
+  ok("and the user's own confirmation survives it", it.verified === true && it.verified_by === '')
+}
+// Work recurs: the same step started again after it was closed is a new row.
+runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: planHookProj, tool_input: { todos: [{ content: 'Write tests', status: 'in_progress' }] } })
+{
+  const rows = readBoard(planHookProj).items.filter((i) => /write tests/i.test(i.title))
+  ok('a closed step started again becomes a new row, and the closed one keeps its record',
+    rows.length === 2 && rows.some((r) => r.status === 'done') && rows.some((r) => r.status === 'wip'))
+}
+
+// --- the resume brief a session starts with -------------------------------- //
+const brief = runHook('resume-brief.mjs', { cwd: qProj, hook_event_name: 'SessionStart', source: 'resume' })
+let briefOut = null
+try {
+  briefOut = JSON.parse(brief.stdout)
+} catch {
+  briefOut = null
+}
+const ctx = briefOut?.hookSpecificOutput?.additionalContext || ''
+ok('resume brief: a tracked project gets a SessionStart additionalContext',
+  brief.status === 0 && briefOut?.hookSpecificOutput?.hookEventName === 'SessionStart')
+ok('resume brief: it names the work order and the item to finish first',
+  ctx.includes('Work order') && /In progress -- finish first: "Half-done login"/.test(ctx))
+ok('resume brief: then the todo list and the open fixes, in that order',
+  ctx.indexOf('Next todo') > ctx.indexOf('In progress') && ctx.indexOf('Open fixes') > ctx.indexOf('Next todo') &&
+  ctx.includes('Cart total rounds wrong'))
+ok('resume brief: blocked is reported, never queued', /Blocked, waiting on someone.*: 1/.test(ctx))
+const untracked = mkdtempSync(join(tmpdir(), 'pulsar-untracked-'))
+mkdirSync(join(untracked, '.git'))
+const quiet = runHook('resume-brief.mjs', { cwd: untracked })
+ok('resume brief: an untracked repo gets nothing, and no board is created',
+  quiet.status === 0 && quiet.stdout === '' && !existsSync(statePathOf(untracked)))
+const cleanProj = mkdtempSync(join(tmpdir(), 'pulsar-clean-'))
+{
+  const s = store.loadState(cleanProj)
+  store.addItem(s, { title: 'All shipped', status: 'done' })
+  store.saveState(cleanProj, s)
+}
+ok('resume brief: a board with nothing open costs no context at all',
+  runHook('resume-brief.mjs', { cwd: cleanProj }).stdout === '')
+const garbage = runHook('resume-brief.mjs', '{not json')
+ok('resume brief: a malformed payload never errors in front of the first prompt',
+  garbage.status === 0 && garbage.stderr === '')
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

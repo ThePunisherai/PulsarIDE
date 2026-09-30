@@ -31,6 +31,10 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, isAbsolute, join, resolve, sep } from 'node:path'
+// The work order and the shared title match. A sibling in this same directory,
+// deployed with it -- the todo-sync and resume-brief hooks import it too, so
+// "is this the same step" and "what comes next" have one answer, not three.
+import { findOpenFix, normTitle, planStep, sameTitle, wipHeldBy, workQueue } from './work-queue.mjs'
 
 const SERVER_NAME = 'planide'
 const SERVER_VERSION = '2.0.0'
@@ -256,11 +260,6 @@ function planStatus(value) {
   return PLAN_STATUS[raw] ?? 'todo'
 }
 
-/** Match a step to a board item on its text, ignoring case and punctuation. */
-function normTitle(value) {
-  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
-}
-
 function mutate(path, fn) {
   const state = loadState(path)
   // A deep snapshot of just the collections history diffs, taken before `fn`
@@ -280,6 +279,46 @@ function mutate(path, fn) {
   // Fire-and-forget -- not awaited, and it cannot throw into this path.
   void recordHistorySafe(path, before, state, CLIENT_ACTOR)
   return result
+}
+
+const lower = (v) => String(v ?? '').trim().toLowerCase()
+
+/** The "you are already on something" warning, for add_item/set_item to wip. */
+function finishFirst(held) {
+  const list = held.map((i) => `"${i.title}" [${i.id}]`).join(', ')
+  return (
+    `You already have ${list} in progress. Finish it first (set_item works/done), ` +
+    'or set it back to todo if you are really switching -- the board keeps one thing in hand at a time.'
+  )
+}
+
+/**
+ * What add_fix tells the agent after logging: where the bug went, and what to
+ * stay on. The rule it enforces is the user's: a bug found mid-task goes to
+ * Fixes > Open and is picked up later, it does not derail the work in hand.
+ */
+function stayOn(state, agent) {
+  const q = workQueue(state, { agent })
+  const f = q.focus
+  if (!f || f.lane === 'fix' || f.lane === 'broken') {
+    return { next: 'Logged in Fixes > Open. Nothing is in progress or todo, so the fix queue is next -- call next_task.' }
+  }
+  return {
+    next:
+      `Logged in Fixes > Open for later. Stay on "${f.title}" [${f.id}] -- ` +
+      'open fixes are picked up after the todo list (next_task tells you when).'
+  }
+}
+
+/** The part of the queue get_board carries: enough to resume, not the whole thing. */
+function queueSummary(q) {
+  return {
+    phase: q.phase,
+    focus: q.focus ? { lane: q.focus.lane, id: q.focus.id, title: q.focus.title, action: q.focus.action } : null,
+    counts: q.counts,
+    ...(q.alerts.length ? { alerts: q.alerts } : {}),
+    order: q.order
+  }
 }
 
 // --------------------------------------------------------------------------- tools
@@ -325,8 +364,12 @@ const TOOLS = [
   {
     name: 'get_board',
     description:
-      'Read the project board before you start: items with their status, open fixes, and progress. Always call this first so you build on the real state instead of guessing.',
-    inputSchema: { type: 'object', properties: P(), required: ['project'] },
+      'Read the project board before you start: items with their status, open fixes, and progress, plus `next` -- where to resume in the fixed work order. Always call this first so you build on the real state instead of guessing.',
+    inputSchema: {
+      type: 'object',
+      properties: P({ agent: { type: 'string', description: 'Your name, so `next` skips work another agent is on.' } }),
+      required: ['project']
+    },
     run: (args) => {
       const path = resolveProject(args)
       const state = loadState(path)
@@ -335,6 +378,7 @@ const TOOLS = [
         path,
         version: state.version,
         progress: progress(state),
+        next: queueSummary(workQueue(state, { agent: str(args.agent) })),
         items: (state.items ?? []).map((i) => ({
           id: i.id, title: i.title, status: i.status, notes: i.notes,
           verified: i.verified, locked: i.locked, claimed_by: i.claimed_by
@@ -347,6 +391,77 @@ const TOOLS = [
         })),
         recent_activity: (state.activity ?? []).slice(0, 15)
       }
+    }
+  },
+  {
+    name: 'next_task',
+    description:
+      "What to work on now, in the board's fixed order: finish in-progress work first (including what an earlier session left half done), then todo, then open fixes, then broken items. Call it when you start or resume, and again each time you finish a piece. claim=true starts the next todo for you (moves it to wip under your name) or takes over a left-over in-progress item. Much smaller than get_board -- use it to decide what is next.",
+    inputSchema: {
+      type: 'object',
+      properties: P({
+        agent: { type: 'string', description: 'Your name. In-progress work another agent touched recently is left to them.' },
+        claim: { type: 'boolean', description: 'Take the focus item: todo -> wip under your name, or take over a left-over wip.' },
+        limit: { type: 'integer', description: 'Entries per lane (default 5). Counts are always complete.' }
+      }),
+      required: ['project']
+    },
+    run: (args) => {
+      const path = resolveProject(args)
+      const agent = str(args.agent).slice(0, 40)
+      const limit = Number.isInteger(args.limit) && args.limit > 0 ? Math.min(args.limit, 50) : undefined
+      const peek = workQueue(loadState(path), { agent, limit })
+      // Only two things are claimable, and only they are worth a write: a todo
+      // being started, and a left-over wip changing hands. Everything else --
+      // your own wip, a fix, a protected item, nothing at all -- is read-only,
+      // so a peek never churns the board file the IDE is watching.
+      const claimable = (f) =>
+        f?.kind === 'item' &&
+        !f.locked &&
+        (f.lane === 'todo' || (f.lane === 'in_progress' && Boolean(agent) && lower(f.claimed_by) !== lower(agent)))
+      if (args.claim !== true || !claimable(peek.focus)) {
+        const f = peek.focus
+        const why = !f
+          ? 'The board has nothing open.'
+          : f.locked
+            ? `"${f.title}" is protected. Ask the user before you touch it.`
+            : 'Nothing to claim: the focus is already yours or is a fix -- work it as it stands.'
+        return { project: path, ...(args.claim === true ? { claimed: null, note: why } : {}), ...peek }
+      }
+      return mutate(path, (state) => {
+        // Decided again on the board as it is NOW, under the write: another
+        // agent may have taken the same item between the peek and this call,
+        // and handing it out twice is the duplication this exists to stop.
+        const fresh = workQueue(state, { agent, limit })
+        const f = fresh.focus
+        const item = claimable(f) && f.id === peek.focus.id ? (state.items ?? []).find((i) => i.id === f.id) : null
+        if (!item) {
+          return { project: path, claimed: null, note: 'The board changed under you -- this is the queue as it stands now.', ...fresh }
+        }
+        const from = item.status
+        const previous = item.claimed_by || ''
+        if (from === 'todo') {
+          item.status = 'wip'
+          if (item.verified) {
+            item.verified = false; item.verified_at = ''; item.verified_by = ''
+          }
+          logActivity(state, 'item-status', `${item.title} -> wip (picked up from the queue)`, agent)
+        } else {
+          logActivity(
+            state,
+            'item-claim',
+            previous ? `${item.title}: taken over from ${previous} (left over)` : `${item.title}: picked up (nobody was on it)`,
+            agent
+          )
+        }
+        if (agent) item.claimed_by = agent
+        item.updated_at = nowIso()
+        return {
+          project: path,
+          claimed: { id: item.id, title: item.title, from, to: item.status, ...(from !== 'todo' ? { taken_over_from: previous } : {}) },
+          ...workQueue(state, { agent, limit })
+        }
+      })
     }
   },
   {
@@ -404,9 +519,11 @@ const TOOLS = [
             continue
           }
           const status = planStatus(typeof todo === 'string' ? '' : todo && todo.status)
-          const key = normTitle(title)
-          const item = (state.items ?? []).find((i) => normTitle(i.title) === key)
-          if (!item) {
+          // Shared with the todo-sync hook (work-queue.mjs), so both routes
+          // match a step the same way -- and neither drops a `done` item back
+          // to `works`, nor moves a step the user protected.
+          const step = planStep(state.items, title, status)
+          if (step.action === 'add') {
             state.items.push({
               id: newId('i_'),
               title: title.length > 160 ? `${title.slice(0, 159)}\u2026` : title,
@@ -418,9 +535,8 @@ const TOOLS = [
             added += 1
             continue
           }
-          // A step the user protected is theirs; a plan never moves it.
-          if (item.locked) continue
-          if (item.status !== status) {
+          if (step.action === 'move') {
+            const item = step.item
             item.status = status
             item.updated_at = nowIso()
             if (!item.claimed_by) item.claimed_by = agent
@@ -499,10 +615,7 @@ const TOOLS = [
         // the one path that did not, quietly growing the board. Match an item
         // that is still OPEN; a title whose only match is already 'done' is
         // allowed through, because work can legitimately recur.
-        const key = normTitle(title)
-        const open = (state.items ?? []).find(
-          (i) => normTitle(i.title) === key && i.status !== 'done'
-        )
+        const open = (state.items ?? []).find((i) => i.status !== 'done' && sameTitle(i.title, title))
         if (open) {
           return { id: open.id, title: open.title, status: open.status, existing: true }
         }
@@ -515,7 +628,11 @@ const TOOLS = [
         }
         state.items.push(item)
         logActivity(state, 'item-add', `added ${item.title} (${status})`, agent)
-        return { id: item.id, title: item.title, status: item.status }
+        const held = status === 'wip' ? wipHeldBy(state.items, agent, item.id) : []
+        return {
+          id: item.id, title: item.title, status: item.status,
+          ...(held.length ? { warning: finishFirst(held) } : {})
+        }
       })
     }
   },
@@ -584,16 +701,19 @@ const TOOLS = [
             who
           )
         }
+        const held = statusChanged && next === 'wip' ? wipHeldBy(state.items, who || item.claimed_by, item.id) : []
         return {
           id: item.id, title: item.title, status: item.status,
-          verified: item.verified, verified_by: item.verified_by
+          verified: item.verified, verified_by: item.verified_by,
+          ...(held.length ? { warning: finishFirst(held) } : {})
         }
       })
     }
   },
   {
     name: 'add_fix',
-    description: 'Log a bug the moment you hit or find one: what is wrong and where.',
+    description:
+      'Log a bug the moment you hit or find one: what is wrong and where. It lands in Fixes > Open and waits its turn -- log it and carry on with what you were doing; do not switch to it mid-task. The same bug logged twice returns the open entry instead of a duplicate.',
     inputSchema: {
       type: 'object',
       properties: P({
@@ -612,6 +732,18 @@ const TOOLS = [
       const agent = str(args.agent)
       const status = FIX_STATUSES.includes(str(args.status)) ? args.status : 'open'
       return mutate(path, (state) => {
+        // One bug, one entry. An agent that hits the same failure on three
+        // turns logged it three times, and Fixes > Open became a list nobody
+        // could walk. The same open bug returns the entry already there, and a
+        // new detail about it is kept on that entry instead of a second row.
+        const known = status === 'open' ? findOpenFix(state.fixes, title) : null
+        if (known) {
+          const problem = str(args.problem).trim()
+          if (problem && !String(known.problem || '').includes(problem)) {
+            known.problem = known.problem ? `${known.problem}\n${problem}` : problem
+          }
+          return { id: known.id, title: known.title, status: known.status, existing: true, ...stayOn(state, agent) }
+        }
         const fix = {
           id: newId('f_'), title,
           problem: str(args.problem), solution: str(args.solution),
@@ -620,7 +752,10 @@ const TOOLS = [
         }
         state.fixes.push(fix)
         logActivity(state, 'fix-add', `logged fix: ${fix.title}`, agent)
-        return { id: fix.id, title: fix.title, status: fix.status }
+        return {
+          id: fix.id, title: fix.title, status: fix.status,
+          ...(status === 'open' ? stayOn(state, agent) : {})
+        }
       })
     }
   },
@@ -644,14 +779,24 @@ const TOOLS = [
     run: (args) => {
       const path = resolveProject(args)
       const fixId = str(args.fix_id) || str(args.id)
+      if (!fixId) throw new Error('fix_id is required (the fix id from get_board / add_fix / next_task)')
       return mutate(path, (state) => {
         const fix = (state.fixes ?? []).find((f) => f.id === fixId)
         if (!fix) throw new Error(`no fix with id ${fixId} (call get_board for the real ids)`)
         fix.status = 'fixed'
         fix.fixed_at = nowIso()
-        if (typeof args.solution === 'string' && args.solution) fix.solution = args.solution
+        if (typeof args.solution === 'string' && args.solution.trim()) fix.solution = args.solution
         logActivity(state, 'fix-done', `fixed: ${fix.title}`, str(args.agent))
-        return { id: fix.id, title: fix.title, status: fix.status }
+        // Closed with no solution records that a problem went away, not how --
+        // the next agent to hit the same symptom starts from nothing. Still
+        // closed (the user may simply have said "it works now"), but said out loud.
+        const bare = !String(fix.solution || '').trim()
+        return {
+          id: fix.id, title: fix.title, status: fix.status,
+          ...(bare
+            ? { warning: 'Closed with no solution. Call mark_fixed again with solution: the real cause and the real change, so the next agent does not re-derive it.' }
+            : {})
+        }
       })
     }
   },

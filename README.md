@@ -230,7 +230,7 @@ To have an agent update the board itself, two ways — pick per agent:
   ```
 - **MCP** (nothing to install) — the `planide` server is registered for Claude
   Code, Codex, Cursor, Gemini CLI, Qwen Code and Antigravity on launch, and agents call
-  `get_board` / `add_item` / `set_item` / `add_fix` / `mark_fixed` /
+  `get_board` / `next_task` / `add_item` / `set_item` / `add_fix` / `mark_fixed` /
   `add_milestone` / `set_milestone` / `add_version` directly. It is a
   zero-dependency Node server run by the IDE's own binary, so there is no Python
   and no `pip install` in the path.
@@ -245,6 +245,18 @@ instead of implying it is automatic everywhere.
 
 Both write the same state the IDE reads, so a fix an agent logs mid-session
 shows up in the Tracker.
+
+**One work order, and every session resumes on it.** The board decides what
+comes next, not whichever agent happens to read it: finish what is in progress
+(including what an earlier session left half done), then the todo list, then
+**Fixes → Open**. A bug an agent hits mid-task is logged there with `add_fix`
+and waits its turn instead of derailing the work in hand — logging the same bug
+twice returns the open entry, not a duplicate. `next_task` returns the focus
+item plus the queue (`claim: true` starts the next todo under the agent's name,
+and in-progress work another agent touched in the last 12 hours is left to
+them); `get_board` carries the same queue as `next`. In Claude Code a
+`SessionStart` hook hands it to the session on start, resume, `/clear` and
+compaction, so "ga verder" lands where the board stands, not on a blank slate.
 
 ### When agents stop updating the board
 
