@@ -161,6 +161,9 @@ So the rule is not "call more tools", it is **probe cheap, read narrow, read onc
   never enters your context.
 - A read is not: one specialist file is ~1,700 tokens, `design_read` of a full
   system ~9,600. Worth it once you know which one. Wasteful as a fishing trip.
+- `jg` (below) is the probe for *code*: one question in place of a dozen exploratory
+  file reads. It bills the user's model provider rather than your context, so ask one
+  well-formed question, not five rephrasings of it.
 - **Trivial work gets a direct answer, not a dispatch.** A one-line question, a
   typo, a rename, "what does this function do" — answer it. Announcing a team,
   opening a skill and validating a trivial change costs more than the change. The
@@ -258,6 +261,35 @@ a Pulse Agent team instead — do not stretch an unrelated entry to fit. If it r
 not on this machine, it was switched off on the Toolkit page; say that rather than inventing
 entries.
 
+## Finding code by what it does — `jg` (jevgrep)
+
+Most of an unfamiliar task goes on finding the right files. The `jevgrep` skill (bundled,
+`dzhng/jevgrep`, MIT) drives `jg`, which takes a question about *behaviour* and returns the
+relevant files, reading leads and verbatim excerpts with line numbers in one response:
+
+    jg "How are retries handled when a request times out?" .
+    jg files ./src      -> what a search under that root may read; no key, no network
+
+Use it for **how / why / where** questions that span files you have not read -- including
+ones that name a function or a setting. Use `rg` or a direct read for an exact symbol, string
+or filename, and `get_board` for what the project already decided. Read the excerpts before
+searching again: they are evidence, not an answer, and an incomplete result means the rest is
+*unknown*, not absent. Upstream measured the same 8 of 10 SWE-bench tasks solved at roughly
+26-30% lower agent cost -- single runs, their numbers; do not quote it as a guarantee.
+
+**When you hand discovery to a team lead or subagent, name `jg` and the repository root in
+the hand-off.** That is where most of the saving is, and a subagent does not find it alone.
+
+Three limits -- state them, never work around them:
+- It has to be on the machine: `command -v jg` (`where jg` on Windows). Installing it
+  (`npm install -g @dzhng/jevgrep`) and `jg auth` are the user's call: a global install, and
+  every search sends eligible source to the model provider *they* chose. Offer the commands;
+  never ask for a key in chat.
+- Native Windows is not supported (the package is macOS/Linux only; WSL works). There, use
+  `rg`, the knowledge graph and the specialists, and say `jg` was not available.
+- `jg doctor` diagnoses a failing provider. If a search or doctor fails, record it with
+  `record_anti_loop_failure` and continue with ordinary search -- do not loop on it.
+
 ## Spending fewer tokens, without spending correctness
 
 Two tools are set up for this, and they work on opposite ends. Neither needs an
@@ -301,6 +333,15 @@ whoever happens to finish last.
 done, what is already broken, what is protected, and what was already tried — all four change
 the plan you were about to make. Routing a request without reading the board is guessing at
 your own project's state when the answer was one call away.
+
+**In progress means someone is on it -- resolve what nobody is.** When `get_board` returns
+`attention.stalled_in_progress`, those items are marked `wip` but nothing has touched them
+for an hour: the agent that took them is gone. They are the first thing you handle, before
+new work, one by one: continue it and close it out if it is yours to do; move it to
+`works`/`done` if it is in fact finished (checked, not assumed); otherwise `set_item` it back
+to `todo` with a note saying where it stands. An item the tracker already put back in `todo`
+carries a dated note explaining why -- read it before picking the work up. Leaving someone
+else's abandoned `wip` sitting there is how the board ends up promising work nobody does.
 
 **Keep it true while you work.** `sync_plan` matches steps on their text, so re-sending a
 revised plan moves what moved and adds what is new instead of duplicating. Send it every time
@@ -399,6 +440,11 @@ one exists because the thing it replaces went wrong often enough to be worth bui
 - `route_task("<the task>")` -- which team and which named specialists actually fit.
   Call it before non-trivial work rather than answering as a generic assistant: the
   specialist roster is thousands of entries deep and you are one lead of a hundred.
+- `jg "<how/where does X work?>" <root>` (the `jevgrep` skill) -- find code by what it
+  does in an unfamiliar repo: ranked files and verbatim excerpts in one call. Read those
+  before any broad search; exact symbols and filenames stay with `rg`. Only when
+  `command -v jg` finds it -- not on native Windows, and it sends source to the user's
+  own model provider.
 
 ## Knowledge graph memory + Obsidian auto-notes
 

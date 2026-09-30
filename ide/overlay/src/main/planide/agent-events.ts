@@ -9,10 +9,13 @@
  *
  * Deliberately conservative about what it writes:
  *
- *  * Activity only. It never creates, moves or closes items — an agent finishing
- *    a turn is not evidence that anything works, and auto-filling the board with
- *    guesses is exactly the "green board nobody checked" problem this project
- *    exists to avoid. Promoting a turn into an item stays your call.
+ *  * A card only while a turn runs. When an agent starts a turn on a real task,
+ *    what you asked for shows as "In progress" -- true, because an agent is on
+ *    it. When the turn ends, that card has to stop claiming so: a card the
+ *    agent never touched is removed (the turn stays in Activity, with your prompt
+ *    and the agent's closing words), and an existing to-do the turn picked up
+ *    goes back to `todo` with a note. It never marks anything working or done --
+ *    a finished turn is not evidence that anything works.
  *  * Local projects only. The board is created on the first real turn an agent
  *    finishes in a workspace, so the trail is there without setting anything up
  *    first. A remote (SSH) worktree's path does not exist on this machine, so
@@ -26,7 +29,7 @@
  */
 
 import { existsSync } from 'node:fs'
-import { addItem, loadState, logActivity, nowIso, saveState, statePath } from './store'
+import { addItem, loadState, logActivity, nowIso, saveState, statePath, type Item } from './store'
 import { historySnapshot, recordHistory } from './history'
 
 /** What the caller passes through from Orca's agent hook listener. */
@@ -35,6 +38,12 @@ export type AgentTurn = {
   worktreeId?: string
   paneKey?: string
   isReplay?: boolean
+  /**
+   * When the main agent's current turn began, stamped by Orca's hook server
+   * (ms). Absent from older hosts and from turns it saw open unseen -- the card
+   * then carries the start we observed ourselves.
+   */
+  turnStartedAt?: number
   /**
    * Orca's own per-turn identity, when the agent's hook source exposes enough
    * context to produce one. Upstream's stated purpose is exactly our problem:
@@ -112,63 +121,171 @@ const OPEN_STATUSES = ['todo', 'wip', 'broken']
 /** Never grow the board past this many auto-captured items -- a runaway guard. */
 const MAX_AGENT_ITEMS = 60
 
-/** Normalise a title for dedup: lowercase, punctuation to spaces, collapsed. */
-function normalizeTitle(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+/**
+ * Normalise a title for dedup: case, punctuation, spacing and accents ignored,
+ * letters of every script kept. The same rule the plan hook and the MCP server
+ * use, so one piece of work is one card whichever route wrote it.
+ */
+export function normalizeTitle(text: string): string {
+  return text
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
 }
 
-/**
- * Put the agent's work on the board, honestly.
- *
- * The passive trail above records that an agent finished a turn, but it only
- * ever wrote the Activity log -- so the board's own columns never moved unless
- * the agent chose to call the MCP, which models do inconsistently. Reported, in
- * as many words and more than once: "agents write nothing to the tracker, I see
- * no changes." This closes that gap from the side the IDE actually controls: the
- * same hook that already fires reliably (it drives the memory graph) now also
- * reflects the work as a board item.
- *
- * Kept deliberately honest and quiet:
- *  - The title is the user's OWN prompt, so this is a faithful record of what was
- *    asked, never a guess about what works. Status is `wip` (in progress) and
- *    never `works`/`done` -- confirming something functions stays the agent's or
- *    the user's explicit call, so this can never green-wash the board.
- *  - Deduped against the open board by normalised title, so a multi-turn task on
- *    the same prompt is one item, and an existing `todo` an agent starts working
- *    is advanced to `wip` rather than duplicated.
- *  - Only a real task-shaped prompt (two+ words) qualifies, and creation stops
- *    at MAX_AGENT_ITEMS, so idle chatter and long sessions cannot flood it.
- */
-function reflectPromptOnBoard(state: ReturnType<typeof loadState>, prompt: string, agent: string): void {
-  const title = prompt.trim()
-  const norm = normalizeTitle(title)
-  // A task, not a greeting: at least two words and enough substance to matter.
-  if (norm.length < 10 || norm.split(' ').length < 2) return
+/** The turn each pane is in, so the many `working` pings of one turn place its card once. */
+const openTurnByPane = new Map<string, string>()
 
-  const open = (state.items ?? []).filter((i) => OPEN_STATUSES.includes(i.status))
-  const match = open.find((i) => {
+function isoSeconds(ms: number): string {
+  return new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z')
+}
+
+/** A task, not a greeting: at least two words and enough substance to matter. */
+function isTaskPrompt(prompt: string): boolean {
+  const norm = normalizeTitle(prompt)
+  return norm.length >= 10 && norm.split(' ').length >= 2
+}
+
+/** The open item a prompt is about, if there is one. */
+function matchOpenItem(state: ReturnType<typeof loadState>, prompt: string): Item | undefined {
+  const norm = normalizeTitle(prompt)
+  return (state.items ?? []).find((i) => {
+    if (!OPEN_STATUSES.includes(i.status)) return false
     const n = normalizeTitle(i.title)
     if (n === norm) return true
     // Strong containment only, and only for titles long enough that containment
     // is meaningful -- so "fix" does not swallow "fix the login form".
     return n.length >= 12 && norm.length >= 12 && (n.includes(norm) || norm.includes(n))
   })
+}
+
+/**
+ * Put the turn's work on the board as it starts: the matching to-do moves to
+ * `wip`, or a card with your prompt appears in `wip`. Either way the item is
+ * marked as held by this pane, so the turn's end can let go of exactly it.
+ */
+function holdCardForTurn(
+  state: ReturnType<typeof loadState>,
+  prompt: string,
+  agent: string,
+  paneKey: string,
+  startedAt: string
+): boolean {
+  const match = matchOpenItem(state, prompt)
   if (match) {
-    // An agent is actively working a planned item -> move it into `wip`.
-    if (match.status === 'todo') {
-      match.status = 'wip'
-      match.updated_at = nowIso()
-      if (!match.claimed_by) match.claimed_by = agent
-    }
-    return
+    // Someone else's work in progress, or something broken: not ours to take.
+    if (match.status !== 'todo' || match.locked) return false
+    match.status = 'wip'
+    match.updated_at = nowIso()
+    if (!match.claimed_by) match.claimed_by = agent
+    match.held_by = paneKey
+    match.held_since = startedAt
+    return true
   }
-  if (open.filter((i) => (i.tags ?? []).includes('agent')).length >= MAX_AGENT_ITEMS) return
-  addItem(state, {
+  const open = (state.items ?? []).filter((i) => OPEN_STATUSES.includes(i.status))
+  if (open.filter((i) => (i.tags ?? []).includes('agent')).length >= MAX_AGENT_ITEMS) return false
+  const title = prompt.trim()
+  const card = addItem(state, {
     title: title.length > 120 ? `${title.slice(0, 119)}…` : title,
     status: 'wip',
     tags: ['agent'],
     claimedBy: agent
   })
+  card.held_by = paneKey
+  card.held_since = startedAt
+  card.held_new = true
+  return true
+}
+
+/**
+ * The turn is over: let go of what it held. Returns how many items changed.
+ *
+ *  - Moved by the agent or by you (no longer `wip`): stays exactly where it was
+ *    put. That is the agent picking the card up, which is the whole idea.
+ *  - A card this turn created and nobody touched: removed. It stood for "an
+ *    agent is on this" and that is no longer true; the turn itself stays in
+ *    Activity with your prompt and the agent's closing words.
+ *  - Anything else still in `wip` -- a to-do the turn picked up, a card someone
+ *    wrote to and left in progress: back to `todo`, with a dated note saying what
+ *    happened, so the next agent sees it as open work rather than taken.
+ */
+function releaseTurn(
+  state: ReturnType<typeof loadState>,
+  paneKey: string,
+  agent: string,
+  ended: 'finished' | 'interrupted' | 'lost',
+  summary: string
+): number {
+  let changed = 0
+  for (const item of [...(state.items ?? [])]) {
+    if (item.held_by !== paneKey) continue
+    const createdByTurn = item.held_new === true
+    delete item.held_by
+    delete item.held_since
+    delete item.held_new
+    changed += 1
+    if (item.status !== 'wip' || item.locked) continue
+    // Removed only if nobody wrote to it after it went up: an agent that picked
+    // the card up with set_item holds its id, and deleting it from under that
+    // agent would make its closing update fail.
+    const untouched = item.updated_at === item.created_at && !item.notes
+    if (createdByTurn && untouched) {
+      state.items = state.items.filter((i) => i !== item)
+      for (const m of state.roadmap ?? []) m.item_ids = (m.item_ids ?? []).filter((id) => id !== item.id)
+      continue
+    }
+    item.status = 'todo'
+    item.updated_at = nowIso()
+    const said = summary ? ` It said: "${summary}"` : ''
+    const line =
+      ended === 'interrupted'
+        ? `${agent}'s turn on this was interrupted before it finished.`
+        : ended === 'lost'
+          ? `${agent}'s turn on this ended without the IDE seeing it finish.`
+          : `${agent} finished a turn on this without moving it to works/done.${said}`
+    const stamped = `[${nowIso().slice(0, 16).replace('T', ' ')}] ${line}`
+    item.notes = item.notes ? `${item.notes}\n${stamped}` : stamped
+  }
+  return changed
+}
+
+/**
+ * A turn starts: the agent is on it, so the board says so -- now, while it is
+ * true, rather than after the fact.
+ */
+function startTurn(turn: AgentTurn): boolean {
+  const payload = turn.payload ?? {}
+  const prompt = trim(payload.prompt)
+  if (!prompt || !isTaskPrompt(prompt)) return false
+  const path = projectPathFromWorktreeId(turn.worktreeId)
+  if (!path || !existsSync(path)) return false
+  const paneKey = turn.paneKey ?? path
+  // One card per turn: `working` is re-reported on every tool call.
+  const turnId = `${turn.turnStartedAt ?? ''}|${prompt}`
+  if (openTurnByPane.get(paneKey) === turnId) return false
+  openTurnByPane.set(paneKey, turnId)
+  if (openTurnByPane.size > PANE_CACHE_CAP) {
+    const oldest = openTurnByPane.keys().next().value
+    if (oldest !== undefined && oldest !== paneKey) openTurnByPane.delete(oldest)
+  }
+  const agent = trim(payload.agentType) || 'agent'
+  const state = loadState(path)
+  const before = historySnapshot(state)
+  const startedAt = turn.turnStartedAt ? isoSeconds(turn.turnStartedAt) : nowIso()
+  const held = (state.items ?? []).filter((i) => i.held_by === paneKey)
+  // This very turn is already on the board -- the IDE restarted mid-turn and
+  // forgot it had placed the card. Keep it.
+  if (held.some((i) => i.held_since === startedAt)) return false
+  // A pane still holding a card from an EARLIER turn whose end never reached us
+  // (a lost delivery, the IDE closed mid-turn): that turn is over now.
+  const released = held.length ? releaseTurn(state, paneKey, agent, 'lost', '') : 0
+  const placed = holdCardForTurn(state, prompt, agent, paneKey, startedAt)
+  if (!placed && !released) return false
+  saveState(path, state)
+  recordHistory(path, before, state, agent)
+  return true
 }
 
 /**
@@ -180,9 +297,10 @@ export function recordAgentTurn(turn: AgentTurn): boolean {
   try {
     if (turn.isReplay) return false
     const payload = turn.payload ?? {}
-    if (payload.state !== 'done') return false
     // A session boundary is an agent connecting or being cleared, not work.
     if (payload.sessionBoundary === true) return false
+    if (payload.state === 'working') return startTurn(turn)
+    if (payload.state !== 'done') return false
 
     const path = projectPathFromWorktreeId(turn.worktreeId)
     if (!path) return false
@@ -220,11 +338,10 @@ export function recordAgentTurn(turn: AgentTurn): boolean {
     if (summary && !payload.interrupted) {
       logActivity(state, 'agent-said', summary, agent)
     }
-    // A finished, uninterrupted turn on a real prompt also moves the board, so
-    // agent work is visible as a card and not only as a line in the trail.
-    if (prompt && !payload.interrupted) {
-      reflectPromptOnBoard(state, prompt, agent)
-    }
+    // Whatever this turn held on the board, it holds no longer.
+    const paneKey = turn.paneKey ?? path
+    releaseTurn(state, paneKey, agent, payload.interrupted ? 'interrupted' : 'finished', summary)
+    openTurnByPane.delete(paneKey)
     saveState(path, state)
     // Record any board change this turn made (a new/advanced card) in the
     // per-project history DB, attributed to the agent. Best-effort, never throws.
@@ -239,4 +356,5 @@ export function recordAgentTurn(turn: AgentTurn): boolean {
 /** Test seam: forget the per-pane dedupe cache. */
 export function resetAgentTurnCache(): void {
   lastTurnByPane.clear()
+  openTurnByPane.clear()
 }

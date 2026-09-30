@@ -406,6 +406,34 @@ else
   skip "always-on token cost (no python3)"
 fi
 
+# 4b2. every bundled SKILL.md parses as strict YAML. Hosts build their skill list
+# from this frontmatter, and a strict parser (Codex's) drops a skill whose plain
+# description contains ": " -- the same "invalid SKILL.md" class v0.88.0 chased.
+# Lenient parsers accept it, so nothing else here would notice.
+if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' 2>/dev/null; then
+  if yl=$(python3 - "$ROOT/ide/agent-bundle/skills" <<'PY' 2>&1
+import pathlib, re, sys, yaml
+bad = []
+for f in sorted(pathlib.Path(sys.argv[1]).glob('*/SKILL.md')):
+    m = re.match(r'^---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(\r?\n|$)', f.read_text(encoding='utf-8'), re.S)
+    try:
+        d = yaml.safe_load(m.group(1)) if m else None
+        if not isinstance(d, dict) or not d.get('name') or not d.get('description'):
+            bad.append(f'{f.parent.name}: no name/description')
+    except yaml.YAMLError as e:
+        bad.append(f'{f.parent.name}: {str(e).splitlines()[0]}')
+print('\n'.join(bad))
+sys.exit(1 if bad else 0)
+PY
+  ); then
+    ok "every bundled SKILL.md has strict-YAML frontmatter"
+  else
+    bad "a bundled SKILL.md is not valid YAML"; echo "$yl" | head -4
+  fi
+else
+  skip "SKILL.md YAML check (needs python3 + PyYAML)"
+fi
+
 DS_CATALOG="$ROOT/ide/agent-bundle/design/design-systems/catalog.json"
 if [ -f "$DS_CATALOG" ] && command -v python3 >/dev/null 2>&1; then
   ds_backup=$(mktemp)
@@ -599,10 +627,17 @@ $tmp/src/renderer/src/components/star-nag/StarNagToastHost.tsx"
     else
       bad "the star button still points at Orca:$star_stray (ours: $star_ours/5)"
     fi
-    # re-run must be a no-op
-    again=$(python3 "$HERE/apply.py" "$tmp" 2>&1 | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
-    [ "$again" = "0" ] && ok "apply is idempotent (re-run changes nothing)" \
-                       || bad "apply is not idempotent (re-applied $again edits)"
+    # re-run must be a no-op -- AND must not fail. Counting re-applied edits
+    # alone passed while the re-run reported a PROBLEM and exited 1, which is
+    # what build.sh --apply-only then hit on every already-patched checkout.
+    rerun=$(python3 "$HERE/apply.py" "$tmp" 2>&1); rerun_rc=$?
+    again=$(echo "$rerun" | grep -oE 'edits applied : [0-9]+' | grep -oE '[0-9]+')
+    if [ "$again" = "0" ] && [ "$rerun_rc" = 0 ] && ! echo "$rerun" | grep -q "PROBLEMS"; then
+      ok "apply is idempotent (re-run changes nothing and succeeds)"
+    else
+      bad "apply is not idempotent (re-applied ${again:-?} edits, exit $rerun_rc)"
+      echo "$rerun" | sed -n '/PROBLEMS/,$p' | head -4
+    fi
   fi
   rm -rf "$tmp"
 else

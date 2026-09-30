@@ -6,7 +6,7 @@
  * can find ide/agent-bundle.
  */
 import { execSync, spawn } from 'node:child_process'
-import { cpSync, mkdtempSync, mkdirSync, rmSync, statSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
+import { chmodSync, cpSync, mkdtempSync, mkdirSync, rmSync, statSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -28,7 +28,8 @@ const {
   pruneStaleRoster,
   measureAgentBudget,
   pruneAgentRosterNow,
-  CLAUDE_AGENT_BUDGET
+  CLAUDE_AGENT_BUDGET,
+  jevgrepStatus
 } = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
@@ -128,6 +129,52 @@ const uselessDesc = readdirSync(join(REPO, 'ide/agent-bundle/skills')).filter((d
   return v.length < 20 || v.toLowerCase() === d.toLowerCase()
 })
 ok('every bundled skill has a real, matchable description', uselessDesc.length === 0)
+
+// --- jevgrep: code search by behaviour, wired where the work is routed ------ //
+// Bundling a skill nobody is told about is how the design skills went unused for
+// months. So the skill has to land in every tool's own skills root, and Council,
+// every team lead and the main session have to name it -- with its three real
+// limits, because an agent that finds out about them mid-task wastes the task.
+ok('the jevgrep skill lands in all four skills roots, with its license and provenance',
+  ['.claude/skills', '.codex/skills', '.qwen/skills', '.gemini/config/skills'].every((r) =>
+    existsSync(join(HOME, r, 'jevgrep/SKILL.md')) && existsSync(join(HOME, r, 'jevgrep/LICENSE')) &&
+    existsSync(join(HOME, r, 'jevgrep/ATTRIBUTION.md'))))
+const jgSkill = readFileSync(join(HOME, '.claude/skills/jevgrep/SKILL.md'), 'utf8')
+ok('its bundle note states the limits: Windows, install consent, where source goes, no keys in chat',
+  jgSkill.includes('EBADPLATFORM') && jgSkill.includes("user's call") &&
+  jgSkill.includes('model provider') && jgSkill.includes('Never ask for, accept or type an API key'))
+ok('the upstream skill body is carried unchanged below the note',
+  jgSkill.includes(readFileSync(join(REPO, 'ide/agent-bundle/skills/jevgrep/SKILL.md'), 'utf8')
+    .split('\n# Jevgrep\n')[1].slice(0, 400)))
+const councilDeployed = readFileSync(join(HOME, '.claude/agents/pulse-council.md'), 'utf8')
+ok('Council routes behavioural code questions to jg and says to name it in hand-offs',
+  councilDeployed.includes('## Finding code by what it does') &&
+  councilDeployed.includes('name `jg` and the repository root') &&
+  councilDeployed.includes('record_anti_loop_failure'))
+const leadsWithJg = readdirSync(join(HOME, '.claude/agents'))
+  .filter((f) => f.startsWith('pulse-') && readFileSync(join(HOME, '.claude/agents', f), 'utf8').includes('(the `jevgrep` skill)'))
+ok(`every team lead knows jg, so delegated discovery uses it too (${leadsWithJg.length})`,
+  leadsWithJg.length === readdirSync(join(REPO, 'ide/agent-bundle/agents')).filter((f) => f !== 'README.md' && f.endsWith('.md')).length)
+ok('the main session is told too, in the "check what is installed" table',
+  readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8').includes('skill: jevgrep') &&
+  readFileSync(join(HOME, '.codex/AGENTS.md'), 'utf8').includes('skill: jevgrep'))
+
+// Detected, never installed -- and it reports which of the three pieces is missing.
+const jgBin = join(work, 'jg-bin'); mkdirSync(jgBin)
+writeFileSync(join(jgBin, 'jg'), '#!/bin/sh\necho "0.7.0"\n'); chmodSync(join(jgBin, 'jg'), 0o755)
+const jgCfg = join(work, 'jg-xdg'); mkdirSync(join(jgCfg, 'jevgrep'), { recursive: true })
+const noJg = jevgrepStatus(HOME, { PATH: join(work, 'no-such-bin'), XDG_CONFIG_HOME: jgCfg }, 'linux')
+ok('jg not on PATH reads as not installed', noJg.installed === false && noJg.supported === true)
+const jgNoAuth = jevgrepStatus(HOME, { PATH: jgBin, XDG_CONFIG_HOME: jgCfg }, 'linux')
+ok('jg on PATH reads its own version, and no saved provider reads as not authenticated',
+  jgNoAuth.installed === true && jgNoAuth.version === '0.7.0' && jgNoAuth.authenticated === false)
+writeFileSync(join(jgCfg, 'jevgrep/credentials.json'), '{"provider":"x"}')
+ok('a provider saved by jg auth reads as ready',
+  jevgrepStatus(HOME, { PATH: jgBin, XDG_CONFIG_HOME: jgCfg }, 'linux').authenticated === true)
+ok('without XDG_CONFIG_HOME it looks where jg auth writes by default (~/.config/jevgrep)',
+  jevgrepStatus(HOME, { PATH: jgBin }, 'linux').authenticated === existsSync(join(HOME, '.config/jevgrep/credentials.json')))
+ok('native Windows reads as unsupported, whatever is on PATH',
+  jevgrepStatus(HOME, { PATH: jgBin, XDG_CONFIG_HOME: jgCfg }, 'win32').supported === false)
 // A redeploy must not delete a skill that is already correct. The old loop rm'd
 // then cp'd every skill on every deploy, so each one was absent for the length of
 // its own copy -- and an agent reading the directory in that window gets the name
@@ -1374,6 +1421,80 @@ const beforeStray = hookItems().length
 await runHook({ tool_name: 'Bash', cwd: hookProject, tool_input: { command: 'ls' } })
 ok('a non-plan tool is ignored even if the matcher is widened by hand',
   hookItems().length === beforeStray)
+
+// --- "in progress" must mean someone is on it --------------------------------- //
+// Reported as items sitting "in behandeling" that nobody ever picked up. A step
+// that left the plan while in progress, and every in-progress step of a session
+// that ended, used to stay `wip` forever. Each step now belongs to the session
+// whose plan holds it, and goes back to `todo` -- with a note -- when that plan
+// lets go of it.
+await runHook({ tool_name: 'TodoWrite', session_id: 'sess-A', cwd: hookProject, tool_input: { todos: [
+  { content: 'Refactor the parser', status: 'in_progress' },
+  { content: 'Document the parser', status: 'pending' }
+] } })
+ok('a plan step is owned by the session whose plan holds it',
+  byTitle('Refactor the parser')?.status === 'wip' && byTitle('Refactor the parser')?.plan_owner === 'sess-A')
+// Punctuation and case are not a new step: this used to make a second card and
+// strand the first one in wip.
+await runHook({ tool_name: 'TodoWrite', session_id: 'sess-A', cwd: hookProject, tool_input: { todos: [
+  { content: 'refactor the parser.', status: 'in_progress' },
+  { content: 'Document the parser', status: 'pending' }
+] } })
+ok('re-punctuating a step moves the same item instead of stranding it',
+  hookItems().filter((i) => /refactor the parser/i.test(i.title)).length === 1 &&
+  byTitle('Refactor the parser')?.status === 'wip')
+// The session re-plans and the in-progress step is gone from its list.
+await runHook({ tool_name: 'TodoWrite', session_id: 'sess-A', cwd: hookProject, tool_input: { todos: [
+  { content: 'Rewrite the tokenizer', status: 'in_progress' },
+  { content: 'Document the parser', status: 'pending' }
+] } })
+const leftPlan = byTitle('Refactor the parser')
+ok('a step that leaves the plan while in progress goes back to todo, saying why',
+  leftPlan?.status === 'todo' && leftPlan?.plan_owner === undefined &&
+  (leftPlan?.notes ?? '').includes('Left') && (leftPlan?.notes ?? '').includes('not finished'))
+ok('a step still in the plan keeps its state', byTitle('Document the parser')?.status === 'todo' &&
+  byTitle('Rewrite the tokenizer')?.status === 'wip')
+// Another session's plan never releases what this one holds.
+await runHook({ tool_name: 'TodoWrite', session_id: 'sess-B', cwd: hookProject, tool_input: { todos: [
+  { content: 'Unrelated work from B', status: 'in_progress' }
+] } })
+ok('another session\'s plan leaves this session\'s steps alone',
+  byTitle('Rewrite the tokenizer')?.status === 'wip' && byTitle('Rewrite the tokenizer')?.plan_owner === 'sess-A')
+// A step cancelled while in progress is let go of too, and says so.
+await runHook({ tool_name: 'write_todos', session_id: 'sess-B', cwd: hookProject, tool_input: { todos: [
+  { description: 'Unrelated work from B', status: 'cancelled' }
+] } })
+ok('a step cancelled while in progress goes back to todo as cancelled',
+  byTitle('Unrelated work from B')?.status === 'todo' &&
+  (byTitle('Unrelated work from B')?.notes ?? '').includes('cancelled'))
+// The session ends: whatever it still had in progress, nobody is on any more.
+const runSessionEnd = (payload) =>
+  new Promise((resolve) => {
+    const launcher = todoEntry.hooks[0].command
+    const child = spawn(launcher, [], { stdio: ['pipe', 'ignore', 'ignore'] })
+    child.on('error', () => resolve(false))
+    child.on('close', () => resolve(true))
+    child.stdin.write(JSON.stringify(payload))
+    child.stdin.end()
+  })
+await runSessionEnd({ hook_event_name: 'SessionEnd', session_id: 'sess-A', cwd: hookProject, reason: 'clear' })
+ok('when the session ends, its in-progress steps go back to todo with the reason',
+  byTitle('Rewrite the tokenizer')?.status === 'todo' &&
+  (byTitle('Rewrite the tokenizer')?.notes ?? '').includes('ended (clear)'))
+ok('and its steps that were not in progress are left as they were',
+  byTitle('Document the parser')?.status === 'todo' && !(byTitle('Document the parser')?.notes ?? '').includes('ended'))
+// No session id, nothing to compare: the old behaviour, nothing released.
+await runHook({ tool_name: 'TodoWrite', cwd: hookProject, tool_input: { todos: [
+  { content: 'Anonymous step', status: 'in_progress' }
+] } })
+await runHook({ tool_name: 'TodoWrite', cwd: hookProject, tool_input: { todos: [
+  { content: 'Another anonymous step', status: 'pending' }
+] } })
+ok('without a session id a plan releases nothing', byTitle('Anonymous step')?.status === 'wip')
+// Claude Code's SessionEnd is where the hook is registered for it.
+const endHooks = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8')).hooks?.SessionEnd ?? []
+ok('the plan hook also listens on Claude Code\'s SessionEnd, exactly once',
+  endHooks.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync'))).length === 1)
 
 // Re-sending a revised plan must move a step, never stack a second copy of it.
 const revised = await callTool(launchFromConfig('.codex/config.toml'), 'sync_plan', {

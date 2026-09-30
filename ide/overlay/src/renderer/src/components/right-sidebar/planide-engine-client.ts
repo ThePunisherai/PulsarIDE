@@ -57,6 +57,36 @@ export type PlanIdeItem = {
   /** "Do not break this" -- protected by you. Agents read it, never set it. */
   locked: boolean
   locked_at: string
+  created_at?: string
+  updated_at?: string
+  /** The pane whose running agent turn holds this item, while that turn runs. */
+  held_by?: string
+}
+
+/** Minutes an item may sit in `wip` untouched before the board says nobody is on it. */
+export const STALLED_MINUTES = 60
+/** A card a running turn holds is released when that turn ends; only a dead pane leaves it this long. */
+const STALLED_HELD_MINUTES = 360
+
+/**
+ * How long an in-progress item has gone untouched, when that is long enough to
+ * mean nobody is working it -- or null. `wip` is a claim that an agent is on it,
+ * and the same rule is what get_board hands every agent, so the badge you see and
+ * the list the next agent is told to pick up are the same items.
+ */
+export function stalledMinutes(item: PlanIdeItem, now: number = Date.now()): number | null {
+  if (item.status !== 'wip') return null
+  const at = Date.parse(item.updated_at ?? item.created_at ?? '')
+  if (!Number.isFinite(at)) return null
+  const idle = Math.floor((now - at) / 60000)
+  return idle >= (item.held_by ? STALLED_HELD_MINUTES : STALLED_MINUTES) ? idle : null
+}
+
+/** 45m, 5h, 3d. */
+export function formatIdle(minutes: number): string {
+  if (minutes < 120) return `${minutes}m`
+  if (minutes < 2880) return `${Math.floor(minutes / 60)}h`
+  return `${Math.floor(minutes / 1440)}d`
 }
 
 export type PlanIdeFix = {
@@ -421,6 +451,13 @@ export type RtkStatus = { installed: boolean; version: string }
 /** rtk filters noisy command output before an agent reads it. Detected only. */
 export function rtkStatus(): Promise<RtkStatus> {
   return call<RtkStatus>('rtkStatus')
+}
+
+export type JevgrepStatus = { supported: boolean; installed: boolean; version: string; authenticated: boolean }
+
+/** jg (jevgrep): code search by behaviour. Detected only -- it is the user's to install. */
+export function jevgrepStatus(): Promise<JevgrepStatus> {
+  return call<JevgrepStatus>('jevgrepStatus')
 }
 
 export function unrealStatus(): Promise<UnrealStatus> {

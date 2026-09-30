@@ -27,6 +27,7 @@ import {
   deployProjectAgentsMd,
   eccStatus,
   installEccNow,
+  jevgrepStatus,
   meshyStatus,
   pruneAgentRosterNow,
   setUnrealPath,
@@ -262,6 +263,8 @@ export function registerPlanIdeIpc(): void {
   on('planide:unreal-status', () => unrealStatus())
   // Detected, never installed: rtk's own init writes a global shell hook.
   on('planide:rtk-status', () => rtkStatus())
+  // Detected, never installed: jg sends source to the user's own provider.
+  on('planide:jevgrep-status', () => jevgrepStatus())
   on('planide:unreal-set-path', (path: string) => setUnrealPath(path))
   // You pick where it goes; the IDE clones it there. Async on purpose -- the
   // renderer awaits a real download rather than a write that did nothing.

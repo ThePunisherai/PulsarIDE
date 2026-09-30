@@ -50,12 +50,20 @@ import sys
 # typechecks (React types for the renderer, strict real node types for main),
 # which is what would catch an upstream API change under us.
 #
+# This one (33ba1ff -> b99462a) is the widest yet: 691 commits, 8,676 files,
+# +507k/-152k lines -- a native chat surface, a mobile RPC layer, a SQLite
+# profile store with a startup recovery dialog, bundled ripgrep. 3 of 69 anchors
+# drifted, each because upstream reshaped the code AROUND our line rather than
+# the line itself (a constant moved module, the ready call gained a try/catch, a
+# resource array gained a member). All three are now anchored on one stable line
+# each, so the same kind of reshuffle cannot break them again.
+#
 # None of that can see a render loop. A green typecheck and a green verify both
 # passed on b0df874 too, and neither could: it is a runtime fault. So the standing
 # rule holds -- the only thing that clears a bump is a real boot on Windows. If
 # #185 comes back on this revision, pin straight back to 61e0100 and ship that
 # as a patch release, exactly as v0.55.1 did.
-PINNED_COMMIT = "33ba1ff3df247652c546985201d9a6f4edaec80b"  # 2026-09-20, upstream HEAD
+PINNED_COMMIT = "b99462ac1cf6a4917d33271905b3b23232635c55"  # 2026-09-30, upstream HEAD
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -223,8 +231,14 @@ EDITS: list[tuple[str, str, str, str]] = [
     # against a runaway spawner -- the rows are small and bounded (id 64 chars,
     # type 40, model 120), so four times as many is tens of KB per pane, not a
     # payload problem -- while leaving room for the roster this app ships.
+    #
+    # b99462a moved the constant out of agent-status-types.ts into
+    # agent-status-subagent-snapshot.ts (re-exported, same name and value). Its
+    # uses are all row-count guards; the 4096-token structure limit on status
+    # payloads only applies to terminal OSC reports, and the store allows 8,192
+    # children in total, so 128 per pane stays inside every bound upstream sets.
     (
-        "src/shared/agent-status-types.ts",
+        "src/shared/agent-status-subagent-snapshot.ts",
         "export const AGENT_STATUS_MAX_SUBAGENTS = 32",
         "export const AGENT_STATUS_MAX_SUBAGENTS = 128",
         "track a full roster's worth of subagents, not 32",
@@ -382,17 +396,30 @@ EDITS: list[tuple[str, str, str, str]] = [
         "let the tracker tab pass the route normalizer (else clicking it does nothing)",
     ),
     # ---- integration: start the tracker engine --------------------------- #
-    # Upstream's entry point is now a thin orchestrator: the ready phase is one
-    # call into startup/main-process-ready. Both of our launch steps go in ahead
-    # of it, in one edit -- they used to be two, with the second anchored on the
+    # Upstream's entry point is a thin orchestrator: the ready phase is one call
+    # into startup/main-process-ready. Both of our launch steps go in ahead of
+    # it, in one edit -- they used to be two, with the second anchored on the
     # first's output, and that daisy-chain is what broke idempotency before.
+    #
+    # Anchored on the whenReady line ALONE. b99462a wrapped the ready call in a
+    # try/catch with a profile-state recovery dialog, and our anchor -- which
+    # included the ready call's own line -- stopped matching. What sits inside
+    # the callback is upstream's to reshape; the callback's opening line is not.
+    # The IPC registration is guarded for the same reason the deploy below is:
+    # it now runs ahead of upstream's own try, so a throw here would reject the
+    # whole callback and leave the app without a window or a recovery dialog.
     (
         "src/main/index.ts",
-        "  void app.whenReady().then(async () => {\n    await initializeMainProcessReady({",
+        "  void app.whenReady().then(async () => {\n",
         "  void app.whenReady().then(async () => {\n"
         "    // PlanIDE: the tracker is main-process code -- registering its IPC is\n"
-        "    // all there is to start. No server, no port, no child process.\n"
-        "    registerPlanIdeIpc()\n"
+        "    // all there is to start. No server, no port, no child process. Guarded:\n"
+        "    // a tracker that cannot register must never stop the IDE from opening.\n"
+        "    try {\n"
+        "      registerPlanIdeIpc()\n"
+        "    } catch (err) {\n"
+        "      console.warn('[planide] tracker IPC did not register:', err)\n"
+        "    }\n"
         "    // PulsarIDE: pre-install ThePunisher's team leads + skills + memory\n"
         "    // hooks into the shared agent locations, so every CLI agent running\n"
         "    // inside the IDE has them for every project. Deferred so it never delays\n"
@@ -403,8 +430,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "      } catch {\n"
         "        /* the bundle can never break startup */\n"
         "      }\n"
-        "    }, 0)\n"
-        "    await initializeMainProcessReady({",
+        "    }, 0)\n",
         "register the tracker IPC and deploy the agent bundle on launch",
     ),
     # These imports go in as blocks, on purpose. They used to be separate edits
@@ -630,15 +656,17 @@ EDITS: list[tuple[str, str, str, str]] = [
         "      }",
         "      if (!restoredUnconfirmed) {\n"
         "        options.maybeAutoRenameBranchOnFirstWork({ paneKey, tabId, worktreeId, payload, isReplay })\n"
-        "        // PlanIDE: log the finished turn in that project's tracker. Everything\n"
-        "        // it needs to ignore (replays, session boundaries, duplicates, untracked\n"
-        "        // projects) is decided inside, and it can never throw into this pipeline.\n"
-        "        recordAgentTurn({ worktreeId, paneKey, isReplay, promptInteractionKey, payload })\n"
+        "        // PlanIDE: the turn on that project's board -- a live card while it\n"
+        "        // runs, released when it ends. Everything it needs to ignore (replays,\n"
+        "        // session boundaries, duplicates, untracked projects) is decided inside,\n"
+        "        // and it can never throw into this pipeline. turnStartedAt is what ties\n"
+        "        // the card to the turn that holds it.\n"
+        "        recordAgentTurn({ worktreeId, paneKey, isReplay, promptInteractionKey, turnStartedAt, payload })\n"
         "        // PlanIDE: keep graphify + Obsidian per-workspace, for every agent\n"
         "        // (not only Claude's SessionStart hook). Throttled + detached inside.\n"
         "        maybeSyncMemory(worktreeId)\n"
         "      }",
-        "record finished agent turns in the tracker",
+        "record agent turns in the tracker (live card while a turn runs)",
     ),
     # ---- auto-update: point Orca's own updater at OUR releases ----------- #
     # Orca already ships a full, well-tested electron-updater subsystem. It does
@@ -804,21 +832,16 @@ EDITS: list[tuple[str, str, str, str]] = [
     ),
     # ---- the agent bundle: ThePunisher agents + skills, packaged ---------- #
     (
+        # Anchored on the array's opening line only, with our entry first.
+        # Matching every member broke the moment b99462a added
+        # `...bundledRipgrepExtraResources` in the middle; the order of
+        # extraResources means nothing (each has its own `to`), so ours no longer
+        # depends on what upstream keeps in there.
         "config/electron-builder.config.cjs",
-        "const commonExtraResources = [\n"
-        "  relayExtraResource,\n"
-        "  bundledPluginResources,\n"
-        "  skillFreshnessResources,\n"
-        "  emojiShortcodeDatasetResource\n"
-        "]",
+        "const commonExtraResources = [\n",
         "const pulsarAgentsResource = { from: 'resources/pulsar-agents', to: 'pulsar-agents' }\n"
         "const commonExtraResources = [\n"
-        "  relayExtraResource,\n"
-        "  bundledPluginResources,\n"
-        "  skillFreshnessResources,\n"
-        "  emojiShortcodeDatasetResource,\n"
-        "  pulsarAgentsResource\n"
-        "]",
+        "  pulsarAgentsResource,\n",
         "ship the ThePunisher agent bundle inside the app",
     ),
 ]
@@ -914,7 +937,13 @@ def apply_edits(root: str, check_only: bool) -> tuple[int, int, list[str]]:
             problems.append(f"missing file: {rel} ({desc})")
             continue
         text = read(path)
-        if replacement in text:
+        # "Already applied" has to recognise the edit in either form it can be
+        # left in: as written, or as patch_source_strings rewrites it later in
+        # the same run. An edit whose replacement carries an 'Orca' string
+        # literal is rebranded after it lands, so on the next run neither its
+        # anchor nor its literal replacement is in the file -- which reported a
+        # PROBLEM and failed every re-apply of an already-patched checkout.
+        if replacement in text or _as_source_rebranded(rel, replacement) in text:
             skipped += 1
             continue
         count = text.count(anchor)
@@ -1145,6 +1174,21 @@ def _rebrand_source_token(match: "_re.Match[str]") -> str:
     if any(h in tok for h in LOCALE_SKIP_VALUE_HINTS):
         return tok
     return _rebrand_value(tok)
+
+
+def _as_source_rebranded(rel: str, text: str) -> str:
+    """`text` as patch_source_strings would leave it in the file at `rel`."""
+    name = os.path.basename(rel)
+    in_scope = (
+        rel.endswith((".ts", ".tsx"))
+        and not rel.endswith(".d.ts")
+        and ".test." not in name
+        and ".spec." not in name
+        and name not in SOURCE_SKIP_FILES
+        and "/i18n/locales" not in rel
+        and any(rel.startswith(sub + "/") for sub in SOURCE_ROOTS)
+    )
+    return _SOURCE_TOKEN_RE.sub(_rebrand_source_token, text) if in_scope else text
 
 
 def patch_source_strings(root: str, check_only: bool) -> int:

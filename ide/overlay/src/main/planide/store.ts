@@ -56,6 +56,17 @@ export type Item = {
   /** "Do not break this." Never set by an agent. */
   locked: boolean
   locked_at: string
+  /**
+   * Who is on it right now. `wip` claims an agent is working the item, and these
+   * are what let that claim be taken back when it stops being true: the pane
+   * whose running turn holds it (`held_by`, from `held_since`, `held_new` when
+   * that turn created the card), or the agent session whose plan holds it
+   * (`plan_owner`, written by the plan hook). Absent on anything you entered.
+   */
+  held_by?: string
+  held_since?: string
+  held_new?: boolean
+  plan_owner?: string
 }
 
 export type Fix = {

@@ -19,7 +19,8 @@ import {
 import {
   projectPathFromWorktreeId,
   recordAgentTurn,
-  resetAgentTurnCache
+  resetAgentTurnCache,
+  normalizeTitle
 } from '../overlay/src/main/planide/agent-events'
 import { mkdtempSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -139,7 +140,8 @@ const before = store.loadState(proj).activity.length
 ok('a finished turn is recorded', recordAgentTurn(turn()) === true)
 ok('the same delivery is not recorded twice', recordAgentTurn(turn()) === false)
 ok('a replay is ignored', recordAgentTurn(turn({ isReplay: true }, { turnCompletedAt: 2 })) === false)
-ok('working/waiting churn is ignored', recordAgentTurn(turn({}, { state: 'working' })) === false)
+ok('waiting/blocked churn is ignored', recordAgentTurn(turn({}, { state: 'waiting' })) === false &&
+   recordAgentTurn(turn({}, { state: 'blocked' })) === false)
 // Upstream marks connect/resume/clear as a `done` that is not a completed turn.
 ok('a session boundary is ignored', recordAgentTurn(turn({}, { sessionBoundary: true, turnCompletedAt: 3 })) === false)
 // The board starts itself: a project you never opened the Tracker tab in still
@@ -161,16 +163,12 @@ ok('a repeat of the same turn key is one entry',
 ok('a new turn key is a new entry', recordAgentTurn(turn({ promptInteractionKey: 'k2' })) === true)
 
 const agentState = store.loadState(proj)
-// The board now reflects agent work too: a real prompt lands one honest `wip`
-// card (deduped across the many same-prompt turns above), attributed to the
-// agent, tagged `agent`, and never auto-confirmed. This is the direct answer to
-// "agents write nothing to the tracker, I see no changes".
 ok('activity grew', agentState.activity.length > before)
-const auto = agentState.items.filter((i) => (i.tags ?? []).includes('agent'))
-ok('a real prompt lands exactly one deduped wip card', auto.length === 1)
-ok('the card is the prompt, in wip, by the agent, never auto-confirmed',
-   auto[0].title === 'wire the PPU' && auto[0].status === 'wip' &&
-   auto[0].claimed_by === 'claude' && auto[0].verified === false)
+// A `done` with no turn seen starting leaves no card behind. It used to land a
+// `wip` card at every finished turn, which nothing ever moved again -- the
+// "in behandeling, nobody picks it up" board.
+ok('a finished turn alone leaves no card claiming work is in progress',
+   agentState.items.filter((i) => (i.tags ?? []).includes('agent') && i.status === 'wip').length === 0)
 ok('attributed to the agent that ran it', agentState.activity.some((x) => x.who === 'claude' && x.kind === 'agent-turn'))
 ok('the closing summary is its own line',
    recordAgentTurn(turn({ promptInteractionKey: 'k3' }, { lastAssistantMessage: 'PPU scanline fixed' })) === true &&
@@ -181,8 +179,120 @@ ok('an interrupted turn says so',
 // A greeting is not a task: a one-word prompt logs activity but adds no card.
 const cardsBefore = store.loadState(proj).items.filter((i) => (i.tags ?? []).includes('agent')).length
 recordAgentTurn(turn({ promptInteractionKey: 'k5' }, { prompt: 'hi' }))
+recordAgentTurn(turn({ paneKey: 'pane-hi' }, { state: 'working', prompt: 'hi' }))
 ok('a trivial prompt makes no card',
    store.loadState(proj).items.filter((i) => (i.tags ?? []).includes('agent')).length === cardsBefore)
+
+console.log('== a card lives exactly as long as the turn that holds it ==')
+// "In progress" on the board has to mean an agent is on it right now. The card
+// goes up when the turn starts, and when the turn ends it stops claiming so.
+const life = mkdtempSync(join(tmpdir(), 'turn-life-'))
+const T0 = Date.UTC(2026, 8, 30, 10, 0, 0)
+const live = (pane: string, state: string, prompt: string, at: number, extra: Record<string, unknown> = {}) =>
+  recordAgentTurn({
+    worktreeId: wt(life), paneKey: pane, turnStartedAt: at,
+    payload: { state, prompt, agentType: 'claude', ...extra }
+  })
+const board = () => store.loadState(life).items
+const titled = (t: string) => board().find((i) => i.title === t)
+
+ok('a turn starting on a real task puts its card up, in progress, held by that pane',
+   live('p1', 'working', 'build the export dialog', T0) === true &&
+   titled('build the export dialog')?.status === 'wip' &&
+   titled('build the export dialog')?.held_by === 'p1')
+ok('the same turn pinging working again does not add a second card',
+   live('p1', 'working', 'build the export dialog', T0) === false &&
+   board().filter((i) => i.title === 'build the export dialog').length === 1)
+ok('a turn that ends without anyone touching its card takes the card with it',
+   live('p1', 'done', 'build the export dialog', T0, { turnCompletedAt: 1 }) === true &&
+   titled('build the export dialog') === undefined)
+ok('and the turn itself stays in Activity, prompt and all',
+   store.loadState(life).activity.some((a) => a.kind === 'agent-turn' && a.text.includes('build the export dialog')))
+
+// The agent picking the card up is the whole idea -- then it is the agent's record.
+live('p1', 'working', 'wire the save button', T0 + 60_000)
+const saveCard = titled('wire the save button')!
+{
+  const st = store.loadState(life)
+  store.updateItem(st, saveCard.id, { status: 'works', claimed_by: 'claude' })
+  store.saveState(life, st)
+}
+live('p1', 'done', 'wire the save button', T0 + 60_000, { turnCompletedAt: 2 })
+ok('a card the agent moved itself stays exactly where it was put, no longer held',
+   titled('wire the save button')?.status === 'works' && titled('wire the save button')?.held_by === undefined)
+
+// An existing to-do a turn picks up and does not finish goes back, with the why.
+{
+  const st = store.loadState(life)
+  store.addItem(st, { title: 'migrate the settings page', status: 'todo' })
+  store.saveState(life, st)
+}
+live('p2', 'working', 'migrate the settings page', T0 + 120_000)
+ok('a turn on a planned to-do moves that item into progress instead of adding a card',
+   titled('migrate the settings page')?.status === 'wip' &&
+   board().filter((i) => i.title === 'migrate the settings page').length === 1)
+live('p2', 'done', 'migrate the settings page', T0 + 120_000, { turnCompletedAt: 3, lastAssistantMessage: 'moved half of the fields' })
+const migrated = titled('migrate the settings page')
+ok('left unfinished, it goes back to To do with a dated note and the agent\'s own words',
+   migrated?.status === 'todo' && migrated?.held_by === undefined &&
+   (migrated?.notes ?? '').includes('without moving it to works/done') &&
+   (migrated?.notes ?? '').includes('moved half of the fields'))
+
+live('p2', 'working', 'migrate the settings page', T0 + 180_000)
+live('p2', 'done', 'migrate the settings page', T0 + 180_000, { turnCompletedAt: 4, interrupted: true })
+ok('an interrupted turn says so on the item',
+   titled('migrate the settings page')?.status === 'todo' &&
+   (titled('migrate the settings page')?.notes ?? '').includes('interrupted'))
+
+// A turn whose end never arrived must not strand its card when the pane moves on.
+live('p3', 'working', 'draft the release notes', T0 + 240_000)
+live('p3', 'working', 'bump the version number', T0 + 300_000)
+ok('a new turn in the same pane releases the card of the turn whose end was lost',
+   titled('draft the release notes') === undefined &&
+   titled('bump the version number')?.status === 'wip' && titled('bump the version number')?.held_by === 'p3')
+
+// The IDE restarting mid-turn forgets its in-memory turn, not the board.
+resetAgentTurnCache()
+ok('after a restart, the running turn keeps its one card',
+   live('p3', 'working', 'bump the version number', T0 + 300_000) === false &&
+   board().filter((i) => i.title === 'bump the version number').length === 1 &&
+   titled('bump the version number')?.status === 'wip')
+live('p3', 'done', 'bump the version number', T0 + 300_000, { turnCompletedAt: 5 })
+
+// An agent that picked the card up holds its id: the card must still exist for
+// its closing update, even when the turn ends with it still in progress.
+live('p5', 'working', 'tighten the retry budget', T0 + 420_000)
+{
+  const st = store.loadState(life)
+  const card = st.items.find((i) => i.title === 'tighten the retry budget')!
+  card.updated_at = '2099-01-01T00:00:00Z' // a later write by the agent, e.g. set_item
+  store.saveState(life, st)
+}
+live('p5', 'done', 'tighten the retry budget', T0 + 420_000, { turnCompletedAt: 7 })
+ok('a card an agent wrote to is kept for it, released to To do -- not deleted from under it',
+   titled('tighten the retry budget')?.status === 'todo')
+
+// Something you wrote on the card during the turn is yours: never deleted.
+live('p4', 'working', 'profile the startup path', T0 + 360_000)
+{
+  const st = store.loadState(life)
+  const card = st.items.find((i) => i.title === 'profile the startup path')!
+  store.updateItem(st, card.id, { notes: 'check the splash screen first' })
+  store.saveState(life, st)
+}
+live('p4', 'done', 'profile the startup path', T0 + 360_000, { turnCompletedAt: 6 })
+ok('a card you added notes to is kept, back in To do, not removed',
+   titled('profile the startup path')?.status === 'todo' &&
+   (titled('profile the startup path')?.notes ?? '').includes('check the splash screen first'))
+ok('when every turn has ended, nothing on the board claims work is in progress',
+   board().filter((i) => i.status === 'wip').length === 0)
+
+// One piece of work is one card whichever route wrote it: case, punctuation and
+// accents do not make a new item, and non-Latin titles do not collapse into one.
+ok('titles match across case, punctuation and accents',
+   normalizeTitle('Café: fix the LOGIN.') === normalizeTitle('cafe fix the login'))
+ok('a title in another script keeps its letters',
+   normalizeTitle('修复登录页面') !== '' && normalizeTitle('修复登录页面') !== normalizeTitle('添加导出按钮'))
 
 console.log('== backup (own zip writer) ==')
 store.saveState(proj, st)

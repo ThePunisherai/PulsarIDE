@@ -6,6 +6,64 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.96.0] - 2026-09-30
+
+### What's fixed
+- **"In progress" on the board now means an agent is on it.** Items sat *in
+  behandeling* that nobody ever picked up, from three sources, and each one is closed:
+  - **Your prompt became a permanent `wip` card.** Every finished turn put your prompt
+    on the board as *In progress*, and nothing ever moved it again. When the agent had
+    recorded the work itself, the card was a duplicate on top of that. The card now
+    goes up when the turn *starts*, while it is true. When the turn ends, a card the
+    agent never touched is removed; the turn stays in Activity with your prompt and
+    the agent's closing words. A card the agent or you moved stays where it was put. A
+    planned to-do that the turn picked up but did not finish goes back to *To do*, with
+    a dated note saying so.
+  - **Plan steps were orphaned.** A step that dropped out of an agent's plan while in
+    progress stayed `wip` forever. So did every in-progress step of a session that
+    ended mid-task. Each step now belongs to the session whose plan holds it. When
+    that plan lets go of it (the step leaves the list, is cancelled, or the Claude Code
+    session ends), it goes back to *To do* with a note saying why.
+  - **Rewording a step stranded the old one.** The plan hook and the MCP server
+    matched titles differently, so "Run the tests." became a second card and left the
+    first in `wip`. There is now one rule everywhere: case, punctuation and accents do
+    not make a new step. Titles in other scripts no longer collapse into one card
+    either; the old ASCII-only rule turned a plan written in Chinese into a single item.
+- **Anything still left in progress is picked up.** An item in `wip` that nobody has
+  touched for an hour is flagged *stalled* on the board. `get_board` hands the same
+  list to the next agent first, with the instruction to continue it or put it back
+  with a note, before starting new work. Council and every main session are told the
+  same.
+- **Re-applying the overlay no longer fails on an already-patched checkout.** One edit's
+  replacement was rewritten by the inline rebrand later in the same run, so the next
+  apply found neither form and exited with an error. verify.sh called it idempotent
+  because it only counted re-applied edits. It now also fails on any problem in the
+  re-run.
+
+### What's new
+- **jevgrep: find code by asking what it does.** `jg "how are retries handled?" .`
+  returns the relevant files and verbatim excerpts in one call (dzhng/jevgrep, MIT).
+  The skill is bundled in every tool's skills folder. Council and all 100 team leads
+  are told when to use it, and to name it when they hand discovery to a subagent. The
+  Toolkit shows whether `jg` is installed and has a provider. It is yours to install:
+  every search sends source code to the model provider you choose in `jg auth`, and
+  the package runs on macOS and Linux only (WSL works; native Windows does not).
+- **Orca updated to the latest upstream** (691 commits, 8,676 files). 3 of 69 overlay
+  anchors drifted because upstream reshaped code around our lines: a constant moved
+  module, the startup call gained a recovery dialog, and a resource list gained
+  bundled ripgrep. All three are now anchored on a single stable line each, so the
+  same kind of change cannot break them again. The tracker's IPC registration is now
+  guarded, so a tracker failure can never keep the IDE from opening.
+
+### Worth knowing
+- Orca's own full typecheck could not run in the build sandbox this time: one
+  lint-only dependency is fetched from a host its network policy blocks. CI runs that
+  typecheck on every push. As before, only a real boot on Windows clears an Orca bump.
+  If the app crashes seconds into boot, say so and the pin goes straight back.
+- Every bundled SKILL.md is now checked with a strict YAML parser. A plain description
+  containing `: ` is dropped by Codex's parser but accepted by lenient ones, so nothing
+  else would have caught it.
+
 ## [0.95.0] - 2026-09-23
 
 ### What's fixed

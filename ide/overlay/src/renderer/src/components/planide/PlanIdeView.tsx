@@ -51,6 +51,7 @@ import {
   addVersion,
   aiReport,
   deleteItem,
+  formatIdle,
   lockItem,
   onBoardChanged,
   openProject,
@@ -60,6 +61,7 @@ import {
   reopenFix,
   resolveFix,
   setItemStatus,
+  stalledMinutes,
   toggleMilestone,
   updateItem,
   verifyItem,
@@ -426,6 +428,22 @@ function ItemBadges({ item }: { item: PlanIdeItem }): React.JSX.Element | null {
         className="rounded-full bg-amber-500/15 px-1.5 py-px text-[9px] font-semibold text-amber-500"
       >
         claimed · {item.claimed_by}
+      </span>
+    )
+  // "In progress" that nobody has touched for an hour is not in progress: the
+  // agent that took it is gone. Said out loud, because the column cannot.
+  const idle = stalledMinutes(item)
+  if (idle !== null)
+    bits.push(
+      <span
+        key="s"
+        className="rounded-full bg-amber-500/15 px-1.5 py-px text-[9px] font-semibold text-amber-500"
+        title={translate(
+          'planide.view.stalledHint',
+          'Marked in progress, but nothing has touched it since. No agent is working on it: the next agent is told to pick it up, or move it back to To do yourself.'
+        )}
+      >
+        {translate('planide.view.stalled', 'stalled')} · {formatIdle(idle)}
       </span>
     )
   if (item.priority && item.priority !== 'normal')

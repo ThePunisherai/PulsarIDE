@@ -26,6 +26,7 @@ import {
   eccInstall,
   eccSetEnabled,
   eccStatus,
+  jevgrepStatus,
   pickFolder,
   rtkStatus,
   trackerHealth,
@@ -36,6 +37,7 @@ import {
   withVisibleSpin,
   type AgentBudgetStatus,
   type EccStatus,
+  type JevgrepStatus,
   type RtkStatus,
   type TrackerHealth,
   type UnrealStatus
@@ -94,6 +96,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
   const [ecc, setEcc] = useState<EccStatus | null>(null)
   const [unreal, setUnreal] = useState<UnrealStatus | null>(null)
   const [rtk, setRtk] = useState<RtkStatus | null>(null)
+  const [jevgrep, setJevgrep] = useState<JevgrepStatus | null>(null)
   const [budget, setBudget] = useState<AgentBudgetStatus | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -104,6 +107,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
       eccStatus().then(setEcc),
       unrealStatus().then(setUnreal),
       rtkStatus().then(setRtk),
+      jevgrepStatus().then(setJevgrep),
       agentBudget(folder || undefined).then(setBudget)
     ])
   }, [folder])
@@ -359,6 +363,47 @@ export default function PulseToolkitPage(): React.JSX.Element {
               <pre className="mt-2 overflow-x-auto rounded-md bg-muted/40 px-2 py-1.5 font-mono text-[10px] text-muted-foreground">
                 brew install rtk{'\n'}winget install rtk-ai.rtk
               </pre>
+            )}
+          </Card>
+          {/* --- jevgrep: code search by behaviour, the user's to switch on -- */}
+          <Card
+            title={translate('planide.toolkit.jevgrep', 'Code search (jevgrep)')}
+            subtitle={translate(
+              'planide.toolkit.jevgrepSub',
+              'Council and the team leads ask jg how or where something works and get ranked files and source excerpts back. It needs your own model-provider key, and each search sends eligible source to that provider -- so it is yours to install, never installed for you.'
+            )}
+          >
+            {jevgrep ? (
+              <>
+                <div className="mt-2 flex items-start gap-2 text-[12px]">
+                  <Dot ok={jevgrep.supported && jevgrep.installed && jevgrep.authenticated} />
+                  <span className="text-muted-foreground">
+                    {!jevgrep.supported
+                      ? translate(
+                          'planide.toolkit.jevgrepWindows',
+                          'Not available on Windows: the package is published for macOS and Linux only. It works inside WSL; here agents fall back to rg.'
+                        )
+                      : !jevgrep.installed
+                        ? translate('planide.toolkit.jevgrepOff', 'Not installed. Agents fall back to rg until it is.')
+                        : translate('planide.toolkit.jevgrepOn', 'on PATH') +
+                          ` (${jevgrep.version}) · ` +
+                          (jevgrep.authenticated
+                            ? translate('planide.toolkit.jevgrepReady', 'provider saved. Agents start code discovery with it.')
+                            : translate('planide.toolkit.jevgrepNoAuth', 'no provider saved yet -- run jg auth in a terminal.'))}
+                  </span>
+                </div>
+                {jevgrep.supported && !(jevgrep.installed && jevgrep.authenticated) && (
+                  <pre className="mt-2 overflow-x-auto rounded-md bg-muted/40 px-2 py-1.5 font-mono text-[10px] text-muted-foreground">
+                    {jevgrep.installed
+                      ? 'jg auth\njg doctor'
+                      : 'npm install -g @dzhng/jevgrep\njg auth\njg doctor'}
+                  </pre>
+                )}
+              </>
+            ) : (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {translate('planide.toolkit.checking', 'Checking...')}
+              </p>
             )}
           </Card>
           {/* --- Unreal: local server, so it needs the folder ---------------- */}

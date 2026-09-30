@@ -1167,6 +1167,25 @@ function wireHooks(home: string, root: string): boolean {
     })
     keptPost.push({ matcher: 'TodoWrite', hooks: [{ type: 'command', command: launcher, timeout: 15 }] })
     hooks.PostToolUse = keptPost
+    // And when the session ends, its plan lets go of everything it still had in
+    // progress -- otherwise those steps sit in `wip` with nobody on them, which
+    // is how the board came to show work "in progress" that nobody ever picked
+    // up. `SessionEnd` hands the hook the same `session_id` and `cwd` (read off
+    // the CLI itself), and the script releases only steps that session's plan
+    // put there. No matcher: every reason (clear, exit, logout) ends the session.
+    const ends = (hooks.SessionEnd ?? []) as unknown[]
+    const keptEnds = ends.filter((entry) => {
+      if (typeof entry !== 'object' || entry === null) return true
+      const inner = (entry as { hooks?: unknown[] }).hooks ?? []
+      return !inner.some(
+        (h) =>
+          typeof h === 'object' &&
+          h !== null &&
+          String((h as { command?: string }).command ?? '').includes('todo-sync')
+      )
+    })
+    keptEnds.push({ hooks: [{ type: 'command', command: launcher, timeout: 15 }] })
+    hooks.SessionEnd = keptEnds
     // Codex and Gemini CLI/Qwen run the very same script off their own plan
     // tools -- see below.
     wireCodexPlanHook(home)
@@ -2120,6 +2139,9 @@ function mainSessionBlock(home: string): string {
     '   columns), `broken` when it fails; `add_fix` the moment you hit a bug; `mark_fixed` when',
     '   the user says it is solved; `add_milestone` for the phases of a bigger plan;',
     '   `add_version` when you ship. Verify before you claim — do not green-wash.',
+    '   If `get_board` returns `attention.stalled_in_progress`, that work is marked in progress',
+    '   with nobody on it: pick each item up and close it out, or set it back to `todo` with a',
+    '   note -- before new work. Never leave `wip` behind when you stop.',
     '',
     '**Check what is already installed before you hand-roll anything.** Everything below is',
     'on this machine right now -- not something to go and fetch. Match the work to the row',
@@ -2135,6 +2157,8 @@ function mainSessionBlock(home: string): string {
     '  what to build, not how          skill: product-design',
     '  a diagram of the system         Archify (below) -- validate, then render',
     '  review a diff / tidy your own   skills: pr-reviewer, tidy',
+    '  where/how does X work in here   skill: jevgrep -- `jg "<question>" .` when jg is on',
+    '                                  PATH (not native Windows); exact names stay with rg',
     '  accessibility / DX / type / SEO skills: ax-audit, dx-audit, typography-audit, seo',
     '  a role no team lead covers      agency-agents (274 roles, below)',
     '  a named specialist              specialists/<team-slug>.md, adopted inline',
@@ -3138,6 +3162,53 @@ export function rtkStatus(): RtkStatus {
     return { installed: true, version: out.split(/\r?\n/)[0].slice(0, 60) }
   } catch {
     return { installed: false, version: '' }
+  }
+}
+
+export type JevgrepStatus = {
+  /** False on native Windows: the npm package is published for macOS and Linux only. */
+  supported: boolean
+  installed: boolean
+  version: string
+  /** A provider was saved with `jg auth`. Only the file's existence is checked, never its contents. */
+  authenticated: boolean
+}
+
+/**
+ * Is `jg` (github.com/dzhng/jevgrep, MIT) usable here?
+ *
+ * The bundled `jevgrep` skill is guidance; the CLI is the user's to install.
+ * Every search sends eligible source to the model provider picked in `jg auth`,
+ * and the package refuses native Windows (`"os": ["darwin", "linux"]`), so this
+ * reports -- detected, never installed -- and the Toolkit says which of the three
+ * is missing instead of leaving an agent to find out mid-task.
+ */
+export function jevgrepStatus(
+  home: string = homedir(),
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform
+): JevgrepStatus {
+  let installed = false
+  let version = ''
+  try {
+    const out = execFileSync('jg', ['--version'], {
+      encoding: 'utf8',
+      env,
+      timeout: 4000,
+      windowsHide: true
+    }).trim()
+    installed = true
+    version = out.split(/\r?\n/)[0].slice(0, 60)
+  } catch {
+    /* not on PATH, or not runnable here */
+  }
+  // Where `jg auth` saves the provider, per its own README.
+  const cfg = env.XDG_CONFIG_HOME ? join(env.XDG_CONFIG_HOME, 'jevgrep') : join(home, '.config', 'jevgrep')
+  return {
+    supported: platform !== 'win32',
+    installed,
+    version,
+    authenticated: existsSync(join(cfg, 'credentials.json'))
   }
 }
 

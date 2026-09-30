@@ -354,6 +354,67 @@ ok('the second close is recorded too',
   store.saveState(proj, s)
 }
 
+// --- in progress with nobody on it ------------------------------------------ //
+// `wip` claims an agent is working the item right now, and nothing checked that
+// claim: items sat "in behandeling" that no agent ever picked back up. get_board
+// now names them first, so the next agent resolves them before new work.
+const stallProj = mkdtempSync(join(tmpdir(), 'pulsar-stall-'))
+mkdirSync(join(stallProj, '.planide'), { recursive: true })
+const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+const stallItem = (id, title, status, updated, extra = {}) => ({
+  id, title, status, notes: '', tags: [], priority: 'normal', created_at: updated, updated_at: updated,
+  claimed_by: 'codex', verified: false, verified_at: '', verified_by: '', locked: false, locked_at: '', ...extra
+})
+writeFileSync(join(stallProj, '.planide/state.json'), JSON.stringify({
+  id: 'p_stall', name: 'stall', path: stallProj, type: 'custom', stack: { detected: {}, custom: '' },
+  version: '0.1.0', created_at: minutesAgo(600), updated_at: minutesAgo(1),
+  items: [
+    stallItem('i_old', 'Abandoned half-way', 'wip', minutesAgo(180)),
+    stallItem('i_new', 'Being worked right now', 'wip', minutesAgo(5)),
+    stallItem('i_todo', 'Not started', 'todo', minutesAgo(900)),
+    // A card a running turn holds is released when the turn ends; only a dead
+    // pane leaves it long enough to count.
+    stallItem('i_held', 'Held by a long turn', 'wip', minutesAgo(120), { held_by: 'pane-9', held_since: minutesAgo(120) })
+  ],
+  fixes: [], roadmap: [], versions: [], activity: []
+}))
+const quietProj = mkdtempSync(join(tmpdir(), 'pulsar-quiet-'))
+const uniProj = mkdtempSync(join(tmpdir(), 'pulsar-uni-'))
+const stallRun = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(90, 'get_board', { project: stallProj }),
+  call(91, 'get_board', { project: quietProj }),
+  // A plan in another script: the old ASCII-only key made every step "" and
+  // collapsed the whole plan onto its first card.
+  call(92, 'sync_plan', { project: uniProj, agent: 'qwen', todos: [
+    { content: '修复登录页面', status: 'in_progress' },
+    { content: '添加导出按钮', status: 'pending' },
+    { content: 'Écrire les tests', status: 'pending' }
+  ] }),
+  call(93, 'sync_plan', { project: uniProj, agent: 'qwen', todos: [
+    { content: 'ecrire les tests!', status: 'completed' }
+  ] }),
+  call(94, 'get_board', { project: uniProj })
+])
+const stallBoard = json(byId(stallRun.replies, 90))
+const stalled = stallBoard.attention?.stalled_in_progress ?? []
+ok('get_board names work that is in progress with nobody on it',
+  stalled.length === 1 && stalled[0].id === 'i_old' && stalled[0].idle_minutes >= 170)
+ok('and says what to do about it, before anything else',
+  Object.keys(stallBoard)[0] === 'attention' &&
+  /set_item status 'todo'/.test(stallBoard.attention.what_to_do))
+ok('fresh work in progress, open to-dos and a card a live turn holds are not flagged',
+  !stalled.some((s) => ['i_new', 'i_todo', 'i_held'].includes(s.id)))
+ok('a board with nothing stalled carries no attention block (costs nothing)',
+  json(byId(stallRun.replies, 91)).attention === undefined)
+const uniBoard = json(byId(stallRun.replies, 94))
+ok('a plan written in another script keeps one card per step',
+  uniBoard.items.length === 3 &&
+  uniBoard.items.find((i) => i.title === '修复登录页面')?.status === 'wip' &&
+  uniBoard.items.find((i) => i.title === '添加导出按钮')?.status === 'todo')
+ok('accents, case and punctuation do not make a new step',
+  uniBoard.items.find((i) => i.title === 'Écrire les tests')?.status === 'works')
+
 // --- parity with the IDE's own store --------------------------------------- //
 const loaded = store.loadState(proj)
 // 3 items: the two real ones plus the "Sneaky" one the trust-boundary check added.

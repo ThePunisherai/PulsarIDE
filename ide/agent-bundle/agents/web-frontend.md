@@ -58,6 +58,11 @@ one exists because the thing it replaces went wrong often enough to be worth bui
 - `ecc_find("<operator task>")` / `ecc_read(...)` -- 291 skills and 68 agents for CI,
   releases, repo hygiene, security review, incidents and migrations. They sit on disk
   and are never loaded into your context until you ask for one.
+- `jg "<how/where does X work?>" <root>` (the `jevgrep` skill) -- find code by what it
+  does in an unfamiliar repo: ranked files and verbatim excerpts in one call. Read those
+  before any broad search; exact symbols and filenames stay with `rg`. Only when
+  `command -v jg` finds it -- not on native Windows, and it sends source to the user's
+  own model provider.
 
 ## Knowledge graph memory + Obsidian auto-notes
 

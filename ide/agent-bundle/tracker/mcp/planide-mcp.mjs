@@ -256,9 +256,54 @@ function planStatus(value) {
   return PLAN_STATUS[raw] ?? 'todo'
 }
 
-/** Match a step to a board item on its text, ignoring case and punctuation. */
+/**
+ * Match a step to a board item on its text, ignoring case, punctuation, spacing
+ * and accents. Letters of every script count: the old ASCII-only rule reduced a
+ * title written in Chinese or Greek to "", so every such step matched the first
+ * one and a whole plan collapsed onto a single card. The plan hook and the IDE
+ * use this same rule, so one step is one item whichever route wrote it.
+ */
 function normTitle(value) {
-  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+}
+
+/** Same item? A title that normalises to nothing never matches another. */
+function sameTitle(a, b) {
+  const key = normTitle(a)
+  return key !== '' && key === normTitle(b)
+}
+
+/**
+ * How long an item may sit in `wip` without anyone touching it before the board
+ * says nobody is on it. An agent working a step moves the board far more often
+ * than this; an hour of silence means the session that took it is gone.
+ */
+const STALLED_MINUTES = 60
+/** A card a running turn holds (`held_by`) is released when the turn ends; only a dead pane leaves it this long. */
+const STALLED_HELD_MINUTES = 360
+
+/**
+ * What in progress has nobody on it. `wip` is a claim that someone is working
+ * the item right now, and nothing else ever checks that claim: a session that
+ * ended mid-task, a step that left a plan, a turn that finished without
+ * reporting -- each left an item "in progress" that no agent ever picked back
+ * up. Handed to every agent in get_board, so the next one resolves them.
+ */
+function stalledInProgress(state, now = Date.now()) {
+  const out = []
+  for (const i of state.items ?? []) {
+    if (i.status !== 'wip') continue
+    const at = Date.parse(i.updated_at || i.created_at || '')
+    if (!Number.isFinite(at)) continue
+    const idle = Math.floor((now - at) / 60000)
+    if (idle >= (i.held_by ? STALLED_HELD_MINUTES : STALLED_MINUTES)) out.push({ id: i.id, title: i.title, claimed_by: i.claimed_by || '', idle_minutes: idle })
+  }
+  return out.sort((a, b) => b.idle_minutes - a.idle_minutes)
 }
 
 function mutate(path, fn) {
@@ -325,12 +370,29 @@ const TOOLS = [
   {
     name: 'get_board',
     description:
-      'Read the project board before you start: items with their status, open fixes, and progress. Always call this first so you build on the real state instead of guessing.',
+      "Read the project board before you start: items with their status, open fixes, and progress. Always call this first so you build on the real state instead of guessing. If it returns `attention`, those items are in progress with nobody on them -- pick each one up (continue it and close it out) or hand it back with set_item status 'todo' and a note, before new work.",
     inputSchema: { type: 'object', properties: P(), required: ['project'] },
     run: (args) => {
       const path = resolveProject(args)
       const state = loadState(path)
+      const stalled = stalledInProgress(state)
       return {
+        // First, so it is read before the list it summarises. Only present when
+        // there is something to resolve: a board with nothing stalled costs no
+        // extra tokens.
+        ...(stalled.length
+          ? {
+              attention: {
+                stalled_in_progress: stalled,
+                what_to_do:
+                  `${stalled.length} item(s) are marked in progress but nobody has touched them for ` +
+                  `${STALLED_MINUTES}+ minutes -- the agent that took them is gone. Resolve each before ` +
+                  'new work: if it is yours to do, continue it and move it to works/done; if it is ' +
+                  "finished, say so and move it; if not, set_item status 'todo' with a note saying where " +
+                  'it stands. Never leave it sitting in wip.'
+              }
+            }
+          : {}),
         project: state.name,
         path,
         version: state.version,
@@ -404,8 +466,7 @@ const TOOLS = [
             continue
           }
           const status = planStatus(typeof todo === 'string' ? '' : todo && todo.status)
-          const key = normTitle(title)
-          const item = (state.items ?? []).find((i) => normTitle(i.title) === key)
+          const item = (state.items ?? []).find((i) => sameTitle(i.title, title))
           if (!item) {
             state.items.push({
               id: newId('i_'),
@@ -499,9 +560,8 @@ const TOOLS = [
         // the one path that did not, quietly growing the board. Match an item
         // that is still OPEN; a title whose only match is already 'done' is
         // allowed through, because work can legitimately recur.
-        const key = normTitle(title)
         const open = (state.items ?? []).find(
-          (i) => normTitle(i.title) === key && i.status !== 'done'
+          (i) => sameTitle(i.title, title) && i.status !== 'done'
         )
         if (open) {
           return { id: open.id, title: open.title, status: open.status, existing: true }

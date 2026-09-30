@@ -31,11 +31,13 @@ import { PlanIdeMark } from '../planide/PlanIdeMark'
 import {
   addItem,
   aiReport,
+  formatIdle,
   lockItem,
   markFixDone,
   onBoardChanged,
   openProject,
   setItemStatus,
+  stalledMinutes,
   trackerHealth,
   trackerRepair,
   verifyItem,
@@ -623,6 +625,19 @@ export default function PlanIdePanel(): React.JSX.Element {
                     {item.claimed_by && !item.verified && (
                       <div className="text-[10px] text-amber-500/80">
                         {translate('planide.panel.reportedBy', 'reported by')} {item.claimed_by}
+                      </div>
+                    )}
+                    {stalledMinutes(item) !== null && (
+                      <div
+                        className="text-[10px] font-medium text-amber-500"
+                        title={translate(
+                          'planide.view.stalledHint',
+                          'Marked in progress, but nothing has touched it since. No agent is working on it: the next agent is told to pick it up, or move it back to To do yourself.'
+                        )}
+                      >
+                        {translate('planide.view.stalled', 'stalled')} ·{' '}
+                        {formatIdle(stalledMinutes(item) ?? 0)} ·{' '}
+                        {translate('planide.panel.stalledNobody', 'nobody is on it')}
                       </div>
                     )}
                   </div>

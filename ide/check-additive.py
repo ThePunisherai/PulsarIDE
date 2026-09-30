@@ -73,7 +73,7 @@ BRANDING = {
 # the old value cost and why the new value is still safe -- a bare number swap
 # is exactly the kind of drift this whole check exists to surface.
 TUNING = {
-    "src/shared/agent-status-types.ts",
+    "src/shared/agent-status-subagent-snapshot.ts",
 }
 
 
