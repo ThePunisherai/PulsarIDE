@@ -41,8 +41,9 @@ import sys; sys.path.insert(0,'.')
 from planide import store
 st = store.load_state('$PROJ')
 it = [i for i in st['items'] if i['id']=='$IT'][0]
-sys.exit(0 if (it['status']=='works' and it['verified'] is False and it['claimed_by']=='TestBot') else 1)" \
-  && ok "trust: an agent's 'works' is a claim, not confirmed" \
+sys.exit(0 if (it['status']=='done' and it['verified'] is False and it['claimed_by']=='TestBot'
+               and store.progress(st)['confirmed']==0) else 1)" \
+  && ok "trust: an agent's 'works' lands as done (auto-complete), never as your confirmation" \
   || bad "trust: agent claim was treated as confirmed"
 
 python3 -c "
@@ -81,6 +82,77 @@ $P activity "$PROJ" 2>/dev/null | grep -q "TestBot" \
 FX=$($P fix add "$PROJ" "cli fix" --agent TestBot 2>/dev/null | grep -o 'f_[a-f0-9]*')
 $P fix done "$PROJ" "$FX" 2>/dev/null | grep -q "fixed" \
   && ok "cli: fix add + done" || bad "cli: fix add/done"
+
+# --- auto-complete, the fix log, and the work order ----------------------- #
+# The same rules the MCP server and the IDE apply, for a shell-only agent.
+P2="$(mktemp -d)"; mkdir -p "$P2/.git"
+$P settings "$P2" --auto-complete off 2>/dev/null | grep -q "off" \
+  && ok "settings: auto-complete can be switched off by you" || bad "settings: switch off"
+OFFIT=$($P item add "$P2" "off works" --status works --agent TestBot 2>/dev/null | grep -o 'i_[a-f0-9]*')
+python3 -c "
+import sys; sys.path.insert(0,'.')
+from planide import store
+st = store.load_state('$P2')
+it = [i for i in st['items'] if i['id']=='$OFFIT'][0]
+pr = store.progress(st)
+sys.exit(0 if it['status']=='works' and pr['accepted']==0 and pr['unconfirmed']==1 else 1)" \
+  && ok "auto-complete off: agent works stays works and counts as a claim" || bad "auto-complete off"
+$P settings "$P2" --auto-complete on 2>/dev/null | grep -q "on" \
+  && python3 -c "
+import sys; sys.path.insert(0,'.')
+from planide import store
+st = store.load_state('$P2')
+it = [i for i in st['items'] if i['id']=='$OFFIT'][0]
+pr = store.progress(st)
+sys.exit(0 if it['status']=='done' and pr['accepted']==1 and pr['unconfirmed']==0 and pr['confirmed']==0 else 1)" \
+  && ok "auto-complete on: switching it on closes out what works, no hand needed" || bad "auto-complete on"
+
+F1=$($P fix add "$P2" "Login crash" --problem "auth.py:12" --agent TestBot 2>/dev/null)
+F2=$($P fix add "$P2" "login crash!" --problem "also on Safari" --agent TestBot 2>/dev/null)
+echo "$F2" | grep -q "already open" && python3 -c "
+import sys; sys.path.insert(0,'.')
+from planide import store
+fx = store.load_state('$P2')['fixes']
+sys.exit(0 if len(fx)==1 and fx[0]['problem']=='auth.py:12\nalso on Safari' and 'existing' not in fx[0] else 1)" \
+  && ok "fix log: the same open bug is one entry, the new detail kept on it" || bad "fix log: duplicate entry"
+
+$P item add "$P2" "Half done" --status wip --agent claude >/dev/null 2>&1
+$P item add "$P2" "Next todo" >/dev/null 2>&1
+$P next "$P2" 2>/dev/null | grep -q "FINISH FIRST.*Half done" \
+  && ok "next: in-progress work comes first" || bad "next: order"
+$P item set "$P2" "$($P next "$P2" --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["focus"]["id"])')" --status works --agent claude >/dev/null 2>&1
+CLAIM=$($P next "$P2" --agent codex --claim --json 2>/dev/null)
+echo "$CLAIM" | python3 -c "
+import json, sys
+q = json.load(sys.stdin)
+sys.exit(0 if q['claimed'] and q['claimed']['title']=='Next todo' and q['claimed']['to']=='wip'
+         and q['focus']['title']=='Next todo' else 1)" \
+  && ok "next --claim: with wip finished, the next todo is started under the agent's name" || bad "next --claim"
+
+# Byte-for-byte the same queue as the MCP server's next_task, on the same board
+# and clock -- three implementations of one order must not drift.
+QUEUE_MJS="$DIR/../ide/agent-bundle/tracker/mcp/work-queue.mjs"
+if [ -f "$QUEUE_MJS" ] && command -v node >/dev/null 2>&1; then
+  NOW_MS=$(python3 -c 'import time; print(int(time.time()*1000))')
+  py_q=$(python3 -c "
+import json, sys; sys.path.insert(0,'.')
+from planide import store
+st = store.load_state('$P2')
+for agent in ('', 'codex', 'claude'):
+    print(json.dumps(store.work_queue(st, agent, now_ms=$NOW_MS), ensure_ascii=False, separators=(',', ':')))")
+  js_q=$(node --input-type=module -e "
+import { readFileSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
+const { workQueue } = await import(pathToFileURL('$QUEUE_MJS').href)
+const st = JSON.parse(readFileSync('$P2/.planide/state.json', 'utf8'))
+for (const agent of ['', 'codex', 'claude']) console.log(JSON.stringify(workQueue(st, { agent, now: $NOW_MS })))")
+  [ -n "$py_q" ] && [ "$py_q" = "$js_q" ] \
+    && ok "parity: plan next and the MCP next_task return the identical queue" \
+    || { bad "parity: plan next and next_task disagree"; echo "    py: ${py_q:0:200}"; echo "    js: ${js_q:0:200}"; }
+else
+  echo "  SKIP queue parity (needs node + work-queue.mjs)"
+fi
+rm -rf "$P2"
 
 # --- MCP surface ----------------------------------------------------------- #
 # FastMCP moved out of the `mcp` SDK (2.x) into the standalone `fastmcp` package,

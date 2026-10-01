@@ -99,6 +99,51 @@ export function planStep(items, title, status) {
   return { action: 'move', item }
 }
 
+/**
+ * The user's switch: work that works counts as finished, with no one ticking
+ * it off by hand. Asked for directly: "wat werkt mag als afgerond zijn, want
+ * ik ga niet handmatig dat doen". On unless the user turned it off -- a board
+ * written before the switch existed has no `settings` and reads as on.
+ *
+ * It is a SETTING, not a flag on the work: only the user changes it (the IDE,
+ * or `plan settings`), and no agent-facing tool can. What it changes is how an
+ * agent's report lands and how the rollups read it -- never `locked`, and
+ * never the "confirmed by you" count, which stays the user's own checks.
+ */
+export function autoComplete(state) {
+  return state?.settings?.auto_complete !== false
+}
+
+/** Where an agent's "it works" lands: `done` with auto-complete on, else as said. */
+export function finishedStatus(state, status) {
+  return status === 'works' && autoComplete(state) ? 'done' : status
+}
+
+/**
+ * Close out what an agent reported working: `works` -> `done`.
+ *
+ * The other half of finishedStatus, for everything already sitting in `works`
+ * -- written before the switch, or by a route that does not map (an older
+ * plan hook, the Python CLI, a hand-edited board). Only items an agent
+ * reported (claimed_by set): a `works` you chose yourself stays yours. Never
+ * a protected item, which a plan never moves either. A confirmation is kept,
+ * not dropped -- `works` and `done` both say it works, so what was confirmed
+ * is still what the item says. Returns the items it closed; logging is the
+ * caller's, so each writer attributes it in its own activity format.
+ */
+export function closeOutWorking(state, stamp) {
+  if (!autoComplete(state)) return []
+  const at = stamp || new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
+  const closed = []
+  for (const item of state?.items ?? []) {
+    if (item.status !== 'works' || item.locked || !String(item.claimed_by || '').trim()) continue
+    item.status = 'done'
+    item.updated_at = at
+    closed.push(item)
+  }
+  return closed
+}
+
 /** The open fix already logged under this title, if there is one. */
 export function findOpenFix(fixes, title) {
   return (fixes ?? []).find((f) => f.status === 'open' && sameTitle(f.title, title)) ?? null
@@ -209,9 +254,11 @@ export function workQueue(state, opts = {}) {
     )
     .map(({ i }) => ({ ...itemCard(i, now), ...(rank(i.priority) < 2 ? { priority: i.priority } : {}) }))
 
+  // Open is anything not closed: a fix with no status at all was logged by an
+  // IDE whose addFix dropped the default, and it was meant to be open.
   const openFixes = fixes
     .map((f, idx) => ({ f, idx }))
-    .filter(({ f }) => f.status === 'open')
+    .filter(({ f }) => f.status !== 'fixed' && f.status !== 'wontfix')
     .sort((a, b) => String(a.f.created_at || '').localeCompare(String(b.f.created_at || '')) || a.idx - b.idx)
     .map(({ f }) => fixCard(f))
 

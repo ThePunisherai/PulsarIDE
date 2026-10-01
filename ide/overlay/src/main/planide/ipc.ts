@@ -42,6 +42,7 @@ import {
   addItem,
   addMilestone,
   addVersion,
+  closeOutWorking,
   deleteFix,
   deleteItem,
   deleteMilestone,
@@ -51,12 +52,15 @@ import {
   projectExists,
   regressions,
   saveState,
+  setAutoComplete,
   updateFix,
   updateItem,
   updateMilestone,
   verifyItem,
+  workQueue,
   type ItemStatus,
-  type ProjectState
+  type ProjectState,
+  type WorkQueue
 } from './store'
 
 /** What the renderer gets back for a project: state plus derived rollups. */
@@ -64,12 +68,17 @@ export type ProjectPayload = ProjectState & {
   progress: ReturnType<typeof progress>
   regressions: ReturnType<typeof regressions>
   detected: ReturnType<typeof detect>
+  /** What to work on now, in the same order agents get from next_task. */
+  queue: WorkQueue
 }
 
 function mutate<T>(path: string, fn: (state: ProjectState) => T): { result: T; payload: ProjectPayload } {
   const state = loadState(path)
   const before = historySnapshot(state)
   const result = fn(state)
+  // With auto-complete on, agent work left in `works` is closed out in the
+  // same write -- finished work never waits on anyone to move it by hand.
+  closeOutWorking(state)
   saveState(path, state)
   // Append this change to the per-project history DB. Best-effort: it never
   // throws, and the board write above has already succeeded regardless.
@@ -85,7 +94,8 @@ function withRollups(state: ProjectState): ProjectPayload {
     ...state,
     progress: progress(state),
     regressions: regressions(state),
-    detected: (state.stack?.detected ?? {}) as ReturnType<typeof detect>
+    detected: (state.stack?.detected ?? {}) as ReturnType<typeof detect>,
+    queue: workQueue(state)
   }
 }
 
@@ -95,12 +105,23 @@ function withRollups(state: ProjectState): ProjectPayload {
  */
 function openProject(path: string): ProjectPayload {
   const state = loadState(path)
+  const before = historySnapshot(state)
+  let dirty = false
   const det = state.stack?.detected
   if (!det || !('type' in det) || !det.languages) {
     const fresh = detect(path)
     state.type = fresh.type
     state.stack = { detected: fresh, custom: state.stack?.custom ?? '' }
+    dirty = true
+  }
+  // Agent work an older route left in `works` (the Python CLI, a hook from
+  // before auto-complete) is closed out the moment the board is looked at, and
+  // written, so agents read the same board the IDE shows. Converges: the board
+  // watcher's reload finds nothing left to close and writes nothing.
+  if (closeOutWorking(state).length) dirty = true
+  if (dirty) {
     saveState(path, state)
+    recordHistory(path, before, state, 'auto')
   }
   return withRollups(state)
 }
@@ -189,6 +210,11 @@ export function registerPlanIdeIpc(): void {
   )
   on('planide:item-lock', (path: string, itemId: string, locked: boolean) =>
     mutate(path, (s) => lockItem(s, itemId, locked)).payload
+  )
+  // The user's auto-complete switch. Same rule as confirm and protect: its own
+  // channel, and no agent-facing tool can reach it.
+  on('planide:set-auto-complete', (path: string, enabled: boolean) =>
+    mutate(path, (s) => setAutoComplete(s, enabled)).payload
   )
 
   // ---- fixes ------------------------------------------------------------ //

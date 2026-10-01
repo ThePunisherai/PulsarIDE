@@ -36,7 +36,7 @@ PulsarIDE adds, in the sidebar, wired to the agents.
 | **Backups** | Zip snapshots of the project *and* the board, taken before you let an agent near something load-bearing |
 | **The wiring** | Agents update the tracker themselves — via CLI or MCP — while they work |
 | **No moving parts** | The tracker is main-process code inside the IDE: no server, no port, no extra runtime |
-| **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line |
+| **The trust layer** | "An agent says it works" and **"you confirmed it works"** are tracked as two different things, and agents cannot cross that line. With **auto-complete** on (the default) what works simply counts as finished — no ticking off by hand — and your own checks stay a separate, honest number |
 | **Protection** | Mark work **do not break** — agents are told it is off-limits, and breaking it raises a regression |
 | **Pulse Agent, pre-installed** | 100 team leads + **5,372 named specialists** + **78 skills** + a **274-role agency library** and **44 ThreeUI 3D/design components** ship inside the app and deploy on launch — Claude Code, Codex, Gemini CLI and Qwen Code as native subagents, Antigravity as its own Skill, Cursor as an always-applied rule, opencode through its own config, and every other agent through the repo's `AGENTS.md`. The skills land in each tool's **own** skills root (`~/.claude/skills`, `~/.codex/skills`, `~/.qwen/skills`, `~/.gemini/config/skills`), so Codex and Antigravity reach the design and audit skills natively instead of only Claude Code — with graphify + Obsidian wired per project and the `planide` and `pulsar-tools` MCP servers registered, so every agent updates the board out of the box |
 | **The agent's own tools, everywhere** | `pulsar-tools` gives any agent — Codex and Cursor included, not just Claude Code — task routing across the whole roster, an anti-loop check so a failed approach is never retried, and binary triage through the bundled RE toolkit |
@@ -60,7 +60,9 @@ a side panel while you work.</sub>
 <img src="assets/screenshot-board.png" alt="The PulsarIDE tracker: board, protected work, and the sidebar panel" />
 
 <sub>The Tracker page and the sidebar panel, side by side. Green is what **you**
-confirmed; amber is what an agent merely claimed.</sub>
+confirmed; with auto-complete on, what an agent finished is closed out for you and
+named (`done · Codex`). The panel's **Work order** says what is being finished now
+and what comes next.</sub>
 
 <img src="assets/screenshot-roadmap.png" alt="The roadmap: milestones with target dates" />
 
@@ -68,20 +70,26 @@ confirmed; amber is what an agent merely claimed.</sub>
 milestones as they plan and tick them off as they land; you see how far the
 project actually is, not how busy it has been.</sub>
 
-## Claimed vs. confirmed
+## Claimed vs. confirmed — and auto-complete
 
 The failure mode of agent-driven development is a board full of green that
-nobody checked. So PulsarIDE splits progress in two:
+nobody checked. The other failure mode is a board that only moves if you tick
+off every row by hand. PulsarIDE keeps two numbers apart and lets **you** decide
+which one counts:
 
-- an agent moving an item to `works` records a **claim**, attributed to that
-  agent (`reported by Codex`);
+- an agent reporting something working is attributed to that agent
+  (`done · Codex`), never to you;
 - **only you** can mark it **confirmed** — in the IDE, or
-  `./agent-tools/plan item confirm <project-path> <id>`.
+  `./agent-tools/plan item confirm <project-path> <id>`;
+- **auto-complete** (on by default) says what counts as finished: with it on,
+  everything that works is closed out as `done` and counts toward progress and
+  health, with nobody moving it by hand. Switch it off — the **Auto-complete**
+  button on the Tracker page, or `plan settings <path> --auto-complete off` —
+  and only your own confirmations count; agent work waits in amber for your check.
 
-The sidebar shows both: a solid green bar for what you confirmed, a faint amber
-one behind it for what is merely claimed. Project health is scored on the
-confirmed number, not the claimed one. Changing an item's status drops its
-confirmation, so a confirmation always refers to what you actually saw.
+Either way "confirmed by you" stays exactly that, and no agent tool can flip the
+switch. Changing an item's status drops its confirmation, so a confirmation
+always refers to what you actually saw.
 
 The boundary is enforced, not just documented: the update path cannot set
 `verified` (a runtime allowlist, not just a type), and the MCP server agents use
@@ -225,7 +233,8 @@ To have an agent update the board itself, two ways — pick per agent:
 
 - **CLI** (zero dependency) — any shell-capable agent (Claude Code, Codex) runs:
   ```bash
-  ./agent-tools/plan item set <project-path> <item_id> --status works
+  ./agent-tools/plan next <project-path> --agent Codex --claim
+  ./agent-tools/plan item set <project-path> <item_id> --status works --agent Codex
   ./agent-tools/plan fix done <project-path> <fix_id> --solution "awaited the query"
   ```
 - **MCP** (nothing to install) — the `planide` server is registered for Claude
@@ -254,9 +263,12 @@ and waits its turn instead of derailing the work in hand — logging the same bu
 twice returns the open entry, not a duplicate. `next_task` returns the focus
 item plus the queue (`claim: true` starts the next todo under the agent's name,
 and in-progress work another agent touched in the last 12 hours is left to
-them); `get_board` carries the same queue as `next`. In Claude Code a
-`SessionStart` hook hands it to the session on start, resume, `/clear` and
-compaction, so "ga verder" lands where the board stands, not on a blank slate.
+them); `get_board` carries the same queue as `next`, and shell-only agents get
+it from `plan next`. Claude Code, Codex, Gemini CLI and Qwen Code each get it
+handed to them by a `SessionStart` hook on start and resume (and on `/clear`
+and compaction where the agent fires it), so "ga verder" lands where the board
+stands, not on a blank slate. The sidebar's **Work order** block shows the same
+queue to you.
 
 ### When agents stop updating the board
 

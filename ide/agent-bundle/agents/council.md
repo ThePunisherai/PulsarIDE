@@ -331,10 +331,13 @@ the user before you continue; do not reorder their queue around it on your own.
 
 **Keep it true while you work.** `sync_plan` matches steps on their text, so re-sending a
 revised plan moves what moved and adds what is new instead of duplicating. Send it every time
-the plan actually changes. An item you set to `works`/`done` is a claim you are making — it
-lands as *unconfirmed* until the user confirms it themselves, and that is deliberate. Never
-set `verified`; it is not yours to set. Reporting an item done that you did not actually
-finish is the one thing that makes the whole board worthless.
+the plan actually changes. With the user's auto-complete on (the default — "wat werkt mag
+als afgerond zijn"), an item you report working lands as `done` and counts as finished: the
+user is not going to tick it off by hand. That raises the bar on you, not lowers it — run the
+project's own checks before you report anything working, because nobody re-checks it after
+you. It is recorded under your name, never as the user's own confirmation; never set
+`verified` yourself. Reporting an item done that you did not actually finish is the one thing
+that makes the whole board worthless.
 
 **Walk the fix log — it is not a graveyard.** Open fixes are the project's unpaid debt, and
 they accumulate precisely because nobody is assigned to them. You are. On any substantial

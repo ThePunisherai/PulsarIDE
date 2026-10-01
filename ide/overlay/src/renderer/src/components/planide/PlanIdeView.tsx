@@ -59,6 +59,7 @@ import {
   removeFix,
   reopenFix,
   resolveFix,
+  setAutoComplete,
   setItemStatus,
   toggleMilestone,
   updateItem,
@@ -165,7 +166,9 @@ function ConfirmedRing({
             fill="none"
             strokeWidth="6"
             strokeLinecap="round"
-            strokeDasharray={arc(progress.confirmed_percent)}
+            strokeDasharray={arc(
+              progress.auto_complete ? progress.accepted_percent : progress.confirmed_percent
+            )}
             className="stroke-emerald-500 transition-[stroke-dasharray] duration-500"
           />
         </svg>
@@ -183,9 +186,21 @@ function ConfirmedRing({
           {progress.done}/{progress.total_items}{' '}
           {translate('planide.view.doneLabel', 'done')}
         </div>
-        <div className="text-emerald-500">
-          {progress.confirmed} {translate('planide.view.confirmedByYou', 'confirmed by you')}
-        </div>
+        {/* With auto-complete on (your switch) what works IS finished, so the
+            green arc is all of it; your own checks stay a separate, honest line. */}
+        {progress.auto_complete ? (
+          <div className="text-emerald-500">
+            {progress.accepted} {translate('planide.view.finishedAuto', 'finished')}
+            <span className="text-muted-foreground">
+              {' '}
+              · {progress.confirmed} {translate('planide.view.checkedByYou', 'checked by you')}
+            </span>
+          </div>
+        ) : (
+          <div className="text-emerald-500">
+            {progress.confirmed} {translate('planide.view.confirmedByYou', 'confirmed by you')}
+          </div>
+        )}
         {progress.unconfirmed > 0 && (
           <div className="mt-0.5 text-amber-500">
             {progress.unconfirmed}{' '}
@@ -386,7 +401,7 @@ function Stat({
 }
 
 /** Badges describe what the item IS; the buttons below say what clicking DOES. */
-function ItemBadges({ item }: { item: PlanIdeItem }): React.JSX.Element | null {
+function ItemBadges({ item, auto }: { item: PlanIdeItem; auto: boolean }): React.JSX.Element | null {
   const bits: React.JSX.Element[] = []
   if (item.locked)
     bits.push(
@@ -408,6 +423,14 @@ function ItemBadges({ item }: { item: PlanIdeItem }): React.JSX.Element | null {
         className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-px text-[9px] font-bold tracking-wide text-emerald-500"
       >
         <ShieldCheck size={8} /> CONFIRMED
+      </span>
+    )
+  // With auto-complete on you said agent-finished work counts as finished, so it
+  // is not shown as something waiting on you: neutral, still naming who.
+  else if (auto && (item.status === 'works' || item.status === 'done') && (item.verified_by || item.claimed_by))
+    bits.push(
+      <span key="v" className="rounded-full bg-violet-500/15 px-1.5 py-px text-[9px] font-semibold text-violet-400">
+        done · {item.verified_by || item.claimed_by}
       </span>
     )
   else if (item.verified && item.verified_by)
@@ -439,6 +462,7 @@ function ItemBadges({ item }: { item: PlanIdeItem }): React.JSX.Element | null {
 
 function ItemCard({
   item,
+  auto,
   onCycle,
   onVerify,
   onLock,
@@ -446,6 +470,8 @@ function ItemCard({
   onDelete
 }: {
   item: PlanIdeItem
+  /** Your auto-complete switch, so agent-finished work is not shown as pending on you. */
+  auto: boolean
   onCycle: (i: PlanIdeItem) => void
   onVerify: (i: PlanIdeItem) => void
   onLock: (i: PlanIdeItem) => void
@@ -514,7 +540,7 @@ function ItemCard({
           <Trash2 size={12} />
         </button>
       </div>
-      <ItemBadges item={item} />
+      <ItemBadges item={item} auto={auto} />
       {/* Orca hides row actions until hover and keeps them visible on touch
           (its own `can-hover:` variant); the board follows that. Collapsed to
           zero height too, not just transparent: opacity-0 still occupies its
@@ -863,6 +889,24 @@ export default function PlanIdeView(): React.JSX.Element {
               <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />{' '}
               {translate('planide.view.refresh', 'Refresh')}
             </Button>
+            {/* Your switch: what works counts as finished, no ticking off by hand.
+                Its own channel -- no agent tool can flip it. */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className={cn('h-6 px-2 text-[10.5px]', p.auto_complete ? 'text-emerald-500' : 'text-muted-foreground')}
+              title={
+                p.auto_complete
+                  ? translate('planide.view.autoCompleteOnHint', 'Agent work that works is closed out as done for you. Click to check it yourself instead.')
+                  : translate('planide.view.autoCompleteOffHint', 'Agent work waits for your check. Click to let what works count as finished.')
+              }
+              onClick={() => void act(() => setAutoComplete(worktreePath, !p.auto_complete))}
+            >
+              <ShieldCheck size={12} />{' '}
+              {p.auto_complete
+                ? translate('planide.view.autoCompleteOn', 'Auto-complete on')
+                : translate('planide.view.autoCompleteOff', 'Auto-complete off')}
+            </Button>
             {loadedAt !== null && (
               <span className="pr-1 text-[10px] text-muted-foreground/60">
                 {translate('planide.view.updated', 'updated')} {relTimeMs(loadedAt)}
@@ -873,13 +917,19 @@ export default function PlanIdeView(): React.JSX.Element {
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="Confirmed" value={p.confirmed} tone="text-emerald-500" dot="bg-emerald-500" />
-          <Stat
-            label="Claimed"
-            value={p.unconfirmed}
-            tone={p.unconfirmed ? 'text-amber-500' : undefined}
-            dot="bg-amber-500"
-            hint={p.unconfirmed ? 'nobody checked' : undefined}
-          />
+          {/* Auto-complete on: agent-finished work counts as finished, so it is
+              not a pile waiting on you -- the tile says who closed it instead. */}
+          {p.auto_complete ? (
+            <Stat label="By agents" value={p.by_agents ?? 0} dot="bg-violet-400" hint="finished for you" />
+          ) : (
+            <Stat
+              label="Claimed"
+              value={p.unconfirmed}
+              tone={p.unconfirmed ? 'text-amber-500' : undefined}
+              dot="bg-amber-500"
+              hint={p.unconfirmed ? 'nobody checked' : undefined}
+            />
+          )}
           <Stat label="Complete" value={p.complete} dot="bg-violet-500" />
           <Stat label="Still open" value={p.open} dot="bg-muted-foreground" />
           <Stat
@@ -1068,6 +1118,7 @@ export default function PlanIdeView(): React.JSX.Element {
                           <ItemCard
                             key={item.id}
                             item={item}
+                            auto={p.auto_complete !== false}
                             onCycle={(i) => void act(() => setItemStatus(worktreePath, i.id, NEXT_STATUS[i.status]))}
                             onVerify={(i) => void act(() => verifyItem(worktreePath, i.id, !i.verified))}
                             onLock={(i) => void act(() => lockItem(worktreePath, i.id, !i.locked))}
@@ -1102,6 +1153,7 @@ export default function PlanIdeView(): React.JSX.Element {
                       <ItemCard
                         key={item.id}
                         item={item}
+                        auto={p.auto_complete !== false}
                         onCycle={(i) => void act(() => setItemStatus(worktreePath, i.id, NEXT_STATUS[i.status]))}
                         onVerify={(i) => void act(() => verifyItem(worktreePath, i.id, !i.verified))}
                         onLock={(i) => void act(() => lockItem(worktreePath, i.id, !i.locked))}
@@ -1131,6 +1183,7 @@ export default function PlanIdeView(): React.JSX.Element {
                         <ItemCard
                           key={item.id}
                           item={item}
+                          auto={p.auto_complete !== false}
                           onCycle={(i) => void act(() => setItemStatus(worktreePath, i.id, NEXT_STATUS[i.status]))}
                           onVerify={(i) => void act(() => verifyItem(worktreePath, i.id, !i.verified))}
                           onLock={(i) => void act(() => lockItem(worktreePath, i.id, !i.locked))}

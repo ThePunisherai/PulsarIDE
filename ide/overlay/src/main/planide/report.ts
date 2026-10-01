@@ -31,8 +31,11 @@ export function buildReport(state: ProjectState, mode: ReportMode = 'full'): str
   const custom = state.stack?.custom ?? ''
 
   const working = items.filter((i) => i.status === 'works' || i.status === 'done')
-  const confirmed = working.filter((i) => i.verified)
-  const unconfirmed = working.filter((i) => !i.verified)
+  // Confirmed by the USER is verified with no agent name on it. An agent's own
+  // confirmation listed here told the next agent the user had checked work
+  // nobody looked at -- the exact split this board exists to keep.
+  const confirmed = working.filter((i) => i.verified && !i.verified_by)
+  const unconfirmed = working.filter((i) => !(i.verified && !i.verified_by))
   const complete = items.filter((i) => i.status === 'done')
   const broken = items.filter((i) => i.status === 'broken' || i.status === 'blocked')
   const wip = items.filter((i) => i.status === 'wip')
@@ -53,8 +56,11 @@ export function buildReport(state: ProjectState, mode: ReportMode = 'full'): str
   L.push(`- **Stack**: ${stack}`)
   L.push(`- **Version**: ${p.version}`)
   L.push(
-    `- **Progress**: ${p.percent}% reported working (${p.done}/${p.total_items}); ` +
-      `**${p.confirmed_percent}% confirmed by the user** (${p.confirmed}) -- health ${p.health}/100`
+    p.auto_complete
+      ? `- **Progress**: ${p.accepted_percent}% finished (${p.accepted}/${p.total_items}, auto-complete on: ` +
+          `work that works counts as done); ${p.confirmed} also checked by the user -- health ${p.health}/100`
+      : `- **Progress**: ${p.percent}% reported working (${p.done}/${p.total_items}); ` +
+          `**${p.confirmed_percent}% confirmed by the user** (${p.confirmed}) -- health ${p.health}/100`
   )
   L.push(`- **Open problems**: ${p.broken} broken/blocked, ${p.open_fixes} open fixes`)
   L.push(
@@ -90,8 +96,15 @@ export function buildReport(state: ProjectState, mode: ReportMode = 'full'): str
   L.push('')
 
   if (unconfirmed.length) {
-    L.push('## Reported working, NOT yet confirmed')
-    L.push('_Treat these as claims, not facts: do not build on them without re-checking._')
+    // Auto-complete on: the user accepts agent-finished work as finished, so it
+    // is not framed as a pile of unchecked claims -- but an agent reading this
+    // still learns nobody re-checked it, which is true either way.
+    L.push(p.auto_complete ? '## Finished by agents (auto-complete)' : '## Reported working, NOT yet confirmed')
+    L.push(
+      p.auto_complete
+        ? '_Counted as finished by the user\'s choice. Nobody re-checked these by hand: if you touch one, run its check._'
+        : '_Treat these as claims, not facts: do not build on them without re-checking._'
+    )
     L.push(...bullets(unconfirmed, (i) => (i.claimed_by ? `reported by ${i.claimed_by}` : '')))
     L.push('')
   }

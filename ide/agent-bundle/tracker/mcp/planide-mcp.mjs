@@ -34,7 +34,9 @@ import { basename, isAbsolute, join, resolve, sep } from 'node:path'
 // The work order and the shared title match. A sibling in this same directory,
 // deployed with it -- the todo-sync and resume-brief hooks import it too, so
 // "is this the same step" and "what comes next" have one answer, not three.
-import { findOpenFix, normTitle, planStep, sameTitle, wipHeldBy, workQueue } from './work-queue.mjs'
+import {
+  autoComplete, closeOutWorking, findOpenFix, finishedStatus, planStep, sameTitle, wipHeldBy, workQueue
+} from './work-queue.mjs'
 
 const SERVER_NAME = 'planide'
 const SERVER_VERSION = '2.0.0'
@@ -104,7 +106,9 @@ function blankState(projectPath) {
     versions: [],
     github: { remote: '', branch: 'main', lfs: false, auto_push: false, last_sync: '' },
     backups: [],
-    activity: []
+    activity: [],
+    // The user's switches. auto_complete: work that works counts as finished.
+    settings: { auto_complete: true }
   }
 }
 
@@ -129,6 +133,11 @@ function loadState(projectPath) {
     item.locked_at ??= ''
     item.tags ??= []
     item.notes ??= ''
+  }
+  // A fix with no status was logged by an IDE whose addFix dropped the default
+  // (store.ts): it was meant to be open, so it is. Same repair as store.ts.
+  for (const fix of state.fixes ?? []) {
+    if (!FIX_STATUSES.includes(fix.status)) fix.status = 'open'
   }
   return state
 }
@@ -182,11 +191,20 @@ function progress(state) {
   const workingItems = items.filter((i) => i.status === 'works' || i.status === 'done')
   const working = workingItems.length
   const confirmed = workingItems.filter((i) => i.verified && !i.verified_by).length
+  // With auto-complete on (the user's switch) everything that works counts as
+  // finished -- that is what "accepted" is. Off, only the user's own checks
+  // count. `confirmed` stays the user's checks either way. Same as store.ts.
+  const auto = autoComplete(state)
+  const accepted = auto ? working : confirmed
   return {
     total_items: items.length,
     counts,
     confirmed,
-    unconfirmed: working - confirmed,
+    auto_complete: auto,
+    accepted,
+    accepted_percent: items.length ? Math.round((accepted / items.length) * 100) : 0,
+    by_agents: workingItems.filter((i) => !(i.verified && !i.verified_by) && (i.claimed_by || i.verified_by)).length,
+    unconfirmed: working - accepted,
     open: counts.todo + counts.wip,
     broken: counts.broken,
     protected: items.filter((i) => i.locked).length,
@@ -273,6 +291,13 @@ function mutate(path, fn) {
     version: state.version
   }
   const result = fn(state)
+  // Whatever this write left in `works` from an agent is closed out in the same
+  // write when the user has auto-complete on -- so the board never needs anyone
+  // to go round moving finished work to done.
+  const closed = closeOutWorking(state, nowIso())
+  if (closed.length) {
+    logActivity(state, 'auto-complete', `closed out ${closed.length} working item(s): ${closed.map((i) => i.title).slice(0, 3).join(', ')}${closed.length > 3 ? ', ...' : ''}`, 'auto')
+  }
   saveState(path, state)
   // Best-effort, and only after the board is safely written: the history DB is
   // memory, not the ledger, so a failure here must never cost the board update.
@@ -373,6 +398,8 @@ const TOOLS = [
     run: (args) => {
       const path = resolveProject(args)
       const state = loadState(path)
+      // Read-only: show the board as the next write will store it.
+      closeOutWorking(state, nowIso())
       return {
         project: state.name,
         path,
@@ -518,7 +545,7 @@ const TOOLS = [
             skipped.push(todo)
             continue
           }
-          const status = planStatus(typeof todo === 'string' ? '' : todo && todo.status)
+          const status = finishedStatus(state, planStatus(typeof todo === 'string' ? '' : todo && todo.status))
           // Shared with the todo-sync hook (work-queue.mjs), so both routes
           // match a step the same way -- and neither drops a `done` item back
           // to `works`, nor moves a step the user protected.
@@ -606,9 +633,10 @@ const TOOLS = [
       const path = resolveProject(args)
       const title = str(args.title).trim()
       if (!title) throw new Error('title is required')
-      const status = ITEM_STATUSES.includes(str(args.status)) ? args.status : 'todo'
+      const asked = ITEM_STATUSES.includes(str(args.status)) ? args.status : 'todo'
       const agent = str(args.agent)
       return mutate(path, (state) => {
+        const status = finishedStatus(state, asked)
         // Don't stack duplicates. Agents re-post their plan every turn, so the
         // same title arrives again and again; sync_plan already dedupes on the
         // normalised title, and add_item -- the tool agents call directly -- was
@@ -639,7 +667,7 @@ const TOOLS = [
   {
     name: 'set_item',
     description:
-      "Move an item as the work really changes: 'wip' when you start, 'works' when it works, 'done' when it is finished and you are not coming back to it, 'broken' when it fails. Do not leave finished work sitting in 'works' -- 'works' means it functions but is still in play, 'done' means closed out, and the board shows them in different columns. Reporting 'works' or 'done' records it as YOUR claim, under your name -- it is not the user's confirmation and does not count as one on the board. Only the user checking it themselves does that. Cannot protect an item -- that stays the user's.",
+      "Move an item as the work really changes: 'wip' when you start, 'works'/'done' when it genuinely works, 'broken' when it fails. With the user's auto-complete on (the default) anything you report working lands as 'done' -- finished, no one ticks it off by hand -- so only report it once it really works and you ran the project's own checks. It is recorded under your name, never as the user's own confirmation. Cannot protect an item, and cannot change the user's settings.",
     inputSchema: {
       type: 'object',
       properties: P({
@@ -666,7 +694,7 @@ const TOOLS = [
       return mutate(path, (state) => {
         const item = (state.items ?? []).find((i) => i.id === itemId)
         if (!item) throw new Error(`no item with id ${itemId} (call get_board for the real ids)`)
-        const next = str(args.status)
+        const next = finishedStatus(state, str(args.status))
         const statusChanged = next && ITEM_STATUSES.includes(next) && next !== item.status
         // A status change drops the user's confirmation: what they confirmed is
         // no longer what the item says.
@@ -680,7 +708,9 @@ const TOOLS = [
         // ide/test/mcp-node.test.mjs loads what we write with the real store and
         // compares, so the two cannot drift.
         if (statusChanged && (next === 'works' || next === 'done')) {
-          const reporter = str(args.agent) || item.claimed_by || ''
+          // With auto-complete on, a report through this server is always an
+          // agent's -- name the client when the call did not name itself.
+          const reporter = str(args.agent) || item.claimed_by || (autoComplete(state) ? CLIENT_ACTOR : '')
           if (reporter) {
             item.verified = true
             item.verified_at = nowIso()

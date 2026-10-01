@@ -86,6 +86,9 @@ store.addVersion(state, '1.4.0', { notes: 'search filters + persistent cart' })
 store.logActivity(state, 'agent-turn', 'finished a turn: fix the mobile nav focus trap', 'claude')
 store.logActivity(state, 'agent-said', 'The overlay never set aria-modal, so focus stayed behind it. Added a test.', 'claude')
 store.logActivity(state, 'agent-turn', 'finished a turn: keep the cart across sessions', 'codex')
+// What ipc.ts openProject does on open: agent work left in `works` is closed
+// out while auto-complete is on, so the harness shows what the IDE shows.
+store.closeOutWorking(state)
 store.saveState(PATH, state)
 
 // --- the bridge the renderer talks to --------------------------------------
@@ -93,7 +96,8 @@ const rollups = (): unknown => ({
   ...state,
   progress: store.progress(state),
   regressions: store.regressions(state),
-  detected: state.stack.detected
+  detected: state.stack.detected,
+  queue: store.workQueue(state)
 })
 const ok = <T,>(data: T): { ok: true; data: T } => ({ ok: true, data })
 const after = <T,>(result: T): unknown => ok({ result, payload: rollups() })
@@ -111,6 +115,8 @@ const after = <T,>(result: T): unknown => ok({ result, payload: rollups() })
       (store.verifyItem(state, id, v), ok(rollups())),
     lockItem: async (_p: string, id: string, v: boolean) =>
       (store.lockItem(state, id, v), ok(rollups())),
+    setAutoComplete: async (_p: string, v: boolean) =>
+      (store.setAutoComplete(state, v), ok(rollups())),
     addFix: async (_p: string, o: { title: string }) => after(store.addFix(state, o)),
     markFixDone: async (_p: string, id: string) =>
       (store.updateFix(state, id, { status: 'fixed' }), ok(rollups())),

@@ -6,6 +6,41 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.96.0] - 2026-10-01
+
+### What's new
+- **What works is finished — nobody ticks it off by hand.** Asked for directly: "wat
+  werkt mag als afgerond zijn, want ik ga niet handmatig dat doen". With **auto-complete**
+  on (the default) anything an agent reports working lands as `done`, and progress and
+  health count it as finished. What was already sitting in `works` from an agent is
+  closed out the moment the board is opened. Your own `works`, and anything you
+  protected, is left where you put it. "Confirmed by you" stays your own checks, so the
+  board never says you looked when you did not. One button on the Tracker page (or
+  `plan settings --auto-complete off`) turns it off; no agent tool can touch it.
+- **The panel shows the work order.** A "Work order" block in the sidebar says what is
+  being finished now, what comes next, and how many fixes wait in Fixes → Open — the
+  same queue agents get from `next_task`, from a port that a test keeps identical.
+- **Every agent resumes where the board stands.** The session-start brief now reaches
+  Codex, Gemini CLI and Qwen Code too, not only Claude Code — each through its own hook
+  format, verified against its own source. Codex asks once to trust the new hook and
+  leaves the plan hook it already trusts alone. Antigravity, Cursor and opencode get the
+  same order through their instructions.
+- **`plan next` for shell-only agents.** `plan next <path> [--agent A] [--claim]` gives
+  the same queue as `next_task`, byte for byte (a test compares them), and the Python
+  MCP fallback has `next_task` too. `plan fix add` logs the same open bug once.
+
+### What's fixed
+- **Fixes logged in the IDE never reached Fixes → Open.** `addFix` checked for a default
+  status but then returned the caller's — `undefined` for every fix the Fixes tab logs —
+  so the fix was saved with no status: not under Open, not in the open-fix count, not in
+  any agent's queue. It is `open` now, and a board where this already happened is
+  repaired the next time it loads.
+- **An agent's own confirmation was shown as yours in three more places.** The panel's
+  shield said "Confirmed by you", and both AI briefings (IDE and `plan report`) listed
+  agent-confirmed work under "confirmed by the user" — telling the next agent you had
+  checked work nobody looked at. The Python CLI counted it the same way, and its
+  `item confirm` kept the agent's name on your confirmation.
+
 ## [0.95.0] - 2026-09-30
 
 ### What's new

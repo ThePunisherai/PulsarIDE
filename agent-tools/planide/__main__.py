@@ -8,6 +8,9 @@ Read commands
   list                                 list registered projects + progress
   detect <path>                        print the detected language/type
   board  <path|id>                     print the tracker board (item ids + status)
+  next   <path|id> [--agent A] [--claim] [--json]
+                                       what to work on now: finish wip, then todo,
+                                       then open fixes (--claim starts the next todo)
   report <path|id> [--mode M]          print the AI briefing (M: full|report|prompt)
   status <path|id>                     git status summary
 
@@ -22,6 +25,9 @@ Write commands  (this is how an AI agent tracks its own work)
   activity <path|id> [n]                recent changes and who made them
   fix  add    <path|id> "title" [--problem P] [--solution S] [--agent A] [--status open]
   fix  done   <path|id> <fix_id> [--solution S]
+  settings <path|id> [--auto-complete on|off]
+                                       your switches: with auto-complete on (the
+                                       default) agent work that works lands as done
   milestone add <path|id> "title" [--target T]
   version add   <path|id> <version> [--notes N]
   backup <path|id> [label]             create a zip snapshot
@@ -33,6 +39,7 @@ A <path|id> is a registered id (p_...) or a filesystem path (registered on the f
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 
@@ -102,10 +109,16 @@ def cmd_board(argv):
     st, _ = _resolve(argv[0])
     print("%s  v%s  [%s]" % (st["name"], st.get("version"), st.get("type")))
     pr = store.progress(st)
-    print("progress: %d%% working claimed (%d/%d) | %d%% CONFIRMED by you (%d) | "
-          "%d broken, %d open fixes\n"
-          % (pr["percent"], pr["done"], pr["total_items"], pr["confirmed_percent"],
-             pr["confirmed"], pr["broken"], pr["open_fixes"]))
+    if pr["auto_complete"]:
+        print("progress: %d%% finished (%d/%d, auto-complete on) | %d CONFIRMED by you | "
+              "%d broken, %d open fixes\n"
+              % (pr["accepted_percent"], pr["accepted"], pr["total_items"],
+                 pr["confirmed"], pr["broken"], pr["open_fixes"]))
+    else:
+        print("progress: %d%% working claimed (%d/%d) | %d%% CONFIRMED by you (%d) | "
+              "%d broken, %d open fixes\n"
+              % (pr["percent"], pr["done"], pr["total_items"], pr["confirmed_percent"],
+                 pr["confirmed"], pr["broken"], pr["open_fixes"]))
     reg = store.regressions(st)
     if reg:
         print("  !! REGRESSION: %d protected item(s) are broken:" % len(reg))
@@ -231,7 +244,13 @@ def cmd_fix(argv):
         st, path = _resolve(pos[0])
         fx = store.add_fix(st, pos[1], opt.get("problem", ""), opt.get("solution", ""),
                            opt.get("item", ""), opt.get("agent", ""), opt.get("status", "open"))
-        _save(st, path); print("added fix %s [%s]" % (fx["id"], fx["status"])); return 0
+        _save(st, path)
+        if fx.get("existing"):
+            print("already open: fix %s -- the new detail is kept on it" % fx["id"])
+        else:
+            print("added fix %s [%s] -- in Fixes > Open, picked up after the todo list"
+                  % (fx["id"], fx["status"]))
+        return 0
     if sub == "done":
         pos, opt = parse(rest, {"solution"})
         if len(pos) < 2:
@@ -244,6 +263,61 @@ def cmd_fix(argv):
         _save(st, path)
         print("fix %s -> fixed" % pos[1] if fx else "no such fix"); return 0 if fx else 1
     print("usage: fix add|done …"); return 1
+
+
+def cmd_next(argv):
+    pos, opt = parse(argv, {"agent", "limit"})
+    if not pos:
+        print("usage: next <path|id> [--agent A] [--claim] [--json]"); return 1
+    st, path = _resolve(pos[0])
+    agent = opt.get("agent", "")
+    claimed = None
+    if opt.get("claim"):
+        claimed = store.claim_next(st, agent)
+        if claimed:
+            _save(st, path)
+    limit = int(opt["limit"]) if str(opt.get("limit", "")).isdigit() else 5
+    q = store.work_queue(st, agent, limit=limit)
+    if opt.get("json"):
+        out = dict(q, claimed=claimed) if opt.get("claim") else q
+        print(json.dumps(out, indent=2, ensure_ascii=False)); return 0
+    print("work order: %s\n" % q["order"])
+    for a in q["alerts"]:
+        print("  !! %s" % a)
+    if claimed:
+        print("  claimed: %s  %s (%s -> %s)" % (claimed["id"], claimed["title"], claimed["from"], claimed["to"]))
+    f = q["focus"]
+    if not f:
+        print("  nothing open -- the board is clear."); return 0
+    label = {"in_progress": "FINISH FIRST", "todo": "NEXT", "fix": "NEXT (fix)", "broken": "NEXT (broken)"}[f["lane"]]
+    print("  %-13s %s  %s%s" % (label, f["id"], f["title"], "  (left over, idle %s)" % f["idle"] if f.get("stale") else ""))
+    print("                %s" % f["action"])
+    c = q["counts"]
+    print("\n  in progress %d | todo %d | open fixes %d | broken %d | blocked %d (never picked)"
+          % (c["in_progress"], c["todo"], c["open_fixes"], c["broken"], c["blocked"]))
+    for lane, title in (("todo", "todo"), ("open_fixes", "open fixes")):
+        rows = [x for x in q[lane] if x["id"] != f["id"]][:3]
+        if rows:
+            print("  %s: %s" % (title, "; ".join("%s %s" % (x["id"], x["title"]) for x in rows)))
+    if q["elsewhere"]:
+        print("  another agent is on: %s" % "; ".join("%s (%s)" % (x["title"], x["claimed_by"]) for x in q["elsewhere"]))
+    return 0
+
+
+def cmd_settings(argv):
+    pos, opt = parse(argv, {"auto-complete"})
+    if not pos:
+        print("usage: settings <path|id> [--auto-complete on|off]"); return 1
+    st, path = _resolve(pos[0])
+    if "auto-complete" in opt:
+        value = str(opt["auto-complete"]).strip().lower()
+        if value not in ("on", "off", "true", "false", "1", "0"):
+            print("--auto-complete takes on or off"); return 1
+        store.set_auto_complete(st, value in ("on", "true", "1"))
+        _save(st, path)
+    print("auto-complete: %s" % ("on -- agent work that works lands as done"
+                                 if store.auto_complete(st) else "off -- agent work waits for your check"))
+    return 0
 
 
 def cmd_milestone(argv):
@@ -294,6 +368,7 @@ COMMANDS = {
     "report": cmd_report, "status": cmd_status, "add": cmd_add, "item": cmd_item,
     "fix": cmd_fix, "milestone": cmd_milestone, "version": cmd_version,
     "backup": cmd_backup, "sync": cmd_sync, "activity": cmd_activity,
+    "next": cmd_next, "settings": cmd_settings,
 }
 
 

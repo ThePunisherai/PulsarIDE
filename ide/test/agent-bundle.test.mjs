@@ -991,8 +991,25 @@ ok('beside the graphify bootstrap and the user\'s own SessionStart hook, not ins
 const resumeLauncher = resumeEntries[0]?.hooks?.[0]?.command ?? ''
 ok('its launcher and script are both on disk',
   existsSync(resumeLauncher) && existsSync(join(HOME, '.config/pulsaride/hooks/resume-brief.mjs')))
-ok('Codex is left alone: no new entry for it to re-prompt "hooks need review" over',
-  !readFileSync(join(HOME, '.codex/hooks.json'), 'utf8').includes('resume-brief'))
+// Every agent with a session-start hook gets the same brief, in its own format:
+// Codex `timeoutSec` (seconds), Gemini CLI and Qwen `timeout` (milliseconds).
+// Verified against their own sources, not assumed alike.
+{
+  const codexStarts = JSON.parse(readFileSync(join(HOME, '.codex/hooks.json'), 'utf8')).hooks?.SessionStart ?? []
+  const codexResume = codexStarts.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('resume-brief')))
+  ok('Codex gets the resume brief at session start, once, with the timeout field Codex accepts',
+    codexResume.length === 1 && codexResume[0].hooks[0].timeoutSec === 15 &&
+    codexResume[0].hooks[0].timeout === undefined && existsSync(codexResume[0].hooks[0].command))
+  const codexPost = JSON.parse(readFileSync(join(HOME, '.codex/hooks.json'), 'utf8')).hooks?.PostToolUse ?? []
+  ok('and Codex\'s already-trusted plan hook is untouched by it',
+    codexPost.some((e) => e.matcher === 'update_plan'))
+  for (const [label, file] of [['Gemini CLI', '.gemini/settings.json'], ['Qwen Code', '.qwen/settings.json']]) {
+    const starts = JSON.parse(readFileSync(join(HOME, file), 'utf8')).hooks?.SessionStart ?? []
+    const resume = starts.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('resume-brief')))
+    ok(`${label}: the resume brief is wired on SessionStart, once, timeout in milliseconds`,
+      resume.length === 1 && resume[0].hooks[0].timeout === 15000)
+  }
+}
 
 // Both hooks import the shared work order from the DEPLOYED tracker
 // (<config>/hooks -> ../tracker/mcp/work-queue.mjs). The repo tests prove the
@@ -1274,7 +1291,8 @@ await runHook({ tool_name: 'update_plan', cwd: hookProject, tool_input: { explan
 ] } })
 const byTitle = (t) => hookItems().find((i) => i.title === t)
 ok('a Codex plan reaches the board through the deployed hook, no sync_plan call',
-  byTitle('Codex finished this')?.status === 'works' &&
+  // A finished step lands as done: auto-complete is on unless the user turns it off.
+  byTitle('Codex finished this')?.status === 'done' &&
   byTitle('Codex is on this')?.status === 'wip' &&
   byTitle('Codex will do this')?.status === 'todo')
 // Claude Code's shape through the very same launcher: one script, both agents.
@@ -1310,7 +1328,7 @@ const revised = await callTool(launchFromConfig('.codex/config.toml'), 'sync_pla
   agent: 'Codex CLI'
 })
 ok('a revised plan moves the step it already knows instead of duplicating it',
-  !revised.error && titled('step from Codex CLI')?.status === 'works' &&
+  !revised.error && titled('step from Codex CLI')?.status === 'done' &&
   boardItems().filter((i) => i.title === 'step from Codex CLI').length === 1)
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)

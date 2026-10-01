@@ -38,8 +38,10 @@
  *  - A step already closed out to `done` stays `done`. Agents re-send finished
  *    steps on every plan change, and "completed" maps to `works` -- which used
  *    to drop `done` back to `works` and wipe the user's confirmation with it.
- *  - A finished step becomes `works`, never `done` and never verified: the agent
- *    saying it did something is a claim, and confirming it stays the user's.
+ *  - A finished step becomes `done` while the user's auto-complete is on (the
+ *    default: "wat werkt mag als afgerond zijn"), `works` when it is off. Never
+ *    verified either way: the agent saying it did something is its claim, and
+ *    the "confirmed by you" count stays the user's own checks.
  *  - Steps are never deleted when they leave the agent's list. The plan is the
  *    agent's working memory; the board is the record.
  *  - Every failure is swallowed. A hook that throws would surface as a tool
@@ -172,7 +174,7 @@ async function main() {
   const project = resolveProject(payload.cwd)
   if (!project) return
 
-  const { planStep } = await loadQueue()
+  const { planStep, finishedStatus, closeOutWorking } = await loadQueue()
   const agent = String(payload.agent_type || 'agent').slice(0, 40)
   const state = loadState(project)
   const before = JSON.parse(JSON.stringify({ items: state.items, fixes: state.fixes ?? [], milestones: state.milestones ?? [], version: state.version }))
@@ -184,7 +186,8 @@ async function main() {
     if (!title) continue
     const raw = String(todo?.status || 'pending')
     if (SKIP_STATUS.has(raw)) continue
-    const status = STATUS[raw] ?? 'todo'
+    // With the user's auto-complete on, a finished step lands as `done`.
+    const status = finishedStatus(state, STATUS[raw] ?? 'todo')
     const step = planStep(state.items, title, status)
     if (step.action === 'add') {
       state.items.push({
@@ -223,8 +226,12 @@ async function main() {
     }
   }
 
-  if (!added && !moved) return
-  logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved`, agent)
+  // Anything an agent left in `works` before (an older hook, another route) is
+  // closed out in this same write when auto-complete is on.
+  const closed = closeOutWorking(state, nowIso())
+  if (!added && !moved && !closed.length) return
+  if (added || moved) logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved`, agent)
+  if (closed.length) logActivity(state, 'auto-complete', `closed out ${closed.length} working item(s)`, 'auto')
   saveState(project, state)
 
   // The durable record, so the plan's history survives the board's 500-line cap.

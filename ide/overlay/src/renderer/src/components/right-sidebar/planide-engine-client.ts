@@ -17,9 +17,16 @@ export type PlanIdeProgress = {
   done: number
   /** Items you confirmed actually work (never set by an agent). */
   confirmed: number
-  /** Reported working but not confirmed by you yet. */
+  /** Working but not counted as finished -- with auto-complete on, none. */
   unconfirmed: number
   confirmed_percent: number
+  /** Your auto-complete switch: work that works counts as finished. */
+  auto_complete: boolean
+  /** Counted as finished: everything that works (auto-complete on), else your checks. */
+  accepted: number
+  accepted_percent: number
+  /** Working items an agent reported that you did not check yourself. */
+  by_agents: number
   /** Finished and closed out. */
   complete: number
   /** Still to be done (todo + wip). */
@@ -96,6 +103,37 @@ export type PlanIdeDetected = {
   signals?: string[]
 }
 
+/** One entry in the work queue -- an item, or a logged fix. */
+export type PlanIdeQueueCard = {
+  kind: 'item' | 'fix'
+  id: string
+  title: string
+  status?: ItemStatus
+  claimed_by?: string
+  idle?: string
+  stale?: true
+  locked?: true
+  problem?: string
+}
+
+/** What to work on now, in the board's order: wip, then todo, then open fixes. */
+export type PlanIdeQueue = {
+  phase: 'finish' | 'todo' | 'fixes' | 'clear'
+  focus: (PlanIdeQueueCard & { lane: 'in_progress' | 'todo' | 'fix' | 'broken' }) | null
+  alerts: string[]
+  counts: {
+    in_progress: number
+    elsewhere: number
+    todo: number
+    open_fixes: number
+    broken: number
+    blocked: number
+  }
+  in_progress: PlanIdeQueueCard[]
+  todo: PlanIdeQueueCard[]
+  open_fixes: PlanIdeQueueCard[]
+}
+
 export type PlanIdeProject = {
   id: string
   name: string
@@ -110,6 +148,10 @@ export type PlanIdeProject = {
   activity: PlanIdeActivity[]
   /** Protected items that are currently broken. */
   regressions: PlanIdeItem[]
+  /** The work order: what to finish, what is next, what waits in Fixes. */
+  queue?: PlanIdeQueue
+  /** Your switches. Missing reads as auto-complete on. */
+  settings?: { auto_complete: boolean }
   stack?: { detected?: PlanIdeDetected; custom?: string }
   github?: {
     remote: string
@@ -267,6 +309,11 @@ export function verifyItem(
  */
 export function lockItem(path: string, itemId: string, locked: boolean): Promise<PlanIdeProject> {
   return call<PlanIdeProject>('lockItem', path, itemId, locked)
+}
+
+/** Your auto-complete switch. Yours alone: no agent-facing tool reaches it. */
+export function setAutoComplete(path: string, enabled: boolean): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('setAutoComplete', path, enabled)
 }
 
 // --------------------------------------------------------------------------- fixes

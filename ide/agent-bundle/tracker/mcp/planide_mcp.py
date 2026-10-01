@@ -116,7 +116,30 @@ def get_board(project: str) -> dict:
                    "problem": f.get("problem", "")} for f in st["fixes"]],
         "roadmap": [{"id": m["id"], "title": m["title"], "done": m.get("done")}
                     for m in st["roadmap"]],
+        # Where to resume, in the fixed work order -- same as next_task.
+        "next": {k: v for k, v in store.work_queue(st).items()
+                 if k in ("phase", "focus", "counts", "alerts", "order")},
     }
+
+
+@mcp.tool()
+def next_task(project: str, agent: str = "", claim: bool = False) -> dict:
+    """What to work on now, in the board's fixed order.
+
+    Finish in-progress work first (including what an earlier session left half
+    done), then todo, then open fixes, then broken items. Call it when you start
+    or resume and after each finished piece. claim=true starts the next todo
+    under your name, or takes over a left-over in-progress item. A bug you hit
+    mid-task goes to add_fix and waits its turn.
+    """
+    st, path = _resolve(project)
+    claimed = None
+    if claim:
+        claimed = store.claim_next(st, agent)
+        if claimed:
+            store.save_state(path, st)
+    q = store.work_queue(st, agent)
+    return dict(q, claimed=claimed) if claim else q
 
 
 @mcp.tool()
@@ -138,10 +161,10 @@ def set_item(project: str, item_id: str, status: str = "", notes: str = "",
              title: str = "", agent: str = "") -> dict:
     """Update an item's status/notes/title. Use this to report something works or broken.
 
-    IMPORTANT: setting status to `works` records that YOU (the agent) believe it
-    works. It does not mark the item confirmed -- confirmation is the user's
-    alone, and there is deliberately no MCP tool for it. If you have just fixed
-    something, say so here and let the user confirm it in PlanIDE.
+    Setting status to `works` records that YOU (the agent) believe it works --
+    with the user's auto-complete on (the default) it lands as `done` and counts
+    as finished, so report it only once it really works. It never marks the
+    item confirmed by the user; there is deliberately no MCP tool for that.
     """
     st, path = _resolve(project)
     fields = {}
@@ -161,11 +184,14 @@ def set_item(project: str, item_id: str, status: str = "", notes: str = "",
 @mcp.tool()
 def add_fix(project: str, title: str, problem: str = "", solution: str = "",
             agent: str = "", status: str = "open") -> dict:
-    """Log a fix (problem -> solution). Set agent to your own name for attribution."""
+    """Log a bug the moment you hit it. It lands in Fixes > Open and waits its
+    turn -- carry on with what you were doing. The same open bug logged twice
+    returns the entry already there. Set agent to your own name."""
     st, path = _resolve(project)
     fx = store.add_fix(st, title, problem, solution, "", agent, status)
     store.save_state(path, st)
-    return {"id": fx["id"], "status": fx["status"], "title": fx["title"]}
+    return {"id": fx["id"], "status": fx["status"], "title": fx["title"],
+            "existing": bool(fx.get("existing"))}
 
 
 @mcp.tool()

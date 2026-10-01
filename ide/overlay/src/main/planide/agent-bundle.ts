@@ -105,11 +105,10 @@ never need to be asked, and the board is created on first use, so it always work
     \`add_item\` (status \`todo\`), so the plan is on the board before any code moves.
     Break a big request into several \`todo\` items.
   - You start or build something → \`set_item\` to \`wip\` (or \`add_item\` \`wip\`).
-  - You get something working → \`set_item\` status \`works\` (recorded as *your*
-    claim, attributed to you; the user confirms it separately — that's by design).
-  - That piece is finished and you are not coming back to it → \`set_item\` \`done\`.
-    \`works\` means it functions but is still in play; \`done\` means closed out. They
-    are different columns on the board, so finished work must not sit in \`works\`.
+  - You get something working, and the project's own checks pass → \`set_item\`
+    \`works\`. With the user's auto-complete on (the default) it lands as \`done\` and
+    counts as finished — nobody ticks it off by hand — so report it only when it
+    really works. It is recorded under your name, never as the user's own check.
   - The user describes phases, or you split a big request into stages →
     \`add_milestone\` (and \`set_milestone\` done when the stage lands). The Roadmap
     stays empty unless you fill it, so a multi-step project belongs there too.
@@ -831,6 +830,24 @@ function wireHooks(home: string, root: string): boolean {
   kept.push({ hooks: [{ type: 'command', command, timeout: 30 }] })
   hooks.SessionStart = kept
 
+  // --- where to resume, at the start of every session ---------------------- //
+  // A second SessionStart entry beside the graphify bootstrap: it reads the
+  // board and hands the session what is still in progress, the next todo and
+  // the open fixes, in the fixed work order (resume-brief.mjs). Claude Code
+  // merges additionalContext from every SessionStart hook, so the two stay
+  // independent -- and this one runs on node, not python, so it works on a
+  // machine the bootstrap has to skip. Written before the plan hook below,
+  // because Codex and Gemini/Qwen are wired from there and get it too.
+  const resumeScript = join(hookSrc, 'resume-brief.mjs')
+  if (existsSync(resumeScript)) {
+    const resumeDest = join(hookDir, 'resume-brief.mjs')
+    cpSync(resumeScript, resumeDest)
+    const launcher = writeNodeLauncher(hookDir, 'resume-brief', resumeDest, onWindows)
+    reconcileHookGroup(hooks, 'SessionStart', 'resume-brief', {
+      hooks: [{ type: 'command', command: launcher, timeout: 15 }]
+    })
+  }
+
   // --- the agent's own plan, onto the board ------------------------------- //
   // `PostToolUse` with an exact `TodoWrite` matcher: verified against
   // code.claude.com/docs/en/hooks.md, that event hands the hook `tool_name`,
@@ -858,36 +875,6 @@ function wireHooks(home: string, root: string): boolean {
     // tools -- see below.
     wireCodexPlanHook(home)
     wireGeminiPlanHook(home)
-  }
-
-  // --- where to resume, at the start of every session ---------------------- //
-  // A second SessionStart entry beside the graphify bootstrap: it reads the
-  // board and hands the session what is still in progress, the next todo and
-  // the open fixes, in the fixed work order (resume-brief.mjs). Claude Code
-  // merges additionalContext from every SessionStart hook, so the two stay
-  // independent -- and this one runs on node, not python, so it works on a
-  // machine the bootstrap has to skip. Codex is deliberately left out: it
-  // records hook trust against the entry's content hash, and a new entry is a
-  // "hooks need review" prompt on every machine; there the planide `next_task`
-  // tool and get_board's `next` carry the same queue.
-  const resumeScript = join(hookSrc, 'resume-brief.mjs')
-  if (existsSync(resumeScript)) {
-    const resumeDest = join(hookDir, 'resume-brief.mjs')
-    cpSync(resumeScript, resumeDest)
-    const launcher = writeNodeLauncher(hookDir, 'resume-brief', resumeDest, onWindows)
-    const starts = (hooks.SessionStart ?? []) as unknown[]
-    const keptStarts = starts.filter((entry) => {
-      if (typeof entry !== 'object' || entry === null) return true
-      const inner = (entry as { hooks?: unknown[] }).hooks ?? []
-      return !inner.some(
-        (h) =>
-          typeof h === 'object' &&
-          h !== null &&
-          String((h as { command?: string }).command ?? '').includes('resume-brief')
-      )
-    })
-    keptStarts.push({ hooks: [{ type: 'command', command: launcher, timeout: 15 }] })
-    hooks.SessionStart = keptStarts
   }
 
   writeConfigAtomic(settingsPath, JSON.stringify(settings, null, 2))
@@ -926,6 +913,38 @@ function writeNodeLauncher(hookDir: string, base: string, script: string, onWind
     /* non-fatal on filesystems without exec bits */
   }
   return launcher
+}
+
+/**
+ * Put one of our hook groups under `event`, replacing any earlier copy of it
+ * (matched on `key` in the command) and keeping every other group exactly as
+ * it was. Reconcile, never accumulate -- and never reorder someone else's.
+ */
+function reconcileHookGroup(
+  hooks: Record<string, unknown>,
+  event: string,
+  key: string,
+  group: Record<string, unknown>
+): void {
+  const groups = (hooks[event] ?? []) as unknown[]
+  const kept = groups.filter((entry) => {
+    if (typeof entry !== 'object' || entry === null) return true
+    const inner = (entry as { hooks?: unknown[] }).hooks ?? []
+    return !inner.some(
+      (h) =>
+        typeof h === 'object' &&
+        h !== null &&
+        String((h as { command?: string }).command ?? '').includes(key)
+    )
+  })
+  kept.push(group)
+  hooks[event] = kept
+}
+
+/** The resume-brief launcher wireHooks wrote, if it is really on disk. */
+function resumeLauncher(home: string): string | null {
+  const path = join(configDir(home), 'hooks', process.platform === 'win32' ? 'resume-brief.cmd' : 'resume-brief.sh')
+  return existsSync(path) ? path : null
 }
 
 /**
@@ -998,6 +1017,19 @@ function wireCodexPlanHook(home: string): boolean {
       hooks: [{ type: 'command', command: launcher, timeoutSec: 15 }]
     })
     hooks.PostToolUse = kept
+    // Where to resume, at session start -- the same brief Claude Code gets.
+    // Verified against openai/codex (codex-rs/hooks/src/schema.rs): SessionStart
+    // hands the hook `cwd` and reads `hookSpecificOutput.additionalContext`,
+    // with deny_unknown_fields, which is exactly the shape resume-brief prints;
+    // a group's matcher is optional. Codex trusts hooks per event/group/handler,
+    // so this new group asks for review once and leaves the already-trusted plan
+    // hook above untouched.
+    const resume = resumeLauncher(home)
+    if (resume) {
+      reconcileHookGroup(hooks, 'SessionStart', 'resume-brief', {
+        hooks: [{ type: 'command', command: resume, timeoutSec: 15 }]
+      })
+    }
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
@@ -1067,6 +1099,16 @@ function wireGeminiPlanHook(home: string): boolean {
         hooks: [{ type: 'command', command: launcher, timeout: 15000 }]
       })
       hooks.AfterTool = kept
+      // And where to resume, at session start: Gemini CLI's SessionStart hands
+      // the hook `cwd` and injects `hookSpecificOutput.additionalContext` as the
+      // first turn (google-gemini/gemini-cli docs/hooks/reference.md). Timeout
+      // in milliseconds, like every Gemini hook; no matcher needed.
+      const resume = resumeLauncher(home)
+      if (resume) {
+        reconcileHookGroup(hooks, 'SessionStart', 'resume-brief', {
+          hooks: [{ type: 'command', command: resume, timeout: 15000 }]
+        })
+      }
       mkdirSync(dirname(path), { recursive: true })
       writeConfigAtomic(path, JSON.stringify(config, null, 2))
       wrote = true
@@ -1948,8 +1990,8 @@ function mainSessionBlock(home: string): string {
     '',
     'Your own plan is on the board too. The step list you build to work through a task is',
     'mirrored into the project board as it changes -- planned steps appear, the one you are',
-    'on shows as in progress, finished ones move to `works` (never confirmed for you). So',
-    'keep the plan honest and current, because it is now what the user watches.',
+    'on shows as in progress, finished ones land as `done` (the user\'s auto-complete,',
+    'on by default). So keep the plan honest: a step you mark done counts as finished.',
     '',
     'For work that genuinely warrants an adversarial second opinion -- a risky refactor, a',
     'fix that keeps coming back -- the bundled `graph-engineer` skill runs one model as',

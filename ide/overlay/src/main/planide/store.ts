@@ -122,15 +122,30 @@ export type ProjectState = {
   github: { remote: string; branch: string; lfs: boolean; auto_push: boolean; last_sync: string }
   backups: unknown[]
   activity: Activity[]
+  /**
+   * The user's switches -- never written by an agent-facing path.
+   * auto_complete: work an agent reports working counts as finished (`done`),
+   * with no one ticking it off by hand. Missing reads as on.
+   */
+  settings: { auto_complete: boolean }
 }
 
 export type Progress = {
   total_items: number
   counts: Record<string, number>
   done: number
+  /** Confirmed by YOU -- never an agent, whatever the settings say. */
   confirmed: number
+  /** Working and not counted as finished: with auto-complete on, none. */
   unconfirmed: number
   confirmed_percent: number
+  /** The user's auto-complete switch, as this board has it. */
+  auto_complete: boolean
+  /** Counted as finished: everything that works with auto-complete on, else your checks. */
+  accepted: number
+  accepted_percent: number
+  /** Working items an agent reported and you did not check yourself. */
+  by_agents: number
   complete: number
   open: number
   protected: number
@@ -177,7 +192,8 @@ function blankState(projectPath: string): ProjectState {
     versions: [],
     github: { remote: '', branch: 'main', lfs: false, auto_push: false, last_sync: '' },
     backups: [],
-    activity: []
+    activity: [],
+    settings: { auto_complete: true }
   }
 }
 
@@ -210,6 +226,12 @@ export function loadState(projectPath: string): ProjectState {
     item.locked_at ??= ''
     item.tags ??= []
     item.notes ??= ''
+  }
+  // A fix with no status was logged by the IDE before addFix kept its default
+  // (see addFix): it was meant to be open, so it is open -- in Fixes > Open,
+  // in the counts, and in the work queue.
+  for (const fix of state.fixes ?? []) {
+    if (!(['open', 'fixed', 'wontfix'] as readonly string[]).includes(fix.status)) fix.status = 'open'
   }
   return state
 }
@@ -416,9 +438,13 @@ export function addFix(
     status?: Fix['status']
   }
 ): Fix {
-  const status = (['open', 'fixed', 'wontfix'] as const).includes(opts.status ?? 'open')
-    ? (opts.status as Fix['status'])
-    : 'open'
+  // The default has to be the VALUE, not just the check. This used to test
+  // `opts.status ?? 'open'` and then hand back `opts.status` itself -- undefined
+  // for every fix logged from the IDE, which passes no status. JSON drops an
+  // undefined field, so those fixes had no status at all: never under Fixes >
+  // Open, never in the open-fix count, never in an agent's queue.
+  const asked = opts.status ?? 'open'
+  const status: Fix['status'] = (['open', 'fixed', 'wontfix'] as const).includes(asked) ? asked : 'open'
   const fix: Fix = {
     id: newId('f_'),
     title: opts.title.trim() || 'Untitled fix',
@@ -532,6 +558,52 @@ export function addVersion(
   return entry
 }
 
+// --------------------------------------------------------------------------- auto-complete
+/** The user's switch. Missing reads as on -- see work-queue.mjs, which agents run. */
+export function autoComplete(state: Pick<ProjectState, 'settings'> | null | undefined): boolean {
+  return state?.settings?.auto_complete !== false
+}
+
+/**
+ * Close out what an agent reported working: `works` -> `done`, so finished work
+ * never waits on anyone to move it by hand. Agent-reported items only (a
+ * `works` you chose yourself stays), never a protected one, and a confirmation
+ * is kept -- both statuses say it works. Must stay identical to
+ * closeOutWorking in agent-bundle/tracker/mcp/work-queue.mjs; the parity test
+ * in ide/test/mcp-node.test.mjs runs both on the same board.
+ */
+export function closeOutWorking(state: ProjectState): Item[] {
+  if (!autoComplete(state)) return []
+  const at = nowIso()
+  const closed: Item[] = []
+  for (const item of state.items ?? []) {
+    if (item.status !== 'works' || item.locked || !String(item.claimed_by || '').trim()) continue
+    item.status = 'done'
+    item.updated_at = at
+    closed.push(item)
+  }
+  if (closed.length) {
+    const names = closed.map((i) => i.title).slice(0, 3).join(', ')
+    logActivity(
+      state,
+      'auto-complete',
+      `closed out ${closed.length} working item(s): ${names}${closed.length > 3 ? ', ...' : ''}`,
+      'auto'
+    )
+  }
+  return closed
+}
+
+/** Yours alone, like confirming and protecting: no agent-facing path reaches it. */
+export function setAutoComplete(state: ProjectState, enabled: boolean): boolean {
+  state.settings = { ...(state.settings ?? { auto_complete: true }), auto_complete: Boolean(enabled) }
+  logActivity(state, 'settings', `auto-complete ${enabled ? 'on' : 'off'}`)
+  // Switching it on applies at once: what already works is closed out now,
+  // not on whatever write happens to come next.
+  if (enabled) closeOutWorking(state)
+  return state.settings.auto_complete
+}
+
 // --------------------------------------------------------------------------- rollups
 export function progress(state: ProjectState): Progress {
   const items = state.items ?? []
@@ -561,10 +633,19 @@ export function progress(state: ProjectState): Progress {
   // confirmation with no name, every agent path writes a name.
   const working = items.filter((i) => DONE_ITEM.includes(i.status))
   const confirmed = working.filter((i) => i.verified && !i.verified_by).length
-  // Everything else that says it works is somebody's claim, not your check --
-  // whether nobody confirmed it or an agent confirmed itself.
-  const unconfirmed = working.length - confirmed
   const confirmedPercent = total ? Math.round((100 * confirmed) / total) : 0
+  // What counts as finished is the user's call, and they made it: "wat werkt
+  // mag als afgerond zijn, ik ga niet handmatig dat doen". With auto-complete
+  // on, everything that works is accepted; off, only your own checks are, and
+  // the rest is somebody's claim -- exactly the old split. `confirmed` stays
+  // YOUR checks either way, so the board never says you looked when you did not.
+  const auto = autoComplete(state)
+  const accepted = auto ? working.length : confirmed
+  const acceptedPercent = total ? Math.round((100 * accepted) / total) : 0
+  const unconfirmed = working.length - accepted
+  const byAgents = working.filter(
+    (i) => !(i.verified && !i.verified_by) && Boolean(i.claimed_by || i.verified_by)
+  ).length
 
   const complete = items.filter((i) => COMPLETE_ITEM.includes(i.status)).length
   const open = items.filter((i) => OPEN_ITEM.includes(i.status)).length
@@ -579,16 +660,16 @@ export function progress(state: ProjectState): Progress {
   const msDone = milestones.filter((m) => m.done).length
   const msPercent = milestones.length ? Math.round((100 * msDone) / milestones.length) : 0
 
-  // Health is scored on CONFIRMED work: a board where everything says "works"
-  // but nothing is confirmed is unverified, not healthy. A protected item
-  // breaking is the loudest possible signal.
-  let health = confirmedPercent
+  // Health is scored on ACCEPTED work: your checks, or -- with auto-complete
+  // on -- everything that works. A protected item breaking is the loudest
+  // possible signal either way.
+  let health = acceptedPercent
   if (total) {
     health = Math.max(
       0,
       Math.min(
         100,
-        Math.round(confirmedPercent - (8 * broken) / Math.max(1, total) - 4 * openFixes - 15 * regressed)
+        Math.round(acceptedPercent - (8 * broken) / Math.max(1, total) - 4 * openFixes - 15 * regressed)
       )
     )
   }
@@ -600,6 +681,10 @@ export function progress(state: ProjectState): Progress {
     confirmed,
     unconfirmed,
     confirmed_percent: confirmedPercent,
+    auto_complete: auto,
+    accepted,
+    accepted_percent: acceptedPercent,
+    by_agents: byAgents,
     complete,
     open,
     protected: protectedCount,
@@ -613,5 +698,213 @@ export function progress(state: ProjectState): Progress {
     milestones_percent: msPercent,
     health,
     version: state.version
+  }
+}
+
+// --------------------------------------------------------------------------- work queue
+// The board's work order, for the IDE's own "now / next" view: finish what is
+// in progress, then todo, then open fixes, then broken items; `blocked` is never
+// picked. A port of workQueue in agent-bundle/tracker/mcp/work-queue.mjs -- the
+// same order agents get from next_task and the resume brief, so what the panel
+// says is next and what the agent picks up cannot disagree. The parity test in
+// ide/test/mcp-node.test.mjs runs both on the same boards and compares.
+
+/** A `wip` item untouched this long was left behind by an earlier session. */
+export const STALE_HOURS = 12
+
+const PRIORITY_RANK: Record<string, number> = {
+  urgent: 0, critical: 0, p0: 0, blocker: 0,
+  high: 1, p1: 1,
+  normal: 2, medium: 2, p2: 2, '': 2,
+  low: 3, p3: 3, someday: 3
+}
+
+export type QueueItemCard = {
+  kind: 'item'
+  id: string
+  title: string
+  status: ItemStatus
+  claimed_by: string
+  idle: string
+  locked?: true
+  stale?: true
+  priority?: string
+}
+
+export type QueueFixCard = {
+  kind: 'fix'
+  id: string
+  title: string
+  problem: string
+  logged_by: string
+  created_at: string
+}
+
+export type QueueLane = 'in_progress' | 'todo' | 'fix' | 'broken'
+
+export type WorkQueue = {
+  phase: 'finish' | 'todo' | 'fixes' | 'clear'
+  focus: ((QueueItemCard | QueueFixCard) & { lane: QueueLane; action: string }) | null
+  alerts: string[]
+  counts: {
+    in_progress: number
+    elsewhere: number
+    todo: number
+    open_fixes: number
+    broken: number
+    blocked: number
+  }
+  in_progress: QueueItemCard[]
+  todo: QueueItemCard[]
+  open_fixes: QueueFixCard[]
+  broken: QueueItemCard[]
+  blocked: QueueItemCard[]
+  elsewhere: QueueItemCard[]
+  order: string
+}
+
+const lc = (v: unknown): string => String(v ?? '').trim().toLowerCase()
+
+function ageMs(iso: string, now: number): number {
+  const t = Date.parse(iso || '')
+  return Number.isFinite(t) ? Math.max(0, now - t) : Number.POSITIVE_INFINITY
+}
+
+function idle(ms: number): string {
+  if (!Number.isFinite(ms)) return 'unknown'
+  const h = ms / 3600e3
+  if (h < 1) return `${Math.max(1, Math.round(ms / 60e3))}m`
+  if (h < 48) return `${Math.round(h)}h`
+  return `${Math.round(h / 24)}d`
+}
+
+function clip(s: unknown, n: number): string {
+  const t = String(s ?? '').replace(/\s+/g, ' ').trim()
+  return t.length > n ? `${t.slice(0, n - 1)}…` : t
+}
+
+function itemCard(i: Item, now: number): QueueItemCard {
+  return {
+    kind: 'item',
+    id: i.id,
+    title: i.title,
+    status: i.status,
+    claimed_by: i.claimed_by || '',
+    idle: idle(ageMs(i.updated_at, now)),
+    ...(i.locked ? { locked: true as const } : {})
+  }
+}
+
+function fixCard(f: Fix): QueueFixCard {
+  return {
+    kind: 'fix',
+    id: f.id,
+    title: f.title,
+    problem: clip(f.problem, 240),
+    logged_by: f.agent || '',
+    created_at: f.created_at || ''
+  }
+}
+
+const ACTION: Record<QueueLane, string> = {
+  in_progress:
+    'Finish this first. set_item it to works/done in the same turn it genuinely works, then call next_task again.',
+  todo: 'Start this: next_task with claim=true (or set_item wip), do it, then set_item works/done.',
+  fix: 'Fix this, verify it, then mark_fixed with the real solution -- what caused it and what changed.',
+  broken: 'Make this work again, then set_item works. Log what caused it with add_fix if it was not logged yet.'
+}
+
+export const WORK_ORDER =
+  'Finish in_progress first, then todo in order, then open fixes, then broken items. ' +
+  'A bug you hit mid-task goes on the board with add_fix (Fixes > Open) and waits its turn -- log it, do not switch to it. ' +
+  'blocked waits on someone and is never picked.'
+
+export function workQueue(
+  state: Pick<ProjectState, 'items' | 'fixes'>,
+  opts: { agent?: string; now?: number; limit?: number } = {}
+): WorkQueue {
+  const now = Number.isFinite(opts.now) ? (opts.now as number) : Date.now()
+  const limit = Number.isInteger(opts.limit) && (opts.limit as number) > 0 ? (opts.limit as number) : 5
+  const me = lc(opts.agent)
+  const staleMs = STALE_HOURS * 3600e3
+  const items = state?.items ?? []
+  const fixes = state?.fixes ?? []
+
+  const wipAll = items
+    .filter((i) => i.status === 'wip')
+    .map((i) => ({ i, age: ageMs(i.updated_at, now), mine: Boolean(me) && lc(i.claimed_by) === me }))
+  const isMineToFinish = (w: { i: Item; age: number; mine: boolean }): boolean =>
+    !me || w.mine || !w.i.claimed_by || w.age >= staleMs
+  const wip: QueueItemCard[] = wipAll
+    .filter(isMineToFinish)
+    .sort((a, b) => Number(b.mine) - Number(a.mine) || b.age - a.age)
+    .map((w) => ({ ...itemCard(w.i, now), ...(w.age >= staleMs ? { stale: true as const } : {}) }))
+  const elsewhere = wipAll.filter((w) => !isMineToFinish(w)).map((w) => itemCard(w.i, now))
+
+  const rank = (p: string): number => PRIORITY_RANK[lc(p)] ?? PRIORITY_RANK.normal
+  const todo: QueueItemCard[] = items
+    .map((i, idx) => ({ i, idx }))
+    .filter(({ i }) => i.status === 'todo')
+    .sort(
+      (a, b) =>
+        rank(a.i.priority) - rank(b.i.priority) ||
+        String(a.i.created_at || '').localeCompare(String(b.i.created_at || '')) ||
+        a.idx - b.idx
+    )
+    .map(({ i }) => ({ ...itemCard(i, now), ...(rank(i.priority) < 2 ? { priority: i.priority } : {}) }))
+
+  // Open is anything not closed -- same as work-queue.mjs (see addFix).
+  const openFixes = fixes
+    .map((f, idx) => ({ f, idx }))
+    .filter(({ f }) => f.status !== 'fixed' && f.status !== 'wontfix')
+    .sort((a, b) => String(a.f.created_at || '').localeCompare(String(b.f.created_at || '')) || a.idx - b.idx)
+    .map(({ f }) => fixCard(f))
+
+  const broken = items
+    .filter((i) => i.status === 'broken')
+    .sort((a, b) => Number(Boolean(b.locked)) - Number(Boolean(a.locked)))
+    .map((i) => itemCard(i, now))
+  const blocked = items.filter((i) => i.status === 'blocked').map((i) => itemCard(i, now))
+  const regressed = items
+    .filter((i) => i.locked && (i.status === 'broken' || i.status === 'blocked'))
+    .map((i) => itemCard(i, now))
+
+  let focus: WorkQueue['focus'] = null
+  let phase: WorkQueue['phase'] = 'clear'
+  if (wip.length) {
+    focus = { lane: 'in_progress', ...wip[0], action: ACTION.in_progress }
+    phase = 'finish'
+  } else if (todo.length) {
+    focus = { lane: 'todo', ...todo[0], action: ACTION.todo }
+    phase = 'todo'
+  } else if (openFixes.length) {
+    focus = { lane: 'fix', ...openFixes[0], action: ACTION.fix }
+    phase = 'fixes'
+  } else if (broken.length) {
+    focus = { lane: 'broken', ...broken[0], action: ACTION.broken }
+    phase = 'fixes'
+  }
+
+  return {
+    phase,
+    focus,
+    alerts: regressed.map(
+      (r) => `REGRESSION: protected "${r.title}" [${r.id}] is ${r.status} -- tell the user before anything else.`
+    ),
+    counts: {
+      in_progress: wip.length,
+      elsewhere: elsewhere.length,
+      todo: todo.length,
+      open_fixes: openFixes.length,
+      broken: broken.length,
+      blocked: blocked.length
+    },
+    in_progress: wip.slice(0, limit),
+    todo: todo.slice(0, limit),
+    open_fixes: openFixes.slice(0, limit),
+    broken: broken.slice(0, limit),
+    blocked: blocked.slice(0, limit),
+    elsewhere: elsewhere.slice(0, limit),
+    order: WORK_ORDER
   }
 }

@@ -41,8 +41,9 @@ def build(st: dict, mode: str = "full") -> str:
     custom = (st.get("stack") or {}).get("custom", "")
 
     works = [i for i in items if i.get("status") in ("works", "done")]
-    confirmed = [i for i in works if i.get("verified")]
-    unconfirmed = [i for i in works if not i.get("verified")]
+    # Yours only: an agent's confirmation carries its name in verified_by.
+    confirmed = [i for i in works if i.get("verified") and not i.get("verified_by")]
+    unconfirmed = [i for i in works if not (i.get("verified") and not i.get("verified_by"))]
     complete = [i for i in items if i.get("status") == "done"]
     protected = [i for i in items if i.get("locked")]
     regressed = [i for i in items if i.get("locked")
@@ -65,10 +66,16 @@ def build(st: dict, mode: str = "full") -> str:
     L.append("- **Languages**: %s" % langs)
     L.append("- **Stack**: %s" % stack)
     L.append("- **Version**: %s" % p["version"])
-    L.append("- **Progress**: %d%% reported working (%d/%d); **%d%% confirmed by the "
-             "user** (%d) -- health %d/100"
-             % (p["percent"], p["done"], p["total_items"], p["confirmed_percent"],
-                p["confirmed"], p["health"]))
+    if p["auto_complete"]:
+        L.append("- **Progress**: %d%% finished (%d/%d, auto-complete on: work that works "
+                 "counts as done); %d also checked by the user -- health %d/100"
+                 % (p["accepted_percent"], p["accepted"], p["total_items"],
+                    p["confirmed"], p["health"]))
+    else:
+        L.append("- **Progress**: %d%% reported working (%d/%d); **%d%% confirmed by the "
+                 "user** (%d) -- health %d/100"
+                 % (p["percent"], p["done"], p["total_items"], p["confirmed_percent"],
+                    p["confirmed"], p["health"]))
     L.append("- **Open problems**: %d broken/blocked, %d open fixes"
              % (p["broken"], p["open_fixes"]))
     L.append("- **Complete**: %d | **Still open**: %d | **Protected (do not "
@@ -98,9 +105,14 @@ def build(st: dict, mode: str = "full") -> str:
     L.append("")
 
     if unconfirmed:
-        L.append("## Reported working, NOT yet confirmed")
-        L.append("_Treat these as claims, not facts: do not build on them without "
-                 "re-checking._")
+        if p["auto_complete"]:
+            L.append("## Finished by agents (auto-complete)")
+            L.append("_Counted as finished by the user's choice. Nobody re-checked these "
+                     "by hand: if you touch one, run its check._")
+        else:
+            L.append("## Reported working, NOT yet confirmed")
+            L.append("_Treat these as claims, not facts: do not build on them without "
+                     "re-checking._")
         L.extend(_bullets(
             unconfirmed,
             extra=lambda it: ("reported by %s" % it["claimed_by"]) if it.get("claimed_by") else ""))

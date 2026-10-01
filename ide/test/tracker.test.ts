@@ -79,6 +79,9 @@ ok('claimed vs confirmed are separate', p.percent !== p.confirmed_percent || p.c
 // means you.
 const trustDir = mkdtempSync(join(tmpdir(), 'pulsar-trust-'))
 const trust = store.loadState(trustDir)
+// This is the strict mode: the user turned auto-complete off, so only their own
+// checks count as finished. The default (on) is checked right after.
+store.setAutoComplete(trust, false)
 const mine = store.addItem(trust, { title: 'I checked this one', status: 'works' })
 const theirs = store.addItem(trust, {
   title: 'An agent closed this one',
@@ -99,11 +102,66 @@ ok('an agent confirming its own work is not counted as confirmed by you',
 ok('it lands in the claimed-unchecked count instead, where the tile reads it',
   tp.unconfirmed === 1)
 ok('and health is scored on your confirmations, not on self-reported work',
-  tp.confirmed_percent === 50)
+  tp.confirmed_percent === 50 && tp.accepted === 1 && tp.auto_complete === false)
+
+// --- auto-complete on: what works is finished, with no one ticking it off -- //
+// Asked for directly: "wat werkt mag als afgerond zijn, ik ga niet handmatig dat
+// doen". On by default -- a board with no settings reads as on.
+const autoDir = mkdtempSync(join(tmpdir(), 'pulsar-auto-'))
+const acBoard = store.loadState(autoDir)
+ok('auto-complete is on for a new board', store.autoComplete(acBoard) && acBoard.settings.auto_complete === true)
+ok('and for a board written before the switch existed',
+  store.autoComplete({ settings: undefined } as unknown as store.ProjectState))
+const aYours = store.addItem(acBoard, { title: 'You set this to works', status: 'works' })
+const aTheirs = store.addItem(acBoard, { title: 'Agent got this working', status: 'works', claimedBy: 'codex' })
+const aLocked = store.addItem(acBoard, { title: 'Protected and working', status: 'works', claimedBy: 'codex' })
+store.lockItem(acBoard, aLocked.id, true)
+store.verifyItem(acBoard, aTheirs.id, true)
+const closed = store.closeOutWorking(acBoard)
+ok('agent work that works is closed out to done', closed.length === 1 &&
+  acBoard.items.find((i) => i.id === aTheirs.id)!.status === 'done')
+ok('your own works stays yours, and a protected item is never moved',
+  acBoard.items.find((i) => i.id === aYours.id)!.status === 'works' &&
+  acBoard.items.find((i) => i.id === aLocked.id)!.status === 'works')
+ok('closing out keeps your confirmation -- works and done both say it works',
+  acBoard.items.find((i) => i.id === aTheirs.id)!.verified === true)
+ok('and it is on the activity trail, attributed to auto',
+  acBoard.activity.some((a) => a.kind === 'auto-complete' && a.who === 'auto'))
+const ap = store.progress(acBoard)
+ok('with auto-complete on everything that works counts as finished',
+  ap.accepted === 3 && ap.unconfirmed === 0 && ap.accepted_percent === 100)
+ok('while "confirmed by you" still only counts your own check',
+  ap.confirmed === 1 && ap.by_agents === 1)
+ok('health follows what is finished, so it is not stuck at your check count', ap.health === 100)
+store.setAutoComplete(acBoard, false)
+ok('switching it off puts finished agent work back under your check',
+  store.progress(acBoard).accepted === 1 && store.progress(acBoard).unconfirmed === 2)
+ok('and nothing is closed out while it is off', store.closeOutWorking(acBoard).length === 0)
+store.setAutoComplete(acBoard, true)
+ok('switching it back on applies at once, and is logged as yours',
+  acBoard.activity.filter((a) => a.kind === 'settings' && a.who === 'you').length === 2)
 ok('regressed counted', p.regressed === 1)
 ok('protected counted', p.protected === 1)
 ok('open counted (todo)', p.open === 1)
 ok('health hit hard by regression', p.health < 20)
+
+// --- a fix logged from the IDE is open -------------------------------------- //
+// addFix checked `opts.status ?? 'open'` but returned `opts.status` -- undefined
+// for every fix the IDE logs, since it passes no status. JSON then drops the
+// field, so the fix was never under Fixes > Open and never counted.
+{
+  const fxDir = mkdtempSync(join(tmpdir(), 'pulsar-fixstatus-'))
+  const fxState = store.loadState(fxDir)
+  const logged = store.addFix(fxState, { title: 'Logged from the Fixes tab', problem: 'x' })
+  ok('a fix logged with no status is open', logged.status === 'open' && store.progress(fxState).open_fixes === 1)
+  ok('and it is in the work queue, under open fixes', store.workQueue(fxState).open_fixes.length === 1)
+  // A board written by the old addFix: the field is simply missing on disk.
+  const raw = JSON.parse(JSON.stringify(fxState))
+  delete raw.fixes[0].status
+  store.saveState(fxDir, raw)
+  ok('a board where that already happened is repaired on load',
+    store.loadState(fxDir).fixes[0].status === 'open' && store.progress(store.loadState(fxDir)).open_fixes === 1)
+}
 
 console.log('== activity ==')
 const kinds = new Set(st.activity.map((x) => x.kind))
@@ -117,7 +175,14 @@ store.lockItem(st, b.id, true)
 const md = buildReport(st, 'full')
 ok('leads with REGRESSION', md.indexOf('REGRESSION') < md.indexOf('## What works'))
 ok('has DO NOT BREAK', md.includes('DO NOT BREAK (protected by the user)'))
-ok('separates confirmed from claimed', md.includes('Reported working, NOT yet confirmed'))
+ok('separates your checks from agent work (auto-complete on: finished by agents)',
+  md.includes('## What works -- confirmed by the user') && md.includes('## Finished by agents (auto-complete)'))
+{
+  const strict = structuredClone(st)
+  store.setAutoComplete(strict, false)
+  ok('and with auto-complete off the briefing calls agent work what it is: unconfirmed claims',
+    buildReport(strict, 'full').includes('Reported working, NOT yet confirmed'))
+}
 ok('tells agent not to self-confirm', md.includes('only records a claim'))
 
 console.log('== agent turns (recorded from Orca hooks, not by the agent) ==')

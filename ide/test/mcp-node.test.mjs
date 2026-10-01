@@ -16,7 +16,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const REPO = process.env.PULSAR_REPO || join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const SERVER = join(REPO, 'ide/agent-bundle/tracker/mcp/planide-mcp.mjs')
@@ -164,7 +164,10 @@ const run2 = await drive([
   call(21, 'mark_fixed', { project: proj, fix_id: fixId, solution: 'guard the null session' }),
   call(22, 'add_version', { project: proj, version: '0.2.0', added: ['Login page'] })
 ])
-ok('set_item moves an item', json(byId(run2.replies, 20)).status === 'works')
+// Auto-complete is on by default ("wat werkt mag als afgerond zijn"): an agent
+// reporting `works` lands as `done`. The off-switch has its own section below.
+ok('set_item moves an item -- works lands as done with auto-complete on',
+  json(byId(run2.replies, 20)).status === 'done')
 ok('mark_fixed closes a fix', json(byId(run2.replies, 21)).status === 'fixed')
 ok('add_version records a release', json(byId(run2.replies, 22)).version === '0.2.0')
 
@@ -206,7 +209,7 @@ ok('a revised plan moves what moved and adds what is new -- never duplicates',
   plan2.added === 1 && plan2.moved === 2 &&
   planBoard.items.filter((i) => i.title === 'Draft the schema').length === 1)
 ok('and the states land in the board\'s own columns',
-  planBoard.items.find((i) => i.title === 'Draft the schema').status === 'works' &&
+  planBoard.items.find((i) => i.title === 'Draft the schema').status === 'done' &&
   planBoard.items.find((i) => i.title === 'Write the migration').status === 'wip' &&
   planBoard.items.find((i) => i.title === 'Backfill the old rows').status === 'todo')
 // A plan whose steps do not use `content`. Codex's own update_plan calls the
@@ -276,7 +279,7 @@ const afterSneak = store.loadState(proj)
 const moved = afterSneak.items.find((i) => i.id === first.id)
 ok('reporting works confirms the item', moved.verified === true)
 ok('the confirmation is attributed to the agent, never to you',
-  moved.verified_by === 'Codex')
+  /codex/i.test(moved.verified_by))
 // get_board's rollup must draw the same line the board is built on: an agent
 // confirming its own work is a claim, not your check. Otherwise an agent asking
 // "how far are we" reads back its own claims as confirmed, and the % the IDE
@@ -769,6 +772,144 @@ ok('resume brief: a board with nothing open costs no context at all',
 const garbage = runHook('resume-brief.mjs', '{not json')
 ok('resume brief: a malformed payload never errors in front of the first prompt',
   garbage.status === 0 && garbage.stderr === '')
+
+// --- auto-complete: what works is finished, no ticking off by hand --------- //
+// "wat werkt mag als afgerond zijn, want ik ga niet handmatig dat doen". On by
+// default; the user's own switch, which no agent tool can reach.
+const acOn = mkdtempSync(join(tmpdir(), 'pulsar-acon-'))
+mkdirSync(join(acOn, '.git'))
+{
+  // A board from before the switch: an agent's `works` left sitting there.
+  const s = store.loadState(acOn)
+  delete s.settings
+  store.addItem(s, { title: 'Left in works by an old hook', status: 'works', claimedBy: 'codex' })
+  store.addItem(s, { title: 'You chose works', status: 'works' })
+  store.saveState(acOn, s)
+}
+const acRun = await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'claude-code' } } },
+  call(150, 'add_item', { project: acOn, title: 'Reported working on arrival', status: 'works', agent: 'gemini' }),
+  call(151, 'sync_plan', { project: acOn, agent: 'claude', todos: [{ content: 'Plan step done', status: 'completed' }] }),
+  call(152, 'add_item', { project: acOn, title: 'Will be set working' }),
+  call(153, 'get_board', { project: acOn })
+])
+const acBoard0 = json(byId(acRun.replies, 153))
+const willId = acBoard0.items.find((i) => i.title === 'Will be set working').id
+const acSet = json(byId((await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'claude-code' } } },
+  call(154, 'set_item', { project: acOn, item_id: willId, status: 'works' })
+])).replies, 154))
+const acState = readBoard(acOn)
+const acStatus = (t) => acState.items.find((i) => i.title === t)?.status
+ok('auto-complete on: add_item works, a completed plan step and set_item works all land as done',
+  acStatus('Reported working on arrival') === 'done' && acStatus('Plan step done') === 'done' &&
+  acSet.status === 'done')
+ok('set_item with no agent name is attributed to the client, never to you',
+  acSet.verified === true && acSet.verified_by === 'claude-code')
+ok('an agent works left on the board by an older route is closed out on the next write',
+  acStatus('Left in works by an old hook') === 'done' &&
+  acState.activity.some((a) => a.kind === 'auto-complete' && a.who === 'auto'))
+ok('a works you chose yourself is left exactly where you put it', acStatus('You chose works') === 'works')
+ok('get_board says the switch is on and counts what works as finished',
+  acBoard0.progress.auto_complete === true && acBoard0.progress.unconfirmed === 0 &&
+  acBoard0.progress.accepted === acBoard0.progress.counts.works + acBoard0.progress.counts.done)
+ok('and "confirmed" still means confirmed by you: zero, nobody checked anything',
+  acBoard0.progress.confirmed === 0)
+{
+  const s = store.loadState(acOn)
+  ok('the IDE store reads the same board the same way',
+    store.progress(s).accepted === store.progress(s).done && store.progress(s).unconfirmed === 0)
+}
+
+const acOff = mkdtempSync(join(tmpdir(), 'pulsar-acoff-'))
+mkdirSync(join(acOff, '.git'))
+{
+  const s = store.loadState(acOff)
+  store.setAutoComplete(s, false)
+  store.addItem(s, { title: 'Old works', status: 'works', claimedBy: 'codex' })
+  store.saveState(acOff, s)
+}
+await drive([
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  call(160, 'add_item', { project: acOff, title: 'Off: reported working', status: 'works', agent: 'gemini' }),
+  call(161, 'sync_plan', { project: acOff, agent: 'claude', todos: [{ content: 'Off: plan step', status: 'completed' }] })
+])
+runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: acOff, tool_input: { todos: [{ content: 'Off: hook step', status: 'completed' }] } })
+{
+  const st = readBoard(acOff)
+  const status = (t) => st.items.find((i) => i.title === t)?.status
+  ok('auto-complete off: every route leaves agent work in works, for you to check',
+    status('Off: reported working') === 'works' && status('Off: plan step') === 'works' &&
+    status('Off: hook step') === 'works' && status('Old works') === 'works')
+  const offBoard = json(byId((await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(162, 'get_board', { project: acOff })
+  ])).replies, 162))
+  ok('and the rollup counts it as claimed, not finished', offBoard.progress.auto_complete === false &&
+    offBoard.progress.accepted === 0 && offBoard.progress.unconfirmed === 4)
+}
+
+// The switch is the user's: nothing an agent can send reaches it.
+{
+  const listed = byId((await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    { jsonrpc: '2.0', id: 2, method: 'tools/list' }
+  ])).replies, 2).result.tools
+  ok('no agent tool offers a way to change the user\'s settings',
+    !listed.some((t) => /setting|auto_?complete/i.test(t.name) ||
+      Object.keys(t.inputSchema?.properties ?? {}).some((k) => /setting|auto_?complete/i.test(k))))
+  const before = readBoard(acOff).settings
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(163, 'set_item', { project: acOff, item_id: readBoard(acOff).items[0].id, status: 'wip', settings: { auto_complete: true }, auto_complete: true }),
+    call(164, 'add_item', { project: acOff, title: 'Sneaky switch', settings: { auto_complete: true } })
+  ])
+  ok('and a payload smuggling one in changes nothing',
+    JSON.stringify(readBoard(acOff).settings) === JSON.stringify(before) && readBoard(acOff).settings.auto_complete === false)
+}
+
+// --- parity: the IDE's own queue and sweep are the agents' ----------------- //
+// store.ts carries a TypeScript port of work-queue.mjs for the panel. Same
+// boards, same clock, byte-for-byte the same answer -- or they have drifted.
+{
+  const wq = await import(pathToFileURL(join(REPO, 'ide/agent-bundle/tracker/mcp/work-queue.mjs')).href)
+  const now = Date.now()
+  const boards = [qProj, claimProj, regProj, fixOnly, uniProj, lockedTodo, acOn, acOff].map((p) => readBoard(p))
+  const agents = ['', 'codex', 'claude', 'gemini']
+  let same = true
+  for (const b of boards) {
+    for (const agent of agents) {
+      const a = JSON.stringify(wq.workQueue(b, { agent, now }))
+      const t = JSON.stringify(store.workQueue(b, { agent, now }))
+      if (a !== t) {
+        same = false
+        console.log('    queue drift on', b.path, 'agent', agent)
+      }
+    }
+  }
+  ok('the IDE queue and the agents\' next_task agree on every board, for every agent', same)
+  ok('and they agree on the work order text agents are told', wq.WORK_ORDER === store.WORK_ORDER && wq.STALE_HOURS === store.STALE_HOURS)
+  const fixture = {
+    settings: { auto_complete: true },
+    items: [
+      { id: 'a', title: 'agent works', status: 'works', claimed_by: 'x', locked: false, activity: [] },
+      { id: 'b', title: 'your works', status: 'works', claimed_by: '', locked: false },
+      { id: 'c', title: 'locked works', status: 'works', claimed_by: 'x', locked: true },
+      { id: 'd', title: 'agent wip', status: 'wip', claimed_by: 'x', locked: false }
+    ],
+    activity: []
+  }
+  const js = structuredClone(fixture)
+  const ts = structuredClone(fixture)
+  const closedJs = wq.closeOutWorking(js).map((i) => i.id).join()
+  const closedTs = store.closeOutWorking(ts).map((i) => i.id).join()
+  ok('the sweep closes out exactly the same items on both sides',
+    closedJs === 'a' && closedTs === 'a' &&
+    JSON.stringify(js.items.map((i) => i.status)) === JSON.stringify(ts.items.map((i) => i.status)))
+  ok('and the switch reads the same way, including a board with no settings at all',
+    wq.autoComplete({}) === store.autoComplete({}) && wq.autoComplete({ settings: { auto_complete: false } }) === false &&
+    store.autoComplete({ settings: { auto_complete: false } }) === false)
+}
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

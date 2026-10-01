@@ -14,6 +14,7 @@ import {
   Check,
   CircleDot,
   ClipboardCopy,
+  ListChecks,
   ShieldCheck,
   Lock,
   ShieldAlert,
@@ -91,12 +92,16 @@ function StatRow({ project }: { project: PlanIdeProject }): React.JSX.Element {
         // Confirmed first: what you have actually seen work is the number that
         // matters. "Claimed" is what agents reported but nobody checked yet.
         { k: 'Confirmed', v: p.confirmed, cls: 'text-emerald-500', dot: 'bg-emerald-500' },
-        {
-          k: 'Claimed',
-          v: p.unconfirmed,
-          cls: p.unconfirmed ? 'text-amber-500' : 'text-muted-foreground',
-          dot: 'bg-amber-500'
-        },
+        // Auto-complete on (your switch): agent-finished work is finished, not a
+        // pile waiting on you -- so the tile counts who closed it, not "claimed".
+        p.auto_complete
+          ? { k: 'By agents', v: p.by_agents ?? 0, cls: 'text-violet-400', dot: 'bg-violet-400' }
+          : {
+              k: 'Claimed',
+              v: p.unconfirmed,
+              cls: p.unconfirmed ? 'text-amber-500' : 'text-muted-foreground',
+              dot: 'bg-amber-500'
+            },
         {
           k: 'Protected',
           v: p.protected,
@@ -412,12 +417,24 @@ export default function PlanIdePanel(): React.JSX.Element {
             />
             <div
               className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition-all"
-              style={{ width: `${p.confirmed_percent}%` }}
+              style={{ width: `${p.auto_complete ? p.accepted_percent : p.confirmed_percent}%` }}
             />
           </div>
           <div className="mt-1 flex items-center justify-between text-[10px]">
             <span className="text-emerald-500">
-              {p.confirmed} {translate('planide.panel.confirmed', 'confirmed by you')}
+              {p.auto_complete ? (
+                <>
+                  {p.accepted} {translate('planide.panel.finishedAuto', 'finished')}
+                  <span className="text-muted-foreground">
+                    {' '}
+                    · {p.confirmed} {translate('planide.panel.checkedByYou', 'checked by you')}
+                  </span>
+                </>
+              ) : (
+                <>
+                  {p.confirmed} {translate('planide.panel.confirmed', 'confirmed by you')}
+                </>
+              )}
             </span>
             {p.unconfirmed > 0 && (
               <span className="text-amber-500/90">
@@ -564,6 +581,67 @@ export default function PlanIdePanel(): React.JSX.Element {
         </div>
       )}
 
+      {/* Now / next: the board's own work order, the same one agents get from
+          next_task and the resume brief -- finish what is in progress, then the
+          todo list, then what waits in Fixes > Open. Shown so "what is it doing,
+          and what comes after" is one glance, not a read of six columns. */}
+      {project.queue && project.queue.focus && (
+        <div className="mx-3 mb-2 rounded-md border border-border/70 bg-card/40 px-2.5 py-2">
+          <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <ListChecks size={11} />
+            {translate('planide.panel.queueTitle', 'Work order')}
+            <span className="ml-auto font-normal normal-case tracking-normal tabular-nums">
+              {project.queue.counts.in_progress} {translate('planide.panel.queueWip', 'in progress')} ·{' '}
+              {project.queue.counts.todo} {translate('planide.panel.queueTodo', 'todo')} ·{' '}
+              {project.queue.counts.open_fixes} {translate('planide.panel.queueFixes', 'open fixes')}
+            </span>
+          </div>
+          <div className="flex items-start gap-1.5 text-xs">
+            <span
+              className={cn(
+                'mt-1 size-1.5 shrink-0 rounded-full',
+                project.queue.focus.lane === 'in_progress'
+                  ? 'bg-violet-400'
+                  : project.queue.focus.lane === 'todo'
+                    ? 'bg-muted-foreground'
+                    : 'bg-rose-500'
+              )}
+            />
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] text-muted-foreground">
+                {project.queue.focus.lane === 'in_progress'
+                  ? translate('planide.panel.queueNowFinish', 'Now -- finish first')
+                  : project.queue.focus.lane === 'todo'
+                    ? translate('planide.panel.queueNowNext', 'Next up')
+                    : translate('planide.panel.queueNowFix', 'Next -- from Fixes')}
+                {project.queue.focus.stale && (
+                  <span className="text-amber-500/90">
+                    {' '}
+                    · {translate('planide.panel.queueLeftOver', 'left over')} ({project.queue.focus.idle})
+                  </span>
+                )}
+              </div>
+              <div className="truncate font-medium text-foreground">{project.queue.focus.title}</div>
+            </div>
+          </div>
+          {(() => {
+            const after = [
+              ...project.queue.in_progress.slice(1),
+              ...project.queue.todo.filter((t) => t.id !== project.queue?.focus?.id)
+            ].slice(0, 2)
+            return after.length ? (
+              <div className="mt-1 border-t border-border/50 pt-1 text-[10.5px] text-muted-foreground">
+                {after.map((x, n) => (
+                  <div key={x.id} className="truncate">
+                    {n + 1}. {x.title}
+                  </div>
+                ))}
+              </div>
+            ) : null
+          })()}
+        </div>
+      )}
+
       {/* Board */}
       <div className="border-t border-border px-3 py-2">
         {STATUS_ORDER.map((status) => {
@@ -597,11 +675,18 @@ export default function PlanIdePanel(): React.JSX.Element {
                       >
                         {item.title}
                       </span>
+                      {/* Green is yours. An agent's confirmation used to wear the
+                          same green shield and say "Confirmed by you" -- it now
+                          names the agent, in the agents' colour. */}
                       {item.verified && (
                         <ShieldCheck
                           size={11}
-                          className="shrink-0 text-emerald-500"
-                          aria-label={translate('planide.panel.confirmedBadge', 'Confirmed by you')}
+                          className={cn('shrink-0', item.verified_by ? 'text-violet-400' : 'text-emerald-500')}
+                          aria-label={
+                            item.verified_by
+                              ? `${translate('planide.panel.closedBy', 'Closed by')} ${item.verified_by}`
+                              : translate('planide.panel.confirmedBadge', 'Confirmed by you')
+                          }
                         />
                       )}
                       {item.locked && (
@@ -620,9 +705,22 @@ export default function PlanIdePanel(): React.JSX.Element {
                     {item.notes && (
                       <div className="truncate text-[10px] text-muted-foreground">{item.notes}</div>
                     )}
+                    {/* Amber means "waiting on your check". With auto-complete on,
+                        finished agent work is not waiting on you, so it is named
+                        quietly instead; everything else keeps the amber. */}
                     {item.claimed_by && !item.verified && (
-                      <div className="text-[10px] text-amber-500/80">
-                        {translate('planide.panel.reportedBy', 'reported by')} {item.claimed_by}
+                      <div
+                        className={cn(
+                          'text-[10px]',
+                          p.auto_complete && (item.status === 'works' || item.status === 'done')
+                            ? 'text-muted-foreground'
+                            : 'text-amber-500/80'
+                        )}
+                      >
+                        {p.auto_complete && (item.status === 'works' || item.status === 'done')
+                          ? translate('planide.panel.doneBy', 'done by')
+                          : translate('planide.panel.reportedBy', 'reported by')}{' '}
+                        {item.claimed_by}
                       </div>
                     )}
                   </div>

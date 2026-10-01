@@ -99,6 +99,8 @@ export const planIdeApi = {
   gitSync: <T>(path: string, opts: unknown) => call<T>('planide:git-sync', path, opts),
   gitAutoPush: <T>(path: string, enabled: boolean) =>
     call<T>('planide:git-auto-push', path, enabled),
+  setAutoComplete: <T>(path: string, enabled: boolean) =>
+    call<T>('planide:set-auto-complete', path, enabled),
 
   // backups
   backupCreate: <T>(path: string, label: string) => call<T>('planide:backup-create', path, label),

@@ -85,6 +85,8 @@ export type PlanIdeApi = {
   gitLfs: <T>(path: string, patterns: string[]) => Call<T>
   gitSync: <T>(path: string, opts: unknown) => Call<T>
   gitAutoPush: <T>(path: string, enabled: boolean) => Call<T>
+  /** The user's auto-complete switch: agent work that works lands as done. */
+  setAutoComplete: <T>(path: string, enabled: boolean) => Call<T>
 
   // backups
   backupCreate: <T>(path: string, label: string) => Call<T>
