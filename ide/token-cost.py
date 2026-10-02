@@ -34,7 +34,7 @@ CHARS_PER_TOKEN = 3.6
 # the MCP schemas and hook note were added to the count and the roster,
 # schemas, note and project block were cut (0.97.0): the old total left those
 # out, so the real number was ~20.6k against a ceiling that read 15.7k.
-CEILING_TOKENS = 16500
+CEILING_TOKENS = 16000  # 0.98.0: route_task carries the toolbox, the block lists less
 
 
 def tokens(n_chars: int) -> int:

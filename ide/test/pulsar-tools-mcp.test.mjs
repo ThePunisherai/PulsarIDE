@@ -382,5 +382,50 @@ ok('an unrelated problem is not told anything was solved', k(86).alreadySolved =
 ok('record_solution refuses a solution it cannot act on',
    Boolean(byId(await drive([call(87, 'record_solution', { problem: 'x', cwd: solvedDir })]), 87).result.isError))
 
+// --- route_task is the toolbox, on demand ---------------------------------- //
+// "Council moet ze aansturen wanneer nodig, en zolang dat niet gebeurt moet het
+// geen tokens kosten." 43 of the 80 skills were named in no instruction at all,
+// so nothing ever reached for them; listing them all up front would cost tokens
+// on every turn. route_task finds them when there is a task, and costs nothing
+// until then. These cases were each checked against the real bundle.
+const emptyHome = mkdtempSync(join(tmpdir(), 'pulsar-route-home-'))
+const box = await drive([
+  call(200, 'route_task', { query: 'debug why our postgres queries are slow and write tests for the fix', top: 2 }),
+  call(201, 'route_task', { query: 'set up spec driven development for a new feature' }),
+  call(202, 'route_task', { query: 'write a better prompt for codex' }),
+  call(203, 'route_task', { query: 'audit this repo for security issues' }),
+  call(204, 'route_task', { query: 'build a landing page for our saas' }),
+  call(205, 'route_task', { query: 'reverse engineer this packed exe' }),
+  call(206, 'route_task', { query: 'clone and rebuild this website' })
+], { HOME: emptyHome, USERPROFILE: emptyHome })
+const r200 = json(byId(box, 200))
+ok('route_task names the team agent to dispatch, not just the team',
+  r200.matches[0]?.agent === 'pulse-debug')
+ok('and the absolute file its named specialists are in -- a real file',
+  typeof r200.matches[0]?.specialists_file === 'string' && existsSync(r200.matches[0].specialists_file))
+const skillNames = (r) => (r.skills ?? []).map((s) => s.name)
+ok('it finds a skill no instruction names: systematic-debugging for a bug',
+  skillNames(r200).includes('systematic-debugging') &&
+  r200.skills.find((s) => s.name === 'systematic-debugging').confidence === 'strong')
+ok('spec-kit for spec-driven work, prompt-master for a prompt, security-audit for an audit',
+  skillNames(json(byId(box, 201)))[0] === 'spec-kit' &&
+  skillNames(json(byId(box, 202)))[0] === 'prompt-master' &&
+  skillNames(json(byId(box, 203)))[0] === 'security-audit')
+const toolNames = (r) => (r.tools ?? []).map((t) => t.tool)
+ok('and the on-demand tools: design_find for a landing page, re_triage for a packed exe',
+  toolNames(json(byId(box, 204))).includes('design_find') &&
+  toolNames(json(byId(box, 205))).includes('re_triage'))
+ok('the website-cloner template is still reachable after leaving the always-on block',
+  toolNames(json(byId(box, 206))).includes('ai-website-cloner template'))
+ok('a weak skill match says so, so the caller can judge it',
+  (json(byId(box, 200)).skills ?? []).every((s) => s.confidence === 'strong' || s.confidence === 'weak'))
+// Costs nothing until called is the contract: the schema is all an agent carries.
+{
+  const listed = byId(await drive([{ jsonrpc: '2.0', id: 2, method: 'tools/list' }]), 2).result.tools
+  const rt = listed.find((t) => t.name === 'route_task')
+  ok('route_task\'s always-on schema stays small (the index lives behind the call)',
+    JSON.stringify(rt).length < 700)
+}
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

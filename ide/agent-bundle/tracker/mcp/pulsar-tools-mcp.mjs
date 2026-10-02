@@ -243,16 +243,130 @@ function routeTask(query, top) {
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.max(1, top))
       .map(({ name, role }) => ({ name, role }))
-    scored.push({ team: t.name, slug: t.slug, score: Number(score.toFixed(2)), matched: hits, agents })
+    scored.push({
+      team: t.name,
+      slug: t.slug,
+      // What to do with the match, without having to know where anything lives:
+      // the subagent to dispatch, and the file its named specialists are in.
+      agent: `pulse-${t.slug}`,
+      specialists_file: join(BUNDLE_ROOT, 'specialists', `${t.slug}.md`),
+      score: Number(score.toFixed(2)),
+      matched: hits,
+      agents
+    })
   }
   scored.sort((a, b) => b.score - a.score)
+  // The rest of the toolbox, found the same way and only now: skills, ECC and
+  // the on-demand tools. None of it is in any agent's context until this call
+  // names it -- which is the whole point. Listing all of it up front cost tokens
+  // on every turn and still left 43 of 80 skills unnamed; asking costs nothing
+  // until the moment there is a task to ask about.
+  const skills = skillSearch(query, 4)
+  const tools = toolHints(words)
+  const ecc = eccSearch(query, 2)
+  const eccStrong = ecc.available ? ecc.matches.filter((m) => m.confidence === 'strong') : []
   return {
     matches: scored.slice(0, 3),
+    ...(skills.length ? { skills } : {}),
+    ...(tools.length ? { tools } : {}),
+    ...(eccStrong.length ? { ecc: eccStrong } : {}),
     note:
       scored.length === 0
         ? 'No team matched. Take it to the Council rather than guessing.'
-        : 'Read the named team file under the specialists directory and adopt the specialist inline.'
+        : 'Dispatch `agent` for the team that fits (where you cannot dispatch, read its ' +
+          '`specialists_file` and adopt the specialist inline). Open the listed skills by name and ' +
+          'call the listed tools before hand-rolling what they cover.'
   }
+}
+
+// --------------------------------------------------------------------------- skills, on demand
+
+/**
+ * Every skill on this machine, by name: the bundle's own copy first, then each
+ * agent's skills root (so a user's own skills are found too). Read once per
+ * server -- a session's skill set does not change under it.
+ */
+let SKILLS = null
+function skillIndex() {
+  if (SKILLS) return SKILLS
+  const home = process.env.HOME || process.env.USERPROFILE || ''
+  const roots = [
+    join(BUNDLE_ROOT, 'skills'),
+    join(home, '.claude', 'skills'),
+    join(home, '.codex', 'skills'),
+    join(home, '.qwen', 'skills'),
+    join(home, '.gemini', 'config', 'skills')
+  ]
+  const seen = new Map()
+  for (const root of roots) {
+    let dirs = []
+    try {
+      dirs = readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory())
+    } catch {
+      continue
+    }
+    for (const d of dirs) {
+      if (seen.has(d.name)) continue
+      const file = join(root, d.name, 'SKILL.md')
+      if (!existsSync(file)) continue
+      seen.set(d.name, { name: d.name, description: summarise(file) })
+    }
+  }
+  SKILLS = [...seen.values()]
+  return SKILLS
+}
+
+/** "tests" and "test" are one word here; a plain plural is all this folds. */
+const stem = (w) => (w.length > 4 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w)
+const stems = (text) => tokenize(text).map(stem)
+
+/** Name words count three times what description words do, as in ecc_find. */
+function skillSearch(query, limit) {
+  const words = [...new Set(stems(query))]
+  if (!words.length) return []
+  const scored = []
+  for (const s of skillIndex()) {
+    const nameWords = new Set(stems(s.name.replace(/[-_]/g, ' ')))
+    const descWords = new Set(stems(s.description))
+    let nameHits = 0
+    let descHits = 0
+    for (const w of words) {
+      if (nameWords.has(w)) nameHits += 1
+      else if (descWords.has(w)) descHits += 1
+    }
+    const score = 3 * nameHits + descHits
+    if (score >= 2) scored.push({ ...s, score, nameHits })
+  }
+  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+  return scored.slice(0, limit).map((s) => ({
+    name: s.name,
+    description: s.description.length > 160 ? `${s.description.slice(0, 159)}\u2026` : s.description,
+    confidence: s.nameHits >= 1 && s.score >= 4 ? 'strong' : 'weak'
+  }))
+}
+
+/**
+ * The on-demand tools of this server, keyed on the words that mean "this is the
+ * moment for it". A hint, not a decision: the caller holds the task.
+ */
+const TOOL_HINTS = [
+  { tool: 'design_find', why: '152 brand design systems -- take a direction before writing CSS',
+    words: ['design', 'ui', 'ux', 'landing', 'palette', 'theme', 'brand', 'dashboard', 'website', 'page', 'style', 'redesign', 'look', 'css', 'tailwind', 'typography'] },
+  { tool: 'ui_find', why: '44 three.js/shader components -- before hand-writing WebGL',
+    words: ['3d', 'three', 'threejs', 'shader', 'webgl', 'hero', 'animated', 'animation', 'background', 'particles', 'canvas'] },
+  { tool: 're_triage', why: 'binary triage through the bundled reverse-engineering toolkit',
+    words: ['binary', 'exe', 'dll', 'elf', 'apk', 'firmware', 'reverse', 'unpack', 'packed', 'decompile', 'disassemble', 'malware'] },
+  { tool: 'check_anti_loop', why: 'before retrying a fix: has this approach already failed here?',
+    words: ['again', 'still', 'retry', 'failing', 'fails', 'broken', 'regression', 'flaky', 'keeps'] },
+  { tool: 'ai-website-cloner template', why: 'rebuild an existing site: clone Mood-Global-Services/How-to-Clone-Website (MIT), point it at the URL -- it extracts tokens and assets first',
+    words: ['clone', 'cloning', 'rebuild', 'replicate', 'recreate', 'copy'] },
+  { tool: 'ecc_find', why: 'operator playbooks: CI, releases, incidents, migrations, repo hygiene',
+    words: ['ci', 'release', 'pipeline', 'incident', 'migration', 'postmortem', 'runbook', 'changelog', 'deploy', 'rollback'] }
+]
+
+function toolHints(words) {
+  const set = new Set(words)
+  return TOOL_HINTS.filter((h) => h.words.some((w) => set.has(w))).map(({ tool, why }) => ({ tool, why }))
 }
 
 // --------------------------------------------------------------------------- anti-loop
@@ -905,7 +1019,7 @@ const TOOLS = [
   {
     name: 'route_task',
     description:
-      'Which Pulse Agent team and which named specialists fit a task. Call this before starting non-trivial work so you adopt the right specialist instead of answering as a generic assistant.',
+      'The toolbox, on demand: which team agent to dispatch, its specialists, and the skills and tools that fit a task. Call it before non-trivial work; nothing is loaded until it names it.',
     inputSchema: {
       type: 'object',
       properties: {

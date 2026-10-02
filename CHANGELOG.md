@@ -6,6 +6,40 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.98.0] - 2026-10-02
+
+### What's new
+- **Council finds the toolbox when it needs it — and it costs nothing until then.**
+  `route_task` is now the one place to ask: for a task it names the team agent to
+  dispatch (`pulse-<team>`), that team's specialists file, the skills that fit, the
+  on-demand tools (`design_find`, `ui_find`, `re_triage`, the website-cloner template,
+  …) and strong ECC playbooks. 43 of the 80 bundled skills were named in no instruction
+  at all, so nothing reached for them — `systematic-debugging`, `spec-kit`,
+  `prompt-master`, `security-audit` among them. They are found now, by asking, instead
+  of being listed in every turn's context. The always-on block got ~380 tokens
+  *smaller* doing it (~15,300 per Claude Code session now).
+
+### What's fixed
+- **Team leads could not hand work to each other.** 82 of the 100 were told to "hand
+  off to" another team — but a Claude Code subagent cannot start another one, so the
+  handoff went nowhere and the lead did the other team's work itself or stopped. A lead
+  now finishes its part and returns `Handoff: pulse-<team> — <what they need>`, and
+  Council, which can dispatch, starts the next team (in parallel when independent).
+- **Team leads did not know where their own specialists were.** Each one now carries
+  the absolute path to its specialists file, and `route_task` returns it too.
+- **Team leads returned prose.** Every lead now reports what it changed, what it
+  verified (the command and its result) and what is left; a part with no verified line
+  is not done.
+- All 100 leads pointed at a "Knowledge graph memory" note in CLAUDE.md that did not
+  exist. They now say what is true: in Claude Code the SessionStart hook does it.
+
+### Worth knowing
+- **jev-review** (devagrawal09/jev-review) was evaluated and not bundled: it needs a
+  paid TypeSafe API key, sends the code to that service, requires Node 24, and calls
+  itself an experiment. The review work it does is covered by the Code Review lead and
+  the `pr-reviewer`, `differential-review` and `code-review-checklist` skills, which
+  `route_task` now surfaces.
+
 ## [0.97.0] - 2026-10-02
 
 This is the first build since 0.94.0: it also carries 0.95.0 (the board's work

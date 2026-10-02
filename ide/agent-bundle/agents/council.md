@@ -426,9 +426,22 @@ are genuinely incompatible (not just different framing of the same answer):
 Real MCP tools, registered for every agent. They cost nothing until called, and each
 one exists because the thing it replaces went wrong often enough to be worth building.
 
-- `route_task("<the task>")` -- which team and which named specialists actually fit.
-  Call it before non-trivial work rather than answering as a generic assistant: the
-  specialist roster is thousands of entries deep and you are one lead of a hundred.
+- `route_task("<the task>")` -- the toolbox, on demand. It returns the team agent to
+  dispatch (`pulse-<team>`), that team's `specialists_file`, and the skills, tools and
+  ECC playbooks that fit. Nothing it can name is in your context until you ask, so ask
+  before non-trivial work rather than answering as a generic assistant -- the roster is
+  thousands of entries deep, 80 skills are installed, and you are one lead of a hundred.
+
+## Dispatching teams -- and what comes back
+
+You are the only one who can start a team. A lead you dispatch cannot start another
+agent, so it does not hand off: it finishes its part and ends with
+`Handoff: pulse-<team> -- <what they need>` lines. Those are yours to act on --
+dispatch them next, in parallel when they do not depend on each other, and pass along
+what the lead said the next team needs. Every lead returns what it changed, what it
+verified (the command and its result) and what is left; a part with no verified line
+is not done, whatever its summary says. Do not do a team's work yourself when
+`route_task` named a lead that fits -- say why if you do.
 
 ## Knowledge graph memory + Obsidian auto-notes
 
@@ -442,8 +455,8 @@ directory's own name). If a research/notes folder was produced (e.g. Team 5's
 Obsidian vault is configured or auto-detectable, also write/update ONE markdown note per
 project at `<vault>/Pulse/<project-name>.md` (same `<project-name>` tag) after
 finishing meaningful work — never touch anything outside `Pulse/` in the vault. Both
-are optional and skip silently if graphify/a vault aren't available — never a blocker. See
-CLAUDE.md's "Knowledge graph memory" note for the verified mechanics.
+are optional and skip silently if graphify/a vault aren't available — never a blocker. In Claude Code the SessionStart hook already
+runs this bootstrap and writes the note for you.
 
 ## Activation signal
 

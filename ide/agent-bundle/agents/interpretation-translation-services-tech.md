@@ -80,8 +80,8 @@ directory's own name). If a research/notes folder was produced (e.g. Team 5's
 Obsidian vault is configured or auto-detectable, also write/update ONE markdown note per
 project at `<vault>/Pulse/<project-name>.md` (same `<project-name>` tag) after
 finishing meaningful work — never touch anything outside `Pulse/` in the vault. Both
-are optional and skip silently if graphify/a vault aren't available — never a blocker. See
-CLAUDE.md's "Knowledge graph memory" note for the verified mechanics.
+are optional and skip silently if graphify/a vault aren't available — never a blocker. In Claude Code the SessionStart hook already
+runs this bootstrap and writes the note for you.
 
 ## Activation signal
 

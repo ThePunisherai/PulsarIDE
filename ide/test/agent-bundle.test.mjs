@@ -841,6 +841,41 @@ ok('Repair still refuses to rewrite it -- the comments survive',
   readFileSync(cursorCfg, 'utf8').includes('// Cursor lets you write comments here'))
 writeFileSync(cursorCfg, cursorSaved)
 
+// --- team leads: how they work once Council dispatches them ---------------- //
+// "De agents in teams werken niet goed." Measured across the 100 leads: 82 were
+// told to hand off to another team (a Claude Code subagent cannot start one, so
+// that went nowhere), none knew where their own specialists were, none had a
+// return format, and all 100 pointed at a CLAUDE.md note that did not exist.
+{
+  const dir = join(HOME, '.claude/agents')
+  const leads = readdirSync(dir).filter((f) => f.startsWith('pulse-') && f.endsWith('.md'))
+  const contract = (f) => readFileSync(join(dir, f), 'utf8')
+  const withContract = leads.filter((f) => contract(f).includes('## Working as a Pulse team lead'))
+  ok(`every team lead but Council carries the team-lead contract (${withContract.length}/${leads.length - 1})`,
+    withContract.length === leads.length - 1 && !withContract.includes('pulse-council.md'))
+  const pathOk = withContract.every((f) => {
+    const m = /are in `([^`]+)`/.exec(contract(f))
+    return m && existsSync(m[1]) && m[1].endsWith(f.replace(/^pulse-/, ''))
+  })
+  ok('and each one names its OWN specialists file, which really exists', pathOk)
+  ok('a lead hands off by returning a Handoff line, because it cannot start another agent',
+    withContract.every((f) => contract(f).includes('Handoff: pulse-<team>') && contract(f).includes('cannot start other agents')))
+  ok('and returns what changed, what was verified and what is left',
+    withContract.every((f) => contract(f).includes('what you verified')))
+  ok('no lead points at a CLAUDE.md note that does not exist any more',
+    leads.every((f) => !contract(f).includes('"Knowledge graph memory" note')))
+  // Codex gets the same body as developer_instructions.
+  ok('Codex team leads carry the same contract',
+    readFileSync(join(HOME, '.codex/agents/pulse-backend-api.toml'), 'utf8').includes('## Working as a Pulse team lead'))
+  // The other end of the handoff: the one who CAN dispatch is told to.
+  const council = contract('pulse-council.md')
+  const main = readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8')
+  ok('Council dispatches Handoff lines and does not do a named team\'s work itself',
+    council.includes('## Dispatching teams') && council.includes('Handoff: pulse-<team>'))
+  ok('the main session routes through route_task and dispatches handoffs too',
+    /Route, on demand\.\*\* Call `route_task/.test(main) && main.includes('Handoff: pulse-<team>'))
+}
+
 // --- the agent-description budget: one roster, never two ------------------- //
 // PulsarIDE's bundle IS ThePunisher-Agent's roster. Someone running that
 // project's own installer too has the same 100 team leads here already, under a

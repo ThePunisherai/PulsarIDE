@@ -125,6 +125,40 @@ never need to be asked, and the board is created on first use, so it always work
   green-wash the board.
 `
 
+/**
+ * How a team lead works when Council dispatches it -- appended to every lead's
+ * body (never the description, so it costs nothing until the lead runs).
+ *
+ * Three things the leads were missing, measured across all 100:
+ *  - 82 were told to "hand off to" another team. A Claude Code subagent cannot
+ *    start another subagent, so that handoff went nowhere: the lead either did
+ *    the other team's work itself or stopped. A handoff is now a line it RETURNS,
+ *    and Council -- which can dispatch -- starts the next team.
+ *  - 0 knew where their own named specialists were. route_task said "the
+ *    specialists directory" with no path, and a subagent does not necessarily
+ *    see the main session's instructions where the path was.
+ *  - 0 had a return format, so Council got prose back and had to guess what was
+ *    done, what was checked and what was left.
+ */
+function teamContract(home: string, file: string): string {
+  return [
+    '',
+    '## Working as a Pulse team lead',
+    '',
+    'Council dispatched you for one part of a task. How that works:',
+    '',
+    '- **Your named specialists** are in `' + join(configDir(home), 'specialists', file) + '`.',
+    '  Read it when the task needs a specific one (`route_task` names the best fits), take',
+    '  that role and put its name in your banner.',
+    '- **You cannot start other agents.** Where this file says to hand off to another team,',
+    '  finish your own part, then end with one line per handoff:',
+    '  `Handoff: pulse-<team> -- <what they need from you>`. Council dispatches it.',
+    '- **Return, in this order:** what you changed, what you verified (the exact command',
+    '  and its result), what is left. A claim without its check is not done.',
+    ''
+  ].join('\n')
+}
+
 /** Where the bundle lives: the dev checkout, or the packaged app's resources. */
 export function bundleRoot(opts: { resourcesPath?: string; appPath?: string } = {}): string | null {
   const candidates = [
@@ -614,7 +648,9 @@ export function deployAgentBundle(
       const md = readFileSync(join(agentDir, file), 'utf8')
       // Append the tracker instruction to the body (never the frontmatter
       // description) so the subagent updates the board with zero token-budget cost.
-      const mdOut = `${md.trimEnd()}\n${TRACKER_INSTRUCTION}`
+      // Council is the dispatcher, not a dispatched lead, so it gets no contract.
+      const contract = file === 'council.md' ? '' : teamContract(home, file)
+      const mdOut = `${md.trimEnd()}\n${contract}${TRACKER_INSTRUCTION}`
       const base = `pulse-${file}` // pulse- prefix marks ours and avoids clobbering
       const claudePath = join(claudeAgents, base)
       const geminiPath = join(geminiAgents, base)
@@ -1940,9 +1976,11 @@ function mainSessionBlock(home: string): string {
     '   asked — one item per real piece of work, not one giant item. This is step 2 of every',
     '   task, not an afterthought: the user watches the Tracker tab to see that you understood',
     '   the request, so an empty board while you are working reads as nothing happening.',
-    '3. **Route.** Name the Pulse Agent team + the specific specialist(s) that fit, then adopt',
-    '   that persona. There are 100 team leads (installed) routing to 5,050 named specialists —',
-    '   read a specialist\'s file on demand and adopt it inline. Never repeat a failed approach.',
+    '3. **Route, on demand.** Call `route_task("<the task>")`: it names the team agent to',
+    '   dispatch (`pulse-<team>`), that team\'s specialists file, and the skills and tools that',
+    '   fit -- none of it is in your context until it names it. Dispatch the agent, or adopt the',
+    '   specialist inline where you cannot dispatch. A lead ends with `Handoff: pulse-<team>`',
+    '   lines: dispatch those next. Never repeat a failed approach.',
     '4. **Work the board as the work happens, and validate before you claim.**',
     '   `set_item` to `wip` when you start it, `works` once it genuinely works, `done` when it',
     '   is finished and closed out (finished work must not sit in `works` — they are different',
@@ -1950,26 +1988,9 @@ function mainSessionBlock(home: string): string {
     '   the user says it is solved; `add_milestone` for the phases of a bigger plan;',
     '   `add_version` when you ship. Verify before you claim — do not green-wash.',
     '',
-    '**Check what is already installed before you hand-roll anything.** Everything below is',
-    'on this machine right now -- not something to go and fetch. Match the work to the row',
-    'and open it; writing it from scratch instead is the most common way this setup gets',
-    'wasted, and "it never used any of it" is the report that follows:',
-    '',
-    '  3D / shader / animated visual   call ui_find("...") -- never hand-write WebGL',
-    '                                  before you have looked',
-    '  build or audit a UI             skills: ui-design, ui-verification, ui-animation',
-    '  rebuild an existing site        the ai-website-cloner template (MIT): clone',
-    '                                  Mood-Global-Services/How-to-Clone-Website, point it at',
-    '                                  the URL, it extracts tokens and assets first',
-    '  what to build, not how          skill: product-design',
-    '  a diagram of the system         Archify (below) -- validate, then render',
-    '  review a diff / tidy your own   skills: pr-reviewer, tidy',
-    '  accessibility / DX / type / SEO skills: ax-audit, dx-audit, typography-audit, seo',
-    '  a role no team lead covers      agency-agents (274 roles, below)',
-    '  a named specialist              specialists/<team-slug>.md, adopted inline',
-    '',
-    'If a row fits and you did not open the thing it names, say why in one line. Silently',
-    'hand-rolling what is already installed is the failure this table exists to stop.',
+    'Before you hand-roll anything, ask `route_task` what is installed for it -- skills, design',
+    'systems, 3D components, ECC playbooks, the RE toolkit. If it names something and you do',
+    'not use it, say why in one line.',
     '',
     'Specialists: each of the 100 teams lists its named specialists (core roster + growth',
     'pool, 5,372 in total) in `' + join(configDir(home), 'specialists') + '/<team-slug>.md`.',
@@ -2104,12 +2125,8 @@ function mainSessionBlock(home: string): string {
     '`ui-verification` measures it in a real browser. Use `pr-reviewer` on a diff someone',
     'else wrote and `tidy` on your own before you hand it over.',
     '',
-    'Why they are named here at all: Claude Code keeps every skill NAME in its listing but',
-    'shortens DESCRIPTIONS to fit a budget of about 1% of the context window, dropping the',
-    'least-used ones first. With 77 skills installed that truncation is real, so a skill can',
-    'be present and still not match a request on description alone. This list is loaded with',
-    'your instructions and is not subject to that budget -- so when the work matches one of',
-    'the lines above, open the skill by name instead of waiting to be matched into it.',
+    'More skills are installed than any list here names: `route_task` finds the one that fits',
+    'a task, by name and description, when there is a task to ask about.',
     '',
     '**In Antigravity this is not an optimisation, it is the only mechanism.** Antigravity',
     'activates a skill by matching its description, and never announces which one it picked,',
