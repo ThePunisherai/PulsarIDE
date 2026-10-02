@@ -349,7 +349,7 @@ function queueSummary(q) {
 // --------------------------------------------------------------------------- tools
 
 const P = (extra = {}) => ({
-  project: { type: 'string', description: "Absolute path of the project directory (the workspace you are working in)." },
+  project: { type: 'string', description: 'Absolute project path.' },
   ...extra
 })
 
@@ -389,10 +389,10 @@ const TOOLS = [
   {
     name: 'get_board',
     description:
-      'Read the project board before you start: items with their status, open fixes, and progress, plus `next` -- where to resume in the fixed work order. Always call this first so you build on the real state instead of guessing.',
+      'The whole board: items, fixes, roadmap, progress, and `next` (where to resume). Call first.',
     inputSchema: {
       type: 'object',
-      properties: P({ agent: { type: 'string', description: 'Your name, so `next` skips work another agent is on.' } }),
+      properties: P({ agent: { type: 'string', description: 'Your name.' } }),
       required: ['project']
     },
     run: (args) => {
@@ -423,13 +423,13 @@ const TOOLS = [
   {
     name: 'next_task',
     description:
-      "What to work on now, in the board's fixed order: finish in-progress work first (including what an earlier session left half done), then todo, then open fixes, then broken items. Call it when you start or resume, and again each time you finish a piece. claim=true starts the next todo for you (moves it to wip under your name) or takes over a left-over in-progress item. Much smaller than get_board -- use it to decide what is next.",
+      "What to do now, in order: finish wip (also left-over), then todo, then open fixes. Call on start, on resume, and after each finished piece. claim=true starts the next todo as yours.",
     inputSchema: {
       type: 'object',
       properties: P({
-        agent: { type: 'string', description: 'Your name. In-progress work another agent touched recently is left to them.' },
-        claim: { type: 'boolean', description: 'Take the focus item: todo -> wip under your name, or take over a left-over wip.' },
-        limit: { type: 'integer', description: 'Entries per lane (default 5). Counts are always complete.' }
+        agent: { type: 'string', description: 'Your name; work another agent is on is skipped.' },
+        claim: { type: 'boolean' },
+        limit: { type: 'integer', description: 'Per lane, default 5.' }
       }),
       required: ['project']
     },
@@ -494,27 +494,26 @@ const TOOLS = [
   {
     name: 'sync_plan',
     description:
-      "Mirror your whole current plan onto the board in one call: pass every step with its state. Matched on the step's text, so re-sending a revised plan moves the steps you moved and adds the new ones instead of duplicating anything. Call this every time your plan changes -- it is what keeps the Tracker showing what you are actually doing.",
+      "Mirror your whole current plan onto the board: every step with its state. Matched on text, so re-sending moves steps instead of duplicating. Call whenever the plan changes.",
     inputSchema: {
       type: 'object',
       properties: P({
         todos: {
           type: 'array',
-          description: 'Every step in your current plan, in order.',
+          description: 'Every step, in order.',
           items: {
             type: 'object',
             properties: {
               content: { type: 'string', description: 'The step, as one line.' },
               status: {
                 type: 'string',
-                description:
-                  "The step's state: pending / in_progress / completed, or the board's own todo / wip / works / done / broken / blocked."
+                description: 'pending/in_progress/completed, or todo/wip/works/done/broken/blocked.'
               }
             },
             required: ['content']
           }
         },
-        agent: { type: 'string', description: 'Your name, recorded as who claimed these.' }
+        agent: { type: 'string' }
       }),
       required: ['project', 'todos']
     },
@@ -616,16 +615,16 @@ const TOOLS = [
   {
     name: 'add_item',
     description:
-      "Put a piece of work on the board. Use status 'todo' the moment the user asks for something or you plan a step you have not started, 'wip' when you begin it, 'works' once it genuinely works, and 'done' when it is finished and closed out. Break a big request into several todo items.",
+      "Put work on the board: 'todo' when asked or planned, 'wip' when started. One item per real piece of work; the same open title returns the existing item.",
     inputSchema: {
       type: 'object',
       properties: P({
-        title: { type: 'string', description: 'Short description of the work.' },
-        status: { type: 'string', enum: ITEM_STATUSES, description: "Defaults to 'todo'." },
+        title: { type: 'string' },
+        status: { type: 'string', enum: ITEM_STATUSES },
         notes: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
         priority: { type: 'string' },
-        agent: { type: 'string', description: 'Your name, recorded as who claimed this.' }
+        agent: { type: 'string' }
       }),
       required: ['project', 'title']
     },
@@ -667,16 +666,15 @@ const TOOLS = [
   {
     name: 'set_item',
     description:
-      "Move an item as the work really changes: 'wip' when you start, 'works'/'done' when it genuinely works, 'broken' when it fails. With the user's auto-complete on (the default) anything you report working lands as 'done' -- finished, no one ticks it off by hand -- so only report it once it really works and you ran the project's own checks. It is recorded under your name, never as the user's own confirmation. Cannot protect an item, and cannot change the user's settings.",
+      "Move an item: 'wip' when you start, 'works' when it genuinely works (lands as 'done' with the user's auto-complete on, so run the project's checks first), 'broken' when it fails. Recorded under your name, never as the user's confirmation.",
     inputSchema: {
       type: 'object',
       properties: P({
         item_id: {
           type: 'string',
-          description:
-            "The item's id, exactly as add_item returned it and get_board shows it (starts with i_). The bare `id` field is accepted as an alias, so the value you got back from add_item/get_board works as-is."
+          description: 'i_... from add_item/get_board; `id` also works.'
         },
-        id: { type: 'string', description: 'Alias for item_id (the id from get_board / add_item).' },
+        id: { type: 'string' },
         status: { type: 'string', enum: ITEM_STATUSES },
         title: { type: 'string' },
         notes: { type: 'string' },
@@ -743,12 +741,12 @@ const TOOLS = [
   {
     name: 'add_fix',
     description:
-      'Log a bug the moment you hit or find one: what is wrong and where. It lands in Fixes > Open and waits its turn -- log it and carry on with what you were doing; do not switch to it mid-task. The same bug logged twice returns the open entry instead of a duplicate.',
+      'Log a bug you hit: what and where. It lands in Fixes > Open and waits its turn -- carry on with your current item. The same open bug returns the existing entry.',
     inputSchema: {
       type: 'object',
       properties: P({
         title: { type: 'string' },
-        problem: { type: 'string', description: 'What is wrong, and where.' },
+        problem: { type: 'string' },
         solution: { type: 'string' },
         item_id: { type: 'string' },
         agent: { type: 'string' }
@@ -791,17 +789,16 @@ const TOOLS = [
   },
   {
     name: 'mark_fixed',
-    description: 'Close a fix once the user says it is solved (or you verified it).',
+    description: 'Close a fix you verified (or the user says is solved), with the real solution.',
     inputSchema: {
       type: 'object',
       properties: P({
         fix_id: {
           type: 'string',
-          description:
-            "The fix's id, exactly as add_fix returned it and get_board shows it (starts with f_). The bare `id` field is accepted as an alias."
+          description: 'f_... from add_fix/get_board; `id` also works.'
         },
-        id: { type: 'string', description: 'Alias for fix_id (the id from get_board / add_fix).' },
-        solution: { type: 'string', description: 'What actually fixed it.' },
+        id: { type: 'string' },
+        solution: { type: 'string', description: 'Cause and change.' },
         agent: { type: 'string' }
       }),
       required: ['project']
@@ -833,25 +830,17 @@ const TOOLS = [
   {
     name: 'reopen_fix',
     description:
-      'Reopen a fix that was closed but came back, or park one as wontfix. A closed fix is a claim that a problem is gone; when you find it is not, say so here instead of logging a second, duplicate fix for the same symptom.',
+      'A closed fix came back (status open), or park one (wontfix). Use instead of logging a duplicate.',
     inputSchema: {
       type: 'object',
       properties: P({
         fix_id: {
           type: 'string',
-          description:
-            "The fix's id, exactly as add_fix returned it and get_board shows it (starts with f_). The bare `id` field is accepted as an alias."
+          description: 'f_... from add_fix/get_board; `id` also works.'
         },
-        id: { type: 'string', description: 'Alias for fix_id (the id from get_board / add_fix).' },
-        status: {
-          type: 'string',
-          enum: ['open', 'wontfix'],
-          description: "'open' if it came back, 'wontfix' if it is real but deliberately not being fixed."
-        },
-        note: {
-          type: 'string',
-          description: 'Why it is back, or why it is being parked. Appended to the problem.'
-        },
+        id: { type: 'string' },
+        status: { type: 'string', enum: ['open', 'wontfix'] },
+        note: { type: 'string', description: 'Why; appended to the problem.' },
         agent: { type: 'string' }
       }),
       required: ['project']
@@ -884,12 +873,12 @@ const TOOLS = [
   {
     name: 'add_milestone',
     description:
-      'Add a roadmap milestone: a goal several items build toward, optionally with a target (a date, a version, or a phase). Use this when the user describes a plan in phases, or when you break a large request into stages -- the roadmap is what shows where the project is heading, and it stays empty unless you fill it.',
+      'Add a roadmap milestone (a phase of a bigger plan), optionally with a target date/version.',
     inputSchema: {
       type: 'object',
       properties: P({
-        title: { type: 'string', description: 'What this milestone delivers.' },
-        target: { type: 'string', description: 'Optional target: a date, version or phase.' }
+        title: { type: 'string' },
+        target: { type: 'string' }
       }),
       required: ['project', 'title']
     },
@@ -915,16 +904,15 @@ const TOOLS = [
   },
   {
     name: 'set_milestone',
-    description: 'Mark a roadmap milestone done (or rename/retarget it) once its work is finished.',
+    description: 'Mark a milestone done, or rename/retarget it.',
     inputSchema: {
       type: 'object',
       properties: P({
         milestone_id: {
           type: 'string',
-          description:
-            "The milestone's id, exactly as add_milestone returned it and get_board shows it (starts with m_). The bare `id` field is accepted as an alias."
+          description: 'm_... from add_milestone/get_board; `id` also works.'
         },
-        id: { type: 'string', description: 'Alias for milestone_id (the id from get_board / add_milestone).' },
+        id: { type: 'string' },
         done: { type: 'boolean' },
         title: { type: 'string' },
         target: { type: 'string' }
@@ -948,12 +936,12 @@ const TOOLS = [
   {
     name: 'clean_doc',
     description:
-      'Strip invisible AI watermark characters out of a text document you wrote (zero-width characters, bidirectional controls, Unicode tag characters, lookalike spaces). Call this on every markdown/text doc you produce before you call it finished. Reports exactly what it removed; leaves real content -- punctuation, emoji, non-Latin scripts -- untouched.',
+      'Strip invisible watermark characters (zero-width, bidi, tag chars, odd spaces) from a doc you wrote. Run on every markdown/text doc before calling it finished.',
     inputSchema: {
       type: 'object',
       properties: P({
-        path: { type: 'string', description: 'File to clean, relative to the project (or absolute).' },
-        inspect_only: { type: 'boolean', description: 'Report what is there without changing the file.' }
+        path: { type: 'string' },
+        inspect_only: { type: 'boolean' }
       }),
       required: ['project', 'path']
     },

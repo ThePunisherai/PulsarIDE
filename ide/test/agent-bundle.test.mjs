@@ -583,6 +583,27 @@ const agentsMd2 = readFileSync(join(tracked, 'AGENTS.md'), 'utf8')
 ok('a second run replaces our AGENTS.md block instead of appending another',
   agentsMd2.split('<!-- PULSAR:MAIN:BEGIN -->').length === 2 && agentsMd2 === agentsMd)
 
+// One full block per tool, never two. Codex, Qwen and Cursor read their own file
+// AND the project AGENTS.md; Antigravity reads GEMINI.md AND ~/.gemini/AGENTS.md.
+// Both AGENTS.md files carrying the full ~18k-character block was up to ~10k
+// tokens of duplicates on every turn. They carry the compact block now.
+{
+  const ours = (text) => {
+    const m = text.split('<!-- PULSAR:MAIN:BEGIN -->')[1] ?? ''
+    return m.split('<!-- PULSAR:MAIN:END -->')[0]
+  }
+  const full = ours(readFileSync(join(HOME, '.claude/CLAUDE.md'), 'utf8')).length
+  const projectBlock = ours(agentsMd).length
+  const geminiAgents = ours(readFileSync(join(HOME, '.gemini/AGENTS.md'), 'utf8')).length
+  ok(`the project AGENTS.md carries the compact block, not a second full one (${projectBlock} vs ${full} chars)`,
+    projectBlock > 0 && projectBlock < 3000 && full > 10000)
+  ok('so does ~/.gemini/AGENTS.md, which Antigravity reads beside GEMINI.md',
+    geminiAgents > 0 && geminiAgents < 3000 &&
+    ours(readFileSync(join(HOME, '.gemini/GEMINI.md'), 'utf8')).length > 10000)
+  ok('and the compact block still points the work at the board and its order',
+    agentsMd.includes('next_task') && agentsMd.includes('add_fix') && agentsMd.includes('pulse-agent'))
+}
+
 // --- Codex gets every server we own, not just the tracker ------------------ //
 // It only ever got `planide`, so an agent there had the board and none of
 // pulsar-tools: no route_task, no ui_find, no ecc_find, no anti-loop check.
@@ -838,8 +859,12 @@ const descTokens = (dir, prefix) => {
 const oneRoster = descTokens(join(HOME, '.claude/agents'), 'pulse-')
 ok(`one roster fits Claude Code's ~15k description budget (~${Math.round(oneRoster)} tokens)`,
   oneRoster > 0 && oneRoster < 15000)
-ok('two rosters would NOT fit -- which is why the guard below has to exist',
-  oneRoster * 2 > 15000)
+// The roster's descriptions were cut to their scope line in 0.97.0 (the full
+// text moved into each agent's body, read only when it runs). So one roster now
+// takes under half the budget -- which leaves the user's own agents room. A
+// second copy would still double the bill, so the guard below stays.
+ok('one roster uses under half of the description budget, leaving room for the user\'s own agents',
+  oneRoster < 7500)
 
 // Simulate the standalone installer having already deployed the same roster.
 const HOME2 = join(work, 'home-dual'); mkdirSync(HOME2)

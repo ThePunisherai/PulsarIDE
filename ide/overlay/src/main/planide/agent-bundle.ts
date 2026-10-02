@@ -1876,6 +1876,42 @@ function eccInstalled(home: string): boolean {
   return existsSync(eccCatalogueDir(home))
 }
 
+/**
+ * The project AGENTS.md block: the part every agent needs, and nothing more.
+ *
+ * It used to be the whole main-session block (~18k characters), and Codex,
+ * Qwen Code, Cursor and opencode all read BOTH their own user-level file and
+ * the project's AGENTS.md -- so each of them paid for the same ~5k tokens
+ * twice, on every turn of every session. Those agents already have the full
+ * block where it belongs; an agent we never wired by name (Amp, Zed, Aider,
+ * Copilot, ...) has no MCP from us and none of the skills anyway, so the long
+ * tables only ever cost it context. What every one of them does need is here:
+ * who answers, the board, and the order the work goes in.
+ */
+function projectAgentsBlock(home: string): string {
+  return [
+    '## PulsarIDE — orchestrate as The Council, and keep the board live',
+    '',
+    'Start every response with `🔴 Pulse Agent — Council` on its own line (or the team you',
+    'took on). Understand the request in one sentence, ask if it is genuinely unclear, then:',
+    '',
+    '- **Read the board first.** This project has a live board at `.planide/state.json`,',
+    '  shown in the IDE Tracker tab. Use the `planide` MCP tools when you have them',
+    '  (`get_board`, `next_task`), otherwise the CLI: `' + join(configDir(home), 'tracker', 'plan') + ' board <project>`.',
+    '- **Work in its order:** finish what is in progress (`wip`), then `todo`, then open',
+    '  fixes. `next_task` / `plan next <project>` returns exactly that.',
+    '- **Keep it true as you work:** `add_item` (todo) for a request, `set_item` wip when',
+    '  you start, works when it really works -- with the user\'s auto-complete on it lands as',
+    '  `done`, so run the project\'s own checks first. A bug you hit mid-task: `add_fix`',
+    '  (Fixes > Open) and stay on what you were doing.',
+    '- Never write `.planide/state.json` yourself; never set `verified` or `locked`.',
+    '',
+    'Your own user-level PulsarIDE instructions carry the rest (in Antigravity: the',
+    '`pulse-agent` skill): the specialist roster, the design and audit tools, when to use which.',
+    ''
+  ].join('\n')
+}
+
 function mainSessionBlock(home: string): string {
   return [
     '## PulsarIDE — orchestrate as The Council, and keep the board live',
@@ -2573,7 +2609,7 @@ export function repairTrackerRegistration(home: string = homedir()): boolean {
 export function deployProjectAgentsMd(projectPath: string, home: string = homedir()): boolean {
   try {
     if (!existsSync(join(projectPath, '.planide', 'state.json'))) return false
-    return mergeManagedBlock(join(projectPath, 'AGENTS.md'), mainSessionBlock(home))
+    return mergeManagedBlock(join(projectPath, 'AGENTS.md'), projectAgentsBlock(home))
   } catch {
     return false
   }
@@ -2655,10 +2691,13 @@ function registerTrackerForAllAgents(home: string): boolean {
   // session in Antigravity CLI even though the GEMINI.md block is on disk --
   // which is what you would see on a build that reads AGENTS.md globally and
   // not GEMINI.md. Both are merged now, so it does not matter which one a given
-  // Antigravity build prefers. The cost if it reads BOTH is the block twice in
-  // context; the content is identical, so there is nothing for it to conflict
-  // with, and it is delimited, so neither file is ever clobbered.
-  mergeManagedBlock(join(home, '.gemini', 'AGENTS.md'), block)
+  // Antigravity build prefers. A build that reads BOTH used to pay for the full
+  // block twice -- ~5k tokens on every turn, on a Claude model with a 200k
+  // window, before anything was called. So this one carries the compact block
+  // (who answers, the board, the work order): Council still leads a build that
+  // reads only AGENTS.md, and the rest reaches it through the pulse-agent
+  // skill, which carries the full block and is loaded when it matches.
+  mergeManagedBlock(join(home, '.gemini', 'AGENTS.md'), projectAgentsBlock(home))
   // Qwen Code's user-scope context file. Its memory loader joins the global
   // `~/.qwen` dir with each entry of `currentMemoryFilename`, which defaults to
   // ['QWEN.md', 'AGENTS.md'] -- so QWEN.md alone reaches it, and writing both

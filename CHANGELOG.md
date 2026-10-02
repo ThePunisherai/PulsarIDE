@@ -6,6 +6,39 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.97.0] - 2026-10-02
+
+This is the first build since 0.94.0: it also carries 0.95.0 (the board's work
+order, `next_task`, the resume brief) and 0.96.0 (auto-complete, the Work order
+panel, resume for every agent) — see their notes below.
+
+### What's fixed
+- **~5,000 fewer tokens on every turn of every session — before anything is called.**
+  Measured the way an agent receives it, the bundle cost ~20,600 tokens up front in
+  Claude Code; it is ~15,700 now:
+  - the 100 team-lead descriptions are cut to their scope line (~8,300 → ~4,750). The
+    full text moved into each agent's own body, which is only read when that agent
+    runs — and `route_task` never read the descriptions, so routing is unchanged.
+    Council and Debug keep their whole "use proactively" description.
+  - the `planide` tool schemas are a third shorter (~2,800 → ~1,700): same tools,
+    same behaviour, less prose sent on every turn.
+  - the SessionStart note no longer repeats the instructions it points to.
+- **The same instruction block was loaded two or three times.** Codex, Qwen Code and
+  Cursor read it from their own file and again from the project's `AGENTS.md`;
+  Antigravity read it from `GEMINI.md`, from `~/.gemini/AGENTS.md` *and* from the
+  project — up to ~10,000 tokens of duplicates per turn, on a Claude model with a 200k
+  window. Both `AGENTS.md` files now carry only what every agent needs (who answers,
+  the board, the work order); the full block stays once, in each tool's own file
+  (in Antigravity, `GEMINI.md` and the `pulse-agent` skill).
+- **The token meter could not see half the bill.** `ide/token-cost.py` now counts the
+  MCP tool schemas and the SessionStart note too, reports the project block, and the
+  ceiling is lowered so the saving cannot quietly creep back.
+
+### Worth knowing
+- What still costs nothing until it is called: the 5,372 specialists, ECC's 359
+  entries, the 152 design systems, ThreeUI and the agency roles. ECC only costs its
+  ~40,600 tokens if you install it as a Claude Code plugin yourself.
+
 ## [0.96.0] - 2026-10-01
 
 ### What's new

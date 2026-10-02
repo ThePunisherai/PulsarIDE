@@ -398,7 +398,7 @@ fi
 # not a one-off. This is the ratchet that keeps it from creeping back up.
 if command -v python3 >/dev/null 2>&1; then
   if tc=$(python3 "$HERE/token-cost.py" --check 2>&1); then
-    ok "always-on token cost is under its ceiling ($(echo "$tc" | grep -oE '~[0-9,]+ tokens' | tail -2 | head -1 | tr -d '~'))"
+    ok "always-on token cost is under its ceiling ($(echo "$tc" | grep -E '^ *TOTAL' | grep -oE '~ *[0-9,]+ tokens' | sed 's/~ *//'))"
   else
     bad "always-on token cost is over its ceiling -- run ide/token-cost.py to see where"
   fi
