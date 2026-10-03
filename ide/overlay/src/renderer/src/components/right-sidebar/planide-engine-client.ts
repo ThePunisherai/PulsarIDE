@@ -505,6 +505,60 @@ export function eccInstall(): Promise<EccStatus> {
   return call<EccStatus>('eccInstall')
 }
 
+/** One compression or restore pass over the Codex chats. */
+export type ChatsReport = {
+  at: string
+  done: number
+  skipped: number
+  failed: number
+  bytesBefore: number
+  bytesAfter: number
+  partial: boolean
+  errors: string[]
+}
+
+/** Automatic compression of old Codex chats: the switch and what it has done. */
+export type ChatsStatus = {
+  enabled: boolean
+  lastRun: string
+  lastReport: ChatsReport | null
+  totalDone: number
+  totalFreed: number
+  running: boolean
+}
+
+/** What the Codex chats take: as Explorer counts it, and as the disk holds it. */
+export type ChatsMeasure = {
+  logicalBytes: number
+  physicalBytes: number
+  plainChats: number
+  compressedChats: number
+  coldPlainBytes: number
+  homes: number
+}
+
+export function codexChatsStatus(): Promise<ChatsStatus> {
+  return call<ChatsStatus>('codexChatsStatus')
+}
+
+export function codexChatsMeasure(): Promise<ChatsMeasure> {
+  return call<ChatsMeasure>('codexChatsMeasure')
+}
+
+export function codexChatsSetEnabled(enabled: boolean): Promise<ChatsStatus> {
+  return call<ChatsStatus>('codexChatsSetEnabled', enabled)
+}
+
+/** Compress the cold chats now instead of waiting for the daily run. */
+export function codexChatsCompress(): Promise<ChatsReport> {
+  return call<ChatsReport>('codexChatsCompress')
+}
+
+/** Every compressed chat back to plain .jsonl. */
+export function codexChatsRestore(): Promise<ChatsReport> {
+  return call<ChatsReport>('codexChatsRestore')
+}
+
 /** Write the planide MCP entry back into every agent's own config. */
 export function trackerRepair(): Promise<boolean> {
   return call<boolean>('trackerRepair')

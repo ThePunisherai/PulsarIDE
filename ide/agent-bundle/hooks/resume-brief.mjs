@@ -114,8 +114,12 @@ async function main() {
   )
 }
 
+// A closed pipe on the agent's side must not turn into a crash and an exit code.
+process.stdout.on('error', () => {})
 try {
   await main()
-} catch {
-  // Never put a tracker problem in front of the user's first prompt.
+} catch (err) {
+  // Never put a tracker problem in front of the user's first prompt. The launcher sends
+  // stderr to hooks/hook-errors.log, so the cause is kept without being shown.
+  process.stderr.write(`[resume-brief] ${new Date().toISOString()} ${err?.stack || err}\n`)
 }

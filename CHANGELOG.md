@@ -6,6 +6,41 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.3] - 2026-10-03
+
+### What's fixed
+- **"Hook failed — hook exited with code 1" in Codex.** A hook is advisory, but a
+  PulsarIDE hook that crashed handed Codex a non-zero exit, which Codex prints right in
+  your session. Every PulsarIDE hook launcher now always ends with 0 — and does nothing
+  at all if the program it runs has gone — and whatever went wrong is written to
+  `~/.config/pulsaride/hooks/hook-errors.log` instead (kept under 1 MB), where it can be
+  read and fixed. The scripts write the cause there too instead of swallowing it. If
+  "Hook failed" still shows after this update, it is not a PulsarIDE hook: Orca installs
+  its own Codex hooks for the pane status.
+
+### Storage
+- **Old Codex chats are compressed, without losing one.** The space under
+  `AppData\Roaming\pulsaride\codex-accounts` is your Codex chats: every chat is a
+  `rollout-*.jsonl` transcript — the file `codex resume` reads — and long ones reach 2 GB.
+  Explorer adds them up once per account folder because Orca links the same file into
+  every account; the disk holds each one once, which is why the folder said 520 GB while
+  far less was really used.
+  - Chats nobody touched for 30 days are compressed with zstd into `.jsonl.zst` — the
+    format Codex itself reads, and decompresses again the moment you resume that chat.
+    Orca resumes them too. Text-heavy chats shrink to a fraction of their size.
+  - Lossless and checked: every compressed file is decompressed again and compared
+    byte for byte (SHA-256) before the original goes; a chat written to meanwhile is
+    left for later; the chat keeps its own date; nothing is ever overwritten.
+  - All links to one chat — in every account home and in `~/.codex` — are replaced
+    together by links to one compressed file, so the space is really freed. A chat also
+    linked from somewhere else is left alone.
+  - Automatic: the first run ten minutes after launch, then daily, at most half an hour
+    each, biggest chats first. **Toolkit → Codex chats** shows what is on disk (and what
+    Explorer claims), what was freed, and has *Automatic on/off*, *Compress now* and
+    *Restore all* (every chat back to plain `.jsonl`).
+  - Worth knowing: Orca's own chat search and usage statistics do not read `.jsonl.zst`
+    yet, so compressed chats do not show up there; resuming them works.
+
 ## [0.99.2] - 2026-10-03
 
 ### What's fixed

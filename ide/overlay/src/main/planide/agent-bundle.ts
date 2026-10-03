@@ -582,6 +582,7 @@ export function deployAgentBundle(
     // holds up the deploy below and never throws. Tests pass false here too, so
     // they do not touch the real registry or the real profiles.
     if (opts.provisionPyEnv !== false) void removeHeadroom(home)
+    trimHookLog(home)
     const alreadyTracked = existsSync(join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs'))
     let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home) : false
 
@@ -1053,19 +1054,32 @@ function writeNodeLauncher(hookDir: string, base: string, script: string, onWind
   const stable = findStableNode()
   const runner = stable ?? process.execPath
   const asNode = stable ? '' : 'ELECTRON_RUN_AS_NODE=1 '
+  // A hook is advisory: whatever happens inside it, the agent must never see
+  // "Hook failed". Codex shows any non-zero exit right in the user's session
+  // ("hook exited with code 1"), so the launcher always ends with 0 and what
+  // went wrong goes to one log beside the hooks instead -- where it can be read.
+  const log = join(hookDir, 'hook-errors.log')
   if (onWindows) {
     const launcher = join(hookDir, `${base}.cmd`)
     writeFileSync(
       launcher,
       '@echo off\r\n' +
+        `if not exist "${runner}" exit /b 0\r\n` +
         (stable ? '' : 'set ELECTRON_RUN_AS_NODE=1\r\n') +
         'set NODE_NO_WARNINGS=1\r\n' +
-        `"${runner}" "${script}"\r\n`
+        `"${runner}" "${script}" 2>>"${log}"\r\n` +
+        'exit /b 0\r\n'
     )
     return launcher
   }
   const launcher = join(hookDir, `${base}.sh`)
-  writeFileSync(launcher, `#!/usr/bin/env bash\nexec env ${asNode}NODE_NO_WARNINGS=1 "${runner}" "${script}"\n`)
+  writeFileSync(
+    launcher,
+    '#!/usr/bin/env bash\n' +
+      `[ -x "${runner}" ] || exit 0\n` +
+      `env ${asNode}NODE_NO_WARNINGS=1 "${runner}" "${script}" 2>>"${log}"\n` +
+      'exit 0\n'
+  )
   try {
     chmodSync(launcher, 0o755)
   } catch {
@@ -1104,6 +1118,22 @@ function reconcileHookGroup(
 function resumeLauncher(home: string): string | null {
   const path = join(configDir(home), 'hooks', process.platform === 'win32' ? 'resume-brief.cmd' : 'resume-brief.sh')
   return existsSync(path) ? path : null
+}
+
+/**
+ * Keep hooks/hook-errors.log small: the launchers append every hook's stderr to
+ * it, and a hook failing on every tool call would otherwise grow it for good.
+ * Past 1 MB it keeps its newest 256 KB.
+ */
+function trimHookLog(home: string): void {
+  const log = join(configDir(home), 'hooks', 'hook-errors.log')
+  try {
+    if (!existsSync(log) || statSync(log).size <= 1024 * 1024) return
+    const text = readFileSync(log, 'utf8')
+    writeFileSync(log, text.slice(-256 * 1024))
+  } catch {
+    /* a log we cannot trim is not worth failing a launch over */
+  }
 }
 
 /** The docs-guard launcher wireHooks wrote, if it is really on disk. */

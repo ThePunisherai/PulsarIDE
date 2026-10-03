@@ -269,9 +269,13 @@ async function main() {
 // case-insensitively: the launcher's drive letter need not match node's.
 const same = (a, b) => (process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b)
 if (process.argv[1] && same(resolve(process.argv[1]), fileURLToPath(import.meta.url))) {
+  // A closed pipe on the agent's side must not turn into a crash and an exit code.
+  process.stdout.on('error', () => {})
   try {
     await main()
-  } catch {
+  } catch (err) {
     // Never put a tracker problem between the agent and the end of its turn.
+    // The launcher sends stderr to hooks/hook-errors.log, so the cause is kept.
+    process.stderr.write(`[keep-going] ${new Date().toISOString()} ${err?.stack || err}\n`)
   }
 }

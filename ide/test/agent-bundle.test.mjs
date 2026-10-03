@@ -5,7 +5,7 @@
  * because the deploy is plain Node fs. PULSAR_REPO points at the repo root so it
  * can find ide/agent-bundle.
  */
-import { execSync, spawn } from 'node:child_process'
+import { execSync, spawn, spawnSync } from 'node:child_process'
 import { cpSync, mkdtempSync, mkdirSync, rmSync, statSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
@@ -798,7 +798,7 @@ const toolkitSrc = readFileSync(
   join(REPO, 'ide/overlay/src/renderer/src/components/planide/PulseToolkitPage.tsx'),
   'utf8'
 )
-const hookIds = [...toolkitSrc.matchAll(/^\s*'?([a-z-]+)'?:\s*'(TodoWrite|update_plan|write_todos)'/gm)].map(
+const hookIds = [...toolkitSrc.matchAll(/^\s*'?([a-z-]+)'?:\s*'(TodoWrite|update_plan|write_todos|todo_write)'/gm)].map(
   (m) => m[1]
 )
 ok('every agent the Toolkit page badges with a plan hook is a real agent id',
@@ -1180,6 +1180,19 @@ if (process.platform !== 'win32') {
   }
   ok('the deployed autopilot hands a turn that worked the board the next item instead of the stop',
     stop.decision === 'block' && /"Resume me"/.test(stop.reason || ''))
+
+  // "Hook failed -- hook exited with code 1" in Codex: a hook is advisory, so a
+  // crash inside one must reach the log, never the agent's session.
+  const goScript = join(HOME, '.config/pulsaride/hooks/keep-going.mjs')
+  const goSaved = readFileSync(goScript, 'utf8')
+  writeFileSync(goScript, "throw new Error('boom from a broken hook')\n")
+  const crashed = spawnSync(goLauncher, [], { input: '{}', encoding: 'utf8' })
+  writeFileSync(goScript, goSaved)
+  const hookLog = join(HOME, '.config/pulsaride/hooks/hook-errors.log')
+  ok('a hook that crashes still exits 0, so the agent never shows "Hook failed"',
+    crashed.status === 0 && crashed.stdout === '')
+  ok('and what went wrong is in hooks/hook-errors.log instead',
+    existsSync(hookLog) && readFileSync(hookLog, 'utf8').includes('boom from a broken hook'))
 }
 
 // --- the vendored libraries: pre-installed, and still there after an update -- //

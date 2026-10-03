@@ -11,7 +11,7 @@
  */
 
 import { existsSync } from 'node:fs'
-import { BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import * as backup from './backup'
 import { scheduleAutoPush, setAutoPush } from './auto-push'
 import * as git from './git'
@@ -37,6 +37,15 @@ import {
   trackerHealth
 } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
+import {
+  chatsCompressionRunning,
+  codexHomes,
+  measureCodexChats,
+  readChatsState,
+  restoreCodexChats,
+  runChatsCompression,
+  setChatsCompression
+} from './codex-compress'
 import {
   addFix,
   addItem,
@@ -287,6 +296,18 @@ export function registerPlanIdeIpc(): void {
   on('planide:unreal-status', () => unrealStatus())
   // Detected, never installed: rtk's own init writes a global shell hook.
   on('planide:rtk-status', () => rtkStatus())
+  // Old Codex chats, compressed losslessly (codex-compress.ts). Status is cheap;
+  // measuring walks every transcript, so it is its own call.
+  on('planide:codex-chats-status', () => ({
+    ...readChatsState(app.getPath('userData')),
+    running: chatsCompressionRunning()
+  }))
+  on('planide:codex-chats-measure', () => measureCodexChats({ homes: codexHomes(app.getPath('userData')) }))
+  on('planide:codex-chats-set-enabled', (enabled: boolean) =>
+    setChatsCompression(app.getPath('userData'), Boolean(enabled))
+  )
+  on('planide:codex-chats-compress', () => runChatsCompression(app.getPath('userData')))
+  on('planide:codex-chats-restore', () => restoreCodexChats({ homes: codexHomes(app.getPath('userData')) }))
   on('planide:unreal-set-path', (path: string) => setUnrealPath(path))
   // You pick where it goes; the IDE clones it there. Async on purpose -- the
   // renderer awaits a real download rather than a write that did nothing.

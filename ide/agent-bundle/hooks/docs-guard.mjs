@@ -62,8 +62,12 @@ async function main() {
   process.stdout.write(`${JSON.stringify(out)}\n`)
 }
 
+// A closed pipe on the agent's side must not turn into a crash and an exit code.
+process.stdout.on('error', () => {})
 try {
   await main()
-} catch {
-  // Never block a write over a tracker problem.
+} catch (err) {
+  // Never block a write over a tracker problem. The launcher sends
+  // stderr to hooks/hook-errors.log, so the cause is kept without being shown.
+  process.stderr.write(`[docs-guard] ${new Date().toISOString()} ${err?.stack || err}\n`)
 }

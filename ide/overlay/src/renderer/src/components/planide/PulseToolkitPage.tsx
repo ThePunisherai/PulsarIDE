@@ -21,6 +21,11 @@ import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { useActiveWorktree } from '@/store/selectors'
 import {
+  codexChatsCompress,
+  codexChatsMeasure,
+  codexChatsRestore,
+  codexChatsSetEnabled,
+  codexChatsStatus,
   eccInstall,
   eccSetEnabled,
   eccStatus,
@@ -32,6 +37,8 @@ import {
   unrealSetPath,
   unrealStatus,
   withVisibleSpin,
+  type ChatsMeasure,
+  type ChatsStatus,
   type EccStatus,
   type RtkStatus,
   type TrackerHealth,
@@ -51,7 +58,13 @@ const PLAN_HOOKS: Record<string, string> = {
   'claude-code': 'TodoWrite',
   codex: 'update_plan',
   gemini: 'write_todos',
-  qwen: 'write_todos'
+  qwen: 'todo_write'
+}
+
+/** Bytes as people read them on a disk: GB above one, MB below. */
+function size(bytes: number): string {
+  const gb = bytes / 1024 ** 3
+  return gb >= 1 ? `${gb.toFixed(1)} GB` : `${Math.round(bytes / 1024 ** 2)} MB`
 }
 
 function Dot({ ok }: { ok: boolean }): React.JSX.Element {
@@ -92,6 +105,11 @@ export default function PulseToolkitPage(): React.JSX.Element {
   const [unreal, setUnreal] = useState<UnrealStatus | null>(null)
   const [rtk, setRtk] = useState<RtkStatus | null>(null)
   const [busy, setBusy] = useState(false)
+  const [chats, setChats] = useState<ChatsStatus | null>(null)
+  const [chatsSize, setChatsSize] = useState<ChatsMeasure | null>(null)
+  // Its own flag: a compression pass can run for minutes, and the rest of the
+  // page must stay usable meanwhile.
+  const [chatsBusy, setChatsBusy] = useState(false)
 
   const load = useCallback(async () => {
     // Both are best-effort: one backend hiccup must not blank the whole page.
@@ -99,9 +117,35 @@ export default function PulseToolkitPage(): React.JSX.Element {
       trackerHealth(folder || undefined).then(setHealth),
       eccStatus().then(setEcc),
       unrealStatus().then(setUnreal),
-      rtkStatus().then(setRtk)
+      rtkStatus().then(setRtk),
+      codexChatsStatus().then(setChats)
     ])
   }, [folder])
+
+  // Walks every transcript, so it runs on its own and never holds up the page.
+  const measureChats = useCallback(async () => {
+    try {
+      setChatsSize(await codexChatsMeasure())
+    } catch {
+      setChatsSize(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    void measureChats()
+  }, [measureChats])
+
+  const chatsAction = useCallback(
+    (action: 'on' | 'off' | 'compress' | 'restore') =>
+      withVisibleSpin(setChatsBusy, async () => {
+        if (action === 'on' || action === 'off') await codexChatsSetEnabled(action === 'on')
+        if (action === 'compress') await codexChatsCompress()
+        if (action === 'restore') await codexChatsRestore()
+        setChats(await codexChatsStatus())
+        await measureChats()
+      }),
+    [measureChats]
+  )
 
   const choose = useCallback(
     () =>
@@ -435,6 +479,99 @@ export default function PulseToolkitPage(): React.JSX.Element {
               <p className="mt-2 text-[11px] text-muted-foreground">
                 {translate('planide.toolkit.checking', 'Checking...')}
               </p>
+            )}
+          </Card>
+
+          {/* --- Codex chats: compressed losslessly, never deleted ------------ */}
+          <Card
+            title={translate('planide.toolkit.chats', 'Codex chats (storage)')}
+            subtitle={translate(
+              'planide.toolkit.chatsSub',
+              'Chats nobody touched for 30 days are compressed with zstd -- the format Codex reads itself, so `codex resume` still opens every one of them. Lossless: checked byte for byte before the original goes. Explorer counts each chat once per account folder; the disk holds it once.'
+            )}
+          >
+            {chatsSize ? (
+              <div className="mt-2 space-y-1 text-[12px]">
+                <div className="flex items-center gap-2">
+                  <Dot ok={chatsSize.coldPlainBytes < 1024 ** 3} />
+                  <span>
+                    {translate('planide.toolkit.chatsDisk', 'On disk')} {size(chatsSize.physicalBytes)}
+                    <span className="text-muted-foreground">
+                      {' '}
+                      · {translate('planide.toolkit.chatsExplorer', 'Explorer shows')} {size(chatsSize.logicalBytes)}
+                    </span>
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {chatsSize.compressedChats} {translate('planide.toolkit.chatsCompressed', 'compressed')} ·{' '}
+                  {chatsSize.plainChats} {translate('planide.toolkit.chatsPlain', 'plain')} ·{' '}
+                  {size(chatsSize.coldPlainBytes)} {translate('planide.toolkit.chatsCold', 'still to compress')}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {translate('planide.toolkit.chatsMeasuring', 'Measuring...')}
+              </p>
+            )}
+            {chats && (
+              <>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {chats.running || chatsBusy
+                    ? translate('planide.toolkit.chatsRunning', 'Compressing now...')
+                    : chats.lastRun
+                      ? `${translate('planide.toolkit.chatsFreed', 'Freed so far')} ${size(chats.totalFreed)} · ${chats.totalDone} ${translate('planide.toolkit.chatsChats', 'chats')}`
+                      : chats.enabled
+                        ? translate('planide.toolkit.chatsFirst', 'First run ten minutes after launch, then daily.')
+                        : translate('planide.toolkit.chatsOffNote', 'Automatic compression is off.')}
+                </p>
+                {chats.lastReport?.failed ? (
+                  <p className="mt-1 truncate text-[11px] text-amber-500" title={chats.lastReport.errors.join('\n')}>
+                    {chats.lastReport.failed} {translate('planide.toolkit.chatsFailed', 'could not be compressed -- left as they were')}
+                  </p>
+                ) : null}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px]"
+                    disabled={chatsBusy}
+                    onClick={() => void chatsAction(chats.enabled ? 'off' : 'on')}
+                  >
+                    {chats.enabled
+                      ? translate('planide.toolkit.chatsAutoOn', 'Automatic: on')
+                      : translate('planide.toolkit.chatsAutoOff', 'Automatic: off')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px]"
+                    disabled={chatsBusy || chats.running}
+                    onClick={() => void chatsAction('compress')}
+                  >
+                    {translate('planide.toolkit.chatsNow', 'Compress now')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-[11px] text-muted-foreground"
+                    disabled={chatsBusy || chats.running}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          translate(
+                            'planide.toolkit.chatsRestoreAsk',
+                            'Turn every compressed chat back into a plain file? This needs the full size again on disk.'
+                          )
+                        )
+                      ) {
+                        void chatsAction('restore')
+                      }
+                    }}
+                  >
+                    {translate('planide.toolkit.chatsRestore', 'Restore all')}
+                  </Button>
+                </div>
+              </>
             )}
           </Card>
         </div>

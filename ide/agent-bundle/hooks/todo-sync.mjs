@@ -254,8 +254,12 @@ async function main() {
   }
 }
 
+// A closed pipe on the agent's side must not turn into a crash and an exit code.
+process.stdout.on('error', () => {})
 try {
   await main()
-} catch {
-  // Never fail the agent's tool call over a tracker write.
+} catch (err) {
+  // Never fail the agent's tool call over a tracker write. The launcher sends
+  // stderr to hooks/hook-errors.log, so the cause is kept without being shown.
+  process.stderr.write(`[todo-sync] ${new Date().toISOString()} ${err?.stack || err}\n`)
 }

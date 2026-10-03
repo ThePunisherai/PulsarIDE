@@ -403,6 +403,13 @@ EDITS: list[tuple[str, str, str, str]] = [
         "      } catch {\n"
         "        /* the bundle can never break startup */\n"
         "      }\n"
+        "      // Old Codex chats, compressed losslessly in the background (zstd,\n"
+        "      // which Codex reads itself): first run ten minutes in, then daily.\n"
+        "      try {\n"
+        "        startChatsCompression(app.getPath('userData'))\n"
+        "      } catch {\n"
+        "        /* storage housekeeping can never break startup */\n"
+        "      }\n"
         "    }, 0)\n"
         "    await initializeMainProcessReady({",
         "register the tracker IPC and deploy the agent bundle on launch",
@@ -418,6 +425,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "import { parseSkillShareId } from '../shared/skill-share-link'",
         "import { parseSkillShareId } from '../shared/skill-share-link'\n"
         "import { deployAgentBundle } from './planide/agent-bundle'\n"
+        "import { startChatsCompression } from './planide/codex-compress'\n"
         "import { registerPlanIdeIpc } from './planide/ipc'",
         "tracker + agent-bundle main-process imports",
     ),
@@ -845,6 +853,7 @@ OVERLAY_FILES = [
     "src/main/planide/auto-push.ts",
     "src/main/planide/agent-bundle.ts",
     "src/main/planide/headroom-cleanup.ts",
+    "src/main/planide/codex-compress.ts",
     "src/preload/api/planide-api.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",

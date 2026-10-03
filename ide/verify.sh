@@ -505,6 +505,26 @@ else
   skip "archify render (needs npx)"
 fi
 
+# 4i. Codex chats, compressed without losing one: hardlinked across account
+# homes the way Orca links them, verified byte for byte, restored again.
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/overlay/src/main/planide/codex-compress.ts" --bundle --platform=node \
+      --format=cjs --outfile="$work/chats.cjs" --external:electron --log-level=error >/dev/null 2>&1; then
+    out=$(PULSAR_CHATS_CJS="$work/chats.cjs" node "$HERE/test/codex-compress.test.mjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "codex chats: $(echo "$out" | grep -oE 'PASS=[0-9]+') lossless compression checks"
+    else
+      bad "codex chat compression"; echo "$out" | grep "FAIL " | head -6
+    fi
+  else
+    bad "codex-compress.ts does not bundle"
+  fi
+  rm -rf "$work"
+else
+  skip "codex chat compression (needs npx)"
+fi
+
 # 5. the real test: does the overlay still apply to an Orca checkout?
 if [ -f "$CHECKOUT/package.json" ]; then
   tmp=$(mktemp -d)
