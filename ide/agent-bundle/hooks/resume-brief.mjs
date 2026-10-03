@@ -90,7 +90,21 @@ async function main() {
     docsNote = ''
   }
 
-  const brief = [docsNote, resumeBrief(state, { project })].filter(Boolean).join('\n')
+  // Resumed or compacted, this chat keeps its own item ahead of the queue.
+  let chatLine = ''
+  try {
+    const session = typeof payload.session_id === 'string' ? payload.session_id : ''
+    if (session) {
+      const { readSession } = await import(pathToFileURL(join(here, '..', 'tracker', 'mcp', 'sessions.mjs')).href)
+      const { chatItem } = await import(pathToFileURL(join(here, '..', 'tracker', 'mcp', 'work-queue.mjs')).href)
+      const own = chatItem(state, readSession(project, session)?.current)
+      if (own) chatLine = `This chat was working on "${own.title}" [${own.id}] and it is not finished -- carry on with it first.`
+    }
+  } catch {
+    chatLine = ''
+  }
+
+  const brief = [docsNote, chatLine, resumeBrief(state, { project })].filter(Boolean).join('\n')
   if (!brief) return
 
   process.stdout.write(

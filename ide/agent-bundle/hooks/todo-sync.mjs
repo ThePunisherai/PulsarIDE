@@ -211,7 +211,7 @@ async function main() {
   // One plan = one session's main agent, or one subagent inside it.
   const session = typeof payload.session_id === 'string' ? payload.session_id : ''
   const key = planKey(session, payload.agent_id)
-  const { added, moved, retired } = applyPlan(state, steps, { agent, key, now: nowIso(), newId: () => newId('i_') })
+  const { added, moved, retired, active } = applyPlan(state, steps, { agent, key, now: nowIso(), newId: () => newId('i_') })
 
   // Anything an agent left in `works` before (an older hook, another route) is
   // closed out in this same write when auto-complete is on.
@@ -230,7 +230,13 @@ async function main() {
   if (session) {
     try {
       const { updateSession } = await import(pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'tracker', 'mcp', 'sessions.mjs')).href)
-      updateSession(project, session, (rec) => ({ ...(rec ?? { mark: markBefore, drive: false, pushes: 0 }), worked: true }))
+      updateSession(project, session, (rec) => ({
+        ...(rec ?? { mark: markBefore, drive: false, pushes: 0 }),
+        worked: true,
+        // The step the main agent's plan is on is this chat's own item -- what
+        // "ga door" after a quota wait resumes. A subagent's step is its own.
+        ...(active.length && !payload.agent_id ? { current: active[0] } : {})
+      }))
     } catch {
       /* the autopilot loses one turn; the board write already happened */
     }

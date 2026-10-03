@@ -161,6 +161,19 @@ function requestBundle(project, state, docsTidy, wq) {
   return true
 }
 
+/**
+ * Which CLI this chat is, from the payload's own shape: Gemini CLI and Qwen
+ * Code name the events BeforeAgent/AfterAgent (Qwen keeps its transcript under
+ * ~/.qwen), Codex alone sends a `turn_id`, and the rest is Claude Code.
+ */
+function chatFamily(payload) {
+  const event = String(payload.hook_event_name || '')
+  if (event === 'BeforeAgent' || event === 'AfterAgent') {
+    return /[\\/]\.qwen[\\/]/.test(String(payload.transcript_path || '')) ? 'qwen' : 'gemini'
+  }
+  return typeof payload.turn_id === 'string' ? 'codex' : 'claude'
+}
+
 const PROMPT_EVENTS = new Set(['UserPromptSubmit', 'BeforeAgent'])
 const STOP_EVENTS = new Set(['Stop', 'AfterAgent'])
 
@@ -197,9 +210,22 @@ async function main() {
       docsNote = ''
     }
     const drive = wq.isContinuePrompt(payload.prompt)
+    // This chat's own item: what it took up last turn, even when that turn
+    // never reached its Stop because the quota ran out in the middle of it.
+    const prev = ss.readSession(project, session)
+    const current = wq.newlyWip(state, prev?.wip, chatFamily(payload))[0] ?? prev?.current ?? ''
     // A new turn: where the board stands now is what progress is measured from.
-    ss.updateSession(project, session, () => ({ mark: wq.boardMark(state), worked: false, drive, pushes: 0 }))
-    const context = [docsNote, drive && wq.autopilot(state) ? wq.continueContext(state) : ''].filter(Boolean).join('\n')
+    ss.updateSession(project, session, () => ({
+      mark: wq.boardMark(state),
+      worked: false,
+      drive,
+      pushes: 0,
+      current,
+      wip: wq.wipIds(state)
+    }))
+    const context = [docsNote, drive && wq.autopilot(state) ? wq.continueContext(state, { current }) : '']
+      .filter(Boolean)
+      .join('\n')
     if (!context) return
     process.stdout.write(
       `${JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: context } })}\n`
@@ -207,8 +233,13 @@ async function main() {
     return
   }
 
-  const rec = ss.readSession(project, session)
-  if (!rec) return
+  const seen = ss.readSession(project, session)
+  if (!seen) return
+  // What this chat took up during the turn -- through its plan, next_task or
+  // set_item -- is its own item from here on: "ga door" in this chat means it.
+  const picked = wq.newlyWip(state, seen.wip, chatFamily(payload))
+  const rec = picked.length ? { ...seen, current: picked[0], wip: wq.wipIds(state) } : seen
+  if (picked.length) ss.updateSession(project, session, () => rec)
   if (endsOnQuestion(lastAgentText(payload))) return
   let decision = wq.keepGoing(state, rec)
   // A working turn ended on a clear board: the last job is the docs, as one.
@@ -223,7 +254,14 @@ async function main() {
     const item = (state.items ?? []).find((i) => i.id === decision.focus.id)
     if (item?.notes) reason += ` ${item.notes}`
   }
-  ss.updateSession(project, session, (r) => ({ ...(r ?? rec), mark: decision.mark, pushes: (r?.pushes ?? 0) + 1 }))
+  ss.updateSession(project, session, (r) => ({
+    ...(r ?? rec),
+    mark: decision.mark,
+    pushes: (r?.pushes ?? 0) + 1,
+    // The item handed over is this chat's now, even before it is started.
+    current: decision.focus?.kind === 'item' ? decision.focus.id : (r ?? rec).current,
+    wip: wq.wipIds(state)
+  }))
   process.stdout.write(`${JSON.stringify({ decision: 'block', reason })}\n`)
 }
 

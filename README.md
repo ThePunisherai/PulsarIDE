@@ -275,7 +275,9 @@ default — the **Autopilot** button on the Tracker page, or
 `plan settings <path> --autopilot off`), an agent that finishes its own task
 takes the board's next item instead of stopping: a `Stop` hook (Claude Code,
 Codex) or `AfterAgent` hook (Gemini CLI, Qwen Code) hands it over, and a bare
-"ga door" is answered with the item to continue with. It only follows a turn
+"ga door" is answered with the item to continue with — in the same chat, the item
+*that chat* was on, so after a quota wait you simply type "ga door" where you
+stopped. It only follows a turn
 that worked the board, only while the board keeps moving, never past a
 question to you, and at most 12 times per prompt. Agents without hooks get the
 same from `set_item`'s `next`. A plan's own steps follow the plan: re-worded or

@@ -1060,9 +1060,10 @@ runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: acOff, tool_input: { tod
 
   // Gemini CLI / Qwen Code: the same thing under their event names.
   const g1 = go('BeforeAgent', { prompt: 'ga door' })
+  // "Queued work" was handed to this chat at the last stop, so it is this chat's own now.
   ok('autopilot: a bare "ga door" is answered with the item to continue with (Gemini BeforeAgent)',
     g1.out?.hookSpecificOutput?.hookEventName === 'BeforeAgent' &&
-    /The user means: work the board/.test(g1.out.hookSpecificOutput.additionalContext) &&
+    /The user means: carry on where this chat left off/.test(g1.out.hookSpecificOutput.additionalContext) &&
     /"Queued work"/.test(g1.out.hookSpecificOutput.additionalContext))
   {
     const s = store.loadState(ap)
@@ -1227,6 +1228,80 @@ runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: acOff, tool_input: { tod
   writeFileSync(join(notProject, 'NOTES.md'), 'x')
   ok('docs: a folder that is not a project is never swept',
     dt.sweepDocs(notProject).length === 0 && existsSync(join(notProject, 'NOTES.md')))
+}
+
+// --- "ga door" in the same chat resumes THAT chat's item ------------------- //
+// "wanneer jij iets van de todo-lijst pakt of bezig bent met in behandeling wil
+// ik dat die doorgaat -- soms raakt mijn quota op, dan ga ik door in de huidige
+// chat". The quota can end a turn before its Stop hook ever runs; the next
+// prompt in that chat must land on the item it was on, not the board's oldest.
+{
+  const cp = mkdtempSync(join(tmpdir(), 'pulsar-chat-'))
+  mkdirSync(join(cp, '.git'))
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(430, 'add_item', { project: cp, title: 'Old leftover', status: 'wip' }),
+    call(431, 'add_item', { project: cp, title: 'Queue item' })
+  ])
+  {
+    // Left over by some earlier session, days ago: first in the plain queue order.
+    const b = readBoard(cp)
+    b.items.find((i) => i.title === 'Old leftover').updated_at = '2026-09-01T00:00:00Z'
+    writeBoard(cp, b)
+  }
+  const prompt = (session, text, extra = {}) => {
+    const r = runHook('keep-going.mjs', { hook_event_name: 'UserPromptSubmit', session_id: session, cwd: cp, prompt: text, ...extra })
+    try {
+      return r.stdout.trim() ? JSON.parse(r.stdout).hookSpecificOutput.additionalContext : ''
+    } catch {
+      return ''
+    }
+  }
+  prompt('C1', 'build the login page')
+  runHook('todo-sync.mjs', { tool_name: 'TodoWrite', session_id: 'C1', cwd: cp, tool_input: { todos: [
+    { content: 'Build the login page', status: 'in_progress' }, { content: 'Write its tests', status: 'pending' }] } })
+  // The quota runs out here: no Stop hook, the turn just ends.
+  const resumed = prompt('C1', 'I hit my usage limit while you were working, but it has reset now. Please continue from where you left off.')
+  ok('chat resume: after a quota stop, "continue" lands on the item THIS chat was on',
+    /this chat was working on "Build the login page"/.test(resumed) && !/"Old leftover"/.test(resumed))
+  ok('chat resume: a plain "ga door" in that chat does the same',
+    /this chat was working on "Build the login page"/.test(prompt('C1', 'ga door')))
+
+  // A Codex chat beside it (Codex alone sends a turn_id), taking its item
+  // through the MCP tools, with no plan at all.
+  const codex = { turn_id: 't-1' }
+  prompt('C2', 'pak de volgende taak', codex)
+  const queueId = readBoard(cp).items.find((i) => i.title === 'Queue item').id
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(432, 'set_item', { project: cp, id: queueId, status: 'wip', agent: 'Codex' })
+  ])
+  const c2 = prompt('C2', 'ga door', codex)
+  ok('chat resume: an item started through the MCP tools is that chat\'s too, found from the board itself',
+    c2.includes(`[${queueId}]`) && /this chat was working on "Queue item"/.test(c2))
+  ok("chat resume: and the Claude chat beside it still resumes its own, not Codex's",
+    /"Build the login page"/.test(prompt('C1', 'ga door')))
+
+  // Compacted or resumed in the same chat: the brief puts its item first.
+  const brief = runHook('resume-brief.mjs', { cwd: cp, hook_event_name: 'SessionStart', source: 'compact', session_id: 'C1' })
+  let briefCtx = ''
+  try {
+    briefCtx = JSON.parse(brief.stdout).hookSpecificOutput.additionalContext
+  } catch {
+    briefCtx = ''
+  }
+  ok('chat resume: a compacted chat is told its own item before the queue',
+    briefCtx.indexOf('This chat was working on "Build the login page"') !== -1 &&
+    briefCtx.indexOf('This chat was working on') < briefCtx.indexOf('Work order'))
+
+  // Finished: the chat moves on down the board, and the next item becomes its own.
+  runHook('todo-sync.mjs', { tool_name: 'TodoWrite', session_id: 'C1', cwd: cp, tool_input: { todos: [
+    { content: 'Build the login page', status: 'completed' }, { content: 'Write its tests', status: 'completed' }] } })
+  const stop = JSON.parse(runHook('keep-going.mjs', { hook_event_name: 'Stop', session_id: 'C1', cwd: cp, last_assistant_message: 'Login page done.' }).stdout || '{}')
+  ok('chat resume: once its item is done, the stop hands the chat the board\'s next item',
+    stop.decision === 'block' && /"Old leftover"/.test(stop.reason))
+  ok('chat resume: and that item is this chat\'s own from then on',
+    /this chat was working on "Old leftover"/.test(prompt('C1', 'ga door')))
 }
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)

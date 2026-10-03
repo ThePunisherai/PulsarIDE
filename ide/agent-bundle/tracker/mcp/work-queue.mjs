@@ -434,6 +434,8 @@ export function applyPlan(state, steps, opts = {}) {
   let added = 0
   let moved = 0
   const titles = []
+  // The rows this plan has in progress after it lands -- the chat's own item.
+  const active = []
   for (const { title, status } of steps) {
     const text = String(title ?? '').trim()
     if (!text) continue
@@ -457,6 +459,7 @@ export function applyPlan(state, steps, opts = {}) {
         locked_at: '',
         ...(key ? { plan_key: key } : {})
       })
+      if (status === 'wip') active.push(state.items[state.items.length - 1].id)
       added += 1
       continue
     }
@@ -465,7 +468,11 @@ export function applyPlan(state, steps, opts = {}) {
     if (key && item.plan_key && item.plan_key !== key && !item.locked) item.plan_key = key
     // 'keep' covers a protected step (the user's, never moved from a plan), a
     // step already in that state, and a `done` step the plan reports finished.
-    if (step.action !== 'move') continue
+    if (step.action !== 'move') {
+      if (item.status === 'wip' && status === 'wip') active.push(item.id)
+      continue
+    }
+    if (status === 'wip') active.push(item.id)
     item.status = status
     item.updated_at = at
     if (!item.claimed_by) item.claimed_by = agent
@@ -478,7 +485,7 @@ export function applyPlan(state, steps, opts = {}) {
     moved += 1
   }
   const retired = retireDroppedSteps(state, key, titles)
-  return { added, moved, retired }
+  return { added, moved, retired, active }
 }
 
 // --------------------------------------------------------------------- autopilot
@@ -521,7 +528,19 @@ export function boardMark(state) {
  */
 export function isContinuePrompt(prompt) {
   const t = String(prompt ?? '').trim().toLowerCase()
-  if (!t || t.length > 60) return false
+  if (!t) return false
+  // The longer "pick up where you were" messages -- the user's own after a
+  // quota wait, and Claude's: "I hit my usage limit while you were working, but
+  // it has reset now. Please continue from where you left off."
+  if (
+    t.length <= 240 &&
+    /(continue|carry on|pick up|resume)\s+(from\s+)?where\s+(you|we)\s+(left off|were|stopped)|(ga|gaan)\s+(maar\s+)?(door|verder)\s+waar\s+(je|we|jij)\s+(gebleven\s+)?(was|waren|bent|bleef|stopte)|waar\s+(je|we|jij)\s+gebleven\s+(was|waren|bent)|usage limit[^.]*(has\s+)?reset|quota[^.]*(is\s+)?(weer\s+)?(terug|gereset|reset)/.test(
+      t
+    )
+  ) {
+    return true
+  }
+  if (t.length > 60) return false
   const lead = '(?:(?:ok|oke|top|ja|yes|goed|prima)[,.!\\s]+)*'
   const cue =
     '(?:ga\\s+(?:maar\\s+)?(?:door|verder)|doorgaan|verder|continue|go\\s+on|keep\\s+going|carry\\s+on|' +
@@ -534,12 +553,79 @@ export function isContinuePrompt(prompt) {
   return new RegExp(`^${lead}${cue}${tail}[\\s.!?,]*$`).test(t)
 }
 
+/** The board's in-progress ids, as a turn starts -- to tell later which ones this chat took. */
+export function wipIds(state) {
+  return (state?.items ?? []).filter((i) => i.status === 'wip').map((i) => i.id)
+}
+
+/** Which agent CLI a name points at -- '' when it does not say (a subagent, "agent"). */
+export function agentFamily(name) {
+  const n = lc(name)
+  for (const f of ['claude', 'codex', 'gemini', 'qwen', 'antigravity', 'cursor', 'opencode']) {
+    if (n.includes(f)) return f
+  }
+  return ''
+}
+
+/**
+ * Items that went in progress since `before` (a wipIds snapshot), newest first:
+ * what this chat picked up during the turn, by whatever route -- its plan,
+ * next_task, set_item. Empty without a snapshot, since then nobody can say.
+ * With `family` (this chat's CLI), an item another CLI claimed is not counted:
+ * a Codex pane and a Claude pane on one board must not take each other's work.
+ */
+export function newlyWip(state, before, family = '') {
+  if (!Array.isArray(before)) return []
+  const had = new Set(before)
+  return (state?.items ?? [])
+    .filter((i) => i.status === 'wip' && !had.has(i.id))
+    .filter((i) => {
+      const theirs = agentFamily(i.claimed_by)
+      return !family || !theirs || theirs === family
+    })
+    .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')))
+    .map((i) => i.id)
+}
+
+/**
+ * This chat's own item: the one it was on when its turn ended -- or when the
+ * quota ran out in the middle of it -- while it is still open.
+ *
+ * Asked for directly: "wanneer jij iets van de todo-lijst pakt of bezig bent met
+ * in behandeling wil ik dat die doorgaat, want soms raakt mijn quota op en moet
+ * ik wachten, dus ga ik altijd door in de huidige chat". "Ga door" in that chat
+ * means THAT item -- not the oldest one on the board, which is what the queue
+ * order alone would hand it.
+ */
+export function chatItem(state, current) {
+  const id = String(current ?? '')
+  if (!id) return null
+  const item = (state?.items ?? []).find((i) => i.id === id)
+  return item && (item.status === 'wip' || item.status === 'todo') && !item.locked ? item : null
+}
+
+/** The queue, with this chat's own unfinished item (if any) as the focus. */
+function chatQueue(state, opts = {}) {
+  const q = workQueue(state, { agent: opts.agent, now: opts.now, limit: 1 })
+  const own = chatItem(state, opts.current)
+  if (!own) return q
+  return { ...q, focus: { kind: 'item', lane: 'chat', id: own.id, title: own.title, status: own.status } }
+}
+
 /** The focus as one line an agent can act on, with how to close it. */
 function focusLine(q) {
   const f = q.focus
   if (!f) return ''
   const c = q.counts
   const left = `${c.in_progress} in progress, ${c.todo} todo, ${c.open_fixes} open fixes`
+  if (f.lane === 'chat') {
+    return (
+      `PulsarIDE board: this chat was working on "${clip(f.title, 120)}" [${f.id}] and it is not finished. ` +
+      'Carry on with it from where you left off -- your plan and progress on it are earlier in this conversation -- ' +
+      `and let it go done when it genuinely works; then the board's queue (${left}). If it cannot be done here, ` +
+      'set_item it blocked with the reason and take the next one -- do not stop to ask whether to continue.'
+    )
+  }
   const where =
     f.lane === 'in_progress'
       ? `in progress${f.stale ? ', left over by an earlier session' : ''}`
@@ -579,7 +665,7 @@ export function keepGoing(state, rec, opts = {}) {
   const r = rec ?? {}
   const stay = (why) => ({ block: false, why })
   if (!autopilot(state)) return stay('autopilot off')
-  const q = workQueue(state, { agent: opts.agent, now: opts.now, limit: 1 })
+  const q = chatQueue(state, { agent: opts.agent, now: opts.now, current: r.current })
   if (q.alerts.length) return stay('a protected item regressed -- the user decides')
   if (!q.focus) return stay('nothing open')
   if (!(r.worked || r.drive || (r.pushes ?? 0) > 0)) return stay('this turn did not work the board')
@@ -589,13 +675,16 @@ export function keepGoing(state, rec, opts = {}) {
   return { block: true, mark, reason: focusLine(q), focus: q.focus }
 }
 
-/** The next item as one actionable line, or '' when nothing is open. */
+/** The next item as one actionable line -- this chat's own first (`opts.current`) -- or ''. */
 export function nextUp(state, opts = {}) {
-  return focusLine(workQueue(state, { agent: opts.agent, now: opts.now, limit: 1 }))
+  return focusLine(chatQueue(state, opts))
 }
 
 /** The "carry on" cue, answered with the item to carry on with. Empty when nothing is open. */
 export function continueContext(state, opts = {}) {
   const line = nextUp(state, opts)
-  return line ? `The user means: work the board. ${line}` : ''
+  if (!line) return ''
+  return chatItem(state, opts.current)
+    ? `The user means: carry on where this chat left off. ${line}`
+    : `The user means: work the board. ${line}`
 }

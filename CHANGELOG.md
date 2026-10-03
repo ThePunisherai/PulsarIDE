@@ -6,6 +6,23 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.1] - 2026-10-03
+
+### What's fixed
+- **"Ga door" in the same chat picks up THAT chat's item.** Asked for directly: "wanneer
+  jij iets van de todo-lijst pakt of bezig bent met in behandeling wil ik dat die
+  doorgaat — soms raakt mijn quota op, dan ga ik door in de huidige chat". In 0.99.0 a
+  "ga door" was answered with the board's queue order, which puts the oldest left-over
+  item first — not the one this chat was halfway through. Now every chat remembers its
+  own item: the step its plan is on, what it started through `next_task` / `set_item`,
+  or what the autopilot handed it. "Ga door", "continue", or Claude's own "I hit my
+  usage limit … please continue from where you left off" in that chat lands on it first,
+  then the queue. It works even when the quota ended the turn before any hook could
+  run: the next prompt reads from the board what the chat had started.
+- A chat that is compacted or resumed (`/compact`, `--resume`) is told its own unfinished
+  item before the queue.
+- A Codex pane and a Claude pane on the same board never take over each other's item.
+
 ## [0.99.0] - 2026-10-03
 
 ### What's fixed
