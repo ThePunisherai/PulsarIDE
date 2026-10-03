@@ -844,6 +844,7 @@ OVERLAY_FILES = [
     "src/main/planide/board-watch.ts",
     "src/main/planide/auto-push.ts",
     "src/main/planide/agent-bundle.ts",
+    "src/main/planide/headroom-cleanup.ts",
     "src/preload/api/planide-api.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",

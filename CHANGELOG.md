@@ -6,7 +6,28 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
-## [0.98.0] - 2026-10-02
+## [0.98.0] - 2026-10-03
+
+### Headroom, gone
+- **Headroom is removed from your machine — and with it the console window that kept
+  popping up.** PulsarIDE dropped every reference to Headroom in 0.29.0, but it was
+  never ours to install: the separate ThePunisher-Agent installer wired its shell hook
+  into your shell profiles, and every terminal PulsarIDE opens (one per agent pane)
+  loads them — so the hook kept starting, and on Windows it opened a console window
+  each time. Now, on every launch, PulsarIDE removes Headroom wherever it is wired in:
+  - lines in your PowerShell (also the OneDrive-moved Documents folder), bash, zsh and
+    fish profiles — a self-contained line or a marked block only;
+  - hooks, `localhost:8787` base-URL redirects and MCP entries in the Claude Code,
+    Gemini CLI, Qwen Code and Codex configs;
+  - on Windows: Startup-folder entries, Run-at-login values, scheduled tasks and user
+    environment variables that name it, and a running `headroom.exe`.
+
+  Every file it changes is backed up first, laid out as in your home folder, under
+  `~/.config/pulsaride/headroom-removed/<time>/`; what it did is in
+  `~/.config/pulsaride/headroom-cleanup.json`. A Headroom line inside one of your own
+  `if`/function blocks is left alone and listed there as “manual” — cutting the only
+  line out of a bash `then` would break the profile, which is worse than the window.
+  If its installer runs again, the next launch removes it again.
 
 ### What's new
 - **Council finds the toolbox when it needs it — and it costs nothing until then.**

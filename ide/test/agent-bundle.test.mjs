@@ -24,7 +24,10 @@ const {
   meshyStatus,
   setMeshyKey,
   installEccNow,
-  setUnrealPath
+  setUnrealPath,
+  removeHeadroom,
+  stripHeadroomLines,
+  stripHeadroomToml
 } = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
@@ -1390,6 +1393,132 @@ const revised = await callTool(launchFromConfig('.codex/config.toml'), 'sync_pla
 ok('a revised plan moves the step it already knows instead of duplicating it',
   !revised.error && titled('step from Codex CLI')?.status === 'done' &&
   boardItems().filter((i) => i.title === 'step from Codex CLI').length === 1)
+
+// ---- Headroom, off the machine ------------------------------------------ //
+// It was never ours: the ThePunisher-Agent installer wired it into the shell
+// profiles, and every terminal PulsarIDE opens loads them -- the console window
+// that kept popping up. The cleanup removes its launch points, backs up what it
+// touches, and refuses to cut a line out of the middle of someone's if-block.
+{
+  const HH = join(work, 'headroom-home'); mkdirSync(HH)
+  const w = (rel, text) => { mkdirSync(dirname(join(HH, rel)), { recursive: true }); writeFileSync(join(HH, rel), text) }
+  const r = (rel) => readFileSync(join(HH, rel), 'utf8')
+  w('.bashrc', 'export PATH="$HOME/bin:$PATH"\n# Headroom context proxy\nsource "$HOME/.headroom/shell-hook.sh"\nalias ll="ls -l"\n')
+  w('.zshrc', 'setopt autocd\n# >>> headroom >>>\nexport HEADROOM_ON=1\neval "$(headroom init zsh)"\n# <<< headroom <<<\nbindkey -e\n')
+  // Headroom inside a block: deleting that line alone would break the profile.
+  const psBlocked = 'if (Test-Path $hr) {\n  & headroom shell-hook\n}\n'
+  w('Documents/PowerShell/Microsoft.PowerShell_profile.ps1', psBlocked)
+  w('OneDrive - Work/Documents/WindowsPowerShell/profile.ps1', 'Set-Alias g git\n. "$HOME\\.headroom\\hook.ps1"\n')
+  w('.claude/settings.json', JSON.stringify({
+    env: { ANTHROPIC_BASE_URL: 'http://localhost:8787', KEEP_ME: '1' },
+    hooks: { SessionStart: [{ hooks: [
+      { type: 'command', command: '/home/x/.headroom/claude-hook.sh' },
+      { type: 'command', command: '/home/x/.config/pulsaride/hooks/resume-brief.sh' }
+    ] }] },
+    mcpServers: { headroom: { command: 'headroom', args: ['mcp'] }, planide: { command: 'node' } }
+  }, null, 2))
+  w('.codex/config.toml', 'model = "gpt-5"\nopenai_base_url = "http://127.0.0.1:8787/v1"\n\n[mcp_servers.headroom]\ncommand = "headroom"\nargs = ["mcp"]\n\n[mcp_servers.planide]\ncommand = "node"\n')
+  const appData = join(HH, 'AppData', 'Roaming')
+  const startup = join(appData, 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup')
+  mkdirSync(startup, { recursive: true })
+  writeFileSync(join(startup, 'headroom.vbs'), 'CreateObject("WScript.Shell").Run "headroom proxy", 0')
+  writeFileSync(join(startup, 'onedrive.lnk'), 'not ours')
+
+  const calls = []
+  const fakeExec = async (file, args) => {
+    calls.push([file, ...args].join(' '))
+    if (file === 'reg' && args[0] === 'query' && /\\Run$/.test(args[1]))
+      return '\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\r\n    OneDrive    REG_SZ    "C:\\OneDrive.exe" /background\r\n    HeadroomProxy    REG_SZ    C:\\Users\\x\\.headroom\\headroom.exe proxy\r\n'
+    if (file === 'reg' && args[0] === 'query')
+      return '\r\nHKEY_CURRENT_USER\\Environment\r\n    Path    REG_EXPAND_SZ    C:\\bin\r\n    ANTHROPIC_BASE_URL    REG_SZ    http://localhost:8787\r\n'
+    if (file === 'schtasks' && args[0] === '/Query')
+      return '"PC","\\Headroom Updater","N/A","Ready","Interactive only","N/A","1","x","C:\\Users\\x\\.headroom\\update.cmd"\r\n"PC","\\OneDrive Standalone Update Task","N/A","Ready"\r\n'
+    if (file === 'taskkill') throw new Error('not running')
+    return ''
+  }
+  const rep = await removeHeadroom(HH, { platform: 'win32', exec: fakeExec, appData })
+  const backups = join(HH, '.config/pulsaride/headroom-removed')
+
+  ok('headroom: a sourced shell hook leaves .bashrc, the rest stays',
+    r('.bashrc') === 'export PATH="$HOME/bin:$PATH"\nalias ll="ls -l"\n')
+  ok('headroom: a marked block leaves .zshrc whole, nothing around it',
+    r('.zshrc') === 'setopt autocd\nbindkey -e\n')
+  ok('headroom: a line inside someone\'s if-block is left alone and reported',
+    r('Documents/PowerShell/Microsoft.PowerShell_profile.ps1') === psBlocked &&
+    rep.traces.some((t) => t.action === 'manual' && /Microsoft\.PowerShell_profile/.test(t.where)))
+  ok('headroom: a OneDrive-moved PowerShell profile is found too',
+    r('OneDrive - Work/Documents/WindowsPowerShell/profile.ps1') === 'Set-Alias g git\n')
+  const cs = JSON.parse(r('.claude/settings.json'))
+  ok('headroom: Claude settings lose its env redirect, hook and MCP -- ours stay',
+    cs.env.ANTHROPIC_BASE_URL === undefined && cs.env.KEEP_ME === '1' &&
+    cs.hooks.SessionStart[0].hooks.length === 1 &&
+    /resume-brief/.test(cs.hooks.SessionStart[0].hooks[0].command) &&
+    !cs.mcpServers.headroom && cs.mcpServers.planide)
+  ok('headroom: Codex loses its MCP table and proxy base_url, keeps the rest',
+    !/headroom|8787/.test(r('.codex/config.toml')) &&
+    /model = "gpt-5"/.test(r('.codex/config.toml')) && /\[mcp_servers\.planide\]/.test(r('.codex/config.toml')))
+  const stampDir = join(backups, readdirSync(backups)[0] ?? '')
+  ok('headroom: every changed file has a backup with the original in it, laid out as in home',
+    readdirSync(backups).length === 1 &&
+    /shell-hook\.sh/.test(readFileSync(join(stampDir, '.bashrc'), 'utf8')) &&
+    /claude-hook/.test(readFileSync(join(stampDir, '.claude/settings.json'), 'utf8')) &&
+    /\[mcp_servers\.headroom\]/.test(readFileSync(join(stampDir, '.codex/config.toml'), 'utf8')))
+  ok('headroom: its Startup entry is moved out, the others stay',
+    !existsSync(join(startup, 'headroom.vbs')) && existsSync(join(startup, 'onedrive.lnk')))
+  ok('headroom: only its Run value and env redirect are deleted from the registry',
+    calls.includes('reg delete HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v HeadroomProxy /f') &&
+    calls.includes('reg delete HKCU\\Environment /v ANTHROPIC_BASE_URL /f') &&
+    !calls.some((c) => /delete .* \/v (OneDrive|Path) /.test(c)))
+  ok('headroom: only its scheduled task is deleted',
+    calls.includes('schtasks /Delete /TN \\Headroom Updater /F') &&
+    !calls.some((c) => /Delete .*OneDrive/.test(c)))
+  const mk = JSON.parse(readFileSync(join(HH, '.config/pulsaride/headroom-cleanup.json'), 'utf8'))
+  ok('headroom: the report is kept beside the backups', mk.systemPass >= 1 && mk.last.traces.length >= 8)
+
+  // Second launch: nothing left to remove, and the Windows half does not spawn again.
+  calls.length = 0
+  const rep2 = await removeHeadroom(HH, { platform: 'win32', exec: fakeExec, appData })
+  ok('headroom: a second launch removes nothing and spawns nothing',
+    !rep2.traces.some((t) => t.action === 'removed') && calls.length === 0 &&
+    readdirSync(backups).length === 1)
+
+  // Its installer runs again: the file half finds it, so the Windows half re-runs.
+  writeFileSync(join(HH, '.bashrc'), r('.bashrc') + 'source ~/.headroom/shell-hook.sh\n')
+  const rep3 = await removeHeadroom(HH, { platform: 'win32', exec: fakeExec, appData })
+  ok('headroom: back after a re-install -> removed again, Windows half re-run',
+    !/headroom/.test(r('.bashrc')) && rep3.traces.some((t) => t.action === 'removed') &&
+    calls.some((c) => c.startsWith('schtasks /Query')))
+
+  // A clean machine: nothing written, nothing spawned beyond the one-time pass.
+  const clean = join(work, 'clean-home'); mkdirSync(clean)
+  writeFileSync(join(clean, '.bashrc'), 'alias ll="ls -l"\n')
+  const repClean = await removeHeadroom(clean, { platform: 'linux' })
+  ok('headroom: a clean machine is left exactly as it was',
+    repClean.traces.length === 0 && readFileSync(join(clean, '.bashrc'), 'utf8') === 'alias ll="ls -l"\n' &&
+    !existsSync(join(clean, '.config/pulsaride/headroom-removed')))
+
+  // The pure rules, pinned.
+  ok('headroom: a continued line is never cut in half',
+    stripHeadroomLines('headroom start \\\n  --port 8787\n').blocked === true)
+  ok('headroom: an unclosed marker block changes nothing',
+    stripHeadroomLines('# >>> headroom >>>\nexport X=1\n').blocked === true)
+  ok('headroom: CRLF profiles keep their line endings',
+    stripHeadroomLines('a\r\nheadroom on\r\nb\r\n').text === 'a\r\nb\r\n')
+  ok('headroom: the only statement of a bash then-block is left alone',
+    stripHeadroomLines('if [ -f ~/.hr ]; then\n  headroom hook\nfi\n').blocked === true)
+  ok('headroom: a top-level line after a closed block still goes',
+    stripHeadroomLines('if x; then\n  y\nfi\n[ -f ~/.hr ] && source ~/.headroom/hook.sh\n').text === 'if x; then\n  y\nfi\n')
+  ok('headroom: a variable it sets that the rest still reads keeps everything (bash)',
+    stripHeadroomLines('HR="$HOME/.headroom/hook.sh"\nif [ -f "$HR" ]; then\n  . "$HR"\nfi\n').blocked === true)
+  ok('headroom: ...and in PowerShell, case-insensitively',
+    stripHeadroomLines('$Hook = "$HOME\\.headroom\\hook.ps1"\nif (Test-Path $hook) { . $hook }\n', 'powershell').blocked === true)
+  ok('headroom: a variable nobody else reads goes with its line',
+    stripHeadroomLines('export HEADROOM_PORT=8787\nalias ll="ls -l"\n').text === 'alias ll="ls -l"\n')
+  ok('headroom: a fish function body is left alone',
+    stripHeadroomLines('function hr\n  headroom on\nend\n', 'fish').blocked === true)
+  ok('headroom: a TOML table after its table is kept',
+    stripHeadroomToml('[mcp_servers.headroom]\ncommand = "x"\n[other]\nk = 1\n').text === '[other]\nk = 1\n')
+}
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

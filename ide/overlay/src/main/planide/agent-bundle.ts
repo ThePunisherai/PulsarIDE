@@ -40,6 +40,14 @@ import {
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import {
+  cleanHeadroom,
+  removedHeadroom,
+  type HeadroomCleanupReport,
+  type HiddenExec
+} from './headroom-cleanup'
+// The pure parts, for the tests that pin what a profile line may lose.
+export { stripHeadroomLines, stripHeadroomToml } from './headroom-cleanup'
 
 type Manifest = {
   bundle_version: string
@@ -346,6 +354,73 @@ function configDir(home: string): string {
   return join(home, '.config', 'pulsaride')
 }
 
+/**
+ * Bump to run the Windows half of the Headroom cleanup (registry, scheduled
+ * tasks, running process) once more on every machine. It spawns reg/schtasks,
+ * so unlike the file half it does not run on every launch.
+ */
+const HEADROOM_SYSTEM_PASS = 1
+
+type HeadroomMarker = { systemPass: number; last: HeadroomCleanupReport | null }
+
+/**
+ * Removes Headroom's launch points from this machine -- see headroom-cleanup.ts
+ * for what and why. The file half (shell profiles, agent configs) runs every
+ * time; the Windows half runs once per HEADROOM_SYSTEM_PASS, and again whenever
+ * the file half finds Headroom back, since that means its installer ran again.
+ * What it did is kept in ~/.config/pulsaride/headroom-cleanup.json, and every
+ * file it changed is backed up under headroom-removed/<time>/. Never throws.
+ */
+export async function removeHeadroom(
+  home: string = homedir(),
+  opts: { platform?: NodeJS.Platform; exec?: HiddenExec; appData?: string } = {}
+): Promise<HeadroomCleanupReport | null> {
+  try {
+    const markerPath = join(configDir(home), 'headroom-cleanup.json')
+    let marker: HeadroomMarker | null = null
+    try {
+      marker = JSON.parse(readFileSync(markerPath, 'utf8')) as HeadroomMarker
+    } catch {
+      marker = null
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const base = {
+      home,
+      backupDir: join(configDir(home), 'headroom-removed', stamp),
+      platform: opts.platform,
+      exec: opts.exec,
+      appData: opts.appData
+    }
+    const systemDue = (marker?.systemPass ?? 0) < HEADROOM_SYSTEM_PASS
+    let report = await cleanHeadroom({ ...base, includeSystem: systemDue })
+    if (!systemDue && removedHeadroom(report)) {
+      // Back in a profile or config: its installer ran again, so its Windows
+      // launch points may be back too. The file half finds nothing new this
+      // time, only what it already reported.
+      const again = await cleanHeadroom({ ...base, includeSystem: true })
+      const key = (t: { action: string; where: string }): string => `${t.action} ${t.where}`
+      const seen = new Set(report.traces.map(key))
+      report = { ...report, traces: [...report.traces, ...again.traces.filter((t) => !seen.has(key(t)))] }
+    }
+    if (systemDue || report.traces.length) {
+      const next: HeadroomMarker = {
+        systemPass: HEADROOM_SYSTEM_PASS,
+        last: report.traces.length ? report : (marker?.last ?? null)
+      }
+      mkdirSync(configDir(home), { recursive: true })
+      writeFileSync(markerPath, `${JSON.stringify(next, null, 2)}\n`)
+    }
+    for (const t of report.traces) {
+      const line = `[pulsaride] headroom ${t.action}: ${t.where} -- ${t.detail}`
+      if (t.action === 'removed') console.log(line)
+      else console.warn(line)
+    }
+    return report
+  } catch {
+    return null
+  }
+}
+
 function readMarker(home: string): Marker | null {
   const path = join(configDir(home), 'agent-bundle.json')
   if (!existsSync(path)) return null
@@ -497,6 +572,11 @@ export function deployAgentBundle(
     // Same shape as the venv above: optional, detached, never a gate. Opt-out
     // aware, so a user who turned ECC off does not get it back on next launch.
     if (opts.provisionPyEnv !== false) ensureEcc(home, root)
+    // Headroom off the machine -- also every launch, because the installer that
+    // put it there can run again. Asynchronous and self-contained: it never
+    // holds up the deploy below and never throws. Tests pass false here too, so
+    // they do not touch the real registry or the real profiles.
+    if (opts.provisionPyEnv !== false) void removeHeadroom(home)
     const alreadyTracked = existsSync(join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs'))
     let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home) : false
 
