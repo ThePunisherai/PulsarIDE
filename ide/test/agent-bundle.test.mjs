@@ -1074,6 +1074,40 @@ ok('its launcher and script are both on disk',
   }
 }
 
+// --- autopilot: the keep-going hook, on every agent that has the events ----- //
+// The user's prompt and the end of the turn, under each agent's own names and
+// timeout units: Claude Code UserPromptSubmit/Stop (seconds), Codex the same
+// names with `timeoutSec`, Gemini CLI and Qwen BeforeAgent/AfterAgent (ms).
+{
+  const claudeHooks = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8')).hooks
+  const ours = (groups) => (groups ?? []).filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('keep-going')))
+  ok('autopilot: Claude Code gets the keep-going hook on UserPromptSubmit and Stop, once each',
+    ours(claudeHooks.UserPromptSubmit).length === 1 && ours(claudeHooks.Stop).length === 1 &&
+    ours(claudeHooks.Stop)[0].hooks[0].timeout === 15 &&
+    existsSync(ours(claudeHooks.Stop)[0].hooks[0].command) &&
+    existsSync(join(HOME, '.config/pulsaride/hooks/keep-going.mjs')))
+  const codexHooks = JSON.parse(readFileSync(join(HOME, '.codex/hooks.json'), 'utf8')).hooks
+  ok('autopilot: Codex gets it on the same two events, with timeoutSec',
+    ours(codexHooks.UserPromptSubmit).length === 1 && ours(codexHooks.Stop).length === 1 &&
+    ours(codexHooks.Stop)[0].hooks[0].timeoutSec === 15 && ours(codexHooks.Stop)[0].hooks[0].timeout === undefined)
+  for (const [label, file] of [['Gemini CLI', '.gemini/settings.json'], ['Qwen Code', '.qwen/settings.json']]) {
+    const h = JSON.parse(readFileSync(join(HOME, file), 'utf8')).hooks
+    ok(`autopilot: ${label} gets it on BeforeAgent and AfterAgent, timeout in milliseconds`,
+      ours(h.BeforeAgent).length === 1 && ours(h.AfterAgent).length === 1 &&
+      ours(h.AfterAgent)[0].hooks[0].timeout === 15000)
+    const guard = (h.BeforeTool ?? []).filter((e) => (e.hooks ?? []).some((x) => String(x.command ?? '').includes('docs-guard')))
+    ok(`docs guard: ${label} gets it on BeforeTool write_file, once`,
+      guard.length === 1 && guard[0].matcher === 'write_file' && guard[0].hooks[0].timeout === 15000)
+  }
+  const claudeGuard = (claudeHooks.PreToolUse ?? []).filter((e) => (e.hooks ?? []).some((x) => String(x.command ?? '').includes('docs-guard')))
+  ok('docs guard: Claude Code gets it on PreToolUse Write, once, and its script is deployed',
+    claudeGuard.length === 1 && claudeGuard[0].matcher === 'Write' &&
+    existsSync(claudeGuard[0].hooks[0].command) && existsSync(join(HOME, '.config/pulsaride/hooks/docs-guard.mjs')))
+  ok('docs: the shared sweep ships with the deployed tracker',
+    existsSync(join(HOME, '.config/pulsaride/tracker/mcp/docs-tidy.mjs')) &&
+    existsSync(join(HOME, '.config/pulsaride/tracker/mcp/sessions.mjs')))
+}
+
 // Both hooks import the shared work order from the DEPLOYED tracker
 // (<config>/hooks -> ../tracker/mcp/work-queue.mjs). The repo tests prove the
 // logic; this proves the deployed layout actually resolves it, through the very
@@ -1100,6 +1134,22 @@ if (process.platform !== 'win32') {
   }
   ok('the deployed resume hook hands a new session the item to finish first, then the todo',
     /finish first: "Resume me"/.test(briefCtx) && briefCtx.includes('Next todo: 1. "Then me"'))
+  // The deployed autopilot finds the deployed tracker (work-queue + sessions) too.
+  const goLauncher = join(HOME, '.config/pulsaride/hooks/keep-going.sh')
+  const goRun = (payload) => execSync(`"${goLauncher}"`, { input: JSON.stringify(payload) }).toString()
+  goRun({ hook_event_name: 'UserPromptSubmit', session_id: 'DEP', cwd: deployedProj, prompt: 'build it' })
+  execSync(`"${todoLauncher}"`, {
+    input: JSON.stringify({ tool_name: 'TodoWrite', session_id: 'DEP', cwd: deployedProj, tool_input: { todos: [
+      { content: 'Built it', status: 'completed' }] } })
+  })
+  let stop = {}
+  try {
+    stop = JSON.parse(goRun({ hook_event_name: 'Stop', session_id: 'DEP', cwd: deployedProj, stop_hook_active: false }))
+  } catch {
+    stop = {}
+  }
+  ok('the deployed autopilot hands a turn that worked the board the next item instead of the stop',
+    stop.decision === 'block' && /"Resume me"/.test(stop.reason || ''))
 }
 
 // --- the vendored libraries: pre-installed, and still there after an update -- //

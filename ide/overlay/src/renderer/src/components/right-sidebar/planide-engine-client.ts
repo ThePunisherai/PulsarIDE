@@ -22,6 +22,8 @@ export type PlanIdeProgress = {
   confirmed_percent: number
   /** Your auto-complete switch: work that works counts as finished. */
   auto_complete: boolean
+  /** Your autopilot switch: agents keep working the board unasked. Missing reads as on. */
+  autopilot?: boolean
   /** Counted as finished: everything that works (auto-complete on), else your checks. */
   accepted: number
   accepted_percent: number
@@ -151,7 +153,7 @@ export type PlanIdeProject = {
   /** The work order: what to finish, what is next, what waits in Fixes. */
   queue?: PlanIdeQueue
   /** Your switches. Missing reads as auto-complete on. */
-  settings?: { auto_complete: boolean }
+  settings?: { auto_complete: boolean; autopilot?: boolean }
   stack?: { detected?: PlanIdeDetected; custom?: string }
   github?: {
     remote: string
@@ -314,6 +316,11 @@ export function lockItem(path: string, itemId: string, locked: boolean): Promise
 /** Your auto-complete switch. Yours alone: no agent-facing tool reaches it. */
 export function setAutoComplete(path: string, enabled: boolean): Promise<PlanIdeProject> {
   return call<PlanIdeProject>('setAutoComplete', path, enabled)
+}
+
+/** Your autopilot switch: agents keep working the board unasked. Yours alone too. */
+export function setAutopilot(path: string, enabled: boolean): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('setAutopilot', path, enabled)
 }
 
 // --------------------------------------------------------------------------- fixes

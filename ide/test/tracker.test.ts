@@ -140,6 +140,24 @@ ok('and nothing is closed out while it is off', store.closeOutWorking(acBoard).l
 store.setAutoComplete(acBoard, true)
 ok('switching it back on applies at once, and is logged as yours',
   acBoard.activity.filter((a) => a.kind === 'settings' && a.who === 'you').length === 2)
+// The autopilot switch: on by default, the user's alone, shown in the rollups.
+ok('autopilot is on for a board that never set it, and the rollups say so',
+  store.progress(acBoard).autopilot === true && store.autopilot({ settings: { auto_complete: true } }) === true)
+store.setAutopilot(acBoard, false)
+ok('switching autopilot off sticks, leaves auto-complete alone, and is logged as yours',
+  store.progress(acBoard).autopilot === false && store.autoComplete(acBoard) === true &&
+  acBoard.activity.some((a) => a.kind === 'settings' && a.who === 'you' && /autopilot off/.test(a.text)))
+store.setAutopilot(acBoard, true)
+// A plan's row you edit is yours: no agent plan takes it back off the board.
+{
+  const planned = store.addItem(acBoard, { title: 'Planned by an agent' })
+  ;(planned as { plan_key?: string }).plan_key = 'S1'
+  store.updateItem(acBoard, planned.id, { status: 'wip', claimed_by: 'Codex' })
+  ok('an agent moving a planned row keeps it the plan\'s', (planned as { plan_key?: string }).plan_key === 'S1')
+  store.updateItem(acBoard, planned.id, { title: 'Planned, renamed by you' })
+  ok('renaming it yourself makes it yours', (planned as { plan_key?: string }).plan_key === undefined)
+  store.deleteItem(acBoard, planned.id)
+}
 ok('regressed counted', p.regressed === 1)
 ok('protected counted', p.protected === 1)
 ok('open counted (todo)', p.open === 1)

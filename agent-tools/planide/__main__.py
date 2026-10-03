@@ -25,7 +25,7 @@ Write commands  (this is how an AI agent tracks its own work)
   activity <path|id> [n]                recent changes and who made them
   fix  add    <path|id> "title" [--problem P] [--solution S] [--agent A] [--status open]
   fix  done   <path|id> <fix_id> [--solution S]
-  settings <path|id> [--auto-complete on|off]
+  settings <path|id> [--auto-complete on|off] [--autopilot on|off]
                                        your switches: with auto-complete on (the
                                        default) agent work that works lands as done
   milestone add <path|id> "title" [--target T]
@@ -305,18 +305,25 @@ def cmd_next(argv):
 
 
 def cmd_settings(argv):
-    pos, opt = parse(argv, {"auto-complete"})
+    pos, opt = parse(argv, {"auto-complete", "autopilot"})
     if not pos:
-        print("usage: settings <path|id> [--auto-complete on|off]"); return 1
+        print("usage: settings <path|id> [--auto-complete on|off] [--autopilot on|off]"); return 1
     st, path = _resolve(pos[0])
-    if "auto-complete" in opt:
-        value = str(opt["auto-complete"]).strip().lower()
+    changed = False
+    for flag, setter in (("auto-complete", store.set_auto_complete), ("autopilot", store.set_autopilot)):
+        if flag not in opt:
+            continue
+        value = str(opt[flag]).strip().lower()
         if value not in ("on", "off", "true", "false", "1", "0"):
-            print("--auto-complete takes on or off"); return 1
-        store.set_auto_complete(st, value in ("on", "true", "1"))
+            print("--%s takes on or off" % flag); return 1
+        setter(st, value in ("on", "true", "1"))
+        changed = True
+    if changed:
         _save(st, path)
     print("auto-complete: %s" % ("on -- agent work that works lands as done"
                                  if store.auto_complete(st) else "off -- agent work waits for your check"))
+    print("autopilot: %s" % ("on -- agents keep working the board after their own task"
+                             if store.autopilot(st) else "off -- agents stop when their own task is done"))
     return 0
 
 

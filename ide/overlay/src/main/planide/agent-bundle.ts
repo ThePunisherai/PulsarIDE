@@ -107,7 +107,12 @@ never need to be asked, and the board is created on first use, so it always work
 - **Work in the board's order.** \`next_task\` returns it: finish \`wip\` first (also
   what an earlier session left half done), then \`todo\`, then open fixes. A bug you hit
   mid-task → \`add_fix\` (it lands in Fixes > Open) and stay on what you were doing; it
-  is picked up after the todo list.
+  is picked up after the todo list. When your own task is done, carry on with that queue
+  without being asked — \`set_item\` answers with the \`next\` item (the user's autopilot).
+- **Docs go in \`docs/\`.** Never write a loose .md at the project root (README,
+  CHANGELOG, AGENTS.md and the like stay there); update the existing doc on a subject
+  before adding another. When the board is clear, docs/ is bundled into one
+  \`docs/README.md\` — the board hands you that as an item.
 - **Mirror the conversation onto the board, in the same turn the fact appears:**
   - The user asks for something, or you plan a step you have not started yet →
     \`add_item\` (status \`todo\`), so the plan is on the board before any code moves.
@@ -964,6 +969,44 @@ function wireHooks(home: string, root: string): boolean {
     })
   }
 
+  // --- autopilot: keep working the board without being told --------------- //
+  // The brief above fires once, and every new prompt took over from it: "als
+  // ik niet vraag pak wat in behandeling is op, doet hij het niet". So the same
+  // script answers two more events (keep-going.mjs): the user's prompt, to mark
+  // where the board stands and to answer a bare "ga door" with the item to go
+  // on with, and the end of the turn, to hand over the next item instead of
+  // stopping -- `{ decision: "block", reason }`, which Claude Code continues
+  // the turn with (code.claude.com/docs/en/hooks.md). Gated in work-queue.mjs
+  // keepGoing: the user's switch, progress, a per-turn limit, and a turn that
+  // never touched the board is never followed by board work.
+  const goScript = join(hookSrc, 'keep-going.mjs')
+  if (existsSync(goScript)) {
+    const goDest = join(hookDir, 'keep-going.mjs')
+    cpSync(goScript, goDest)
+    const launcher = writeNodeLauncher(hookDir, 'keep-going', goDest, onWindows)
+    for (const event of ['UserPromptSubmit', 'Stop']) {
+      reconcileHookGroup(hooks, event, 'keep-going', {
+        hooks: [{ type: 'command', command: launcher, timeout: 15 }]
+      })
+    }
+  }
+
+  // --- docs go in docs/ ------------------------------------------------------ //
+  // "In de toekomst alleen daar aanmaken": a new loose doc at a tracked
+  // project's root is refused with where it belongs (docs-guard.mjs), so the
+  // agent writes it there itself. `PreToolUse` on `Write` can deny with a
+  // reason the agent reads (hookSpecificOutput.permissionDecision).
+  const guardScript = join(hookSrc, 'docs-guard.mjs')
+  if (existsSync(guardScript)) {
+    const guardDest = join(hookDir, 'docs-guard.mjs')
+    cpSync(guardScript, guardDest)
+    const launcher = writeNodeLauncher(hookDir, 'docs-guard', guardDest, onWindows)
+    reconcileHookGroup(hooks, 'PreToolUse', 'docs-guard', {
+      matcher: 'Write',
+      hooks: [{ type: 'command', command: launcher, timeout: 15 }]
+    })
+  }
+
   // --- the agent's own plan, onto the board ------------------------------- //
   // `PostToolUse` with an exact `TodoWrite` matcher: verified against
   // code.claude.com/docs/en/hooks.md, that event hands the hook `tool_name`,
@@ -1063,6 +1106,18 @@ function resumeLauncher(home: string): string | null {
   return existsSync(path) ? path : null
 }
 
+/** The docs-guard launcher wireHooks wrote, if it is really on disk. */
+function docsGuardLauncher(home: string): string | null {
+  const path = join(configDir(home), 'hooks', process.platform === 'win32' ? 'docs-guard.cmd' : 'docs-guard.sh')
+  return existsSync(path) ? path : null
+}
+
+/** The autopilot launcher wireHooks wrote, if it is really on disk. */
+function keepGoingLauncher(home: string): string | null {
+  const path = join(configDir(home), 'hooks', process.platform === 'win32' ? 'keep-going.cmd' : 'keep-going.sh')
+  return existsSync(path) ? path : null
+}
+
 /**
  * The same plan-to-board sync, for Codex, off Codex's own plan tool.
  *
@@ -1146,6 +1201,20 @@ function wireCodexPlanHook(home: string): boolean {
         hooks: [{ type: 'command', command: resume, timeoutSec: 15 }]
       })
     }
+    // The autopilot, on the same two events Claude Code uses. Verified in
+    // openai/codex codex-rs/hooks/src/schema.rs and events/stop.rs: Stop hands
+    // over session_id, cwd and last_assistant_message and continues the turn on
+    // `{ decision: "block", reason }`; UserPromptSubmit hands over `prompt` and
+    // reads hookSpecificOutput.additionalContext. Hooks are a stable,
+    // default-on Codex feature (codex-rs/features: "hooks").
+    const go = keepGoingLauncher(home)
+    if (go) {
+      for (const event of ['UserPromptSubmit', 'Stop']) {
+        reconcileHookGroup(hooks, event, 'keep-going', {
+          hooks: [{ type: 'command', command: go, timeoutSec: 15 }]
+        })
+      }
+    }
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
@@ -1223,6 +1292,27 @@ function wireGeminiPlanHook(home: string): boolean {
       if (resume) {
         reconcileHookGroup(hooks, 'SessionStart', 'resume-brief', {
           hooks: [{ type: 'command', command: resume, timeout: 15000 }]
+        })
+      }
+      // The autopilot: Gemini CLI's names for the same two moments. BeforeAgent
+      // hands over `prompt` and appends hookSpecificOutput.additionalContext;
+      // AfterAgent takes `{ decision: "block", reason }` ("deny" alias) and sends
+      // the reason to the agent as a new prompt (docs/hooks/reference.md).
+      const go = keepGoingLauncher(home)
+      if (go) {
+        for (const event of ['BeforeAgent', 'AfterAgent']) {
+          reconcileHookGroup(hooks, event, 'keep-going', {
+            hooks: [{ type: 'command', command: go, timeout: 15000 }]
+          })
+        }
+      }
+      // Docs go in docs/: BeforeTool on write_file can refuse with a reason
+      // ({ decision: "deny", reason }), which the agent reads and acts on.
+      const guard = docsGuardLauncher(home)
+      if (guard) {
+        reconcileHookGroup(hooks, 'BeforeTool', 'docs-guard', {
+          matcher: 'write_file',
+          hooks: [{ type: 'command', command: guard, timeout: 15000 }]
         })
       }
       mkdirSync(dirname(path), { recursive: true })
@@ -2015,7 +2105,10 @@ function projectAgentsBlock(home: string): string {
     '  shown in the IDE Tracker tab. Use the `planide` MCP tools when you have them',
     '  (`get_board`, `next_task`), otherwise the CLI: `' + join(configDir(home), 'tracker', 'plan') + ' board <project>`.',
     '- **Work in its order:** finish what is in progress (`wip`), then `todo`, then open',
-    '  fixes. `next_task` / `plan next <project>` returns exactly that.',
+    '  fixes. `next_task` / `plan next <project>` returns exactly that. When your own task',
+    '  is done, carry on down that queue unasked (`set_item` answers with `next`).',
+    '- **Docs go in `docs/`**, never loose at the root (README, CHANGELOG, AGENTS.md stay).',
+    '  Update the doc on a subject before adding another.',
     '- **Keep it true as you work:** `add_item` (todo) for a request, `set_item` wip when',
     '  you start, works when it really works -- with the user\'s auto-complete on it lands as',
     '  `done`, so run the project\'s own checks first. A bug you hit mid-task: `add_fix`',

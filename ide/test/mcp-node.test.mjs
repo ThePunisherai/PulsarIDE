@@ -224,7 +224,10 @@ const shapeRun = await drive([
   ] }),
   // Mixed: throwing here would roll back the steps that were fine, which is
   // strictly worse than the silence it replaces. Keep them, and say what fell out.
+  // The whole plan again, as agents send it -- a step left out of a re-sent plan
+  // is a step the plan dropped (retireDroppedSteps).
   call(81, 'sync_plan', { project: shapeProj, agent: 'codex', todos: [
+    { step: 'Codex calls it step', status: 'in_progress' },
     { content: 'readable', status: 'pending' },
     { unreadable: true }
   ] }),
@@ -909,6 +912,321 @@ runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: acOff, tool_input: { tod
   ok('and the switch reads the same way, including a board with no settings at all',
     wq.autoComplete({}) === store.autoComplete({}) && wq.autoComplete({ settings: { auto_complete: false } }) === false &&
     store.autoComplete({ settings: { auto_complete: false } }) === false)
+}
+
+// --- a plan's own steps leave the board when the plan drops them ----------- //
+// "todo gaat nooit omlaag waardoor het oneindig is": every plan step became a
+// row and none ever left. Now a plan takes back the OPEN rows it created itself
+// and has since dropped -- never a row that was on the board first, never one
+// the user made theirs, never finished work, never another session's.
+{
+  const rp = mkdtempSync(join(tmpdir(), 'pulsar-retire-'))
+  mkdirSync(join(rp, '.git'))
+  const todo = (session, todos, extra = {}) =>
+    runHook('todo-sync.mjs', { tool_name: 'TodoWrite', session_id: session, cwd: rp, tool_input: { todos }, ...extra })
+  const titles = () => readBoard(rp).items.map((i) => `${i.title}:${i.status}`).sort().join(',')
+
+  // A row the board had before any plan touched it.
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(400, 'add_item', { project: rp, title: 'Board item first' })
+  ])
+  todo('S1', [
+    { content: 'Step A', status: 'in_progress' },
+    { content: 'Step B', status: 'pending' },
+    { content: 'Step C', status: 'pending' },
+    { content: 'Board item first', status: 'pending' }
+  ])
+  ok('retire: a plan lands as before, its new rows stamped with their plan',
+    titles() === 'Board item first:todo,Step A:wip,Step B:todo,Step C:todo' &&
+    readBoard(rp).items.filter((i) => i.plan_key === 'S1').length === 3 &&
+    !readBoard(rp).items.find((i) => i.title === 'Board item first').plan_key)
+  ok('retire: the plan hook names the agent instead of "agent"',
+    readBoard(rp).items.find((i) => i.title === 'Step A').claimed_by === 'Claude Code')
+
+  // The user makes Step C theirs in the IDE.
+  {
+    const s = store.loadState(rp)
+    store.updateItem(s, s.items.find((i) => i.title === 'Step C').id, { notes: 'keep this one' })
+    store.saveState(rp, s)
+  }
+  // A subagent in the same session has a plan of its own.
+  todo('S1', [{ content: 'Sub step', status: 'in_progress' }], { agent_id: 'sub-1', agent_type: 'pulse-frontend' })
+  // Another session's plan never touches S1's rows.
+  todo('S2', [{ content: 'Other session step', status: 'pending' }])
+
+  // S1 re-plans: A finished, B re-worded, C and the board item dropped.
+  todo('S1', [
+    { content: 'Step A', status: 'completed' },
+    { content: 'Step B, reworded', status: 'in_progress' }
+  ])
+  const after = titles()
+  ok('retire: the open steps this plan created and dropped leave the board',
+    !after.includes('Step B:') && after.includes('Step B, reworded:wip'))
+  ok('retire: finished work stays, as done',
+    after.includes('Step A:done'))
+  ok('retire: a row that was on the board first stays when the plan drops it',
+    after.includes('Board item first:todo'))
+  ok('retire: a row the user annotated is theirs and stays',
+    after.includes('Step C:todo') && !readBoard(rp).items.find((i) => i.title === 'Step C').plan_key)
+  ok("retire: a subagent's plan and another session's plan are untouched",
+    after.includes('Sub step:wip') && after.includes('Other session step:todo') &&
+    readBoard(rp).items.find((i) => i.title === 'Sub step').claimed_by === 'pulse-frontend')
+  ok('retire: the activity log says what left and why',
+    readBoard(rp).activity.some((a) => /dropped from the plan/.test(a.text) && /Step B/.test(a.text)))
+
+  // A plan with no session (an older agent, a hand-run hook) only adds and moves.
+  todo('', [{ content: 'Unkeyed', status: 'pending' }])
+  todo('', [{ content: 'Unkeyed 2', status: 'pending' }])
+  ok('retire: without a session nothing is ever retired', titles().includes('Unkeyed:todo'))
+
+  // sync_plan: one server process is one agent session.
+  const sp = await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(401, 'sync_plan', { project: rp, agent: 'antigravity', todos: [{ content: 'MCP one', status: 'pending' }, { content: 'MCP two', status: 'pending' }] }),
+    call(402, 'sync_plan', { project: rp, agent: 'antigravity', todos: [{ content: 'MCP one', status: 'in_progress' }] })
+  ])
+  ok('retire: sync_plan takes back what the same session dropped, and says so',
+    json(byId(sp.replies, 402)).dropped === 1 && titles().includes('MCP one:wip') && !titles().includes('MCP two'))
+  const sp2 = await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(403, 'sync_plan', { project: rp, agent: 'antigravity', todos: [{ content: 'Something else', status: 'pending' }] })
+  ])
+  ok("retire: a new session's sync_plan leaves the last session's open work for the queue",
+    !json(byId(sp2.replies, 403)).dropped && titles().includes('MCP one:wip'))
+}
+
+// --- autopilot: the next item instead of the end of the turn --------------- //
+// "als ik niet vraag pak wat in behandeling is op, doet hij het niet". The
+// keep-going hook marks the board at each prompt and, when a turn that worked
+// the board ends while work is left, blocks the stop with the next item.
+{
+  const ap = mkdtempSync(join(tmpdir(), 'pulsar-autopilot-'))
+  mkdirSync(join(ap, '.git'))
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(410, 'add_item', { project: ap, title: 'Left over work', status: 'wip' }),
+    call(411, 'add_item', { project: ap, title: 'Queued work' })
+  ])
+  const go = (event, extra = {}) => {
+    const r = runHook('keep-going.mjs', { hook_event_name: event, session_id: 'AP1', cwd: ap, ...extra })
+    let out = null
+    try {
+      out = r.stdout.trim() ? JSON.parse(r.stdout) : null
+    } catch {
+      out = { unparsable: r.stdout }
+    }
+    return { status: r.status, out }
+  }
+  const sessions = () => JSON.parse(readFileSync(join(ap, '.planide', 'sessions.json'), 'utf8'))
+
+  const q1 = go('UserPromptSubmit', { prompt: 'what does the header component do?' })
+  ok('autopilot: an ordinary prompt adds nothing to the context, and marks the board',
+    q1.status === 0 && q1.out === null && sessions().AP1?.mark && sessions().AP1.worked === false)
+  const s1 = go('Stop', { last_assistant_message: 'It renders the title bar.' })
+  ok('autopilot: a turn that never touched the board ends normally (a chat is not hijacked)',
+    s1.out === null)
+
+  go('UserPromptSubmit', { prompt: 'build the footer' })
+  runHook('todo-sync.mjs', { tool_name: 'TodoWrite', session_id: 'AP1', cwd: ap, tool_input: { todos: [
+    { content: 'Build the footer', status: 'completed' }] } })
+  ok('autopilot: the plan hook records that this session worked the board', sessions().AP1.worked === true)
+  const s2 = go('Stop', { last_assistant_message: 'Footer is done.' })
+  ok('autopilot: when that turn ends, the stop is blocked with the next item -- in progress first',
+    s2.out?.decision === 'block' && /"Left over work"/.test(s2.out.reason) && /in progress/.test(s2.out.reason))
+  ok('autopilot: the answer is exactly Codex\'s Stop shape (deny_unknown_fields: decision + reason only)',
+    JSON.stringify(Object.keys(s2.out).sort()) === '["decision","reason"]')
+  const s3 = go('Stop', { last_assistant_message: 'Looked at it.' })
+  ok('autopilot: stopping again with nothing moved is let through (no loop)', s3.out === null)
+
+  // The agent finishes the left-over item: the board moved, so the next one comes.
+  {
+    const s = store.loadState(ap)
+    store.updateItem(s, s.items.find((i) => i.title === 'Left over work').id, { status: 'done', claimed_by: 'Claude Code' })
+    store.saveState(ap, s)
+  }
+  const s4 = go('Stop', { last_assistant_message: 'Left-over work finished.' })
+  ok('autopilot: progress since the last push earns the next push -- the todo now',
+    s4.out?.decision === 'block' && /"Queued work"/.test(s4.out.reason) && /next todo/.test(s4.out.reason))
+
+  // A turn that ends on a question to the user is theirs to answer.
+  {
+    const s = store.loadState(ap)
+    store.addItem(s, { title: 'One more' })
+    store.saveState(ap, s)
+  }
+  const s5 = go('Stop', { last_assistant_message: 'Should the footer link to the docs or the blog?' })
+  ok('autopilot: never pushes past a question to the user', s5.out === null)
+
+  // Gemini CLI / Qwen Code: the same thing under their event names.
+  const g1 = go('BeforeAgent', { prompt: 'ga door' })
+  ok('autopilot: a bare "ga door" is answered with the item to continue with (Gemini BeforeAgent)',
+    g1.out?.hookSpecificOutput?.hookEventName === 'BeforeAgent' &&
+    /The user means: work the board/.test(g1.out.hookSpecificOutput.additionalContext) &&
+    /"Queued work"/.test(g1.out.hookSpecificOutput.additionalContext))
+  {
+    const s = store.loadState(ap)
+    store.updateItem(s, s.items.find((i) => i.title === 'Queued work').id, { status: 'wip', claimed_by: 'Gemini CLI' })
+    store.saveState(ap, s)
+  }
+  const g2 = go('AfterAgent', { prompt_response: 'Started on it.' })
+  ok('autopilot: Gemini AfterAgent gets the same block, after a "carry on" turn that moved the board',
+    g2.out?.decision === 'block' && /"Queued work"/.test(g2.out.reason))
+
+  // The per-turn limit.
+  {
+    const all = sessions()
+    all.AP1.pushes = 12
+    all.AP1.mark = 'stale'
+    writeFileSync(join(ap, '.planide', 'sessions.json'), JSON.stringify(all))
+  }
+  ok('autopilot: a turn gets at most AUTOPILOT_MAX continuations', go('Stop', { last_assistant_message: 'ok' }).out === null)
+
+  // The user's switch.
+  go('UserPromptSubmit', { prompt: 'continue' })
+  {
+    const s = store.loadState(ap)
+    store.setAutopilot(s, false)
+    store.saveState(ap, s)
+  }
+  const off = go('UserPromptSubmit', { prompt: 'ga door' })
+  {
+    const all = sessions()
+    all.AP1.mark = 'stale'
+    writeFileSync(join(ap, '.planide', 'sessions.json'), JSON.stringify(all))
+  }
+  ok('autopilot: off means off -- no context on "ga door", no push at the stop',
+    off.out === null && go('Stop', { last_assistant_message: 'done' }).out === null)
+
+  // Agents with no stop hook (Antigravity, Cursor, opencode): set_item hands over the next item.
+  {
+    const s = store.loadState(ap)
+    store.setAutopilot(s, true)
+    store.saveState(ap, s)
+  }
+  const one = readBoard(ap).items.find((i) => i.title === 'One more')
+  const si = await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(412, 'set_item', { project: ap, id: readBoard(ap).items.find((i) => i.title === 'Queued work').id, status: 'done', agent: 'antigravity' })
+  ])
+  ok('autopilot: set_item done answers with the next item for agents without hooks',
+    /"One more"/.test(json(byId(si.replies, 412)).next || '') && Boolean(one))
+  ok('autopilot: an untracked project, or no session id, is left alone',
+    runHook('keep-going.mjs', { hook_event_name: 'Stop', session_id: 'X', cwd: mkdtempSync(join(tmpdir(), 'pulsar-untracked-ap-')) }).stdout === '' &&
+    runHook('keep-going.mjs', { hook_event_name: 'Stop', cwd: ap }).stdout === '')
+}
+
+// --- the continue cue: short "carry on" prompts only ----------------------- //
+{
+  const wq = await import(pathToFileURL(join(REPO, 'ide/agent-bundle/tracker/mcp/work-queue.mjs')).href)
+  const yes = ['ga door', 'Ga verder.', 'ok, top, ga maar door!', 'Continue from where you left off.', 'pak het op', 'next']
+  const no = ['ga door met de login-fix en ook de tests', 'wat doet deze functie?', 'top maak zo release', '']
+  ok('continue cue: "ga door" / "continue" count, a prompt naming its own work does not',
+    yes.every((p) => wq.isContinuePrompt(p)) && no.every((p) => !wq.isContinuePrompt(p)))
+  ok('autopilot switch: missing reads as on, the same on the agent side and in the IDE',
+    wq.autopilot({}) === true && store.autopilot({}) === true &&
+    wq.autopilot({ settings: { autopilot: false } }) === false && store.autopilot({ settings: { autopilot: false } }) === false)
+}
+
+// --- docs: one docs/ folder, and one document when the project is done ----- //
+// "in plaats van heel veel md-bestanden: bij bestaande alles in een docs-map,
+// in de toekomst alleen daar, en zodra het af is één duidelijk document".
+{
+  const dp = mkdtempSync(join(tmpdir(), 'pulsar-docs-'))
+  mkdirSync(join(dp, '.git'))
+  mkdirSync(join(dp, 'src'))
+  writeFileSync(join(dp, 'src', 'app.ts'), 'export {}\n')
+  writeFileSync(join(dp, 'README.md'), '# App\nSee [the plan](PLAN.md).\n')
+  writeFileSync(join(dp, 'AGENTS.md'), '# agents\n')
+  writeFileSync(join(dp, 'CHANGELOG.md'), '# changes\n')
+  writeFileSync(join(dp, 'PLAN.md'), '# Plan\nStart in [app](src/app.ts).\n')
+  writeFileSync(join(dp, 'IMPLEMENTATION_SUMMARY.md'), '# Summary\n')
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(420, 'add_item', { project: dp, title: 'Only item', status: 'done' })
+  ])
+  const sb = runHook('resume-brief.mjs', { cwd: dp, hook_event_name: 'SessionStart', source: 'startup' })
+  let sbCtx = ''
+  try {
+    sbCtx = JSON.parse(sb.stdout).hookSpecificOutput.additionalContext
+  } catch {
+    sbCtx = ''
+  }
+  ok('docs: an existing project\'s loose docs move into docs/ when a session starts',
+    existsSync(join(dp, 'docs', 'PLAN.md')) && existsSync(join(dp, 'docs', 'IMPLEMENTATION_SUMMARY.md')) &&
+    !existsSync(join(dp, 'PLAN.md')) && !existsSync(join(dp, 'IMPLEMENTATION_SUMMARY.md')))
+  ok('docs: README, AGENTS.md and CHANGELOG stay at the root',
+    ['README.md', 'AGENTS.md', 'CHANGELOG.md'].every((f) => existsSync(join(dp, f))))
+  ok('docs: links still work both ways after the move',
+    readFileSync(join(dp, 'docs', 'PLAN.md'), 'utf8').includes('](../src/app.ts)') &&
+    readFileSync(join(dp, 'README.md'), 'utf8').includes('](docs/PLAN.md)'))
+  ok('docs: the session is told what moved, and the board\'s activity says so too',
+    /moved 2 loose doc\(s\) into docs\//.test(sbCtx) && readBoard(dp).activity.some((a) => a.kind === 'docs'))
+
+  // Future writes: a new loose doc at the root is refused with where it goes.
+  const guard = (payload) => {
+    const r = runHook('docs-guard.mjs', { cwd: dp, ...payload })
+    try {
+      return r.stdout.trim() ? JSON.parse(r.stdout) : null
+    } catch {
+      return { unparsable: r.stdout }
+    }
+  }
+  const deny = guard({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: join(dp, 'NOTES.md'), content: 'x' } })
+  ok('docs guard: Claude Code writing a new loose doc at the root is denied, with the docs/ path',
+    deny?.hookSpecificOutput?.permissionDecision === 'deny' &&
+    deny.hookSpecificOutput.permissionDecisionReason.includes(join(dp, 'docs', 'NOTES.md')))
+  ok('docs guard: docs/, README and existing files are let through',
+    guard({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: join(dp, 'docs', 'NOTES.md') } }) === null &&
+    guard({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: join(dp, 'CONTRIBUTING.md') } }) === null &&
+    guard({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: join(dp, 'src', 'notes.md') } }) === null &&
+    guard({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: join(dp, 'README.md') } }) === null)
+  const gDeny = guard({ hook_event_name: 'BeforeTool', tool_name: 'write_file', tool_input: { file_path: 'ROADMAP_NOTES.md' } })
+  ok('docs guard: Gemini CLI gets its own deny shape', gDeny?.decision === 'deny' && /docs\//.test(gDeny.reason))
+
+  // A loose doc that got through anyway (Codex writes via apply_patch) moves at the next prompt.
+  writeFileSync(join(dp, 'CODEX_NOTES.md'), '# from codex\n')
+  const pr = runHook('keep-going.mjs', { hook_event_name: 'UserPromptSubmit', session_id: 'DOC1', cwd: dp, prompt: 'build the export' })
+  let prCtx = ''
+  try {
+    prCtx = JSON.parse(pr.stdout).hookSpecificOutput.additionalContext
+  } catch {
+    prCtx = ''
+  }
+  ok('docs: one written at the root anyway moves at the next prompt, and the agent hears where',
+    existsSync(join(dp, 'docs', 'CODEX_NOTES.md')) && /CODEX_NOTES\.md -> docs\/CODEX_NOTES\.md/.test(prCtx))
+
+  // The project is done: the last item is one document out of all of them.
+  runHook('todo-sync.mjs', { tool_name: 'TodoWrite', session_id: 'DOC1', cwd: dp, tool_input: { todos: [
+    { content: 'Build the export', status: 'completed' }] } })
+  const end = JSON.parse(runHook('keep-going.mjs', { hook_event_name: 'Stop', session_id: 'DOC1', cwd: dp, last_assistant_message: 'Export done.' }).stdout || '{}')
+  const bundle = readBoard(dp).items.find((i) => /Bundle the docs/.test(i.title))
+  ok('docs: a working turn ending on a clear board gets the bundle item -- read them all, write one',
+    end.decision === 'block' && /Bundle the docs/.test(end.reason) && /docs\/README\.md/.test(end.reason) &&
+    /archive/.test(end.reason) && bundle?.status === 'todo')
+  // Closed without bundling: not asked again for the same set of documents.
+  {
+    const s = store.loadState(dp)
+    store.updateItem(s, bundle.id, { status: 'done', claimed_by: 'Claude Code' })
+    store.saveState(dp, s)
+  }
+  const again = runHook('keep-going.mjs', { hook_event_name: 'Stop', session_id: 'DOC1', cwd: dp, last_assistant_message: 'ok' })
+  ok('docs: the same set of documents is never asked for twice',
+    readBoard(dp).items.filter((i) => /Bundle the docs/.test(i.title)).length === 1 && again.stdout === '')
+
+  // Agents with no hooks: get_board tidies too.
+  writeFileSync(join(dp, 'ANTIGRAVITY_PLAN.md'), '# plan\n')
+  const gb = await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(421, 'get_board', { project: dp })
+  ])
+  ok('docs: get_board moves loose docs for agents without hooks, and says so',
+    /ANTIGRAVITY_PLAN\.md/.test(json(byId(gb.replies, 421)).docs || '') && existsSync(join(dp, 'docs', 'ANTIGRAVITY_PLAN.md')))
+  const dt = await import(pathToFileURL(join(REPO, 'ide/agent-bundle/tracker/mcp/docs-tidy.mjs')).href)
+  const notProject = mkdtempSync(join(tmpdir(), 'pulsar-notproj-'))
+  writeFileSync(join(notProject, 'NOTES.md'), 'x')
+  ok('docs: a folder that is not a project is never swept',
+    dt.sweepDocs(notProject).length === 0 && existsSync(join(notProject, 'NOTES.md')))
 }
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)

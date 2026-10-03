@@ -106,7 +106,7 @@ export async function status(path: string): Promise<GitStatus> {
 }
 
 const DEFAULT_IGNORES = [
-  '.planide/backups/', 'node_modules/', '__pycache__/', '*.pyc', '.venv/',
+  '.planide/backups/', '.planide/sessions.json', 'node_modules/', '__pycache__/', '*.pyc', '.venv/',
   'venv/', 'dist/', 'build/', 'target/', '.DS_Store'
 ]
 

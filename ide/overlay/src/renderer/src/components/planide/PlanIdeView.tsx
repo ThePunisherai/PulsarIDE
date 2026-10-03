@@ -24,6 +24,7 @@ import {
   Loader2,
   Lock,
   Map as MapIcon,
+  Play,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -60,6 +61,7 @@ import {
   reopenFix,
   resolveFix,
   setAutoComplete,
+  setAutopilot,
   setItemStatus,
   toggleMilestone,
   updateItem,
@@ -906,6 +908,24 @@ export default function PlanIdeView(): React.JSX.Element {
               {p.auto_complete
                 ? translate('planide.view.autoCompleteOn', 'Auto-complete on')
                 : translate('planide.view.autoCompleteOff', 'Auto-complete off')}
+            </Button>
+            {/* Your switch too: an agent that finished its own task takes the
+                board's next item instead of stopping. Missing reads as on. */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className={cn('h-6 px-2 text-[10.5px]', p.autopilot !== false ? 'text-emerald-500' : 'text-muted-foreground')}
+              title={
+                p.autopilot !== false
+                  ? translate('planide.view.autopilotOnHint', 'Agents keep working the board: in progress first, then todo, then fixes -- without being asked. Click to have them stop after their own task.')
+                  : translate('planide.view.autopilotOffHint', 'Agents stop when their own task is done. Click to let them keep working the board unasked.')
+              }
+              onClick={() => void act(() => setAutopilot(worktreePath, p.autopilot === false))}
+            >
+              <Play size={12} />{' '}
+              {p.autopilot !== false
+                ? translate('planide.view.autopilotOn', 'Autopilot on')
+                : translate('planide.view.autopilotOff', 'Autopilot off')}
             </Button>
             {loadedAt !== null && (
               <span className="pr-1 text-[10px] text-muted-foreground/60">

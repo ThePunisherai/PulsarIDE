@@ -35,8 +35,20 @@ import { basename, isAbsolute, join, resolve, sep } from 'node:path'
 // deployed with it -- the todo-sync and resume-brief hooks import it too, so
 // "is this the same step" and "what comes next" have one answer, not three.
 import {
-  autoComplete, closeOutWorking, findOpenFix, finishedStatus, planStep, sameTitle, wipHeldBy, workQueue
+  applyPlan, autoComplete, autopilot, closeOutWorking, findOpenFix, finishedStatus, nextUp, sameTitle, wipHeldBy, workQueue
 } from './work-queue.mjs'
+// Loose docs into docs/ -- the same sweep the session hooks run, here for the
+// agents that have no hooks (Antigravity, Cursor, opencode) and call get_board first.
+import { sweepDocs, sweepNote } from './docs-tidy.mjs'
+
+/**
+ * This server process is one agent session: every CLI starts its own stdio
+ * server and talks to it alone. So a plan sent through sync_plan is owned by
+ * this process (and the agent name it gives, which tells a dispatched subagent
+ * from its parent) -- the key that lets a later plan from the same session take
+ * the steps it dropped back off the board. See applyPlan in work-queue.mjs.
+ */
+const PROCESS_PLAN = `mcp-${process.pid}-${randomUUID().slice(0, 8)}`
 
 const SERVER_NAME = 'planide'
 const SERVER_VERSION = '2.0.0'
@@ -397,10 +409,17 @@ const TOOLS = [
     },
     run: (args) => {
       const path = resolveProject(args)
+      let docs = ''
+      try {
+        docs = sweepNote(sweepDocs(path))
+      } catch {
+        docs = ''
+      }
       const state = loadState(path)
       // Read-only: show the board as the next write will store it.
       closeOutWorking(state, nowIso())
       return {
+        ...(docs ? { docs } : {}),
         project: state.name,
         path,
         version: state.version,
@@ -526,8 +545,7 @@ const TOOLS = [
       if (!todos.length) throw new Error('todos is required and must not be empty')
       const agent = str(args.agent, 'agent').slice(0, 40)
       return mutate(path, (state) => {
-        let added = 0
-        let moved = 0
+        const steps = []
         const skipped = []
         for (const todo of todos) {
           const title = String(
@@ -544,45 +562,27 @@ const TOOLS = [
             skipped.push(todo)
             continue
           }
-          const status = finishedStatus(state, planStatus(typeof todo === 'string' ? '' : todo && todo.status))
-          // Shared with the todo-sync hook (work-queue.mjs), so both routes
-          // match a step the same way -- and neither drops a `done` item back
-          // to `works`, nor moves a step the user protected.
-          const step = planStep(state.items, title, status)
-          if (step.action === 'add') {
-            state.items.push({
-              id: newId('i_'),
-              title: title.length > 160 ? `${title.slice(0, 159)}\u2026` : title,
-              status,
-              notes: '', tags: ['plan'], priority: 'normal',
-              created_at: nowIso(), updated_at: nowIso(), claimed_by: agent,
-              verified: false, verified_at: '', verified_by: '', locked: false, locked_at: ''
-            })
-            added += 1
-            continue
-          }
-          if (step.action === 'move') {
-            const item = step.item
-            item.status = status
-            item.updated_at = nowIso()
-            if (!item.claimed_by) item.claimed_by = agent
-            // A status change drops a stale confirmation, as everywhere else.
-            if (item.verified) {
-              item.verified = false
-              item.verified_at = ''
-              item.verified_by = ''
-            }
-            moved += 1
-          }
+          steps.push({ title, status: finishedStatus(state, planStatus(typeof todo === 'string' ? '' : todo && todo.status)) })
         }
-        if (added || moved) {
-          logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved`, agent)
+        // The one plan writer, shared with the todo-sync hook (work-queue.mjs):
+        // both match a step the same way, neither drops a `done` item back to
+        // `works` nor moves a protected one -- and both take back off the board
+        // the open steps this same plan put there and has now dropped.
+        const { added, moved, retired } = applyPlan(state, steps, {
+          agent,
+          key: `${PROCESS_PLAN}:${agent.toLowerCase()}`,
+          now: nowIso(),
+          newId: () => newId('i_')
+        })
+        if (added || moved || retired.length) {
+          const gone = retired.length ? `, ${retired.length} dropped from the plan` : ''
+          logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved${gone}`, agent)
         }
         // A step we could not read is not a success. Returning {added: 0, moved: 0}
         // and nothing else is how a plan fails to reach the board while the agent
         // is told it worked -- which reads to the user as "the tracker is broken"
         // with nothing anywhere to say so.
-        if (!skipped.length) return { added, moved, total: todos.length }
+        if (!skipped.length) return { added, moved, total: todos.length, ...(retired.length ? { dropped: retired.length } : {}) }
 
         const shape = skipped
           .map((t) => (t && typeof t === 'object' ? Object.keys(t).join('+') || '{}' : typeof t))
@@ -730,10 +730,16 @@ const TOOLS = [
           )
         }
         const held = statusChanged && next === 'wip' ? wipHeldBy(state.items, who || item.claimed_by, item.id) : []
+        // Finished or set aside: hand over the next item in the same answer.
+        // This is the autopilot for an agent with no stop hook to do it --
+        // Antigravity, Cursor, opencode -- and the user's switch governs it too.
+        const closed = statusChanged && ['works', 'done', 'blocked'].includes(next)
+        const then = closed && autopilot(state) ? nextUp(state, { agent: who }) : ''
         return {
           id: item.id, title: item.title, status: item.status,
           verified: item.verified, verified_by: item.verified_by,
-          ...(held.length ? { warning: finishFirst(held) } : {})
+          ...(held.length ? { warning: finishFirst(held) } : {}),
+          ...(then ? { next: then } : {})
         }
       })
     }
@@ -818,11 +824,13 @@ const TOOLS = [
         // the next agent to hit the same symptom starts from nothing. Still
         // closed (the user may simply have said "it works now"), but said out loud.
         const bare = !String(fix.solution || '').trim()
+        const then = autopilot(state) ? nextUp(state, { agent: str(args.agent) }) : ''
         return {
           id: fix.id, title: fix.title, status: fix.status,
           ...(bare
             ? { warning: 'Closed with no solution. Call mark_fixed again with solution: the real cause and the real change, so the next agent does not re-derive it.' }
-            : {})
+            : {}),
+          ...(then ? { next: then } : {})
         }
       })
     }

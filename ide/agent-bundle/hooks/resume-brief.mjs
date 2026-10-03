@@ -22,11 +22,15 @@
  *    A session in any other repo gets nothing, and no board is created.
  *  - Nothing when nothing is open: a clean board needs no briefing, and every
  *    line here is paid for in context.
- *  - Read-only. It never writes the board.
+ *  - It never writes the board's work. The one thing it changes is where the
+ *    project's loose docs sit: they move into docs/ before the agent looks
+ *    (tracker/mcp/docs-tidy.mjs), the brief says what moved, and the board's
+ *    activity log records it.
  *  - Every failure is swallowed. A SessionStart hook that errors is noise in
  *    front of the user's first prompt, and a tracker problem must never do that.
  */
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -63,8 +67,30 @@ async function main() {
   const { resumeBrief } = await import(
     pathToFileURL(join(here, '..', 'tracker', 'mcp', 'work-queue.mjs')).href
   )
-  const state = JSON.parse(readFileSync(join(project, '.planide', 'state.json'), 'utf8'))
-  const brief = resumeBrief(state, { project })
+  const boardFile = join(project, '.planide', 'state.json')
+  const state = JSON.parse(readFileSync(boardFile, 'utf8'))
+
+  // Loose docs into docs/ before the session reads anything -- so an existing
+  // project is tidied the first time any agent starts in it.
+  let docsNote = ''
+  try {
+    const { sweepDocs, sweepNote } = await import(pathToFileURL(join(here, '..', 'tracker', 'mcp', 'docs-tidy.mjs')).href)
+    const moved = sweepDocs(project)
+    docsNote = sweepNote(moved)
+    if (docsNote) {
+      const at = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
+      state.activity ??= []
+      state.activity.unshift({ id: `a_${randomUUID().replace(/-/g, '').slice(0, 12)}`, at, kind: 'docs', text: `docs: ${moved.length} loose doc(s) moved into docs/`, who: 'auto' })
+      if (state.activity.length > 500) state.activity.length = 500
+      const tmp = `${boardFile}.${process.pid}.tmp`
+      writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+      renameSync(tmp, boardFile)
+    }
+  } catch {
+    docsNote = ''
+  }
+
+  const brief = [docsNote, resumeBrief(state, { project })].filter(Boolean).join('\n')
   if (!brief) return
 
   process.stdout.write(

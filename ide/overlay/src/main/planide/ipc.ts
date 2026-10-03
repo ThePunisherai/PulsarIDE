@@ -53,6 +53,7 @@ import {
   regressions,
   saveState,
   setAutoComplete,
+  setAutopilot,
   updateFix,
   updateItem,
   updateMilestone,
@@ -215,6 +216,10 @@ export function registerPlanIdeIpc(): void {
   // channel, and no agent-facing tool can reach it.
   on('planide:set-auto-complete', (path: string, enabled: boolean) =>
     mutate(path, (s) => setAutoComplete(s, enabled)).payload
+  )
+  // The autopilot switch: agents keep working the board unasked. Same rule.
+  on('planide:set-autopilot', (path: string, enabled: boolean) =>
+    mutate(path, (s) => setAutopilot(s, enabled)).payload
   )
 
   // ---- fixes ------------------------------------------------------------ //

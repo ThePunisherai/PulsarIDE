@@ -87,6 +87,7 @@ export type PlanIdeApi = {
   gitAutoPush: <T>(path: string, enabled: boolean) => Call<T>
   /** The user's auto-complete switch: agent work that works lands as done. */
   setAutoComplete: <T>(path: string, enabled: boolean) => Call<T>
+  setAutopilot: <T>(path: string, enabled: boolean) => Call<T>
 
   // backups
   backupCreate: <T>(path: string, label: string) => Call<T>

@@ -56,6 +56,12 @@ export type Item = {
   /** "Do not break this." Never set by an agent. */
   locked: boolean
   locked_at: string
+  /**
+   * The agent plan that created this row (work-queue.mjs planKey). A later
+   * plan from the same session takes it back off the board if it drops it
+   * while still open. Your edit removes it: then the row is yours.
+   */
+  plan_key?: string
 }
 
 export type Fix = {
@@ -126,8 +132,10 @@ export type ProjectState = {
    * The user's switches -- never written by an agent-facing path.
    * auto_complete: work an agent reports working counts as finished (`done`),
    * with no one ticking it off by hand. Missing reads as on.
+   * autopilot: an agent that finishes what it was doing takes the next item
+   * on the board instead of stopping (hooks/keep-going.mjs). Missing reads as on.
    */
-  settings: { auto_complete: boolean }
+  settings: { auto_complete: boolean; autopilot?: boolean }
 }
 
 export type Progress = {
@@ -141,6 +149,8 @@ export type Progress = {
   confirmed_percent: number
   /** The user's auto-complete switch, as this board has it. */
   auto_complete: boolean
+  /** The user's autopilot switch: agents keep working the board unasked. */
+  autopilot: boolean
   /** Counted as finished: everything that works with auto-complete on, else your checks. */
   accepted: number
   accepted_percent: number
@@ -193,7 +203,7 @@ function blankState(projectPath: string): ProjectState {
     github: { remote: '', branch: 'main', lfs: false, auto_push: false, last_sync: '' },
     backups: [],
     activity: [],
-    settings: { auto_complete: true }
+    settings: { auto_complete: true, autopilot: true }
   }
 }
 
@@ -370,6 +380,9 @@ export function updateItem(
     item.verified_at = nowIso()
     item.verified_by = reporter
   }
+  // Renamed, annotated or prioritised by you: the row is yours now, and no
+  // agent plan takes it back off the board (retireDroppedSteps).
+  if (!fields.claimed_by && ['title', 'notes', 'priority'].some((k) => k in fields)) delete item.plan_key
   item.updated_at = nowIso()
   if (fields.status !== undefined) {
     const who = fields.claimed_by || item.claimed_by || 'you'
@@ -594,6 +607,18 @@ export function closeOutWorking(state: ProjectState): Item[] {
   return closed
 }
 
+/** The autopilot switch. Missing reads as on -- see autopilot in work-queue.mjs. */
+export function autopilot(state: Pick<ProjectState, 'settings'> | null | undefined): boolean {
+  return state?.settings?.autopilot !== false
+}
+
+/** Yours alone, like auto-complete: no agent-facing path reaches it. */
+export function setAutopilot(state: ProjectState, enabled: boolean): boolean {
+  state.settings = { ...(state.settings ?? { auto_complete: true }), autopilot: Boolean(enabled) }
+  logActivity(state, 'settings', `autopilot ${enabled ? 'on' : 'off'}`)
+  return state.settings.autopilot !== false
+}
+
 /** Yours alone, like confirming and protecting: no agent-facing path reaches it. */
 export function setAutoComplete(state: ProjectState, enabled: boolean): boolean {
   state.settings = { ...(state.settings ?? { auto_complete: true }), auto_complete: Boolean(enabled) }
@@ -682,6 +707,7 @@ export function progress(state: ProjectState): Progress {
     unconfirmed,
     confirmed_percent: confirmedPercent,
     auto_complete: auto,
+    autopilot: autopilot(state),
     accepted,
     accepted_percent: acceptedPercent,
     by_agents: byAgents,

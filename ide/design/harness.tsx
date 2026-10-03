@@ -117,6 +117,7 @@ const after = <T,>(result: T): unknown => ok({ result, payload: rollups() })
       (store.lockItem(state, id, v), ok(rollups())),
     setAutoComplete: async (_p: string, v: boolean) =>
       (store.setAutoComplete(state, v), ok(rollups())),
+    setAutopilot: async (_p: string, v: boolean) => (store.setAutopilot(state, v), ok(rollups())),
     addFix: async (_p: string, o: { title: string }) => after(store.addFix(state, o)),
     markFixDone: async (_p: string, id: string) =>
       (store.updateFix(state, id, { status: 'fixed' }), ok(rollups())),

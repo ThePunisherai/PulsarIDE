@@ -318,9 +318,16 @@ the order honest:
   picked up after the todo list. Dropping what you hold to chase it is how half-finished
   work piles up in `wip`. The one exception is a bug that stops the item in hand from
   working — that is part of the item, not a new fix.
-- **A new request goes on the board as `todo`.** If something is still in progress, say so
-  in one line and finish it first — unless the user says the new request goes first. That
-  is their call to make, never yours to make silently.
+- **A new request comes first, then the queue — without being asked.** Put the request on
+  the board (your plan does that) and do it; when it is done, carry on with what is in
+  progress and then the todo list. The user's autopilot (on unless they turned it off)
+  holds you to that: the stop hook hands you the next item instead of letting the turn
+  end, and `set_item` / `mark_fixed` answer with `next` where there is no hook. If an item
+  cannot be done here, `set_item` it `blocked` with the reason and take the next one.
+- **Docs go in `docs/`, as few as possible.** Never a loose .md at the project root (README,
+  CHANGELOG, AGENTS.md and the like stay there); update the doc on a subject before adding
+  another, and tell dispatched teams the same. When the board is clear the last item is
+  bundling `docs/` into one clear `docs/README.md` — sources into `docs/archive/`.
 - **One piece in hand at a time.** `set_item … wip` warns when you already hold another
   `wip`: finish it, or put it back to `todo` if you are really switching — never leave both
   half done. In-progress work another agent touched recently is theirs; `next_task` leaves

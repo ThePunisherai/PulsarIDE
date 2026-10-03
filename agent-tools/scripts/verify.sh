@@ -107,6 +107,16 @@ pr = store.progress(st)
 sys.exit(0 if it['status']=='done' and pr['accepted']==1 and pr['unconfirmed']==0 and pr['confirmed']==0 else 1)" \
   && ok "auto-complete on: switching it on closes out what works, no hand needed" || bad "auto-complete on"
 
+# The autopilot switch: yours, separate from auto-complete, read the same everywhere.
+$P settings "$P2" --autopilot off 2>/dev/null | grep -q "autopilot: off" \
+  && python3 -c "
+import sys; sys.path.insert(0,'.')
+from planide import store
+st = store.load_state('$P2')
+sys.exit(0 if st['settings'].get('autopilot') is False and store.auto_complete(st) and not store.progress(st)['autopilot'] else 1)" \
+  && ok "settings: autopilot can be switched off by you, auto-complete untouched" || bad "settings: autopilot off"
+$P settings "$P2" --autopilot on >/dev/null 2>&1
+
 F1=$($P fix add "$P2" "Login crash" --problem "auth.py:12" --agent TestBot 2>/dev/null)
 F2=$($P fix add "$P2" "login crash!" --problem "also on Safari" --agent TestBot 2>/dev/null)
 echo "$F2" | grep -q "already open" && python3 -c "

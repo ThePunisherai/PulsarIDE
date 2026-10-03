@@ -25,7 +25,7 @@ import time
 TIMEOUT = 120
 # files/dirs we never want committed by accident -> seeded into .gitignore
 DEFAULT_IGNORES = [
-    ".planide/backups/", "node_modules/", "__pycache__/", "*.pyc",
+    ".planide/backups/", ".planide/sessions.json", "node_modules/", "__pycache__/", "*.pyc",
     ".venv/", "venv/", "dist/", "build/", "target/", ".DS_Store",
 ]
 

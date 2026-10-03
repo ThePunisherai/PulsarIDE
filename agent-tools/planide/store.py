@@ -134,7 +134,7 @@ def _blank_state(path: str) -> dict:
         "activity": [],
         # Your switches. auto_complete: work an agent reports working counts as
         # finished (`done`), with no one ticking it off by hand. Missing = on.
-        "settings": {"auto_complete": True},
+        "settings": {"auto_complete": True, "autopilot": True},
     }
 
 
@@ -219,6 +219,20 @@ def close_out_working(st: dict) -> list:
         log_activity(st, "auto-complete",
                      "closed out %d working item(s): %s" % (len(closed), names), "auto")
     return closed
+
+
+def autopilot(st: dict) -> bool:
+    """Your second switch: agents keep working the board unasked (the
+    keep-going hook). On unless you turned it off. Mirrors autopilot() in
+    tracker/mcp/work-queue.mjs and store.ts."""
+    return (st.get("settings") or {}).get("autopilot") is not False
+
+
+def set_autopilot(st: dict, enabled: bool) -> bool:
+    """Yours alone, like auto-complete."""
+    st.setdefault("settings", {})["autopilot"] = bool(enabled)
+    log_activity(st, "settings", "autopilot %s" % ("on" if enabled else "off"))
+    return st["settings"]["autopilot"]
 
 
 def set_auto_complete(st: dict, enabled: bool) -> bool:
@@ -512,6 +526,7 @@ def progress(st: dict) -> dict:
         "unconfirmed": unconfirmed,
         "confirmed_percent": confirmed_pct,
         "auto_complete": auto,
+        "autopilot": autopilot(st),
         "accepted": accepted,
         "accepted_percent": accepted_pct,
         "by_agents": by_agents,

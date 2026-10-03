@@ -270,6 +270,22 @@ and compaction where the agent fires it), so "ga verder" lands where the board
 stands, not on a blank slate. The sidebar's **Work order** block shows the same
 queue to you.
 
+**Autopilot: the queue gets worked without you asking.** With it on (the
+default — the **Autopilot** button on the Tracker page, or
+`plan settings <path> --autopilot off`), an agent that finishes its own task
+takes the board's next item instead of stopping: a `Stop` hook (Claude Code,
+Codex) or `AfterAgent` hook (Gemini CLI, Qwen Code) hands it over, and a bare
+"ga door" is answered with the item to continue with. It only follows a turn
+that worked the board, only while the board keeps moving, never past a
+question to you, and at most 12 times per prompt. Agents without hooks get the
+same from `set_item`'s `next`. A plan's own steps follow the plan: re-worded or
+dropped steps leave the board instead of piling up as todo forever.
+
+**Docs live in `docs/`.** Loose docs at a project's root (anything but README,
+CHANGELOG, LICENSE, AGENTS.md and the like) move into `docs/` with their links
+fixed, a new one is refused at the root with where it belongs, and when the
+board is clear the last item is bundling `docs/` into one `docs/README.md`.
+
 ### When agents stop updating the board
 
 That is a chain, not a component: the MCP server has to be on disk, runnable

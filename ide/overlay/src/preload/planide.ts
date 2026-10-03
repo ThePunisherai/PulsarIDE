@@ -101,6 +101,7 @@ export const planIdeApi = {
     call<T>('planide:git-auto-push', path, enabled),
   setAutoComplete: <T>(path: string, enabled: boolean) =>
     call<T>('planide:set-auto-complete', path, enabled),
+  setAutopilot: <T>(path: string, enabled: boolean) => call<T>('planide:set-autopilot', path, enabled),
 
   // backups
   backupCreate: <T>(path: string, label: string) => call<T>('planide:backup-create', path, label),

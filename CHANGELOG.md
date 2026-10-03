@@ -6,6 +6,54 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.0] - 2026-10-03
+
+### What's fixed
+- **The todo list never went down.** Every step of every agent plan became a board row,
+  and none ever left: an agent re-words its plan or swaps it for the next task's, and the
+  steps it no longer meant to do stayed `todo` — or `wip`, the one it was on — for good.
+  That is how a board one person works ends up with 36 todo and 25 in progress. Now a
+  plan's own steps follow the plan: when the same session re-sends its plan, the open
+  steps it created and has since dropped leave the board (logged in Activity). Never a
+  row that was on the board first, never finished work, never one you edited, never
+  another session's or a subagent's.
+- **Agents did everything except what was in progress or todo.** The board's queue was
+  handed to a session once, at its start, and every new prompt took over from there.
+  **Autopilot** (on by default) now holds agents to it:
+  - when an agent finishes its own task, it gets the board's next item instead of
+    stopping — in progress first, then todo, then open fixes. Claude Code and Codex
+    through a `Stop` hook, Gemini CLI and Qwen Code through `AfterAgent`;
+  - a bare "ga door" / "continue" is answered with the item to continue with;
+  - agents without hooks (Antigravity, Cursor, opencode) get the next item in the answer
+    to `set_item` / `mark_fixed`;
+  - it never hijacks a chat: only after a turn that worked the board, only while the
+    board keeps moving, never past a question to you, at most 12 times per prompt. An
+    item that cannot be done is set `blocked` with the reason and the next one is taken.
+  - Switch it off with the **Autopilot** button on the Tracker page, or
+    `plan settings <path> --autopilot off`.
+- **The board says which agent did what.** Plan steps landed as "agent" for everyone;
+  they now carry Claude Code, Codex, Gemini CLI, Qwen Code or the subagent's name.
+
+### Docs in one place
+- **Docs go in `docs/`, not loose at the root.** Asked for directly: "in plaats van heel
+  veel md-bestanden". For every project PulsarIDE tracks:
+  - the loose docs already at the root (PLAN.md, SUMMARY.md, notes.pdf, …) move into
+    `docs/` the next time an agent starts there, with their links fixed both ways.
+    README, CHANGELOG, LICENSE, CONTRIBUTING, AGENTS.md, CLAUDE.md and the like stay.
+    Nothing is overwritten: a taken name gets a suffix, only an identical copy is removed;
+  - a new loose doc at the root is refused with where it belongs (Claude Code, Gemini
+    CLI, Qwen Code), and one that gets through anyway (Codex) moves at the next prompt —
+    the agent is told where it went;
+  - when the board is clear, the last item is bundling `docs/` into **one** clear
+    `docs/README.md` (what it is, how to run it, how it is built, the decisions, where it
+    stands), with the source docs moved to `docs/archive/`.
+
+### Worth knowing
+- **Codex runs hooks only after you trust them once.** Codex (hooks are on by default)
+  keeps user hooks inactive until they are reviewed, so PulsarIDE's plan, resume and
+  autopilot hooks do nothing in Codex until you approve them in Codex's hook review.
+  Until then Codex reaches the board only through the MCP tools.
+
 ## [0.98.0] - 2026-10-03
 
 ### Headroom, gone

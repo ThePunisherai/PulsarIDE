@@ -42,8 +42,11 @@
  *    default: "wat werkt mag als afgerond zijn"), `works` when it is off. Never
  *    verified either way: the agent saying it did something is its claim, and
  *    the "confirmed by you" count stays the user's own checks.
- *  - Steps are never deleted when they leave the agent's list. The plan is the
- *    agent's working memory; the board is the record.
+ *  - A step the plan drops goes off the board only if this same plan put it
+ *    there and it is still open (work-queue.mjs retireDroppedSteps). Before
+ *    0.99 nothing ever left, and every re-worded or abandoned step stayed todo
+ *    or wip for good -- "todo gaat nooit omlaag". A row that was on the board
+ *    first, finished work, and anything the user touched all stay.
  *  - Every failure is swallowed. A hook that throws would surface as a tool
  *    error to the agent mid-task, and a tracker problem must never do that.
  */
@@ -87,6 +90,21 @@ const SKIP_STATUS = new Set(['cancelled'])
 
 /** The plan tools we mirror, per agent. */
 const PLAN_TOOLS = new Set(['TodoWrite', 'update_plan', 'write_todos'])
+
+/**
+ * Who wrote the plan, for the board's "by" column. Only Claude Code sends an
+ * `agent_type`, and only inside a subagent; everything else used to land as
+ * "agent", so a board worked by three CLIs could not say which did what.
+ */
+function agentName(payload) {
+  if (typeof payload.agent_type === 'string' && payload.agent_type.trim()) return payload.agent_type.trim()
+  if (payload.tool_name === 'TodoWrite') return 'Claude Code'
+  if (payload.tool_name === 'update_plan') return 'Codex'
+  if (payload.tool_name === 'write_todos') {
+    return /[\\/]\.qwen[\\/]/.test(String(payload.transcript_path || '')) ? 'Qwen Code' : 'Gemini CLI'
+  }
+  return 'agent'
+}
 
 /** A step's text, tolerating the field names different agents may use. */
 function textOf(todo) {
@@ -174,65 +192,49 @@ async function main() {
   const project = resolveProject(payload.cwd)
   if (!project) return
 
-  const { planStep, finishedStatus, closeOutWorking } = await loadQueue()
-  const agent = String(payload.agent_type || 'agent').slice(0, 40)
+  const queue = await loadQueue()
+  const { finishedStatus, closeOutWorking, applyPlan, planKey, boardMark } = queue
+  const agent = agentName(payload).slice(0, 40)
   const state = loadState(project)
   const before = JSON.parse(JSON.stringify({ items: state.items, fixes: state.fixes ?? [], milestones: state.milestones ?? [], version: state.version }))
+  const markBefore = boardMark(state)
 
-  let added = 0
-  let moved = 0
+  const steps = []
   for (const todo of todos) {
     const title = textOf(todo)
     if (!title) continue
     const raw = String(todo?.status || 'pending')
     if (SKIP_STATUS.has(raw)) continue
     // With the user's auto-complete on, a finished step lands as `done`.
-    const status = finishedStatus(state, STATUS[raw] ?? 'todo')
-    const step = planStep(state.items, title, status)
-    if (step.action === 'add') {
-      state.items.push({
-        id: newId('i_'),
-        title: title.length > 160 ? `${title.slice(0, 159)}…` : title,
-        status,
-        notes: '',
-        tags: ['plan'],
-        priority: 'normal',
-        created_at: nowIso(),
-        updated_at: nowIso(),
-        claimed_by: agent,
-        verified: false,
-        verified_at: '',
-        verified_by: '',
-        locked: false,
-        locked_at: ''
-      })
-      added += 1
-      continue
-    }
-    // 'keep' covers a protected step (the user's, never moved from a plan), a
-    // step already in that state, and a `done` step the plan reports finished.
-    if (step.action === 'move') {
-      const item = step.item
-      item.status = status
-      item.updated_at = nowIso()
-      if (!item.claimed_by) item.claimed_by = agent
-      // A status change drops a stale confirmation, exactly as the board does.
-      if (item.verified) {
-        item.verified = false
-        item.verified_at = ''
-        item.verified_by = ''
-      }
-      moved += 1
-    }
+    steps.push({ title, status: finishedStatus(state, STATUS[raw] ?? 'todo') })
   }
+  // One plan = one session's main agent, or one subagent inside it.
+  const session = typeof payload.session_id === 'string' ? payload.session_id : ''
+  const key = planKey(session, payload.agent_id)
+  const { added, moved, retired } = applyPlan(state, steps, { agent, key, now: nowIso(), newId: () => newId('i_') })
 
   // Anything an agent left in `works` before (an older hook, another route) is
   // closed out in this same write when auto-complete is on.
   const closed = closeOutWorking(state, nowIso())
-  if (!added && !moved && !closed.length) return
-  if (added || moved) logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved`, agent)
+  if (!added && !moved && !retired.length && !closed.length) return
+  if (added || moved || retired.length) {
+    const gone = retired.length ? `, ${retired.length} dropped from the plan (${retired.map((i) => i.title).slice(0, 3).join('; ')})` : ''
+    logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved${gone}`, agent)
+  }
   if (closed.length) logActivity(state, 'auto-complete', `closed out ${closed.length} working item(s)`, 'auto')
   saveState(project, state)
+
+  // This session worked the board this turn -- what lets the autopilot hook
+  // hand it the next item when it stops (hooks/keep-going.mjs). Keyed by the
+  // session alone: a subagent's plan is part of its parent's turn.
+  if (session) {
+    try {
+      const { updateSession } = await import(pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'tracker', 'mcp', 'sessions.mjs')).href)
+      updateSession(project, session, (rec) => ({ ...(rec ?? { mark: markBefore, drive: false, pushes: 0 }), worked: true }))
+    } catch {
+      /* the autopilot loses one turn; the board write already happened */
+    }
+  }
 
   // The durable record, so the plan's history survives the board's 500-line cap.
   try {
