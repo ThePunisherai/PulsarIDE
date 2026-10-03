@@ -152,6 +152,13 @@ if [ -d "$HERE/design/.work/node_modules/typescript" ]; then
   out=$(cd "$HERE/design" && ./.work/node_modules/.bin/tsc -p tsconfig.main.json 2>&1)
   [ -z "$out" ] && ok "main-process TypeScript typechecks (strict, real node types)" \
                 || { bad "main-process TypeScript"; echo "$out" | head -5; }
+  # Orca's own typecheck runs these files with noImplicitAny off, and that is
+  # not just looser: an untyped `const xs = []` becomes never[] there instead
+  # of an evolving array, so every push to it fails. 0.98.0's first build lost
+  # its Linux installer to exactly that. Check both readings.
+  out=$(cd "$HERE/design" && ./.work/node_modules/.bin/tsc -p tsconfig.main.json --noImplicitAny false 2>&1)
+  [ -z "$out" ] && ok "main-process TypeScript also typechecks the way Orca's CI reads it (noImplicitAny off)" \
+                || { bad "main-process TypeScript under Orca's settings (noImplicitAny off)"; echo "$out" | head -5; }
   # ...and no main-process file may quietly escape that check.
   missing_mc=0
   for f in "$HERE"/overlay/src/main/planide/*.ts; do

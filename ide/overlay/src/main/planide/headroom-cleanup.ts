@@ -241,7 +241,7 @@ export function stripHeadroomJson(config: Record<string, unknown>): string[] {
   if (hooks && typeof hooks === 'object') {
     for (const [event, groups] of Object.entries(hooks as Record<string, unknown>)) {
       if (!Array.isArray(groups)) continue
-      const kept = []
+      const kept: unknown[] = []
       for (const group of groups) {
         const inner = (group as { hooks?: unknown[] })?.hooks
         if (!Array.isArray(inner)) {
