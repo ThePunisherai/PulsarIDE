@@ -89,7 +89,7 @@ const STATUS = {
 const SKIP_STATUS = new Set(['cancelled'])
 
 /** The plan tools we mirror, per agent. */
-const PLAN_TOOLS = new Set(['TodoWrite', 'update_plan', 'write_todos'])
+const PLAN_TOOLS = new Set(['TodoWrite', 'update_plan', 'write_todos', 'todo_write'])
 
 /**
  * Who wrote the plan, for the board's "by" column. Only Claude Code sends an
@@ -100,6 +100,8 @@ function agentName(payload) {
   if (typeof payload.agent_type === 'string' && payload.agent_type.trim()) return payload.agent_type.trim()
   if (payload.tool_name === 'TodoWrite') return 'Claude Code'
   if (payload.tool_name === 'update_plan') return 'Codex'
+  // Qwen Code's own plan tool (packages/core/src/tools/todoWrite.ts).
+  if (payload.tool_name === 'todo_write') return 'Qwen Code'
   if (payload.tool_name === 'write_todos') {
     return /[\\/]\.qwen[\\/]/.test(String(payload.transcript_path || '')) ? 'Qwen Code' : 'Gemini CLI'
   }

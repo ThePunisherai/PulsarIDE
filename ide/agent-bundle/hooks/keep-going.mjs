@@ -7,10 +7,10 @@
  * session-start brief named the queue, but only once, and every new prompt
  * took over from there. So this hook answers at the two moments that matter:
  *
- *  - the user's prompt (Claude Code / Codex `UserPromptSubmit`, Gemini CLI /
- *    Qwen Code `BeforeAgent`): it marks where the board stands, and if the
+ *  - the user's prompt (Claude Code / Codex / Qwen Code `UserPromptSubmit`,
+ *    Gemini CLI `BeforeAgent`): it marks where the board stands, and if the
  *    prompt is only "ga door" / "continue", it adds the item to continue with.
- *  - the end of the agent's turn (`Stop`, Gemini/Qwen `AfterAgent`): if this
+ *  - the end of the agent's turn (`Stop`, Gemini CLI `AfterAgent`): if this
  *    turn worked the board and the board moved, the turn is not over -- the
  *    hook blocks the stop with the next item by the work order as the reason.
  *    Claude Code and Codex continue the turn with that reason (verified in
@@ -162,15 +162,15 @@ function requestBundle(project, state, docsTidy, wq) {
 }
 
 /**
- * Which CLI this chat is, from the payload's own shape: Gemini CLI and Qwen
- * Code name the events BeforeAgent/AfterAgent (Qwen keeps its transcript under
- * ~/.qwen), Codex alone sends a `turn_id`, and the rest is Claude Code.
+ * Which CLI this chat is, from the payload's own shape: Qwen Code keeps its
+ * transcript under ~/.qwen, Gemini CLI names the events BeforeAgent/AfterAgent,
+ * Codex alone sends a `turn_id`, and the rest is Claude Code.
  */
 function chatFamily(payload) {
+  // Qwen Code uses Claude Code's event names, so its transcript tells it apart.
+  if (/[\\/]\.qwen[\\/]/.test(String(payload.transcript_path || ''))) return 'qwen'
   const event = String(payload.hook_event_name || '')
-  if (event === 'BeforeAgent' || event === 'AfterAgent') {
-    return /[\\/]\.qwen[\\/]/.test(String(payload.transcript_path || '')) ? 'qwen' : 'gemini'
-  }
+  if (event === 'BeforeAgent' || event === 'AfterAgent') return 'gemini'
   return typeof payload.turn_id === 'string' ? 'codex' : 'claude'
 }
 

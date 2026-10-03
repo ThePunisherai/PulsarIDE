@@ -1224,40 +1224,39 @@ function wireCodexPlanHook(home: string): boolean {
 }
 
 /**
- * The same again for Gemini CLI and Qwen Code, off `write_todos`.
+ * The same again for Gemini CLI and Qwen Code -- each in its own hook dialect.
  *
- * Two things here are easy to get wrong, and both were checked against Gemini
- * CLI's own reference rather than the write-ups, which are wrong about the first:
- *  - The event is `AfterTool`, not `PostToolUse`. Gemini's event names are its
- *    own (BeforeTool / AfterTool / BeforeModel / SessionStart / ...), so the
- *    Claude-shaped name would sit in the config doing nothing at all.
- *  - `timeout` is in MILLISECONDS here (default 60000), where Codex counts
- *    seconds in `timeoutSec`. 15 would be 15ms -- a hook that always times out.
+ * Gemini CLI (checked against its own docs/hooks/reference.md, not write-ups):
+ *  - its event names are its own: `AfterTool` (not PostToolUse) on `write_todos`,
+ *    `BeforeAgent` / `AfterAgent` for the user's prompt and the end of the turn,
+ *    `BeforeTool` on `write_file`;
+ *  - `timeout` is in MILLISECONDS (default 60000). 15 would be 15ms.
  *
- * The payload needs no special handling: `AfterTool` hands over `tool_name`,
- * `tool_input` and `cwd` like the other two, `write_todos` takes `{ todos: [...] }`
- * with the text in `description` (docs/tools/todos.md), and the shared script
- * already reads that key and that field.
- *
- * Qwen Code is written the same way. It is a Gemini CLI fork keeping the same
- * settings.json, and this repo already relies on that for its MCP registration --
- * but its tool name has NOT been verified to still be `write_todos`. That is a
- * safe thing not to know: a matcher naming a tool the agent does not have is
- * inert, so this either works there or does nothing, and cannot misfire.
+ * Qwen Code is a Gemini CLI fork that took a different road for hooks, and
+ * treating it as Gemini was a bug: until 0.99.2 only its SessionStart fired.
+ * Checked against QwenLM/qwen-code docs/users/features/hooks.md and
+ * packages/core/src/tools/todoWrite.ts:
+ *  - Claude-style events: `PostToolUse` on `todo_write` (its plan tool, taking
+ *    `{ todos: [{ id, content, status }] }`), `UserPromptSubmit`, `Stop`
+ *    (`{ decision: "block", reason }`, last_assistant_message on stdin),
+ *    `PreToolUse` on `write_file` (hookSpecificOutput.permissionDecision);
+ *  - `timeout` in SECONDS -- a value of 1000 or more is still read as ms.
+ * The Gemini-named groups an earlier version wrote into ~/.qwen are removed.
  */
 function wireGeminiPlanHook(home: string): boolean {
-  const launcher = join(
-    configDir(home),
-    'hooks',
-    process.platform === 'win32' ? 'todo-sync.cmd' : 'todo-sync.sh'
-  )
+  const ext = process.platform === 'win32' ? 'cmd' : 'sh'
+  const launcher = join(configDir(home), 'hooks', `todo-sync.${ext}`)
   if (!existsSync(launcher)) return false
+  const resume = resumeLauncher(home)
+  const go = keepGoingLauncher(home)
+  const guard = docsGuardLauncher(home)
 
+  const flavours: { path: string; qwen: boolean }[] = [
+    { path: join(home, '.gemini', 'settings.json'), qwen: false },
+    { path: join(home, '.qwen', 'settings.json'), qwen: true }
+  ]
   let wrote = false
-  for (const path of [
-    join(home, '.gemini', 'settings.json'),
-    join(home, '.qwen', 'settings.json')
-  ]) {
+  for (const { path, qwen } of flavours) {
     try {
       let config: Record<string, unknown> = {}
       if (existsSync(path)) {
@@ -1268,53 +1267,32 @@ function wireGeminiPlanHook(home: string): boolean {
         }
       }
       const hooks = (config.hooks ??= {}) as Record<string, unknown>
-      const after = (hooks.AfterTool ?? []) as unknown[]
-      const kept = after.filter((entry) => {
-        if (typeof entry !== 'object' || entry === null) return true
-        const inner = (entry as { hooks?: unknown[] }).hooks ?? []
-        return !inner.some(
-          (h) =>
-            typeof h === 'object' &&
-            h !== null &&
-            String((h as { command?: string }).command ?? '').includes('todo-sync')
-        )
-      })
-      kept.push({
-        matcher: 'write_todos',
-        hooks: [{ type: 'command', command: launcher, timeout: 15000 }]
-      })
-      hooks.AfterTool = kept
-      // And where to resume, at session start: Gemini CLI's SessionStart hands
-      // the hook `cwd` and injects `hookSpecificOutput.additionalContext` as the
-      // first turn (google-gemini/gemini-cli docs/hooks/reference.md). Timeout
-      // in milliseconds, like every Gemini hook; no matcher needed.
-      const resume = resumeLauncher(home)
-      if (resume) {
-        reconcileHookGroup(hooks, 'SessionStart', 'resume-brief', {
-          hooks: [{ type: 'command', command: resume, timeout: 15000 }]
-        })
-      }
-      // The autopilot: Gemini CLI's names for the same two moments. BeforeAgent
-      // hands over `prompt` and appends hookSpecificOutput.additionalContext;
-      // AfterAgent takes `{ decision: "block", reason }` ("deny" alias) and sends
-      // the reason to the agent as a new prompt (docs/hooks/reference.md).
-      const go = keepGoingLauncher(home)
-      if (go) {
-        for (const event of ['BeforeAgent', 'AfterAgent']) {
-          reconcileHookGroup(hooks, event, 'keep-going', {
-            hooks: [{ type: 'command', command: go, timeout: 15000 }]
-          })
+      const timeout = qwen ? 15 : 15000
+      const cmd = (command: string): Record<string, unknown> => ({ type: 'command', command, timeout })
+      const ev = qwen
+        ? { plan: 'PostToolUse', planTool: 'todo_write', prompt: 'UserPromptSubmit', stop: 'Stop', write: 'PreToolUse' }
+        : { plan: 'AfterTool', planTool: 'write_todos', prompt: 'BeforeAgent', stop: 'AfterAgent', write: 'BeforeTool' }
+      if (qwen) {
+        // What an earlier version wrote under Gemini's names: inert in Qwen.
+        for (const [event, key] of [
+          ['AfterTool', 'todo-sync'],
+          ['BeforeAgent', 'keep-going'],
+          ['AfterAgent', 'keep-going'],
+          ['BeforeTool', 'docs-guard']
+        ] as const) {
+          dropHookGroup(hooks, event, key)
         }
       }
-      // Docs go in docs/: BeforeTool on write_file can refuse with a reason
-      // ({ decision: "deny", reason }), which the agent reads and acts on.
-      const guard = docsGuardLauncher(home)
-      if (guard) {
-        reconcileHookGroup(hooks, 'BeforeTool', 'docs-guard', {
-          matcher: 'write_file',
-          hooks: [{ type: 'command', command: guard, timeout: 15000 }]
-        })
+      reconcileHookGroup(hooks, ev.plan, 'todo-sync', { matcher: ev.planTool, hooks: [cmd(launcher)] })
+      // Where to resume, at session start: both inject
+      // hookSpecificOutput.additionalContext; no matcher needed.
+      if (resume) reconcileHookGroup(hooks, 'SessionStart', 'resume-brief', { hooks: [cmd(resume)] })
+      // The autopilot: the user's prompt and the end of the turn.
+      if (go) {
+        for (const event of [ev.prompt, ev.stop]) reconcileHookGroup(hooks, event, 'keep-going', { hooks: [cmd(go)] })
       }
+      // Docs go in docs/: a new loose doc at the root is refused with a reason.
+      if (guard) reconcileHookGroup(hooks, ev.write, 'docs-guard', { matcher: 'write_file', hooks: [cmd(guard)] })
       mkdirSync(dirname(path), { recursive: true })
       writeConfigAtomic(path, JSON.stringify(config, null, 2))
       wrote = true
@@ -1323,6 +1301,21 @@ function wireGeminiPlanHook(home: string): boolean {
     }
   }
   return wrote
+}
+
+/** Remove our hook group (matched on `key` in its command) from `event`, keeping everyone else's. */
+function dropHookGroup(hooks: Record<string, unknown>, event: string, key: string): void {
+  const groups = hooks[event]
+  if (!Array.isArray(groups)) return
+  const kept = groups.filter((entry) => {
+    if (typeof entry !== 'object' || entry === null) return true
+    const inner = (entry as { hooks?: unknown[] }).hooks ?? []
+    return !inner.some(
+      (h) => typeof h === 'object' && h !== null && String((h as { command?: string }).command ?? '').includes(key)
+    )
+  })
+  if (kept.length) hooks[event] = kept
+  else delete hooks[event]
 }
 
 /**

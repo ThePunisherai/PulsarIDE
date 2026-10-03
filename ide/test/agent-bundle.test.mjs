@@ -76,7 +76,21 @@ writeFileSync(join(HOME, '.gemini/settings.json'), JSON.stringify({ theme: 'Defa
 mkdirSync(join(HOME, '.gemini/antigravity-cli'), { recursive: true })
 // Same for Qwen Code, which keeps its own ~/.qwen/settings.json.
 mkdirSync(join(HOME, '.qwen'), { recursive: true })
-writeFileSync(join(HOME, '.qwen/settings.json'), JSON.stringify({ vimMode: true, mcpServers: { other: { command: 'x' } } }))
+// ...with the Gemini-named hook groups 0.99.1 wrote there (inert in Qwen), and
+// one of the user's own under such a name, which must survive their removal.
+writeFileSync(join(HOME, '.qwen/settings.json'), JSON.stringify({
+  vimMode: true,
+  mcpServers: { other: { command: 'x' } },
+  hooks: {
+    AfterTool: [
+      { matcher: 'write_todos', hooks: [{ type: 'command', command: '/old/.config/pulsaride/hooks/todo-sync.sh', timeout: 15000 }] },
+      { matcher: 'read_file', hooks: [{ type: 'command', command: '/usr/bin/qwen-mine.sh' }] }
+    ],
+    BeforeAgent: [{ hooks: [{ type: 'command', command: '/old/.config/pulsaride/hooks/keep-going.sh', timeout: 15000 }] }],
+    AfterAgent: [{ hooks: [{ type: 'command', command: '/old/.config/pulsaride/hooks/keep-going.sh', timeout: 15000 }] }],
+    BeforeTool: [{ matcher: 'write_file', hooks: [{ type: 'command', command: '/old/.config/pulsaride/hooks/docs-guard.sh', timeout: 15000 }] }]
+  }
+}))
 writeFileSync(join(HOME, '.qwen/QWEN.md'), '# My own Qwen notes\n\nKeep this too.\n')
 
 const r1 = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
@@ -1021,19 +1035,31 @@ ok('with the timeout field Codex actually accepts',
 ok('the hooks Codex users configured themselves are kept',
   codexPost.some((e) => (e.hooks ?? []).some((h) => h.command === '/usr/bin/mine.sh')))
 
-// Gemini CLI and Qwen Code have a plan tool too (`write_todos`), on their own
-// `AfterTool` event -- not PostToolUse, and timeout in milliseconds not seconds.
-// Both are easy to get wrong and both are inert if wrong, so they are asserted.
-for (const [label, file] of [['Gemini CLI', '.gemini/settings.json'], ['Qwen Code', '.qwen/settings.json']]) {
+// Gemini CLI and Qwen Code each have a plan tool, in their own hook dialect:
+// Gemini `AfterTool` on `write_todos` with timeouts in milliseconds; Qwen --
+// a fork that went Claude-style -- `PostToolUse` on `todo_write`, in seconds.
+// Each is inert if wrong, so each is asserted.
+for (const [label, file, event, tool, timeout] of [
+  ['Gemini CLI', '.gemini/settings.json', 'AfterTool', 'write_todos', 15000],
+  ['Qwen Code', '.qwen/settings.json', 'PostToolUse', 'todo_write', 15]
+]) {
   const cfg = JSON.parse(readFileSync(join(HOME, file), 'utf8'))
-  const group = (cfg.hooks?.AfterTool ?? []).find((e) =>
+  const group = (cfg.hooks?.[event] ?? []).find((e) =>
     (e.hooks ?? []).some((h) => String(h.command ?? '').includes('todo-sync')))
-  ok(`${label}: plan sync wired on AfterTool, matched on write_todos`,
-    Boolean(group) && group.matcher === 'write_todos')
-  ok(`${label}: timeout is in milliseconds, as its own reference specifies`,
-    group?.hooks[0].timeout === 15000)
+  ok(`${label}: plan sync wired on ${event}, matched on ${tool}`,
+    Boolean(group) && group.matcher === tool)
+  ok(`${label}: timeout in the unit its own reference specifies`,
+    group?.hooks[0].timeout === timeout)
   ok(`${label}: the MCP servers in the same file are untouched`,
     Boolean(cfg.mcpServers?.planide) && Boolean(cfg.mcpServers?.other))
+}
+{
+  const qwenHooks = JSON.parse(readFileSync(join(HOME, '.qwen/settings.json'), 'utf8')).hooks
+  ok('Qwen Code: the Gemini-named groups an earlier version left (inert there) are gone',
+    !['AfterTool', 'BeforeAgent', 'AfterAgent', 'BeforeTool'].some((e) =>
+      JSON.stringify(qwenHooks[e] ?? []).match(/todo-sync|keep-going|docs-guard/)))
+  ok("Qwen Code: and the user's own hook under one of those names is kept",
+    JSON.stringify(qwenHooks.AfterTool ?? []).includes('/usr/bin/qwen-mine.sh'))
 }
 
 ok('a redeploy leaves exactly one plan hook',
@@ -1055,7 +1081,7 @@ const resumeLauncher = resumeEntries[0]?.hooks?.[0]?.command ?? ''
 ok('its launcher and script are both on disk',
   existsSync(resumeLauncher) && existsSync(join(HOME, '.config/pulsaride/hooks/resume-brief.mjs')))
 // Every agent with a session-start hook gets the same brief, in its own format:
-// Codex `timeoutSec` (seconds), Gemini CLI and Qwen `timeout` (milliseconds).
+// Codex `timeoutSec` (seconds), Gemini CLI `timeout` (ms), Qwen `timeout` (s).
 // Verified against their own sources, not assumed alike.
 {
   const codexStarts = JSON.parse(readFileSync(join(HOME, '.codex/hooks.json'), 'utf8')).hooks?.SessionStart ?? []
@@ -1066,18 +1092,19 @@ ok('its launcher and script are both on disk',
   const codexPost = JSON.parse(readFileSync(join(HOME, '.codex/hooks.json'), 'utf8')).hooks?.PostToolUse ?? []
   ok('and Codex\'s already-trusted plan hook is untouched by it',
     codexPost.some((e) => e.matcher === 'update_plan'))
-  for (const [label, file] of [['Gemini CLI', '.gemini/settings.json'], ['Qwen Code', '.qwen/settings.json']]) {
+  for (const [label, file, timeout] of [['Gemini CLI', '.gemini/settings.json', 15000], ['Qwen Code', '.qwen/settings.json', 15]]) {
     const starts = JSON.parse(readFileSync(join(HOME, file), 'utf8')).hooks?.SessionStart ?? []
     const resume = starts.filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('resume-brief')))
-    ok(`${label}: the resume brief is wired on SessionStart, once, timeout in milliseconds`,
-      resume.length === 1 && resume[0].hooks[0].timeout === 15000)
+    ok(`${label}: the resume brief is wired on SessionStart, once, in its own timeout unit`,
+      resume.length === 1 && resume[0].hooks[0].timeout === timeout)
   }
 }
 
 // --- autopilot: the keep-going hook, on every agent that has the events ----- //
 // The user's prompt and the end of the turn, under each agent's own names and
 // timeout units: Claude Code UserPromptSubmit/Stop (seconds), Codex the same
-// names with `timeoutSec`, Gemini CLI and Qwen BeforeAgent/AfterAgent (ms).
+// names with `timeoutSec`, Gemini CLI BeforeAgent/AfterAgent (ms), Qwen Code
+// Claude's names with seconds.
 {
   const claudeHooks = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8')).hooks
   const ours = (groups) => (groups ?? []).filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('keep-going')))
@@ -1090,14 +1117,17 @@ ok('its launcher and script are both on disk',
   ok('autopilot: Codex gets it on the same two events, with timeoutSec',
     ours(codexHooks.UserPromptSubmit).length === 1 && ours(codexHooks.Stop).length === 1 &&
     ours(codexHooks.Stop)[0].hooks[0].timeoutSec === 15 && ours(codexHooks.Stop)[0].hooks[0].timeout === undefined)
-  for (const [label, file] of [['Gemini CLI', '.gemini/settings.json'], ['Qwen Code', '.qwen/settings.json']]) {
+  for (const [label, file, prompt, stop, write, timeout] of [
+    ['Gemini CLI', '.gemini/settings.json', 'BeforeAgent', 'AfterAgent', 'BeforeTool', 15000],
+    ['Qwen Code', '.qwen/settings.json', 'UserPromptSubmit', 'Stop', 'PreToolUse', 15]
+  ]) {
     const h = JSON.parse(readFileSync(join(HOME, file), 'utf8')).hooks
-    ok(`autopilot: ${label} gets it on BeforeAgent and AfterAgent, timeout in milliseconds`,
-      ours(h.BeforeAgent).length === 1 && ours(h.AfterAgent).length === 1 &&
-      ours(h.AfterAgent)[0].hooks[0].timeout === 15000)
-    const guard = (h.BeforeTool ?? []).filter((e) => (e.hooks ?? []).some((x) => String(x.command ?? '').includes('docs-guard')))
-    ok(`docs guard: ${label} gets it on BeforeTool write_file, once`,
-      guard.length === 1 && guard[0].matcher === 'write_file' && guard[0].hooks[0].timeout === 15000)
+    ok(`autopilot: ${label} gets it on ${prompt} and ${stop}, in its own timeout unit`,
+      ours(h[prompt]).length === 1 && ours(h[stop]).length === 1 &&
+      ours(h[stop])[0].hooks[0].timeout === timeout)
+    const guard = (h[write] ?? []).filter((e) => (e.hooks ?? []).some((x) => String(x.command ?? '').includes('docs-guard')))
+    ok(`docs guard: ${label} gets it on ${write} write_file, once`,
+      guard.length === 1 && guard[0].matcher === 'write_file' && guard[0].hooks[0].timeout === timeout)
   }
   const claudeGuard = (claudeHooks.PreToolUse ?? []).filter((e) => (e.hooks ?? []).some((x) => String(x.command ?? '').includes('docs-guard')))
   ok('docs guard: Claude Code gets it on PreToolUse Write, once, and its script is deployed',

@@ -1304,5 +1304,81 @@ runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: acOff, tool_input: { tod
     /this chat was working on "Old leftover"/.test(prompt('C1', 'ga door')))
 }
 
+// --- agents with no hooks: the session's own item first, through the MCP --- //
+// Antigravity, Cursor and opencode have no prompt hook to say which item a chat
+// was on. Their MCP server is one process per session, so it remembers: what
+// this session started is what next_task hands back first, while it is open.
+{
+  const hp = mkdtempSync(join(tmpdir(), 'pulsar-hookless-'))
+  mkdirSync(join(hp, '.git'))
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(440, 'add_item', { project: hp, title: 'Old leftover', status: 'wip' }),
+    call(441, 'add_item', { project: hp, title: 'Antigravity task' }),
+    call(442, 'add_item', { project: hp, title: 'Planned in Cursor' })
+  ])
+  {
+    const b = readBoard(hp)
+    b.items.find((i) => i.title === 'Old leftover').updated_at = '2026-09-01T00:00:00Z'
+    writeBoard(hp, b)
+  }
+  const ids = Object.fromEntries(readBoard(hp).items.map((i) => [i.title, i.id]))
+  const run = await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(443, 'set_item', { project: hp, id: ids['Antigravity task'], status: 'wip', agent: 'antigravity' }),
+    // ...the quota runs out; the user comes back and says "ga door": the agent asks next_task.
+    call(444, 'next_task', { project: hp, agent: 'antigravity' }),
+    call(445, 'get_board', { project: hp, agent: 'antigravity' }),
+    call(446, 'set_item', { project: hp, id: ids['Antigravity task'], status: 'done', agent: 'antigravity' })
+  ])
+  const nt = json(byId(run.replies, 444))
+  ok('hookless: next_task hands this session its own unfinished item first, not the oldest left-over',
+    nt.focus?.id === ids['Antigravity task'] && nt.focus.yours === true && /from where you left off/.test(nt.focus.action))
+  ok('hookless: get_board says the same in `next`',
+    json(byId(run.replies, 445)).next?.focus?.id === ids['Antigravity task'])
+  ok("hookless: once it is done, the next item is the queue's again",
+    /"Old leftover"/.test(json(byId(run.replies, 446)).next || ''))
+  // Another session (a new process) has no item of its own: plain queue order.
+  const other = await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(447, 'sync_plan', { project: hp, agent: 'cursor', todos: [{ content: 'Planned in Cursor', status: 'in_progress' }] }),
+    call(448, 'next_task', { project: hp, agent: 'cursor' })
+  ])
+  ok("hookless: a plan's in-progress step through sync_plan is that session's item",
+    json(byId(other.replies, 448)).focus?.id === ids['Planned in Cursor'])
+  const fresh = await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(449, 'next_task', { project: hp, agent: 'opencode' })
+  ])
+  ok('hookless: a fresh session gets the queue as it stands', json(byId(fresh.replies, 449)).focus?.id === ids['Old leftover'])
+}
+
+// --- Qwen Code: its own plan tool and Claude-style events ------------------ //
+{
+  const qp = mkdtempSync(join(tmpdir(), 'pulsar-qwen-'))
+  mkdirSync(join(qp, '.git'))
+  const transcript = join(qp, '.qwen-home', '.qwen', 'tmp', 'chat.json')
+  const kg = (event, extra = {}) =>
+    runHook('keep-going.mjs', { hook_event_name: event, session_id: 'Q1', cwd: qp, transcript_path: transcript, ...extra })
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(450, 'add_item', { project: qp, title: 'Older work', status: 'wip' })
+  ])
+  kg('UserPromptSubmit', { prompt: 'bouw de export' })
+  runHook('todo-sync.mjs', { tool_name: 'todo_write', session_id: 'Q1', cwd: qp, transcript_path: transcript,
+    tool_input: { todos: [{ id: '1', content: 'Qwen builds the export', status: 'in_progress' }] } })
+  const row = readBoard(qp).items.find((i) => i.title === 'Qwen builds the export')
+  ok("Qwen Code: a todo_write plan lands on the board under Qwen Code's name",
+    row?.status === 'wip' && row.claimed_by === 'Qwen Code')
+  let ctx = ''
+  try {
+    ctx = JSON.parse(kg('UserPromptSubmit', { prompt: 'ga door' }).stdout).hookSpecificOutput.additionalContext
+  } catch {
+    ctx = ''
+  }
+  ok('Qwen Code: "ga door" after a quota stop resumes the item that chat was on',
+    /this chat was working on "Qwen builds the export"/.test(ctx))
+}
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

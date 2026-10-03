@@ -6,6 +6,36 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.2] - 2026-10-03
+
+### What's fixed
+- **Qwen Code's plan, autopilot and docs hooks never fired.** Qwen Code is a Gemini CLI
+  fork, so it was wired with Gemini's hook names (`AfterTool`, `BeforeAgent`,
+  `AfterAgent`, `BeforeTool`, timeouts in ms). But Qwen took the Claude Code road for
+  hooks: `PostToolUse` on its own plan tool `todo_write`, `UserPromptSubmit`, `Stop` and
+  `PreToolUse`, timeouts in seconds (checked against Qwen Code's own hook reference and
+  source). Only its session-start brief worked. It now gets all of it under the right
+  names, and the inert Gemini-named entries are taken out of `~/.qwen/settings.json` —
+  your own hooks there stay.
+- **"Ga door" for agents without hooks — Antigravity, Cursor, opencode.** They have no
+  prompt hook, so "ga door" after a quota wait got the board's queue, oldest left-over
+  first. Their MCP server is one process per agent session, and it now remembers what
+  that session started (`next_task` claim, `set_item` wip, the in-progress step of its
+  `sync_plan`): `next_task` and `get_board` hand that item back first, marked
+  `yours`, until it is done.
+
+### Per agent, now
+| | plan → board | "ga door" resumes the chat's item | autopilot | docs guard |
+|---|---|---|---|---|
+| Claude Code | hook | hook | `Stop` hook | hook |
+| Codex | hook ¹ | hook ¹ | `Stop` hook ¹ | moved at the next prompt ¹ |
+| Gemini CLI | hook | hook | `AfterAgent` hook | hook |
+| Qwen Code | hook | hook | `Stop` hook | hook |
+| Antigravity, Cursor, opencode | `sync_plan` | `next_task` / `get_board` | `next` in `set_item` | moved on `get_board` |
+
+¹ After you trust PulsarIDE's hooks once in Codex's `/hooks` menu — Codex keeps new user
+hooks inactive until then.
+
 ## [0.99.1] - 2026-10-03
 
 ### What's fixed

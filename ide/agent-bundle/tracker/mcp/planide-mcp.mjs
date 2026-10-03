@@ -35,7 +35,8 @@ import { basename, isAbsolute, join, resolve, sep } from 'node:path'
 // deployed with it -- the todo-sync and resume-brief hooks import it too, so
 // "is this the same step" and "what comes next" have one answer, not three.
 import {
-  applyPlan, autoComplete, autopilot, closeOutWorking, findOpenFix, finishedStatus, nextUp, sameTitle, wipHeldBy, workQueue
+  applyPlan, autoComplete, autopilot, chatItem, closeOutWorking, findOpenFix, finishedStatus, nextUp, sameTitle, wipHeldBy,
+  workQueue
 } from './work-queue.mjs'
 // Loose docs into docs/ -- the same sweep the session hooks run, here for the
 // agents that have no hooks (Antigravity, Cursor, opencode) and call get_board first.
@@ -49,6 +50,39 @@ import { sweepDocs, sweepNote } from './docs-tidy.mjs'
  * the steps it dropped back off the board. See applyPlan in work-queue.mjs.
  */
 const PROCESS_PLAN = `mcp-${process.pid}-${randomUUID().slice(0, 8)}`
+
+/**
+ * The item this session is on, per project: what it started or was handed
+ * through these tools -- a next_task claim, set_item wip, the in-progress step
+ * of its sync_plan. For the agents with no hooks (Antigravity, Cursor,
+ * opencode) this is what makes "ga door" in the same chat land on the item
+ * that chat was on, after a quota wait, instead of on the board's oldest
+ * left-over: next_task puts it first while it is open. The hooked agents get
+ * the same from keep-going.mjs (chatItem in work-queue.mjs).
+ */
+const OWN = new Map()
+const ownKey = (path) => resolve(path)
+
+/** The queue with this session's own open item as the focus, if it has one. */
+function queueFor(state, path, opts = {}) {
+  const q = workQueue(state, opts)
+  const own = chatItem(state, OWN.get(ownKey(path)))
+  if (!own) return q
+  return {
+    ...q,
+    phase: 'finish',
+    focus: {
+      kind: 'item',
+      lane: own.status === 'wip' ? 'in_progress' : 'todo',
+      id: own.id,
+      title: own.title,
+      status: own.status,
+      claimed_by: own.claimed_by || '',
+      yours: true,
+      action: 'The item this session was on and has not finished. Carry on with it from where you left off, set_item it done when it genuinely works, then call next_task again.'
+    }
+  }
+}
 
 const SERVER_NAME = 'planide'
 const SERVER_VERSION = '2.0.0'
@@ -424,7 +458,7 @@ const TOOLS = [
         path,
         version: state.version,
         progress: progress(state),
-        next: queueSummary(workQueue(state, { agent: str(args.agent) })),
+        next: queueSummary(queueFor(state, path, { agent: str(args.agent) })),
         items: (state.items ?? []).map((i) => ({
           id: i.id, title: i.title, status: i.status, notes: i.notes,
           verified: i.verified, locked: i.locked, claimed_by: i.claimed_by
@@ -456,7 +490,7 @@ const TOOLS = [
       const path = resolveProject(args)
       const agent = str(args.agent).slice(0, 40)
       const limit = Number.isInteger(args.limit) && args.limit > 0 ? Math.min(args.limit, 50) : undefined
-      const peek = workQueue(loadState(path), { agent, limit })
+      const peek = queueFor(loadState(path), path, { agent, limit })
       // Only two things are claimable, and only they are worth a write: a todo
       // being started, and a left-over wip changing hands. Everything else --
       // your own wip, a fix, a protected item, nothing at all -- is read-only,
@@ -464,7 +498,8 @@ const TOOLS = [
       const claimable = (f) =>
         f?.kind === 'item' &&
         !f.locked &&
-        (f.lane === 'todo' || (f.lane === 'in_progress' && Boolean(agent) && lower(f.claimed_by) !== lower(agent)))
+        (f.lane === 'todo' ||
+          (f.lane === 'in_progress' && !f.yours && Boolean(agent) && lower(f.claimed_by) !== lower(agent)))
       if (args.claim !== true || !claimable(peek.focus)) {
         const f = peek.focus
         const why = !f
@@ -478,7 +513,7 @@ const TOOLS = [
         // Decided again on the board as it is NOW, under the write: another
         // agent may have taken the same item between the peek and this call,
         // and handing it out twice is the duplication this exists to stop.
-        const fresh = workQueue(state, { agent, limit })
+        const fresh = queueFor(state, path, { agent, limit })
         const f = fresh.focus
         const item = claimable(f) && f.id === peek.focus.id ? (state.items ?? []).find((i) => i.id === f.id) : null
         if (!item) {
@@ -502,10 +537,11 @@ const TOOLS = [
         }
         if (agent) item.claimed_by = agent
         item.updated_at = nowIso()
+        OWN.set(ownKey(path), item.id)
         return {
           project: path,
           claimed: { id: item.id, title: item.title, from, to: item.status, ...(from !== 'todo' ? { taken_over_from: previous } : {}) },
-          ...workQueue(state, { agent, limit })
+          ...queueFor(state, path, { agent, limit })
         }
       })
     }
@@ -568,12 +604,13 @@ const TOOLS = [
         // both match a step the same way, neither drops a `done` item back to
         // `works` nor moves a protected one -- and both take back off the board
         // the open steps this same plan put there and has now dropped.
-        const { added, moved, retired } = applyPlan(state, steps, {
+        const { added, moved, retired, active } = applyPlan(state, steps, {
           agent,
           key: `${PROCESS_PLAN}:${agent.toLowerCase()}`,
           now: nowIso(),
           newId: () => newId('i_')
         })
+        if (active.length) OWN.set(ownKey(path), active[0])
         if (added || moved || retired.length) {
           const gone = retired.length ? `, ${retired.length} dropped from the plan` : ''
           logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved${gone}`, agent)
@@ -733,8 +770,9 @@ const TOOLS = [
         // Finished or set aside: hand over the next item in the same answer.
         // This is the autopilot for an agent with no stop hook to do it --
         // Antigravity, Cursor, opencode -- and the user's switch governs it too.
+        if (statusChanged && next === 'wip') OWN.set(ownKey(path), item.id)
         const closed = statusChanged && ['works', 'done', 'blocked'].includes(next)
-        const then = closed && autopilot(state) ? nextUp(state, { agent: who }) : ''
+        const then = closed && autopilot(state) ? nextUp(state, { agent: who, current: OWN.get(ownKey(path)) }) : ''
         return {
           id: item.id, title: item.title, status: item.status,
           verified: item.verified, verified_by: item.verified_by,
@@ -824,7 +862,7 @@ const TOOLS = [
         // the next agent to hit the same symptom starts from nothing. Still
         // closed (the user may simply have said "it works now"), but said out loud.
         const bare = !String(fix.solution || '').trim()
-        const then = autopilot(state) ? nextUp(state, { agent: str(args.agent) }) : ''
+        const then = autopilot(state) ? nextUp(state, { agent: str(args.agent), current: OWN.get(ownKey(path)) }) : ''
         return {
           id: fix.id, title: fix.title, status: fix.status,
           ...(bare

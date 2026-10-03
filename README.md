@@ -245,8 +245,8 @@ To have an agent update the board itself, two ways — pick per agent:
   and no `pip install` in the path.
 
 **Your plan lands on the board by itself — for four of the seven.** Claude Code
-(`TodoWrite`), Codex (`update_plan`), Gemini CLI and Qwen Code (`write_todos`)
-each have a real hook on their own plan tool, wired to the same script: make a
+(`TodoWrite`), Codex (`update_plan`), Gemini CLI (`write_todos`) and Qwen Code
+(`todo_write`) each have a real hook on their own plan tool, wired to the same script: make a
 plan, it appears on the board, no call required. Antigravity, Cursor and
 opencode have no such hook, so they only get there when the agent calls
 `sync_plan` — which a model can skip. Toolkit says which is which per agent
@@ -274,13 +274,15 @@ queue to you.
 default — the **Autopilot** button on the Tracker page, or
 `plan settings <path> --autopilot off`), an agent that finishes its own task
 takes the board's next item instead of stopping: a `Stop` hook (Claude Code,
-Codex) or `AfterAgent` hook (Gemini CLI, Qwen Code) hands it over, and a bare
+Codex, Qwen Code) or `AfterAgent` hook (Gemini CLI) hands it over, and a bare
 "ga door" is answered with the item to continue with — in the same chat, the item
 *that chat* was on, so after a quota wait you simply type "ga door" where you
 stopped. It only follows a turn
 that worked the board, only while the board keeps moving, never past a
-question to you, and at most 12 times per prompt. Agents without hooks get the
-same from `set_item`'s `next`. A plan's own steps follow the plan: re-worded or
+question to you, and at most 12 times per prompt. Codex runs these hooks only
+after you trust them once in Codex's own `/hooks` menu. Agents without hooks
+(Antigravity, Cursor, opencode) get the same "own item first" from `next_task`
+and `get_board`, and the next item from `set_item`'s `next`. A plan's own steps follow the plan: re-worded or
 dropped steps leave the board instead of piling up as todo forever.
 
 **Docs live in `docs/`.** Loose docs at a project's root (anything but README,
