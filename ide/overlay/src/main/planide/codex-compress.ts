@@ -69,6 +69,8 @@ export type ChatsReport = {
   bytesAfter: number
   /** Ran out of its time budget; the next run picks up where this one stopped. */
   partial: boolean
+  /** Why chats were left as they were: linked-elsewhere, has-zst, no-space, changed. */
+  skippedWhy: Record<string, number>
   errors: string[]
 }
 
@@ -79,8 +81,14 @@ export type ChatsMeasure = {
   physicalBytes: number
   plainChats: number
   compressedChats: number
-  /** Disk bytes in plain transcripts old enough to compress. */
+  /** Disk bytes in plain transcripts old enough to compress -- what a run will take. */
   coldPlainBytes: number
+  /** Disk bytes in compressed transcripts. */
+  compressedBytes: number
+  /** Disk bytes in chats touched within the cold age: in use, compressed once quiet. */
+  recentPlainBytes: number
+  /** Disk bytes in old chats also linked from outside the Codex homes: left alone. */
+  linkedElsewhereBytes: number
   homes: number
 }
 
@@ -257,6 +265,11 @@ function linkNew(from: string, to: string): void {
 
 type Ctx = { report: ChatsReport; started: number; budgetMs: number; log?: (line: string) => void }
 
+function skip(r: ChatsReport, why: string): void {
+  r.skipped += 1
+  r.skippedWhy[why] = (r.skippedWhy[why] ?? 0) + 1
+}
+
 function outOfTime(ctx: Ctx): boolean {
   if (Date.now() - ctx.started < ctx.budgetMs) return false
   ctx.report.partial = true
@@ -267,16 +280,16 @@ async function compressGroup(g: Group, level: number, ctx: Ctx): Promise<void> {
   const r = ctx.report
   // Linked from somewhere we do not scan: compressing our links frees nothing.
   if (g.nlink > g.paths.length) {
-    r.skipped += 1
+    skip(r, 'linked-elsewhere')
     return
   }
   if (g.paths.some((p) => existsSync(`${p}.zst`))) {
-    r.skipped += 1
+    skip(r, 'has-zst')
     return
   }
   const first = g.paths[0]
   if ((await freeBytes(dirname(first))) < g.size) {
-    r.skipped += 1
+    skip(r, 'no-space')
     return
   }
   const tmp = `${first}.zst.pulsar-${process.pid}.tmp`
@@ -291,7 +304,7 @@ async function compressGroup(g: Group, level: number, ctx: Ctx): Promise<void> {
     const now = await stat(first, { bigint: true })
     if (Number(now.size) !== g.size || Number(now.mtimeMs) !== g.mtimeMs || Number(now.nlink) !== g.nlink) {
       tryUnlink(tmp)
-      r.skipped += 1
+      skip(r, 'changed')
       return
     }
     // The chat keeps its own date: Codex lists sessions by it.
@@ -331,6 +344,7 @@ const emptyReport = (): ChatsReport => ({
   bytesBefore: 0,
   bytesAfter: 0,
   partial: false,
+  skippedWhy: {},
   errors: []
 })
 
@@ -376,14 +390,14 @@ export async function compressCodexChats(opts: {
 async function restoreGroup(g: Group, ctx: Ctx): Promise<void> {
   const r = ctx.report
   if (g.nlink > g.paths.length) {
-    r.skipped += 1
+    skip(r, 'linked-elsewhere')
     return
   }
   const first = g.paths[0].replace(/\.zst$/, '')
   // Decompressed size is unknown until it is written; ask for ten times the
   // compressed size, which covers ordinary chats.
   if ((await freeBytes(dirname(first))) < g.size * 10) {
-    r.skipped += 1
+    skip(r, 'no-space')
     if (r.errors.length < 20) r.errors.push(`not enough free space to restore ${first}`)
     return
   }
@@ -447,12 +461,17 @@ export async function measureCodexChats(opts: {
   const plainGroups = groupByFile(plain)
   const zstGroups = groupByFile(zst)
   const sum = (xs: { size: number }[]): number => xs.reduce((n, x) => n + x.size, 0)
+  const cold = plainGroups.filter((g) => g.mtimeMs < cutoff)
+  const elsewhere = cold.filter((g) => g.nlink > g.paths.length)
   return {
     logicalBytes: sum(plain) + sum(zst),
     physicalBytes: sum(plainGroups) + sum(zstGroups),
     plainChats: plainGroups.length,
     compressedChats: zstGroups.length,
-    coldPlainBytes: sum(plainGroups.filter((g) => g.mtimeMs < cutoff)),
+    coldPlainBytes: sum(cold) - sum(elsewhere),
+    compressedBytes: sum(zstGroups),
+    recentPlainBytes: sum(plainGroups) - sum(cold),
+    linkedElsewhereBytes: sum(elsewhere),
     homes: opts.homes.length
   }
 }

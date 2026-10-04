@@ -33,6 +33,7 @@
     "../overlay/src/main/planide/agent-bundle.ts",
     "../overlay/src/main/planide/headroom-cleanup.ts",
     "../overlay/src/main/planide/codex-compress.ts",
+    "../overlay/src/main/planide/hook-doctor.ts",
     "../overlay/src/main/planide/agent-events.ts",
     "../overlay/src/main/planide/auto-push.ts",
     "../overlay/src/main/planide/backup.ts",

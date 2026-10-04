@@ -505,6 +505,46 @@ export function eccInstall(): Promise<EccStatus> {
   return call<EccStatus>('eccInstall')
 }
 
+/** One agent hook that cannot run as written. */
+export type HookIssue = {
+  agent: string
+  file: string
+  event: string
+  command: string
+  problem: string
+  /** Taken out of action: removed, or in Codex left in place doing nothing. */
+  disabled: boolean
+}
+
+/** One hook in a Codex hook file; `ours` for PulsarIDE's own. */
+export type HookEntry = { file: string; event: string; matcher: string; command: string; ours: boolean }
+
+export type HookDoctorReport = {
+  at: string
+  checked: number
+  issues: HookIssue[]
+  backupDir: string
+  codex?: HookEntry[]
+}
+
+/** Check every agent's hooks now; the ones that can never run are taken out of action. */
+export function hookDoctor(): Promise<HookDoctorReport> {
+  return call<HookDoctorReport>('hookDoctor')
+}
+
+/** A Codex hook run once the way Codex runs it. */
+export type HookTest = HookEntry & { code: number | null; ok: boolean; output: string; ms: number }
+
+/** Run every Codex hook once, as Codex would, and say which ones fail. */
+export function hookTest(): Promise<HookTest[]> {
+  return call<HookTest[]>('hookTest')
+}
+
+/** Turn one Codex hook off where it stands (its command becomes `exit 0`). */
+export function hookTurnOff(target: { file: string; event: string; command: string }): Promise<boolean> {
+  return call<boolean>('hookTurnOff', target)
+}
+
 /** One compression or restore pass over the Codex chats. */
 export type ChatsReport = {
   at: string
@@ -514,6 +554,8 @@ export type ChatsReport = {
   bytesBefore: number
   bytesAfter: number
   partial: boolean
+  /** Why chats were left as they were: linked-elsewhere, has-zst, no-space, changed. */
+  skippedWhy?: Record<string, number>
   errors: string[]
 }
 
@@ -534,6 +576,9 @@ export type ChatsMeasure = {
   plainChats: number
   compressedChats: number
   coldPlainBytes: number
+  compressedBytes?: number
+  recentPlainBytes?: number
+  linkedElsewhereBytes?: number
   homes: number
 }
 

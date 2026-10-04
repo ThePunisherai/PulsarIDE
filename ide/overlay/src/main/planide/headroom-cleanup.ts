@@ -39,9 +39,14 @@ import { dirname, isAbsolute, join, relative } from 'node:path'
 
 export type HeadroomTrace = {
   where: string
-  /** removed: gone (backed up). manual: found, but changing it safely needs a person. */
-  action: 'removed' | 'manual'
+  /**
+   * removed: gone (backed up). manual: found, but changing it safely needs a
+   * person. restored: something an earlier version took away, put back.
+   */
+  action: 'removed' | 'manual' | 'restored'
   detail: string
+  /** A registry value's full previous content, so it can always be put back. */
+  previous?: string
 }
 
 export type HeadroomCleanupReport = {
@@ -235,7 +240,10 @@ export function stripHeadroomToml(text: string): { text: string; removed: number
 }
 
 /** Hooks, env redirects and MCP servers that name Headroom, out of a Claude/Gemini-style config. */
-export function stripHeadroomJson(config: Record<string, unknown>): string[] {
+export function stripHeadroomJson(
+  config: Record<string, unknown>,
+  opts: { neutralizeHooks?: boolean } = {}
+): string[] {
   const gone: string[] = []
   const hooks = config.hooks
   if (hooks && typeof hooks === 'object') {
@@ -252,6 +260,11 @@ export function stripHeadroomJson(config: Record<string, unknown>): string[] {
           const cmd = String((h as { command?: unknown })?.command ?? '')
           if (MARK.test(cmd)) {
             gone.push(`hook ${event}: ${cmd.slice(0, 120)}`)
+            // Codex trusts hooks by position: keep the place, run nothing.
+            if (opts.neutralizeHooks) {
+              ;(h as { command: string }).command = 'exit 0'
+              return true
+            }
             return false
           }
           return true
@@ -353,7 +366,9 @@ function cleanJsonConfigs(opts: HeadroomCleanupOptions, traces: HeadroomTrace[])
     join(opts.home, '.claude', 'settings.local.json'),
     join(opts.home, '.claude.json'),
     join(opts.home, '.gemini', 'settings.json'),
-    join(opts.home, '.qwen', 'settings.json')
+    join(opts.home, '.qwen', 'settings.json'),
+    // Codex keeps its hooks in their own file, in the same { hooks: { Event: [...] } } shape.
+    join(opts.home, '.codex', 'hooks.json')
   ]
   for (const file of files) {
     let raw: string
@@ -371,7 +386,7 @@ function cleanJsonConfigs(opts: HeadroomCleanupOptions, traces: HeadroomTrace[])
       traces.push({ where: file, action: 'manual', detail: 'unparseable JSON that mentions Headroom' })
       continue
     }
-    const gone = stripHeadroomJson(config)
+    const gone = stripHeadroomJson(config, { neutralizeHooks: file.endsWith(join('.codex', 'hooks.json')) })
     if (!gone.length) continue
     backup(file, opts)
     writeAtomic(file, `${JSON.stringify(config, null, 2)}\n`)
@@ -425,13 +440,71 @@ function cleanStartupFolder(opts: HeadroomCleanupOptions, traces: HeadroomTrace[
 }
 
 /** `reg query` output: "    NAME    REG_SZ    VALUE" lines. */
-export function parseRegValues(out: string): { name: string; value: string }[] {
-  const rows: { name: string; value: string }[] = []
+export function parseRegValues(out: string): { name: string; type: string; value: string }[] {
+  const rows: { name: string; type: string; value: string }[] = []
   for (const line of out.split(/\r?\n/)) {
     const m = /^\s{2,}(.+?)\s{2,}(REG_\w+)\s{2,}(.*)$/.exec(line)
-    if (m) rows.push({ name: m[1], value: m[3] })
+    if (m) rows.push({ name: m[1], type: m[2], value: m[3] })
+    else {
+      // An empty value prints with nothing after the type.
+      const e = /^\s{2,}(.+?)\s{2,}(REG_\w+)\s*$/.exec(line)
+      if (e) rows.push({ name: e[1], type: e[2], value: '' })
+    }
   }
   return rows
+}
+
+/**
+ * The user's environment variables. Only a variable that IS Headroom's goes:
+ * one named after it (HEADROOM_*), or an agent base URL pointing at its proxy.
+ * A variable that merely mentions it -- above all `Path`, a list -- keeps
+ * everything except Headroom's own entries.
+ *
+ * 0.98.0 deleted any variable whose value mentioned Headroom, so a user Path
+ * holding one Headroom folder lost every other folder with it. That rule is
+ * gone; repairUserPath (agent-bundle.ts) puts back what it removed.
+ */
+async function cleanEnvironment(exec: HiddenExec, traces: HeadroomTrace[]): Promise<void> {
+  const key = 'HKCU\\Environment'
+  let out = ''
+  try {
+    out = await exec('reg', ['query', key])
+  } catch {
+    return
+  }
+  for (const row of parseRegValues(out)) {
+    const where = `${key}\\${row.name}`
+    const ownVariable =
+      MARK.test(row.name) || (BASE_URL_KEYS.has(row.name.toUpperCase()) && PROXY_URL.test(row.value))
+    if (ownVariable) {
+      try {
+        await exec('reg', ['delete', key, '/v', row.name, '/f'])
+        traces.push({ where, action: 'removed', detail: `user environment variable: ${row.value.slice(0, 120)}`, previous: row.value })
+      } catch {
+        traces.push({ where, action: 'manual', detail: 'user environment variable: could not delete' })
+      }
+      continue
+    }
+    if (!MARK.test(row.value)) continue
+    const parts = row.value.split(';')
+    const kept = parts.filter((p) => !MARK.test(p))
+    // Not a list, or nothing but Headroom in it: changing it is a person's call.
+    if (kept.length === parts.length || kept.filter((p) => p.trim()).length === 0) {
+      traces.push({ where, action: 'manual', detail: `mentions Headroom; left as it is: ${row.value.slice(0, 120)}` })
+      continue
+    }
+    try {
+      await exec('reg', ['add', key, '/v', row.name, '/t', row.type, '/d', kept.join(';'), '/f'])
+      traces.push({
+        where,
+        action: 'removed',
+        detail: `${parts.length - kept.length} Headroom entr${parts.length - kept.length === 1 ? 'y' : 'ies'} taken out of ${row.name}, the rest kept`,
+        previous: row.value
+      })
+    } catch {
+      traces.push({ where, action: 'manual', detail: `could not rewrite ${row.name}` })
+    }
+  }
 }
 
 async function cleanRegistryValues(
@@ -451,7 +524,7 @@ async function cleanRegistryValues(
     if (!match(row)) continue
     try {
       await exec('reg', ['delete', key, '/v', row.name, '/f'])
-      traces.push({ where: `${key}\\${row.name}`, action: 'removed', detail: `${label}: ${row.value.slice(0, 120)}` })
+      traces.push({ where: `${key}\\${row.name}`, action: 'removed', detail: `${label}: ${row.value.slice(0, 120)}`, previous: row.value })
     } catch {
       traces.push({ where: `${key}\\${row.name}`, action: 'manual', detail: `${label}: could not delete` })
     }
@@ -496,13 +569,7 @@ async function cleanWindows(opts: HeadroomCleanupOptions, traces: HeadroomTrace[
     exec,
     traces
   )
-  await cleanRegistryValues(
-    'HKCU\\Environment',
-    (r) => MARK.test(r.value) || (BASE_URL_KEYS.has(r.name.toUpperCase()) && PROXY_URL.test(r.value)),
-    'user environment variable',
-    exec,
-    traces
-  )
+  await cleanEnvironment(exec, traces)
   await cleanScheduledTasks(exec, traces)
   try {
     await exec('taskkill', ['/F', '/T', '/IM', 'headroom.exe'])
@@ -540,6 +607,78 @@ export async function cleanHeadroom(opts: HeadroomCleanupOptions): Promise<Headr
     }
   }
   return { at: new Date().toISOString(), backupDir: opts.backupDir, traces }
+}
+
+/**
+ * Put back a user Path that 0.98.0 deleted whole because one entry in it was
+ * Headroom's.
+ *
+ * The registry no longer has it, but the running app still does: deleting a
+ * value with `reg` does not tell Windows to refresh anyone's environment, so
+ * Explorer -- and everything it started since, this app included -- kept the
+ * old Path until the next sign-in. The user part is what the live Path holds
+ * beyond the machine Path, minus Headroom's entries and the folders this app
+ * adds for itself. Only when the user Path is really missing, and only if
+ * there is something to put back; after a reboot there is not, and it stops.
+ */
+export async function repairUserPath(
+  opts: { exec?: HiddenExec; env?: NodeJS.ProcessEnv; exclude?: string[] } = {}
+): Promise<HeadroomTrace | null> {
+  const exec = opts.exec ?? hiddenExec
+  const env = opts.env ?? process.env
+  const userKey = 'HKCU\\Environment'
+  let user = ''
+  try {
+    user = await exec('reg', ['query', userKey])
+  } catch {
+    return null
+  }
+  if (parseRegValues(user).some((r) => r.name.toLowerCase() === 'path')) return null
+  let machine = ''
+  try {
+    machine = await exec('reg', [
+      'query',
+      'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment',
+      '/v',
+      'Path'
+    ])
+  } catch {
+    return null
+  }
+  const machinePath = parseRegValues(machine).find((r) => r.name.toLowerCase() === 'path')?.value ?? ''
+  const lookup = (name: string): string | undefined => {
+    const k = Object.keys(env).find((key) => key.toLowerCase() === name.toLowerCase())
+    return k ? env[k] : undefined
+  }
+  const norm = (p: string): string =>
+    p
+      .replace(/%([^%]+)%/g, (m, n: string) => lookup(n) ?? m)
+      .trim()
+      .replace(/[\\/]+$/, '')
+      .toLowerCase()
+  const machineSet = new Set(machinePath.split(';').map(norm).filter(Boolean))
+  const exclude = (opts.exclude ?? []).map(norm).filter(Boolean)
+  const live = (lookup('Path') ?? '').split(';').map((p) => p.trim()).filter(Boolean)
+  const seen = new Set<string>()
+  const restored = live.filter((p) => {
+    const n = norm(p)
+    if (!n || machineSet.has(n) || seen.has(n)) return false
+    seen.add(n)
+    if (MARK.test(p)) return false
+    return !exclude.some((x) => n === x || n.startsWith(`${x}\\`))
+  })
+  if (!restored.length) return null
+  try {
+    await exec('reg', ['add', userKey, '/v', 'Path', '/t', 'REG_EXPAND_SZ', '/d', restored.join(';'), '/f'])
+  } catch {
+    return { where: `${userKey}\\Path`, action: 'manual', detail: 'user Path is missing and could not be written back' }
+  }
+  return {
+    where: `${userKey}\\Path`,
+    action: 'restored',
+    detail: `user Path put back with ${restored.length} folder(s) from the live environment`,
+    previous: restored.join(';')
+  }
 }
 
 /** Whether a report found anything at all -- used to keep the log quiet on clean machines. */

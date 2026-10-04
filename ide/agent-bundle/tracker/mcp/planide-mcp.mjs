@@ -28,9 +28,9 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { basename, isAbsolute, join, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path'
 // The work order and the shared title match. A sibling in this same directory,
 // deployed with it -- the todo-sync and resume-brief hooks import it too, so
 // "is this the same step" and "what comes next" have one answer, not three.
@@ -284,8 +284,42 @@ const PROJECT_MARKERS = ['.planide', '.git', 'package.json', 'pyproject.toml', '
  * keep a stray cwd from scattering a `.planide` where it does not belong: never
  * the home directory, and only a directory that actually looks like a project.
  */
+/** `~` / `~\\x` / `~/x` as the home folder: agents write paths the way their shell shows them. */
+const expandHome = (p) => {
+  const out = p.replace(/^~(?=$|[\\/])/, homedir())
+  if (process.platform !== 'win32') return out
+  // Git Bash (/c/Users/...) and WSL (/mnt/c/Users/...) spellings of a Windows
+  // path: what an agent running in those shells hands over.
+  const m = /^\/(?:mnt\/)?([a-zA-Z])(?=\/|$)(.*)$/.exec(out)
+  return m ? `${m[1].toUpperCase()}:${m[2] || '/'}` : out
+}
+
+/**
+ * Whether `file` is `root` or inside it. Windows paths are case-insensitive --
+ * an agent writing c:\\users\\... for a project opened as C:\\Users\\... is
+ * still inside it, which a plain startsWith said it was not.
+ */
+function insideRoot(root, file) {
+  const fold = (p) => (process.platform === 'win32' ? p.toLowerCase() : p)
+  const within = (r0, f0) => {
+    const r = fold(resolve(r0))
+    const f = fold(resolve(f0))
+    return f === r || f.startsWith(r.endsWith(sep) ? r : r + sep)
+  }
+  if (within(root, file)) return true
+  // The same folder reached another way -- a junction, a symlink, a mapped
+  // drive: compare where both really are. The file's folder for a file that
+  // does not exist yet.
+  try {
+    const real = (p) => (existsSync(p) ? realpathSync(p) : join(realpathSync(dirname(p)), basename(p)))
+    return within(realpathSync(root), real(resolve(file)))
+  } catch {
+    return false
+  }
+}
+
 function resolveProject(args) {
-  const raw = typeof args?.project === 'string' ? args.project.trim() : ''
+  const raw = typeof args?.project === 'string' ? expandHome(args.project.trim()) : ''
   let path
   if (raw) {
     path = isAbsolute(raw) ? raw : resolve(raw)
@@ -993,16 +1027,16 @@ const TOOLS = [
     },
     run: (args) => {
       const root = resolveProject(args)
-      const rel = str(args.path)
+      const rel = expandHome(str(args.path))
       if (!rel) throw new Error('path is required')
       const file = isAbsolute(rel) ? rel : join(root, rel)
       // Stay inside the project: a tool that rewrites files must not be usable
       // to reach somewhere else on disk.
       // startsWith alone would let a sibling directory through -- '/proj-evil'
-      // starts with '/proj'. Compare against the root plus its separator.
-      const resolvedRoot = resolve(root)
+      // starts with '/proj' -- so insideRoot compares against the root plus
+      // its separator, case-folded on Windows.
       const resolvedFile = resolve(file)
-      if (resolvedFile !== resolvedRoot && !resolvedFile.startsWith(resolvedRoot + sep)) {
+      if (!insideRoot(root, resolvedFile)) {
         throw new Error('path must be inside the project')
       }
       if (!existsSync(file)) throw new Error(`no such file: ${rel}`)

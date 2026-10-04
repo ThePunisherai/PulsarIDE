@@ -30,6 +30,9 @@ import {
   setUnrealPath,
   installUnrealMcp,
   rtkStatus,
+  runHookDoctor,
+  runHookTest,
+  turnOffCodexHook,
   unrealStatus,
   repairTrackerRegistration,
   setEccEnabled,
@@ -298,6 +301,14 @@ export function registerPlanIdeIpc(): void {
   on('planide:rtk-status', () => rtkStatus())
   // Old Codex chats, compressed losslessly (codex-compress.ts). Status is cheap;
   // measuring walks every transcript, so it is its own call.
+  // Agent hooks that can never run (hook-doctor.ts): checked again on request.
+  // Orca's own Codex homes too: Codex reads the hooks of the home it runs in.
+  on('planide:hook-doctor', () => runHookDoctor(undefined, { codexHomes: codexHomes(app.getPath('userData')) }))
+  // Each Codex hook run once as Codex runs it; only when the user asks.
+  on('planide:hook-test', () => runHookTest(undefined, { codexHomes: codexHomes(app.getPath('userData')) }))
+  on('planide:hook-turn-off', (target: { file: string; event: string; command: string }) =>
+    turnOffCodexHook(target, { codexHomes: codexHomes(app.getPath('userData')) })
+  )
   on('planide:codex-chats-status', () => ({
     ...readChatsState(app.getPath('userData')),
     running: chatsCompressionRunning()

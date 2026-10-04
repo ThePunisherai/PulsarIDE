@@ -55,6 +55,10 @@ export const planIdeApi = {
 
   // project memory (graphify graph + Obsidian note status)
   eccStatus: <T>() => call<T>('planide:ecc-status'),
+  hookDoctor: <T>() => call<T>('planide:hook-doctor'),
+  hookTest: <T>() => call<T>('planide:hook-test'),
+  hookTurnOff: <T>(target: { file: string; event: string; command: string }) =>
+    call<T>('planide:hook-turn-off', target),
   codexChatsStatus: <T>() => call<T>('planide:codex-chats-status'),
   codexChatsMeasure: <T>() => call<T>('planide:codex-chats-measure'),
   codexChatsSetEnabled: <T>(enabled: boolean) => call<T>('planide:codex-chats-set-enabled', enabled),

@@ -854,6 +854,7 @@ OVERLAY_FILES = [
     "src/main/planide/agent-bundle.ts",
     "src/main/planide/headroom-cleanup.ts",
     "src/main/planide/codex-compress.ts",
+    "src/main/planide/hook-doctor.ts",
     "src/preload/api/planide-api.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",

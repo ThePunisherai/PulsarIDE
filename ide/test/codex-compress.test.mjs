@@ -90,6 +90,12 @@ ok('measure: Explorer counts every link, the disk holds each chat once',
   before.logicalBytes === 5 * chat.length + ownLen &&
   before.physicalBytes === 3 * chat.length + ownLen &&
   before.plainChats === 4 && before.compressedChats === 0)
+// Where the total sits, so the Toolkit can say why it is not smaller: the
+// recent chat is in use, the one linked from outside is left alone, and only
+// the rest is what a run will take.
+ok('measure: in use, linked elsewhere and still to compress are told apart',
+  before.recentPlainBytes === chat.length && before.linkedElsewhereBytes === chat.length &&
+  before.coldPlainBytes === chat.length + ownLen && before.compressedBytes === 0)
 
 // --- compress -------------------------------------------------------------- //
 const rep = await compressCodexChats({ homes, minAgeDays: 30 })
@@ -109,6 +115,8 @@ ok("compress: the chat keeps its own date (Codex lists sessions by it)",
 ok('compress: a recent chat is left alone', existsSync(hot) && !existsSync(`${hot}.zst`))
 ok('compress: a chat also linked from outside the Codex homes is left alone',
   existsSync(outside) && !existsSync(`${outside}.zst`))
+ok('compress: and the report says why it was skipped',
+  rep.skippedWhy['linked-elsewhere'] === 1)
 ok('compress: files that are not transcripts are never touched',
   existsSync(join(homeA, day, 'notes.jsonl')) && !existsSync(join(homeA, day, 'notes.jsonl.zst')))
 ok("compress: the user's own ~/.codex chat is compressed too",
@@ -121,6 +129,8 @@ const after = await measureCodexChats({ homes })
 ok('measure: the two compressed chats now take a fraction of their old space on disk',
   after.compressedChats === 2 && after.plainChats === 2 &&
   before.physicalBytes - after.physicalBytes > 0.8 * (chat.length + ownLen))
+ok('measure: nothing is left to compress; the compressed bytes are counted on their own',
+  after.coldPlainBytes === 0 && after.compressedBytes > 0 && after.compressedBytes < (chat.length + ownLen) / 5)
 
 // Codex resumed one chat in one home and decompressed it there itself, the way
 // it materializes a .zst for appending: the plain file appears, that home's

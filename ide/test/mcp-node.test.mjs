@@ -13,7 +13,7 @@
  *     what keeps the two implementations from drifting apart.
  */
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -440,6 +440,33 @@ ok('a sibling directory cannot be reached through the project root',
   byId(run7.replies, 73).result.isError === true &&
   readFileSync(join(sibling, 'secret.md'), 'utf8').includes('\u200B'))
 ok('a missing document is a correctable tool error', byId(run7.replies, 74).result.isError === true)
+
+// "path must be inside the project" for a document that was: an agent hands
+// the project as ~/..., the file as an absolute path, or the project through a
+// link to the real folder. All of those are the same folder.
+{
+  const link = join(docDir, 'proj-link')
+  symlinkSync(docProj, link)
+  const realHome = process.env.HOME
+  process.env.HOME = docDir
+  let run
+  try {
+    run = await drive([
+      { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+      call(75, 'clean_doc', { project: '~/proj', path: 'untouched.md', inspect_only: true }),
+      call(76, 'clean_doc', { project: docProj, path: join(docProj, 'untouched.md'), inspect_only: true }),
+      call(77, 'clean_doc', { project: link, path: join(docProj, 'untouched.md'), inspect_only: true }),
+      call(78, 'clean_doc', { project: link, path: join(sibling, 'secret.md'), inspect_only: true })
+    ])
+  } finally {
+    process.env.HOME = realHome
+  }
+  ok('clean_doc: a project given as ~/... is found', json(byId(run.replies, 75)).total === 4)
+  ok('clean_doc: an absolute path inside the project is accepted', json(byId(run.replies, 76)).total === 4)
+  ok('clean_doc: a project reached through a link accepts the real path of its file',
+    json(byId(run.replies, 77)).total === 4)
+  ok('clean_doc: ...and still refuses a sibling folder', byId(run.replies, 78).result.isError === true)
+}
 
 // --- a forgotten `project` must not lose the write ------------------------- //
 // The tools ask for `project`, but an agent that omits it used to get a bare

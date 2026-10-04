@@ -39,13 +39,22 @@ import {
   writeFileSync
 } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve as resolvePath } from 'node:path'
 import {
   cleanHeadroom,
   removedHeadroom,
+  repairUserPath,
   type HeadroomCleanupReport,
   type HiddenExec
 } from './headroom-cleanup'
+import {
+  disableCodexHook,
+  doctorHooks,
+  hookConfigs,
+  testCodexHooks,
+  type HookDoctorReport,
+  type HookTest
+} from './hook-doctor'
 // The pure parts, for the tests that pin what a profile line may lose.
 export { stripHeadroomLines, stripHeadroomToml } from './headroom-cleanup'
 
@@ -366,7 +375,12 @@ function configDir(home: string): string {
  */
 const HEADROOM_SYSTEM_PASS = 1
 
-type HeadroomMarker = { systemPass: number; last: HeadroomCleanupReport | null }
+type HeadroomMarker = {
+  systemPass: number
+  last: HeadroomCleanupReport | null
+  /** 1 once repairUserPath has run on a machine 0.98.0's system pass touched. */
+  pathRepair?: number
+}
 
 /**
  * Removes Headroom's launch points from this machine -- see headroom-cleanup.ts
@@ -378,7 +392,14 @@ type HeadroomMarker = { systemPass: number; last: HeadroomCleanupReport | null }
  */
 export async function removeHeadroom(
   home: string = homedir(),
-  opts: { platform?: NodeJS.Platform; exec?: HiddenExec; appData?: string } = {}
+  opts: {
+    platform?: NodeJS.Platform
+    exec?: HiddenExec
+    appData?: string
+    env?: NodeJS.ProcessEnv
+    /** Folders this app puts on its own Path, never restored into the user's. */
+    appFolders?: string[]
+  } = {}
 ): Promise<HeadroomCleanupReport | null> {
   try {
     const markerPath = join(configDir(home), 'headroom-cleanup.json')
@@ -407,17 +428,30 @@ export async function removeHeadroom(
       const seen = new Set(report.traces.map(key))
       report = { ...report, traces: [...report.traces, ...again.traces.filter((t) => !seen.has(key(t)))] }
     }
-    if (systemDue || report.traces.length) {
+    // 0.98.0 deleted a user variable whole when one entry in it was Headroom's
+    // -- a whole user Path. On a machine its system pass ran on, put that back
+    // once, from the environment the app is still running with.
+    // A system pass run now uses the fixed rule, so there is nothing to repair.
+    let pathRepair = systemDue ? 1 : (marker?.pathRepair ?? 0)
+    if ((opts.platform ?? process.platform) === 'win32' && (marker?.systemPass ?? 0) >= 1 && pathRepair < 1) {
+      const resources = (process as { resourcesPath?: string }).resourcesPath ?? ''
+      const appFolders = opts.appFolders ?? [dirname(process.execPath), resources]
+      const repaired = await repairUserPath({ exec: opts.exec, env: opts.env, exclude: appFolders })
+      if (repaired) report = { ...report, traces: [...report.traces, repaired] }
+      pathRepair = 1
+    }
+    if (systemDue || report.traces.length || pathRepair !== (marker?.pathRepair ?? 0)) {
       const next: HeadroomMarker = {
         systemPass: HEADROOM_SYSTEM_PASS,
-        last: report.traces.length ? report : (marker?.last ?? null)
+        last: report.traces.length ? report : (marker?.last ?? null),
+        pathRepair
       }
       mkdirSync(configDir(home), { recursive: true })
       writeFileSync(markerPath, `${JSON.stringify(next, null, 2)}\n`)
     }
     for (const t of report.traces) {
       const line = `[pulsaride] headroom ${t.action}: ${t.where} -- ${t.detail}`
-      if (t.action === 'removed') console.log(line)
+      if (t.action !== 'manual') console.log(line)
       else console.warn(line)
     }
     return report
@@ -583,6 +617,9 @@ export function deployAgentBundle(
     // they do not touch the real registry or the real profiles.
     if (opts.provisionPyEnv !== false) void removeHeadroom(home)
     trimHookLog(home)
+    // Hooks other installers left that can never run -- the "Hook failed,
+    // exit code 1" Codex shows on every prompt (hook-doctor.ts).
+    if (opts.provisionPyEnv !== false) runHookDoctor(home)
     const alreadyTracked = existsSync(join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs'))
     let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home) : false
 
@@ -907,7 +944,7 @@ function wireHooks(home: string, root: string): boolean {
   } else {
     dest = join(hookDir, 'graphify-bootstrap.sh')
     cpSync(bootstrap, dest)
-    command = dest
+    command = hookCommand(dest, 'git-bash')
   }
   try {
     chmodSync(dest, 0o755)
@@ -937,20 +974,11 @@ function wireHooks(home: string, root: string): boolean {
     }
   }
   const hooks = (settings.hooks ??= {}) as Record<string, unknown>
-  const events = (hooks.SessionStart ?? []) as unknown[]
-  // Drop any prior entry of ours (keyed on the script name), keep everyone else's.
-  const kept = events.filter((entry) => {
-    if (typeof entry !== 'object' || entry === null) return true
-    const inner = (entry as { hooks?: unknown[] }).hooks ?? []
-    return !inner.some(
-      (h) =>
-        typeof h === 'object' &&
-        h !== null &&
-        String((h as { command?: string }).command ?? '').includes('graphify-bootstrap')
-    )
+  // Any prior entry of ours (keyed on the script name) is replaced in place;
+  // everyone else's stays exactly where it was.
+  reconcileHookGroup(hooks, 'SessionStart', 'graphify-bootstrap', {
+    hooks: [{ type: 'command', command, timeout: 30 }]
   })
-  kept.push({ hooks: [{ type: 'command', command, timeout: 30 }] })
-  hooks.SessionStart = kept
 
   // --- where to resume, at the start of every session ---------------------- //
   // A second SessionStart entry beside the graphify bootstrap: it reads the
@@ -966,7 +994,7 @@ function wireHooks(home: string, root: string): boolean {
     cpSync(resumeScript, resumeDest)
     const launcher = writeNodeLauncher(hookDir, 'resume-brief', resumeDest, onWindows)
     reconcileHookGroup(hooks, 'SessionStart', 'resume-brief', {
-      hooks: [{ type: 'command', command: launcher, timeout: 15 }]
+      hooks: [{ type: 'command', command: hookCommand(launcher, 'git-bash'), timeout: 15 }]
     })
   }
 
@@ -987,7 +1015,7 @@ function wireHooks(home: string, root: string): boolean {
     const launcher = writeNodeLauncher(hookDir, 'keep-going', goDest, onWindows)
     for (const event of ['UserPromptSubmit', 'Stop']) {
       reconcileHookGroup(hooks, event, 'keep-going', {
-        hooks: [{ type: 'command', command: launcher, timeout: 15 }]
+        hooks: [{ type: 'command', command: hookCommand(launcher, 'git-bash'), timeout: 15 }]
       })
     }
   }
@@ -1004,7 +1032,7 @@ function wireHooks(home: string, root: string): boolean {
     const launcher = writeNodeLauncher(hookDir, 'docs-guard', guardDest, onWindows)
     reconcileHookGroup(hooks, 'PreToolUse', 'docs-guard', {
       matcher: 'Write',
-      hooks: [{ type: 'command', command: launcher, timeout: 15 }]
+      hooks: [{ type: 'command', command: hookCommand(launcher, 'git-bash'), timeout: 15 }]
     })
   }
 
@@ -1018,19 +1046,10 @@ function wireHooks(home: string, root: string): boolean {
     const todoDest = join(hookDir, 'todo-sync.mjs')
     cpSync(todoScript, todoDest)
     const launcher = writeNodeLauncher(hookDir, 'todo-sync', todoDest, onWindows)
-    const post = (hooks.PostToolUse ?? []) as unknown[]
-    const keptPost = post.filter((entry) => {
-      if (typeof entry !== 'object' || entry === null) return true
-      const inner = (entry as { hooks?: unknown[] }).hooks ?? []
-      return !inner.some(
-        (h) =>
-          typeof h === 'object' &&
-          h !== null &&
-          String((h as { command?: string }).command ?? '').includes('todo-sync')
-      )
+    reconcileHookGroup(hooks, 'PostToolUse', 'todo-sync', {
+      matcher: 'TodoWrite',
+      hooks: [{ type: 'command', command: hookCommand(launcher, 'git-bash'), timeout: 15 }]
     })
-    keptPost.push({ matcher: 'TodoWrite', hooks: [{ type: 'command', command: launcher, timeout: 15 }] })
-    hooks.PostToolUse = keptPost
     // Codex and Gemini CLI/Qwen run the very same script off their own plan
     // tools -- see below.
     wireCodexPlanHook(home)
@@ -1088,10 +1107,57 @@ function writeNodeLauncher(hookDir: string, base: string, script: string, onWind
   return launcher
 }
 
+/** The shell an agent hands its hook commands to (checked in each agent's source). */
+export type HookShell = 'git-bash' | 'powershell'
+
+/** A drive-letter path every Windows shell reads unquoted (no spaces, quotes or `$`). */
+const WIN_PLAIN_PATH = /^[A-Za-z]:\\[A-Za-z0-9_.\\~-]*$/
+const POSIX_PLAIN_PATH = /^[A-Za-z0-9_./~+-]+$/
+
+/**
+ * The command line that starts one of our launchers, for the shell the agent
+ * runs its hooks in. A bare `C:\Users\...\hook.cmd` was right for none of
+ * them on every machine, and a hook whose command the shell cannot even parse
+ * fails before our script starts -- so `hook-errors.log` stays empty while the
+ * agent shows "hook exited with code 1":
+ *  - Claude Code runs a command through Git Bash on Windows (PowerShell only
+ *    without Git Bash; code.claude.com/docs/en/hooks.md "Shell form"). Bash
+ *    reads the backslashes as escapes and looks for `C:UsersJax.config...`.
+ *    Forward slashes are read by Git Bash and PowerShell alike.
+ *  - Codex runs it through the user's shell, PowerShell on Windows
+ *    (codex-rs/core session hooks config: environment.shell, `-NoProfile
+ *    -Command`); Gemini CLI through PowerShell (shell-utils
+ *    getShellConfiguration); Qwen Code through what `shell` names. A path
+ *    with a space splits there into a command `C:\Users\Jax` that does not
+ *    exist; PowerShell's call operator on a quoted path does not.
+ * A plain path (the usual case) stays exactly what it was for the PowerShell
+ * agents: Codex trusts a hook by its place and its command, so an unchanged
+ * command stays trusted.
+ */
+export function hookCommand(
+  launcher: string,
+  shell: HookShell,
+  platform: NodeJS.Platform = process.platform
+): string {
+  if (platform !== 'win32') {
+    return POSIX_PLAIN_PATH.test(launcher) ? launcher : `'${launcher.replaceAll("'", "'\\''")}'`
+  }
+  if (shell === 'git-bash') {
+    const slashed = launcher.replaceAll('\\', '/')
+    return WIN_PLAIN_PATH.test(launcher) ? slashed : `"${slashed.replace(/(["$`\\])/g, '\\$1')}"`
+  }
+  return WIN_PLAIN_PATH.test(launcher) ? launcher : `& '${launcher.replaceAll("'", "''")}'`
+}
+
 /**
  * Put one of our hook groups under `event`, replacing any earlier copy of it
  * (matched on `key` in the command) and keeping every other group exactly as
- * it was. Reconcile, never accumulate -- and never reorder someone else's.
+ * it was. Reconcile, never accumulate -- and never reorder anything.
+ *
+ * In place, not removed and appended: Codex records the user's trust per hook
+ * POSITION (group and handler index, codex-rs/hooks discovery), so moving ours
+ * to the end on every redeploy untrusted it -- and every hook after its old
+ * place -- after each update, until the user approved them all again.
  */
 function reconcileHookGroup(
   hooks: Record<string, unknown>,
@@ -1099,19 +1165,24 @@ function reconcileHookGroup(
   key: string,
   group: Record<string, unknown>
 ): void {
-  const groups = (hooks[event] ?? []) as unknown[]
-  const kept = groups.filter((entry) => {
-    if (typeof entry !== 'object' || entry === null) return true
+  const groups = (Array.isArray(hooks[event]) ? hooks[event] : []) as unknown[]
+  const ours = (entry: unknown): boolean => {
+    if (typeof entry !== 'object' || entry === null) return false
     const inner = (entry as { hooks?: unknown[] }).hooks ?? []
-    return !inner.some(
+    return inner.some(
       (h) =>
         typeof h === 'object' &&
         h !== null &&
         String((h as { command?: string }).command ?? '').includes(key)
     )
-  })
-  kept.push(group)
-  hooks[event] = kept
+  }
+  const first = groups.findIndex(ours)
+  if (first === -1) {
+    hooks[event] = [...groups, group]
+    return
+  }
+  // The first copy keeps its place; any duplicates an older version left go.
+  hooks[event] = groups.flatMap((entry, i) => (i === first ? [group] : ours(entry) ? [] : [entry]))
 }
 
 /** The resume-brief launcher wireHooks wrote, if it is really on disk. */
@@ -1134,6 +1205,79 @@ function trimHookLog(home: string): void {
   } catch {
     /* a log we cannot trim is not worth failing a launch over */
   }
+}
+
+/**
+ * Check every agent's hooks and take out of action the ones that can never
+ * run; the report is kept at ~/.config/pulsaride/hook-doctor.json for the
+ * Toolkit page. Backups of any changed config go under hook-doctor/<time>/.
+ */
+export function runHookDoctor(
+  home: string = homedir(),
+  opts: { env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform; codexHomes?: string[] } = {}
+): HookDoctorReport {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const report = doctorHooks({
+    home,
+    backupDir: join(configDir(home), 'hook-doctor', stamp),
+    env: opts.env,
+    platform: opts.platform,
+    codexHomes: opts.codexHomes
+  })
+  try {
+    mkdirSync(configDir(home), { recursive: true })
+    const file = join(configDir(home), 'hook-doctor.json')
+    // What was taken out stays on record until the next one; a clean run that
+    // follows a fix must not erase what the fix was.
+    let kept: HookDoctorReport['issues'] = []
+    try {
+      kept = (JSON.parse(readFileSync(file, 'utf8')) as HookDoctorReport).issues.filter((i) => i.disabled)
+    } catch {
+      kept = []
+    }
+    const issues = [...report.issues, ...kept.filter((k) => !report.issues.some((i) => i.command === k.command && i.event === k.event))]
+    writeFileSync(file, `${JSON.stringify({ ...report, issues }, null, 2)}\n`)
+    return { ...report, issues }
+  } catch {
+    return report
+  }
+}
+
+/**
+ * Every Codex hook, run once the way Codex runs it (testCodexHooks) -- what the
+ * Toolkit's "Test hooks" shows, so a "hook exited with code 1" gets a name.
+ */
+export async function runHookTest(
+  home: string = homedir(),
+  opts: { codexHomes?: string[]; env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform } = {}
+): Promise<HookTest[]> {
+  const report = runHookDoctor(home, opts)
+  return testCodexHooks({ entries: report.codex ?? [], env: opts.env, platform: opts.platform })
+}
+
+/**
+ * Turn one Codex hook off at the user's request. Only in a Codex hook file this
+ * app knows -- the renderer names the file, and a name is not a licence to
+ * rewrite any JSON on disk.
+ */
+export function turnOffCodexHook(
+  target: { file: string; event: string; command: string },
+  opts: { home?: string; codexHomes?: string[] } = {}
+): boolean {
+  const home = opts.home ?? homedir()
+  const known = hookConfigs(home, opts.codexHomes)
+    .filter((c) => c.agent === 'Codex')
+    .map((c) => resolvePath(c.file).toLowerCase())
+  if (typeof target?.file !== 'string' || !known.includes(resolvePath(target.file).toLowerCase())) return false
+  if (typeof target.event !== 'string' || typeof target.command !== 'string' || !target.command) return false
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+  return disableCodexHook({
+    file: target.file,
+    event: target.event,
+    command: target.command,
+    home,
+    backupDir: join(configDir(home), 'hook-doctor', stamp)
+  })
 }
 
 /** The docs-guard launcher wireHooks wrote, if it is really on disk. */
@@ -1201,23 +1345,12 @@ function wireCodexPlanHook(home: string): boolean {
       }
     }
     const hooks = (config.hooks ??= {}) as Record<string, unknown>
-    const post = (hooks.PostToolUse ?? []) as unknown[]
-    const kept = post.filter((entry) => {
-      if (typeof entry !== 'object' || entry === null) return true
-      const inner = (entry as { hooks?: unknown[] }).hooks ?? []
-      return !inner.some(
-        (h) =>
-          typeof h === 'object' &&
-          h !== null &&
-          String((h as { command?: string }).command ?? '').includes('todo-sync')
-      )
-    })
     // `timeoutSec`, not `timeout`: Codex's ConfiguredHookHandler names it that.
-    kept.push({
+    // In place (reconcileHookGroup): Codex trusts hooks by position.
+    reconcileHookGroup(hooks, 'PostToolUse', 'todo-sync', {
       matcher: 'update_plan',
-      hooks: [{ type: 'command', command: launcher, timeoutSec: 15 }]
+      hooks: [{ type: 'command', command: hookCommand(launcher, 'powershell'), timeoutSec: 15 }]
     })
-    hooks.PostToolUse = kept
     // Where to resume, at session start -- the same brief Claude Code gets.
     // Verified against openai/codex (codex-rs/hooks/src/schema.rs): SessionStart
     // hands the hook `cwd` and reads `hookSpecificOutput.additionalContext`,
@@ -1228,7 +1361,7 @@ function wireCodexPlanHook(home: string): boolean {
     const resume = resumeLauncher(home)
     if (resume) {
       reconcileHookGroup(hooks, 'SessionStart', 'resume-brief', {
-        hooks: [{ type: 'command', command: resume, timeoutSec: 15 }]
+        hooks: [{ type: 'command', command: hookCommand(resume, 'powershell'), timeoutSec: 15 }]
       })
     }
     // The autopilot, on the same two events Claude Code uses. Verified in
@@ -1241,7 +1374,7 @@ function wireCodexPlanHook(home: string): boolean {
     if (go) {
       for (const event of ['UserPromptSubmit', 'Stop']) {
         reconcileHookGroup(hooks, event, 'keep-going', {
-          hooks: [{ type: 'command', command: go, timeoutSec: 15 }]
+          hooks: [{ type: 'command', command: hookCommand(go, 'powershell'), timeoutSec: 15 }]
         })
       }
     }
@@ -1298,7 +1431,16 @@ function wireGeminiPlanHook(home: string): boolean {
       }
       const hooks = (config.hooks ??= {}) as Record<string, unknown>
       const timeout = qwen ? 15 : 15000
-      const cmd = (command: string): Record<string, unknown> => ({ type: 'command', command, timeout })
+      // Gemini CLI always runs hooks in PowerShell on Windows; Qwen Code in
+      // cmd, Git Bash or PowerShell depending on how it was started, unless a
+      // hook names its shell -- so ours name PowerShell there.
+      const pinShell = qwen && process.platform === 'win32'
+      const cmd = (command: string): Record<string, unknown> => ({
+        type: 'command',
+        command: hookCommand(command, 'powershell'),
+        ...(pinShell ? { shell: 'powershell' } : {}),
+        timeout
+      })
       const ev = qwen
         ? { plan: 'PostToolUse', planTool: 'todo_write', prompt: 'UserPromptSubmit', stop: 'Stop', write: 'PreToolUse' }
         : { plan: 'AfterTool', planTool: 'write_todos', prompt: 'BeforeAgent', stop: 'AfterAgent', write: 'BeforeTool' }

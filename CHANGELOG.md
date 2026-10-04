@@ -6,6 +6,67 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.4] - 2026-10-04
+
+### What's fixed
+- **"Hook failed — hook exited with code 1", with nothing in the log.** The hook never
+  started, so there was nothing to log: the shell could not read its command line.
+  Every agent hands a hook command to its own shell, and it is a different one per
+  agent (checked in each agent's source). On Windows, Codex and Gemini CLI use
+  PowerShell, Claude Code uses Git Bash, and Qwen Code uses whichever it was started
+  from. A bare `C:\Users\...\hook.cmd` broke in two ways:
+  - Bash read the backslashes as escapes.
+  - A path with a space split into a command that does not exist.
+
+  Each agent now gets a command its own shell can start: forward slashes for Git Bash,
+  and PowerShell's call operator for a path with a space. Qwen Code is pinned to
+  PowerShell. A plain path stays exactly as it was for Codex, so Codex keeps trusting
+  it.
+- **Other people's hooks that can never run.** On every launch PulsarIDE reads every
+  hook in these configs:
+  - Codex — `~/.codex` and the Codex homes Orca runs Codex in;
+  - Claude Code, Gemini CLI and Qwen Code.
+
+  The hooks are read only, never run. A hook that can never run is taken out of action:
+  its script is gone, it is a `.sh` started on its own on Windows, or it needs bash on a
+  Windows without bash. The config is backed up first, to
+  `~/.config/pulsaride/hook-doctor/`. In Codex the hook stays where it is as `exit 0`:
+  Codex trusts hooks by position, so removing one would untrust every hook after it. A
+  program that is not on PATH is reported, not touched.
+- **Toolkit → Agent hooks → Test hooks.** Lists every Codex hook, PulsarIDE's marked.
+  *Test hooks* runs each one once the way Codex does (PowerShell on Windows): with a
+  harmless sample shell call, in an empty temp folder. It shows which hook fails, with
+  its exit code and what it printed. *Turn off* takes a failing hook out where it
+  stands.
+- **Codex asked to trust PulsarIDE's hooks again after every update.** An update took
+  our hooks out and appended them at the end. Since Codex trusts by position, that
+  untrusted them and every hook after them. They are now updated in place.
+- **0.98.0's Headroom cleanup could delete a whole user environment variable**,
+  including your user `Path`, when one entry in it was Headroom's. It now removes only
+  Headroom's own variables, and only Headroom's entries from a list such as `Path`. A
+  user `Path` that was lost is rebuilt once, from what the running session still
+  holds: minus the machine Path, Headroom and the app's own folders.
+- **`clean_doc`: "path must be inside the project" for a document that was.** A project
+  path now matches however it is spelled:
+  - in different case on Windows;
+  - as `~/...`;
+  - Git Bash `/c/...` and WSL `/mnt/c/...`;
+  - through a junction or link.
+
+  A sibling folder is still refused.
+- **Toolkit said Qwen Code has no plan hook.** It looked for Gemini's `write_todos`;
+  Qwen's plan tool is `todo_write`.
+
+### Storage
+- **Toolkit → Codex chats now says where the space is.** It shows:
+  - the compressed total;
+  - chats still in use (touched in the last 30 days, compressed once they go quiet);
+  - what is still to compress;
+  - what is left alone because it is also linked elsewhere.
+
+  It also says when a run stopped at its half hour (the rest follows on the next run),
+  and why chats were skipped.
+
 ## [0.99.3] - 2026-10-03
 
 ### What's fixed

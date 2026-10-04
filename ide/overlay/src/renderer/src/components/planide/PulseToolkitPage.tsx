@@ -29,6 +29,9 @@ import {
   eccInstall,
   eccSetEnabled,
   eccStatus,
+  hookDoctor,
+  hookTest,
+  hookTurnOff,
   pickFolder,
   rtkStatus,
   trackerHealth,
@@ -40,6 +43,8 @@ import {
   type ChatsMeasure,
   type ChatsStatus,
   type EccStatus,
+  type HookDoctorReport,
+  type HookTest,
   type RtkStatus,
   type TrackerHealth,
   type UnrealStatus
@@ -59,6 +64,14 @@ const PLAN_HOOKS: Record<string, string> = {
   codex: 'update_plan',
   gemini: 'write_todos',
   qwen: 'todo_write'
+}
+
+/** Why a compression run left a chat as it was, in words. */
+const CHATS_SKIP: Record<string, string> = {
+  'linked-elsewhere': 'also linked outside the Codex homes',
+  'has-zst': 'already have a compressed copy beside them',
+  'no-space': 'waiting for free disk space',
+  changed: 'were written to while being compressed'
 }
 
 /** Bytes as people read them on a disk: GB above one, MB below. */
@@ -105,6 +118,10 @@ export default function PulseToolkitPage(): React.JSX.Element {
   const [unreal, setUnreal] = useState<UnrealStatus | null>(null)
   const [rtk, setRtk] = useState<RtkStatus | null>(null)
   const [busy, setBusy] = useState(false)
+  const [hooks, setHooks] = useState<HookDoctorReport | null>(null)
+  // Each Codex hook run once as Codex runs it -- only when asked.
+  const [hookRuns, setHookRuns] = useState<HookTest[] | null>(null)
+  const [hookBusy, setHookBusy] = useState(false)
   const [chats, setChats] = useState<ChatsStatus | null>(null)
   const [chatsSize, setChatsSize] = useState<ChatsMeasure | null>(null)
   // Its own flag: a compression pass can run for minutes, and the rest of the
@@ -118,6 +135,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
       eccStatus().then(setEcc),
       unrealStatus().then(setUnreal),
       rtkStatus().then(setRtk),
+      hookDoctor().then(setHooks),
       codexChatsStatus().then(setChats)
     ])
   }, [folder])
@@ -134,6 +152,38 @@ export default function PulseToolkitPage(): React.JSX.Element {
   useEffect(() => {
     void measureChats()
   }, [measureChats])
+
+  // A run started by the daily timer or by Compress now goes on in the
+  // background; while it does, follow it instead of showing a stale line.
+  useEffect(() => {
+    if (!chats?.running) return
+    const timer = setInterval(() => {
+      void codexChatsStatus().then((next) => {
+        setChats(next)
+        if (!next.running) void measureChats()
+      })
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [chats?.running, measureChats])
+
+  const runHookTest = useCallback(
+    () =>
+      withVisibleSpin(setHookBusy, async () => {
+        setHookRuns(await hookTest())
+        setHooks(await hookDoctor())
+      }),
+    []
+  )
+
+  const turnOffHook = useCallback(
+    (run: HookTest) =>
+      withVisibleSpin(setHookBusy, async () => {
+        await hookTurnOff({ file: run.file, event: run.event, command: run.command })
+        setHookRuns(await hookTest())
+        setHooks(await hookDoctor())
+      }),
+    []
+  )
 
   const chatsAction = useCallback(
     (action: 'on' | 'off' | 'compress' | 'restore') =>
@@ -482,6 +532,127 @@ export default function PulseToolkitPage(): React.JSX.Element {
             )}
           </Card>
 
+          {/* --- Agent hooks: the ones that can never run ------------------- */}
+          <Card
+            title={translate('planide.toolkit.hooks', 'Agent hooks')}
+            subtitle={translate(
+              'planide.toolkit.hooksSub',
+              "Every hook in Codex, Claude Code, Gemini CLI and Qwen Code is read on launch -- never run. One pointing at a script that is no longer on disk fails on every prompt (Codex: 'Hook failed, exit code 1'), so it is taken out of action: removed, or in Codex kept in its place doing nothing, so your other hooks stay trusted. The config is backed up first."
+            )}
+          >
+            {hooks ? (
+              hooks.issues.length === 0 ? (
+                <div className="mt-2 flex items-center gap-2 text-[12px]">
+                  <Dot ok />
+                  <span>
+                    {hooks.checked} {translate('planide.toolkit.hooksOk', 'hooks checked -- none broken')}
+                  </span>
+                </div>
+              ) : (
+                <ul className="mt-2 space-y-1.5">
+                  {hooks.issues.map((issue, i) => (
+                    <li key={`${issue.file}-${issue.event}-${i}`} className="text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <Dot ok={issue.disabled} />
+                        <span className="font-medium">
+                          {issue.agent} · {issue.event}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {issue.disabled
+                            ? translate('planide.toolkit.hookDisabled', 'taken out of action')
+                            : translate('planide.toolkit.hookReported', 'reported -- check it')}
+                        </span>
+                      </div>
+                      <p className="ml-5 truncate text-muted-foreground" title={issue.command}>
+                        {issue.problem}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {translate('planide.toolkit.checking', 'Checking...')}
+              </p>
+            )}
+            {/* Codex says "hook exited with code 1" and names no hook: run each
+                one the way Codex does and show which. */}
+            <div className="mt-3 border-t border-border/40 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-medium">
+                  {translate('planide.toolkit.codexHooks', 'Codex hooks')}
+                  {hooks?.codex ? ` (${hooks.codex.length})` : ''}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[11px]"
+                  disabled={hookBusy}
+                  onClick={() => void runHookTest()}
+                >
+                  {hookBusy
+                    ? translate('planide.toolkit.hookTesting', 'Testing...')
+                    : translate('planide.toolkit.hookTest', 'Test hooks')}
+                </Button>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {translate(
+                  'planide.toolkit.hookTestSub',
+                  'Runs each Codex hook once the way Codex does (PowerShell on Windows), with a harmless shell call in an empty folder, and shows which one fails.'
+                )}
+              </p>
+              {(hookRuns ?? hooks?.codex ?? []).length > 0 && (
+                <ul className="mt-2 space-y-1.5">
+                  {(hookRuns ?? hooks?.codex ?? []).map((entry, i) => {
+                    const run = hookRuns ? (entry as HookTest) : null
+                    return (
+                      <li key={`${entry.file}-${entry.event}-${i}`} className="text-[11px]">
+                        <div className="flex items-center gap-2">
+                          {run ? <Dot ok={run.ok} /> : <span className="w-[13px] shrink-0" />}
+                          <span className="font-medium">
+                            {entry.event}
+                            {entry.matcher ? ` · ${entry.matcher}` : ''}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {entry.ours
+                              ? 'PulsarIDE'
+                              : entry.command === 'exit 0'
+                                ? translate('planide.toolkit.hookOff', 'turned off')
+                                : translate('planide.toolkit.hookOther', 'other')}
+                          </span>
+                          {run && !run.ok && (
+                            <span className="text-amber-500">
+                              {run.code === null
+                                ? translate('planide.toolkit.hookNoExit', 'did not finish')
+                                : `exit ${run.code}`}
+                            </span>
+                          )}
+                          {run && !run.ok && !entry.ours && entry.command !== 'exit 0' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-5 px-1.5 text-[11px]"
+                              disabled={hookBusy}
+                              onClick={() => void turnOffHook(run)}
+                            >
+                              {translate('planide.toolkit.hookTurnOff', 'Turn off')}
+                            </Button>
+                          )}
+                        </div>
+                        <p className="ml-5 truncate font-mono text-muted-foreground" title={`${entry.file}\n${entry.command}`}>
+                          {entry.command}
+                        </p>
+                        {run && !run.ok && run.output && (
+                          <p className="ml-5 break-words text-amber-500/90">{run.output}</p>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </Card>
+
           {/* --- Codex chats: compressed losslessly, never deleted ------------ */}
           <Card
             title={translate('planide.toolkit.chats', 'Codex chats (storage)')}
@@ -493,7 +664,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
             {chatsSize ? (
               <div className="mt-2 space-y-1 text-[12px]">
                 <div className="flex items-center gap-2">
-                  <Dot ok={chatsSize.coldPlainBytes < 1024 ** 3} />
+                  <Dot ok={chatsSize.coldPlainBytes < 1024 ** 3 && !chats?.lastReport?.partial} />
                   <span>
                     {translate('planide.toolkit.chatsDisk', 'On disk')} {size(chatsSize.physicalBytes)}
                     <span className="text-muted-foreground">
@@ -502,10 +673,18 @@ export default function PulseToolkitPage(): React.JSX.Element {
                     </span>
                   </span>
                 </div>
+                {/* Where the on-disk total sits: most of what is left is usually
+                    chats still in use, which are compressed once they go quiet. */}
                 <p className="text-[11px] text-muted-foreground">
-                  {chatsSize.compressedChats} {translate('planide.toolkit.chatsCompressed', 'compressed')} ·{' '}
-                  {chatsSize.plainChats} {translate('planide.toolkit.chatsPlain', 'plain')} ·{' '}
+                  {chatsSize.compressedChats} {translate('planide.toolkit.chatsCompressed', 'compressed')}
+                  {chatsSize.compressedBytes !== undefined ? ` (${size(chatsSize.compressedBytes)})` : ''} ·{' '}
+                  {chatsSize.recentPlainBytes !== undefined
+                    ? `${size(chatsSize.recentPlainBytes)} ${translate('planide.toolkit.chatsRecent', 'in chats from the last 30 days (in use)')} · `
+                    : ''}
                   {size(chatsSize.coldPlainBytes)} {translate('planide.toolkit.chatsCold', 'still to compress')}
+                  {chatsSize.linkedElsewhereBytes
+                    ? ` · ${size(chatsSize.linkedElsewhereBytes)} ${translate('planide.toolkit.chatsElsewhere', 'also linked outside the Codex homes, left alone')}`
+                    : ''}
                 </p>
               </div>
             ) : (
@@ -518,12 +697,22 @@ export default function PulseToolkitPage(): React.JSX.Element {
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {chats.running || chatsBusy
                     ? translate('planide.toolkit.chatsRunning', 'Compressing now...')
-                    : chats.lastRun
+                    : chats.lastReport?.partial
+                      ? `${translate('planide.toolkit.chatsPaused', 'Paused after 30 minutes -- the next run, or Compress now, carries on.')} ${translate('planide.toolkit.chatsFreed', 'Freed so far')} ${size(chats.totalFreed)}`
+                      : chats.lastRun
                       ? `${translate('planide.toolkit.chatsFreed', 'Freed so far')} ${size(chats.totalFreed)} · ${chats.totalDone} ${translate('planide.toolkit.chatsChats', 'chats')}`
                       : chats.enabled
                         ? translate('planide.toolkit.chatsFirst', 'First run ten minutes after launch, then daily.')
                         : translate('planide.toolkit.chatsOffNote', 'Automatic compression is off.')}
                 </p>
+                {chats.lastReport && Object.keys(chats.lastReport.skippedWhy ?? {}).length ? (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {translate('planide.toolkit.chatsLeft', 'Left as they were last run:')}{' '}
+                    {Object.entries(chats.lastReport.skippedWhy ?? {})
+                      .map(([why, n]) => `${n} ${CHATS_SKIP[why] ?? why}`)
+                      .join(' · ')}
+                  </p>
+                ) : null}
                 {chats.lastReport?.failed ? (
                   <p className="mt-1 truncate text-[11px] text-amber-500" title={chats.lastReport.errors.join('\n')}>
                     {chats.lastReport.failed} {translate('planide.toolkit.chatsFailed', 'could not be compressed -- left as they were')}

@@ -26,6 +26,10 @@ const {
   installEccNow,
   setUnrealPath,
   removeHeadroom,
+  runHookDoctor,
+  runHookTest,
+  turnOffCodexHook,
+  hookCommand,
   stripHeadroomLines,
   stripHeadroomToml
 } = await import(MOD)
@@ -1523,7 +1527,7 @@ ok('a revised plan moves the step it already knows instead of duplicating it',
     if (file === 'reg' && args[0] === 'query' && /\\Run$/.test(args[1]))
       return '\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\r\n    OneDrive    REG_SZ    "C:\\OneDrive.exe" /background\r\n    HeadroomProxy    REG_SZ    C:\\Users\\x\\.headroom\\headroom.exe proxy\r\n'
     if (file === 'reg' && args[0] === 'query')
-      return '\r\nHKEY_CURRENT_USER\\Environment\r\n    Path    REG_EXPAND_SZ    C:\\bin\r\n    ANTHROPIC_BASE_URL    REG_SZ    http://localhost:8787\r\n'
+      return '\r\nHKEY_CURRENT_USER\\Environment\r\n    Path    REG_EXPAND_SZ    C:\\bin;C:\\Users\\x\\.headroom\\bin;C:\\tools\r\n    PYTHONPATH    REG_SZ    C:\\headroom-only\r\n    HEADROOM_HOME    REG_SZ    C:\\Users\\x\\.headroom\r\n    ANTHROPIC_BASE_URL    REG_SZ    http://localhost:8787\r\n'
     if (file === 'schtasks' && args[0] === '/Query')
       return '"PC","\\Headroom Updater","N/A","Ready","Interactive only","N/A","1","x","C:\\Users\\x\\.headroom\\update.cmd"\r\n"PC","\\OneDrive Standalone Update Task","N/A","Ready"\r\n'
     if (file === 'taskkill') throw new Error('not running')
@@ -1558,10 +1562,19 @@ ok('a revised plan moves the step it already knows instead of duplicating it',
     /\[mcp_servers\.headroom\]/.test(readFileSync(join(stampDir, '.codex/config.toml'), 'utf8')))
   ok('headroom: its Startup entry is moved out, the others stay',
     !existsSync(join(startup, 'headroom.vbs')) && existsSync(join(startup, 'onedrive.lnk')))
-  ok('headroom: only its Run value and env redirect are deleted from the registry',
+  ok('headroom: only its Run value, its own variable and the env redirect are deleted from the registry',
     calls.includes('reg delete HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v HeadroomProxy /f') &&
     calls.includes('reg delete HKCU\\Environment /v ANTHROPIC_BASE_URL /f') &&
-    !calls.some((c) => /delete .* \/v (OneDrive|Path) /.test(c)))
+    calls.includes('reg delete HKCU\\Environment /v HEADROOM_HOME /f') &&
+    !calls.some((c) => /delete .* \/v (OneDrive|Path|PYTHONPATH) /.test(c)))
+  // 0.98.0 deleted a whole user Path for one Headroom folder in it.
+  ok('headroom: a user Path loses only its Headroom folder -- every other folder stays, type kept',
+    calls.includes('reg add HKCU\\Environment /v Path /t REG_EXPAND_SZ /d C:\\bin;C:\\tools /f'))
+  ok('headroom: a variable that is nothing but a Headroom path is reported, not deleted',
+    !calls.some((c) => /PYTHONPATH/.test(c) && /delete|add/.test(c)) &&
+    rep.traces.some((t) => t.action === 'manual' && /PYTHONPATH/.test(t.where)))
+  ok('headroom: the report keeps the full previous value of everything it changed in the registry',
+    rep.traces.some((t) => /\\Path$/.test(t.where) && t.previous === 'C:\\bin;C:\\Users\\x\\.headroom\\bin;C:\\tools'))
   ok('headroom: only its scheduled task is deleted',
     calls.includes('schtasks /Delete /TN \\Headroom Updater /F') &&
     !calls.some((c) => /Delete .*OneDrive/.test(c)))
@@ -1581,6 +1594,34 @@ ok('a revised plan moves the step it already knows instead of duplicating it',
   ok('headroom: back after a re-install -> removed again, Windows half re-run',
     !/headroom/.test(r('.bashrc')) && rep3.traces.some((t) => t.action === 'removed') &&
     calls.some((c) => c.startsWith('schtasks /Query')))
+
+  // A user Path 0.98.0 deleted: put back from the environment the app still runs with.
+  {
+    const PH = join(work, 'path-home'); mkdirSync(join(PH, '.config/pulsaride'), { recursive: true })
+    writeFileSync(join(PH, '.config/pulsaride/headroom-cleanup.json'), JSON.stringify({ systemPass: 1, last: null }))
+    const added = []
+    const pathExec = async (file, args) => {
+      if (file === 'reg' && args[0] === 'query' && args[1] === 'HKCU\\Environment')
+        return '\r\nHKEY_CURRENT_USER\\Environment\r\n    TEMP    REG_EXPAND_SZ    %USERPROFILE%\\AppData\\Local\\Temp\r\n'
+      if (file === 'reg' && args[0] === 'query')
+        return '\r\nHKEY_LOCAL_MACHINE\\SYSTEM\r\n    Path    REG_EXPAND_SZ    %SystemRoot%\\system32;C:\\Program Files\\Git\\cmd\r\n'
+      if (file === 'reg' && args[0] === 'add') added.push(args.join(' '))
+      if (file === 'taskkill' || file === 'schtasks') throw new Error('n/a')
+      return ''
+    }
+    const env = {
+      SystemRoot: 'C:\\Windows',
+      Path: 'C:\\Windows\\system32;C:\\Program Files\\Git\\cmd;C:\\Users\\x\\AppData\\Local\\Microsoft\\WindowsApps;' +
+        'C:\\Users\\x\\AppData\\Roaming\\npm;C:\\Users\\x\\.headroom\\bin;C:\\Program Files\\PulsarIDE\\resources\\bin'
+    }
+    const r1 = await removeHeadroom(PH, { platform: 'win32', exec: pathExec, env, appFolders: ['C:\\Program Files\\PulsarIDE'] })
+    ok('headroom: a deleted user Path is put back from the live environment, minus machine, Headroom and app folders',
+      added.length === 1 &&
+      added[0] === 'add HKCU\\Environment /v Path /t REG_EXPAND_SZ /d C:\\Users\\x\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\x\\AppData\\Roaming\\npm /f' &&
+      r1.traces.some((t) => t.action === 'restored'))
+    await removeHeadroom(PH, { platform: 'win32', exec: pathExec, env, appFolders: ['C:\\Program Files\\PulsarIDE'] })
+    ok('headroom: and it does that once', added.length === 1)
+  }
 
   // A clean machine: nothing written, nothing spawned beyond the one-time pass.
   const clean = join(work, 'clean-home'); mkdirSync(clean)
@@ -1611,6 +1652,175 @@ ok('a revised plan moves the step it already knows instead of duplicating it',
     stripHeadroomLines('function hr\n  headroom on\nend\n', 'fish').blocked === true)
   ok('headroom: a TOML table after its table is kept',
     stripHeadroomToml('[mcp_servers.headroom]\ncommand = "x"\n[other]\nk = 1\n').text === '[other]\nk = 1\n')
+}
+
+// ---- hook doctor: hooks that can never run ------------------------------ //
+// "Hook failed, exit code 1" with nothing in our log: a hook someone else left
+// pointing at a script that is gone. Read, never run; taken out of action --
+// in Codex kept in its place, because Codex trusts hooks by position.
+{
+  const DH = join(work, 'doctor-home')
+  mkdirSync(join(DH, '.codex'), { recursive: true })
+  mkdirSync(join(DH, '.claude'), { recursive: true })
+  const realScript = join(DH, 'tools', 'real-hook.sh'); mkdirSync(dirname(realScript), { recursive: true })
+  writeFileSync(realScript, '#!/bin/sh\nexit 0\n')
+  const ours = join(DH, '.config', 'pulsaride', 'hooks', 'keep-going.sh')
+  const codexHooks = {
+    hooks: {
+      UserPromptSubmit: [
+        { hooks: [{ type: 'command', command: `powershell -NoProfile -File "${join(DH, 'gone', 'old-orca-hook.ps1')}"`, timeoutSec: 10 }] },
+        { hooks: [{ type: 'command', command: `"${ours}"`, timeoutSec: 15 }] },
+        { hooks: [{ type: 'command', command: `sh ${realScript}`, timeoutSec: 5 }] }
+      ],
+      Stop: [
+        { hooks: [{ type: 'command', command: 'definitely-not-a-real-program-xyz --flag' }] },
+        { hooks: [{ type: 'command', command: '"$CLAUDE_PROJECT_DIR/.hooks/x.sh"' }] }
+      ]
+    }
+  }
+  writeFileSync(join(DH, '.codex', 'hooks.json'), JSON.stringify(codexHooks, null, 2))
+  writeFileSync(join(DH, '.claude', 'settings.json'), JSON.stringify({
+    theme: 'dark',
+    hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [
+      { type: 'command', command: `python3 ${join(DH, 'gone', 'guard.py')}` },
+      { type: 'command', command: `sh ${realScript}` }
+    ] }] }
+  }, null, 2))
+  const rep = runHookDoctor(DH, { env: { PATH: '/usr/bin:/bin', HOME: DH }, platform: 'linux' })
+  const cx = JSON.parse(readFileSync(join(DH, '.codex', 'hooks.json'), 'utf8')).hooks
+  ok('hook doctor: a Codex hook whose script is gone is kept in its place, doing nothing',
+    cx.UserPromptSubmit.length === 3 && cx.UserPromptSubmit[0].hooks[0].command === 'exit 0' &&
+    cx.UserPromptSubmit[0].hooks[0].timeoutSec === 10)
+  ok("hook doctor: so the hooks after it keep their position -- and the user's trust in them",
+    cx.UserPromptSubmit[1].hooks[0].command === `"${ours}"` && cx.UserPromptSubmit[2].hooks[0].command === `sh ${realScript}`)
+  ok('hook doctor: a program not on PATH is reported, not touched; an unresolvable variable path is left alone',
+    cx.Stop[0].hooks[0].command === 'definitely-not-a-real-program-xyz --flag' &&
+    cx.Stop[1].hooks[0].command === '"$CLAUDE_PROJECT_DIR/.hooks/x.sh"' &&
+    rep.issues.some((i) => i.disabled === false && /not on PATH/.test(i.problem)) &&
+    !rep.issues.some((i) => /CLAUDE_PROJECT_DIR/.test(i.command)))
+  const cl = JSON.parse(readFileSync(join(DH, '.claude', 'settings.json'), 'utf8'))
+  ok('hook doctor: in Claude Code the broken hook is removed, the working one and the rest of the file stay',
+    cl.theme === 'dark' && cl.hooks.PreToolUse[0].hooks.length === 1 &&
+    cl.hooks.PreToolUse[0].hooks[0].command === `sh ${realScript}`)
+  ok("hook doctor: PulsarIDE's own hooks are never judged here", !rep.issues.some((i) => i.command.includes('keep-going')))
+  ok('hook doctor: every changed config is backed up first, and the report is kept for the Toolkit',
+    readdirSync(join(DH, '.config', 'pulsaride', 'hook-doctor')).length === 1 &&
+    existsSync(join(DH, '.config', 'pulsaride', 'hook-doctor.json')) &&
+    rep.issues.filter((i) => i.disabled).length === 2)
+  const again = runHookDoctor(DH, { env: { PATH: '/usr/bin:/bin', HOME: DH }, platform: 'linux' })
+  ok('hook doctor: a second run changes nothing and still shows what was taken out',
+    readdirSync(join(DH, '.config', 'pulsaride', 'hook-doctor')).length === 1 &&
+    again.issues.filter((i) => i.disabled).length === 2)
+}
+
+// Codex trusts hooks by position: a redeploy (every update) must leave ours
+// where they are, not take them out and append them at the end -- that
+// untrusted them and every hook after them after each update.
+{
+  const file = join(HOME, '.codex/hooks.json')
+  const cfg = JSON.parse(readFileSync(file, 'utf8'))
+  const theirs = { hooks: [{ type: 'command', command: '/usr/bin/added-after-ours.sh', timeoutSec: 5 }] }
+  cfg.hooks.Stop = [...(cfg.hooks.Stop ?? []), theirs]
+  writeFileSync(file, JSON.stringify(cfg, null, 2))
+  const before = JSON.parse(readFileSync(file, 'utf8')).hooks
+  const at = (h, ev, key) => (h[ev] ?? []).findIndex((g) => JSON.stringify(g).includes(key))
+  deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false, force: true })
+  const after = JSON.parse(readFileSync(file, 'utf8')).hooks
+  ok('Codex: a redeploy keeps every hook group of ours at the position it had, so its trust holds',
+    ['SessionStart', 'UserPromptSubmit', 'Stop', 'PostToolUse'].every((ev) =>
+      ['resume-brief', 'keep-going', 'todo-sync'].every((k) => at(before, ev, k) === at(after, ev, k))) &&
+    at(after, 'Stop', 'keep-going') < at(after, 'Stop', 'added-after-ours'))
+  ok('Codex: and the hooks after ours keep theirs', at(before, 'Stop', 'added-after-ours') === at(after, 'Stop', 'added-after-ours'))
+}
+
+// ---- hook commands each agent's shell can actually start --------------- //
+// Codex and Gemini run a hook through PowerShell on Windows, Claude Code
+// through Git Bash: a bare backslash path was read as escapes by bash, and a
+// path with a space split into a command that does not exist in PowerShell --
+// "hook exited with code 1" before our script, or its log, ever started.
+{
+  const plain = 'C:\\Users\\Jax\\.config\\pulsaride\\hooks\\keep-going.cmd'
+  const spaced = "C:\\Users\\Jax O'Neil\\.config\\pulsaride\\hooks\\keep-going.cmd"
+  ok('hook command: Git Bash gets forward slashes (bash reads backslashes as escapes)',
+    hookCommand(plain, 'git-bash', 'win32') === 'C:/Users/Jax/.config/pulsaride/hooks/keep-going.cmd')
+  ok('hook command: ...and a path with a space quoted for bash',
+    hookCommand(spaced, 'git-bash', 'win32') === `"C:/Users/Jax O'Neil/.config/pulsaride/hooks/keep-going.cmd"`)
+  ok('hook command: a plain path stays exactly as it was for PowerShell (Codex keeps trusting it)',
+    hookCommand(plain, 'powershell', 'win32') === plain)
+  ok("hook command: a path with a space goes through PowerShell's call operator, quote doubled",
+    hookCommand(spaced, 'powershell', 'win32') === "& 'C:\\Users\\Jax O''Neil\\.config\\pulsaride\\hooks\\keep-going.cmd'")
+  ok('hook command: on macOS/Linux a plain path is bare, one with a space single-quoted',
+    hookCommand('/home/jax/.config/pulsaride/hooks/k.sh', 'powershell', 'linux') === '/home/jax/.config/pulsaride/hooks/k.sh' &&
+    hookCommand('/Users/Jax Smith/.config/pulsaride/hooks/k.sh', 'git-bash', 'darwin') === "'/Users/Jax Smith/.config/pulsaride/hooks/k.sh'")
+  // And the shell really starts it: a launcher under a folder with a space.
+  const dir = join(work, 'with space', '.config', 'pulsaride', 'hooks')
+  mkdirSync(dir, { recursive: true })
+  const sh = join(dir, 'probe.sh')
+  writeFileSync(sh, '#!/bin/sh\ncat >/dev/null\necho started\n')
+  spawnSync('chmod', ['+x', sh])
+  const r = spawnSync('/bin/sh', ['-c', hookCommand(sh, 'git-bash', 'linux')], { input: '{}', encoding: 'utf8' })
+  ok('hook command: sh starts a launcher whose path has a space', r.status === 0 && r.stdout.trim() === 'started')
+}
+
+// The Windows-only ways a hook can never run, judged without running it.
+{
+  const WH = join(work, 'doctor-win')
+  mkdirSync(join(WH, '.codex'), { recursive: true })
+  const script = join(WH, 'tools', 'notify.sh'); mkdirSync(dirname(script), { recursive: true })
+  writeFileSync(script, '#!/bin/sh\nexit 0\n')
+  writeFileSync(join(WH, '.codex', 'hooks.json'), JSON.stringify({ hooks: {
+    PreToolUse: [
+      { matcher: 'shell', hooks: [{ type: 'command', command: script }] },
+      { hooks: [{ type: 'command', command: `bash ${script}` }] },
+      { hooks: [{ type: 'command', command: `${join(WH, '.config', 'pulsaride', 'hooks', 'x.cmd')}` }] }
+    ]
+  } }, null, 2))
+  const rep = runHookDoctor(WH, { env: { PATH: join(WH, 'empty-bin'), HOME: WH }, platform: 'win32' })
+  const pre = JSON.parse(readFileSync(join(WH, '.codex', 'hooks.json'), 'utf8')).hooks.PreToolUse
+  ok('hook doctor (Windows): a .sh started by itself, and bash where Windows has none, are taken out in place',
+    pre.length === 3 && pre[0].hooks[0].command === 'exit 0' && pre[1].hooks[0].command === 'exit 0' &&
+    pre[0].matcher === 'shell' && rep.issues.filter((i) => i.disabled).length === 2)
+  ok('hook doctor: every Codex hook is listed for the Toolkit, ours marked as ours',
+    rep.codex.length === 3 && rep.codex.filter((e) => e.ours).length === 1 && rep.codex[0].matcher === 'shell')
+}
+
+// "Test hooks": each Codex hook run once the way Codex runs it, so a failing
+// one gets a name -- and can be turned off where it stands.
+{
+  const TH = join(work, 'hooktest-home')
+  mkdirSync(join(TH, '.codex'), { recursive: true })
+  const reads = join(TH, 'reads.sh'); writeFileSync(reads, '#!/bin/sh\ncat > "$0.in"\nexit 0\n'); spawnSync('chmod', ['+x', reads])
+  const file = join(TH, '.codex', 'hooks.json')
+  writeFileSync(file, JSON.stringify({ hooks: {
+    PreToolUse: [
+      { matcher: 'shell', hooks: [{ type: 'command', command: reads }] },
+      { hooks: [{ type: 'command', command: 'echo "broken notifier" >&2; exit 1' }] },
+      { hooks: [{ type: 'command', command: 'echo "$ORCA_PANE_KEY" > /dev/null; test -z "$ORCA_PANE_KEY"' }] }
+    ],
+    Stop: [{ hooks: [{ type: 'command', command: 'echo "broken notifier" >&2; exit 1' }] }]
+  } }, null, 2))
+  const env = { PATH: process.env.PATH, HOME: TH, SHELL: '/bin/sh', ORCA_PANE_KEY: 'pane-1' }
+  const runs = await runHookTest(TH, { env, platform: 'linux' })
+  const failing = runs.filter((r) => !r.ok)
+  ok('hook test: the hook that exits 1 is named, with what it printed',
+    failing.length === 2 && failing.every((r) => r.code === 1 && r.output === 'broken notifier'))
+  ok('hook test: working hooks pass, fed a sample of their event on stdin',
+    runs.filter((r) => r.ok).length === 2 &&
+    JSON.parse(readFileSync(`${reads}.in`, 'utf8')).hook_event_name === 'PreToolUse' &&
+    JSON.parse(readFileSync(`${reads}.in`, 'utf8')).tool_input.command === 'echo pulsaride-hook-test')
+  ok("hook test: run outside an Orca pane (no ORCA_PANE_KEY), in an empty folder that is cleaned up",
+    runs[2].ok === true && !JSON.parse(readFileSync(`${reads}.in`, 'utf8')).cwd.includes(TH) &&
+    !existsSync(JSON.parse(readFileSync(`${reads}.in`, 'utf8')).cwd))
+  ok('hook test: only a file the app knows can be rewritten',
+    turnOffCodexHook({ file: join(TH, 'elsewhere.json'), event: 'Stop', command: 'x' }, { home: TH }) === false)
+  const off = turnOffCodexHook({ file, event: 'PreToolUse', command: failing[0].command }, { home: TH })
+  const after = JSON.parse(readFileSync(file, 'utf8')).hooks
+  ok('hook test: Turn off makes that hook `exit 0` in its place, the rest untouched, file backed up',
+    off === true && after.PreToolUse.length === 3 && after.PreToolUse[1].hooks[0].command === 'exit 0' &&
+    after.PreToolUse[0].hooks[0].command === reads && after.Stop[0].hooks[0].command.includes('exit 1') &&
+    readdirSync(join(TH, '.config', 'pulsaride', 'hook-doctor')).length >= 1)
+  const rerun = await runHookTest(TH, { env, platform: 'linux' })
+  ok('hook test: a turned-off hook is not run again', rerun.length === 3 && rerun.filter((r) => !r.ok).length === 1)
 }
 
 console.log(`\nPASS=${pass} FAIL=${fail}`)
