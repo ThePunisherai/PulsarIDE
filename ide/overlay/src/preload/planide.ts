@@ -57,6 +57,9 @@ export const planIdeApi = {
   eccStatus: <T>() => call<T>('planide:ecc-status'),
   hookDoctor: <T>() => call<T>('planide:hook-doctor'),
   hookTest: <T>() => call<T>('planide:hook-test'),
+  quotaResumeStatus: <T>() => call<T>('planide:quota-resume-status'),
+  quotaResumeSetEnabled: <T>(enabled: boolean) => call<T>('planide:quota-resume-set-enabled', enabled),
+  quotaResumeCancel: <T>(ptyId: string) => call<T>('planide:quota-resume-cancel', ptyId),
   hookTurnOff: <T>(target: { file: string; event: string; command: string }) =>
     call<T>('planide:hook-turn-off', target),
   codexChatsStatus: <T>() => call<T>('planide:codex-chats-status'),

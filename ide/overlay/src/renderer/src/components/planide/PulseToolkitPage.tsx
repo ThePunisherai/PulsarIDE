@@ -33,6 +33,9 @@ import {
   hookTest,
   hookTurnOff,
   pickFolder,
+  quotaResumeCancel,
+  quotaResumeSetEnabled,
+  quotaResumeStatus,
   rtkStatus,
   trackerHealth,
   trackerRepair,
@@ -45,6 +48,7 @@ import {
   type EccStatus,
   type HookDoctorReport,
   type HookTest,
+  type QuotaResumeStatus,
   type RtkStatus,
   type TrackerHealth,
   type UnrealStatus
@@ -122,6 +126,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
   // Each Codex hook run once as Codex runs it -- only when asked.
   const [hookRuns, setHookRuns] = useState<HookTest[] | null>(null)
   const [hookBusy, setHookBusy] = useState(false)
+  const [resume, setResume] = useState<QuotaResumeStatus | null>(null)
   const [chats, setChats] = useState<ChatsStatus | null>(null)
   const [chatsSize, setChatsSize] = useState<ChatsMeasure | null>(null)
   // Its own flag: a compression pass can run for minutes, and the rest of the
@@ -136,6 +141,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
       unrealStatus().then(setUnreal),
       rtkStatus().then(setRtk),
       hookDoctor().then(setHooks),
+      quotaResumeStatus().then(setResume),
       codexChatsStatus().then(setChats)
     ])
   }, [folder])
@@ -165,6 +171,13 @@ export default function PulseToolkitPage(): React.JSX.Element {
     }, 5000)
     return () => clearInterval(timer)
   }, [chats?.running, measureChats])
+
+  // A resume waits for hours: follow it while one is pending.
+  useEffect(() => {
+    if (!resume?.pending.length) return
+    const timer = setInterval(() => void quotaResumeStatus().then(setResume), 30_000)
+    return () => clearInterval(timer)
+  }, [resume?.pending.length])
 
   const runHookTest = useCallback(
     () =>
@@ -525,6 +538,76 @@ export default function PulseToolkitPage(): React.JSX.Element {
                     : translate('planide.toolkit.eccDisable', 'Turn off')}
                 </Button>
               </>
+            ) : (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {translate('planide.toolkit.checking', 'Checking...')}
+              </p>
+            )}
+          </Card>
+
+          {/* --- Auto-resume: "ga door" when the usage limit resets --------- */}
+          <Card
+            title={translate('planide.toolkit.resume', 'Auto-resume after a usage limit')}
+            subtitle={translate(
+              'planide.toolkit.resumeSub',
+              'When Codex, Gemini CLI, Qwen Code or another agent stops on "usage limit ... try again at 3:45 PM", PulsarIDE types "ga door" into that pane one minute after the reset, so the chat goes on with its own item. Not when you typed in that pane meanwhile, and at most three times in a row. Claude Code does this itself.'
+            )}
+          >
+            {resume ? (
+              <div className="mt-2 space-y-1.5 text-[12px]">
+                <div className="flex items-center gap-2">
+                  <Dot ok={resume.enabled} />
+                  <span>
+                    {resume.enabled
+                      ? translate('planide.toolkit.resumeOn', 'On')
+                      : translate('planide.toolkit.resumeOff', 'Off')}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px]"
+                    onClick={() => void quotaResumeSetEnabled(!resume.enabled).then(setResume)}
+                  >
+                    {resume.enabled
+                      ? translate('planide.toolkit.eccDisable', 'Turn off')
+                      : translate('planide.toolkit.resumeEnable', 'Turn on')}
+                  </Button>
+                </div>
+                {resume.pending.map((p) => (
+                  <div key={p.ptyId} className="flex items-center gap-2 text-[11px]">
+                    <span className="font-medium">{p.agent}</span>
+                    <span className="text-muted-foreground">
+                      {translate('planide.toolkit.resumeAt', 'resumes at')}{' '}
+                      {new Date(p.fireAt).toLocaleString(undefined, {
+                        weekday: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 px-1.5 text-[11px]"
+                      onClick={() => void quotaResumeCancel(p.ptyId).then(setResume)}
+                    >
+                      {translate('planide.toolkit.resumeCancel', 'Cancel')}
+                    </Button>
+                  </div>
+                ))}
+                {resume.recent.length > 0 && (
+                  <ul className="space-y-0.5 text-[11px] text-muted-foreground">
+                    {resume.recent
+                      .slice(-4)
+                      .reverse()
+                      .map((e, i) => (
+                        <li key={`${e.at}-${i}`} className="truncate" title={e.detail}>
+                          {new Date(e.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} ·{' '}
+                          {e.agent} · {e.event} · {e.detail}
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </div>
             ) : (
               <p className="mt-2 text-[11px] text-muted-foreground">
                 {translate('planide.toolkit.checking', 'Checking...')}

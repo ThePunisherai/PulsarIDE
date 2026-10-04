@@ -6,6 +6,31 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.5] - 2026-10-04
+
+### New
+- **Auto-resume after a usage limit.** Codex, Gemini CLI, Qwen Code and the other
+  agents stop on "You've hit your usage limit … try again at 3:45 PM." Until now you
+  waited for the reset and typed "ga door" yourself. PulsarIDE now reads every agent
+  pane's output for that stop. One minute after the reset it types `ga door` and Enter
+  into that pane. The keep-going hook answers that the way it answers you: with this
+  chat's own wip/todo item.
+  - It reads every form Codex writes (time today, or "Oct 6th, 2026 9:05 AM") as well
+    as "try again in 2h 13m" and "resets at 16:30".
+  - It does not type into the pane in these cases:
+    - you typed in that pane meanwhile;
+    - the pane runs Claude Code, which continues by itself (`autoContinueAtUsageLimit`);
+    - a pane runs no known agent;
+    - the stop gave no time;
+    - the time is already past (an old message redrawn).
+  - It resumes at most three times in a row without you, then stops trying.
+  - **Toolkit → Auto-resume after a usage limit** shows:
+    - on/off;
+    - which panes are waiting and when they resume, with *Cancel*;
+    - the last things it did.
+
+    The log is in `pulsaride-storage/quota-resume.log.jsonl`.
+
 ## [0.99.4] - 2026-10-04
 
 ### What's fixed

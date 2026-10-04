@@ -540,6 +540,38 @@ export function hookTest(): Promise<HookTest[]> {
   return call<HookTest[]>('hookTest')
 }
 
+/** A pane waiting for its usage limit to reset, to be resumed with "ga door". */
+export type PendingResume = {
+  ptyId: string
+  agent: string
+  detectedAt: number
+  resetAt: number
+  fireAt: number
+  message: string
+}
+
+export type QuotaResumeEvent = {
+  at: string
+  ptyId: string
+  agent: string
+  event: 'scheduled' | 'resumed' | 'cancelled' | 'gave-up' | 'skipped'
+  detail: string
+}
+
+export type QuotaResumeStatus = { enabled: boolean; pending: PendingResume[]; recent: QuotaResumeEvent[] }
+
+export function quotaResumeStatus(): Promise<QuotaResumeStatus> {
+  return call<QuotaResumeStatus>('quotaResumeStatus')
+}
+
+export function quotaResumeSetEnabled(enabled: boolean): Promise<QuotaResumeStatus> {
+  return call<QuotaResumeStatus>('quotaResumeSetEnabled', enabled)
+}
+
+export function quotaResumeCancel(ptyId: string): Promise<QuotaResumeStatus> {
+  return call<QuotaResumeStatus>('quotaResumeCancel', ptyId)
+}
+
 /** Turn one Codex hook off where it stands (its command becomes `exit 0`). */
 export function hookTurnOff(target: { file: string; event: string; command: string }): Promise<boolean> {
   return call<boolean>('hookTurnOff', target)

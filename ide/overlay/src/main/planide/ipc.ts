@@ -40,6 +40,7 @@ import {
   trackerHealth
 } from './agent-bundle'
 import { buildReport, type ReportMode } from './report'
+import { quotaResume } from './quota-resume'
 import {
   chatsCompressionRunning,
   codexHomes,
@@ -305,6 +306,14 @@ export function registerPlanIdeIpc(): void {
   // Orca's own Codex homes too: Codex reads the hooks of the home it runs in.
   on('planide:hook-doctor', () => runHookDoctor(undefined, { codexHomes: codexHomes(app.getPath('userData')) }))
   // Each Codex hook run once as Codex runs it; only when the user asks.
+  // Auto-resume after a usage limit (quota-resume.ts): the switch, and what is
+  // waiting to be typed where.
+  on('planide:quota-resume-status', () => quotaResume.status())
+  on('planide:quota-resume-set-enabled', (enabled: boolean) => quotaResume.setEnabled(Boolean(enabled)))
+  on('planide:quota-resume-cancel', (ptyId: string) => {
+    if (typeof ptyId === 'string') quotaResume.cancel(ptyId, 'cancelled in the Toolkit')
+    return quotaResume.status()
+  })
   on('planide:hook-test', () => runHookTest(undefined, { codexHomes: codexHomes(app.getPath('userData')) }))
   on('planide:hook-turn-off', (target: { file: string; event: string; command: string }) =>
     turnOffCodexHook(target, { codexHomes: codexHomes(app.getPath('userData')) })

@@ -410,9 +410,72 @@ EDITS: list[tuple[str, str, str, str]] = [
         "      } catch {\n"
         "        /* storage housekeeping can never break startup */\n"
         "      }\n"
+        "      // Auto-resume: \"ga door\" typed into a pane when its usage limit\n"
+        "      // resets (quota-resume.ts); its switch and log live in userData.\n"
+        "      try {\n"
+        "        quotaResume.start(app.getPath('userData'))\n"
+        "      } catch {\n"
+        "        /* auto-resume can never break startup */\n"
+        "      }\n"
         "    }, 0)\n"
         "    await initializeMainProcessReady({",
         "register the tracker IPC and deploy the agent bundle on launch",
+    ),
+    # ---- integration: auto-resume after a usage limit -------------------- #
+    # Every chunk a pane prints passes the runtime's onPtyData, where upstream
+    # already watches for advertised dev-server URLs; the quota watcher reads
+    # the same stream for "usage limit ... try again at 3:45 PM" and is handed
+    # the runtime to type `ga door` back into that pty at the reset.
+    (
+        "src/main/runtime/orca-runtime-on-pty-data.ts",
+        "import { advertisedUrlWatcher } from '../ports/advertised-url-watcher'",
+        "import { advertisedUrlWatcher } from '../ports/advertised-url-watcher'\n"
+        "import { ingestQuotaResume } from '../planide/quota-resume'",
+        "auto-resume: import the quota watcher into the pty data path",
+    ),
+    (
+        "src/main/runtime/orca-runtime-on-pty-data.ts",
+        "    advertisedUrlWatcher.ingest(ptyId, data, at)\n",
+        "    advertisedUrlWatcher.ingest(ptyId, data, at)\n"
+        "    // PulsarIDE: a pane stopped by a usage limit is resumed at the reset.\n"
+        "    ingestQuotaResume(ptyId, data, this)\n",
+        "auto-resume: feed every pty chunk to the quota watcher",
+    ),
+    # And every keystroke batch from the window: a user who typed into the pane
+    # has taken over, so its scheduled `ga door` is called off.
+    (
+        "src/main/ipc/pty/ipc/write.ts",
+        "import { createPtyWriteInput } from './write-input'",
+        "import { createPtyWriteInput } from './write-input'\n"
+        "import { noteQuotaResumeInput } from '../../../planide/quota-resume'",
+        "auto-resume: import the input note into the pty write handler",
+    ),
+    (
+        "src/main/ipc/pty/ipc/write.ts",
+        "  ipcMain.on('pty:write', (event, args: unknown) => {\n"
+        "    if (!isPtyWriteEventFromMainWindow(event, mainWindow.webContents) || !isPtyWritePayload(args)) {\n"
+        "      return\n"
+        "    }\n",
+        "  ipcMain.on('pty:write', (event, args: unknown) => {\n"
+        "    if (!isPtyWriteEventFromMainWindow(event, mainWindow.webContents) || !isPtyWritePayload(args)) {\n"
+        "      return\n"
+        "    }\n"
+        "    // PulsarIDE: the user typed here -- a pending auto-resume is theirs to drop.\n"
+        "    noteQuotaResumeInput(args.id, args.data)\n",
+        "auto-resume: user input calls off a pending resume (pty:write)",
+    ),
+    (
+        "src/main/ipc/pty/ipc/write.ts",
+        "  ipcMain.handle('pty:writeAccepted', (event, args: unknown): boolean | Promise<boolean> => {\n"
+        "    if (!isPtyWriteEventFromMainWindow(event, mainWindow.webContents) || !isPtyWritePayload(args)) {\n"
+        "      return false\n"
+        "    }\n",
+        "  ipcMain.handle('pty:writeAccepted', (event, args: unknown): boolean | Promise<boolean> => {\n"
+        "    if (!isPtyWriteEventFromMainWindow(event, mainWindow.webContents) || !isPtyWritePayload(args)) {\n"
+        "      return false\n"
+        "    }\n"
+        "    noteQuotaResumeInput(args.id, args.data)\n",
+        "auto-resume: user input calls off a pending resume (pty:writeAccepted)",
     ),
     # These imports go in as blocks, on purpose. They used to be separate edits
     # chained onto each other's output; that daisy-chain broke idempotency,
@@ -426,6 +489,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "import { parseSkillShareId } from '../shared/skill-share-link'\n"
         "import { deployAgentBundle } from './planide/agent-bundle'\n"
         "import { startChatsCompression } from './planide/codex-compress'\n"
+        "import { quotaResume } from './planide/quota-resume'\n"
         "import { registerPlanIdeIpc } from './planide/ipc'",
         "tracker + agent-bundle main-process imports",
     ),
@@ -855,6 +919,7 @@ OVERLAY_FILES = [
     "src/main/planide/headroom-cleanup.ts",
     "src/main/planide/codex-compress.ts",
     "src/main/planide/hook-doctor.ts",
+    "src/main/planide/quota-resume.ts",
     "src/preload/api/planide-api.ts",
     "src/preload/planide.ts",
     "src/renderer/src/components/right-sidebar/PlanIdePanel.tsx",

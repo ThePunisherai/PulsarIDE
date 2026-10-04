@@ -525,6 +525,26 @@ else
   skip "codex chat compression (needs npx)"
 fi
 
+# 4j. Auto-resume after a usage limit: what a Codex pane prints when it stops,
+# with a fake clock and pty -- typed only after the reset, never over the user.
+if command -v npx >/dev/null 2>&1; then
+  work=$(mktemp -d)
+  if npx --yes esbuild "$HERE/overlay/src/main/planide/quota-resume.ts" --bundle --platform=node \
+      --format=cjs --outfile="$work/resume.cjs" --log-level=error >/dev/null 2>&1; then
+    out=$(PULSAR_RESUME_CJS="$work/resume.cjs" node "$HERE/test/quota-resume.test.mjs" 2>&1)
+    if echo "$out" | grep -q "FAIL=0"; then
+      ok "auto-resume: $(echo "$out" | grep -oE 'PASS=[0-9]+') usage-limit checks"
+    else
+      bad "auto-resume after a usage limit"; echo "$out" | grep "FAIL " | head -6
+    fi
+  else
+    bad "quota-resume.ts does not bundle"
+  fi
+  rm -rf "$work"
+else
+  skip "auto-resume (needs npx)"
+fi
+
 # 5. the real test: does the overlay still apply to an Orca checkout?
 if [ -f "$CHECKOUT/package.json" ]; then
   tmp=$(mktemp -d)
