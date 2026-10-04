@@ -1199,6 +1199,84 @@ if (process.platform !== 'win32') {
     existsSync(hookLog) && readFileSync(hookLog, 'utf8').includes('boom from a broken hook'))
 }
 
+// A project stays one folder: Projectmanagement-v060-dev ... -v077-dev, one an
+// hour beside the project, nobody asked. The deployed guard, through the very
+// launcher the agents get, against what Codex, Claude Code and Gemini send.
+if (process.platform !== 'win32') {
+  const parent = mkdtempSync(join(tmpdir(), 'pulsar-one-folder-'))
+  const proj = join(parent, 'Projectmanagement')
+  mkdirSync(join(proj, '.planide'), { recursive: true })
+  writeFileSync(join(proj, '.planide/state.json'), JSON.stringify({ items: [], fixes: [], activity: [] }))
+  mkdirSync(join(proj, 'src'))
+  mkdirSync(join(parent, 'Projectmanagement-v077-dev'))
+  const guardLauncher = join(HOME, '.config/pulsaride/hooks/project-guard.sh')
+  const guard = (payload) => {
+    const out = spawnSync(guardLauncher, [], { input: JSON.stringify(payload), encoding: 'utf8' })
+    try {
+      return { code: out.status, json: out.stdout.trim() ? JSON.parse(out.stdout) : null }
+    } catch {
+      return { code: out.status, json: { unparsable: out.stdout } }
+    }
+  }
+  const denied = (r) =>
+    r.code === 0 &&
+    (r.json?.hookSpecificOutput?.permissionDecision === 'deny' || r.json?.decision === 'deny')
+  const base = { session_id: 'S1', cwd: proj }
+  ok('one folder: Codex adding a worktree beside the project is refused, with the reason',
+    denied(guard({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Bash',
+      tool_input: { command: 'git worktree add ../Projectmanagement-v078-dev -b v078-dev' } })) &&
+    /one folder/.test(guard({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Bash',
+      tool_input: { command: 'git worktree add ../Projectmanagement-v078-dev -b v078-dev' } }).json.hookSpecificOutput.permissionDecisionReason))
+  ok('one folder: copying the project to a -dev folder is refused, in sh and in PowerShell',
+    denied(guard({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'cp -r . ../Projectmanagement-v078-dev' } })) &&
+    denied(guard({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Bash',
+      tool_input: { command: 'Copy-Item -Recurse -Path . -Destination ..\\Projectmanagement-v078-dev' } })) &&
+    denied(guard({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'mkdir -p ../Projectmanagement-v079-dev && cd ../Projectmanagement-v079-dev' } })))
+  ok("one folder: Codex's apply_patch and Claude's Write into an existing copy beside it are refused",
+    denied(guard({ ...base, hook_event_name: 'PreToolUse', tool_name: 'apply_patch',
+      tool_input: { command: '*** Begin Patch\n*** Add File: ../Projectmanagement-v077-dev/src/x.ts\n+x\n*** End Patch' } })) &&
+    denied(guard({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Write',
+      tool_input: { file_path: join(parent, 'Projectmanagement-v077-dev', 'README.md'), content: 'x' } })))
+  ok('one folder: Gemini CLI gets its own deny shape on BeforeTool',
+    guard({ ...base, hook_event_name: 'BeforeTool', tool_name: 'run_shell_command',
+      tool_input: { command: 'git worktree add ../Projectmanagement-v078-dev' } }).json?.decision === 'deny')
+  const passes = (payload) => {
+    const r = guard({ ...base, hook_event_name: 'PreToolUse', ...payload })
+    return r.code === 0 && r.json === null
+  }
+  ok('one folder: ordinary work goes through -- inside the project, other folders, reading a copy',
+    passes({ tool_name: 'Bash', tool_input: { command: 'npm test && git status' } }) &&
+    passes({ tool_name: 'Write', tool_input: { file_path: join(proj, 'src', 'new.ts') } }) &&
+    passes({ tool_name: 'Bash', tool_input: { command: 'cp build/app.zip ../releases/' } }) &&
+    passes({ tool_name: 'Bash', tool_input: { command: 'ls ../Projectmanagement-v077-dev' } }) &&
+    passes({ tool_name: 'Bash', tool_input: { command: 'git worktree list' } }))
+  ok('one folder: a folder that is not a tracked project is none of its business',
+    guard({ session_id: 'S1', cwd: parent, hook_event_name: 'PreToolUse', tool_name: 'Bash',
+      tool_input: { command: 'git worktree add ../x-dev' } }).json === null)
+  // The user asks for a worktree in this chat: from then on it is theirs.
+  const goLauncher2 = join(HOME, '.config/pulsaride/hooks/keep-going.sh')
+  execSync(`"${goLauncher2}"`, { input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: 'S2', cwd: proj,
+    prompt: 'maak een aparte worktree voor de v078 release' }) })
+  ok('one folder: when the user asked for a worktree in that chat, it is allowed there -- and only there',
+    passes({ session_id: 'S2', tool_name: 'Bash', tool_input: { command: 'git worktree add ../Projectmanagement-v078-dev' } }) &&
+    denied(guard({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Bash',
+      tool_input: { command: 'git worktree add ../Projectmanagement-v078-dev' } })))
+  execSync(`"${goLauncher2}"`, { input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: 'S2', cwd: proj, prompt: 'ga door' }) })
+  ok('one folder: and it stays allowed in that chat after a plain "ga door"',
+    passes({ session_id: 'S2', tool_name: 'Bash', tool_input: { command: 'git worktree add ../Projectmanagement-v078-dev' } }))
+  const claudeHooksNow = JSON.parse(readFileSync(join(HOME, '.claude/settings.json'), 'utf8')).hooks
+  const codexHooksNow = JSON.parse(readFileSync(join(HOME, '.codex/hooks.json'), 'utf8')).hooks
+  const qwenHooksNow = JSON.parse(readFileSync(join(HOME, '.qwen/settings.json'), 'utf8')).hooks
+  const geminiHooksNow = JSON.parse(readFileSync(join(HOME, '.gemini/settings.json'), 'utf8')).hooks
+  const pg = (groups) => (groups ?? []).filter((g) => JSON.stringify(g).includes('project-guard'))
+  ok('one folder: wired once for every agent, on the tools that write or run commands',
+    pg(claudeHooksNow.PreToolUse).length === 1 && pg(claudeHooksNow.PreToolUse)[0].matcher === 'Bash|PowerShell|Write|Edit|MultiEdit' &&
+    pg(codexHooksNow.PreToolUse).length === 1 && pg(codexHooksNow.PreToolUse)[0].matcher === 'Bash|apply_patch' &&
+    pg(codexHooksNow.PreToolUse)[0].hooks[0].timeoutSec === 15 &&
+    pg(qwenHooksNow.PreToolUse).length === 1 && pg(geminiHooksNow.BeforeTool).length === 1 &&
+    pg(geminiHooksNow.BeforeTool)[0].hooks[0].timeout === 15000)
+}
+
 // --- the vendored libraries: pre-installed, and still there after an update -- //
 // agency-agents (296 roles) and the ThreeUI design components are read off disk
 // by whichever agent needs one, so "installed" has to mean really on disk -- and

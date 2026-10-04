@@ -18,7 +18,8 @@
     "todo-sync.mjs",
     "resume-brief.mjs",
     "keep-going.mjs",
-    "docs-guard.mjs"
+    "docs-guard.mjs",
+    "project-guard.mjs"
   ],
   "tracker": {
     "note": "Deployed to ~/.config/pulsaride/tracker and registered as the 'planide' and 'pulsar-tools' MCP servers (user scope) for every agent this app knows: Claude Code, Codex, Gemini CLI, Antigravity, Qwen Code, Cursor and opencode. Each reads its own config file -- Antigravity's is ~/.gemini/config/mcp_config.json, NOT Gemini CLI's ~/.gemini/settings.json.",

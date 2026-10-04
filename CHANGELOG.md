@@ -6,6 +6,31 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.8] - 2026-10-04
+
+### What's fixed
+- **Agents made a new folder beside the project for every version.** Nobody asked for
+  `Projectmanagement-v060-dev`, `-v062-dev` … `-v077-dev`, one an hour, next to
+  `Projectmanagement`. An agent working the board on its own took every "version" as a
+  reason for a fresh worktree or copy of the whole project. A project now stays one folder:
+  - **A guard on every agent** — Codex (`Bash`, `apply_patch`), Claude Code (`Bash`,
+    `PowerShell`, `Write`, `Edit`), Gemini CLI and Qwen Code (shell, write, edit). It refuses,
+    with the reason:
+    - a command that makes a copy, worktree or `-dev`/version folder beside a tracked project
+      (`git worktree add ../…`, `cp -r`, `robocopy`, `Copy-Item`, `mkdir`, …);
+    - a file write into one of those copies.
+  - **Unless you ask for it.** Mention a worktree, a copy, a clone or a new folder in a chat,
+    and that chat may make one — from then on, even after a "ga door".
+  - Everything else goes through: work inside the project, other folders, reading or
+    running things in an existing copy.
+  - The always-on instructions and the Council say it too: a version is `add_version` on the
+    board, not a folder.
+  - Codex asks once, in `/hooks`, to trust the new guard; your other hooks keep their place
+    and their trust.
+
+  The folders already made are left exactly as they are — they may hold work. Delete them
+  yourself once you have checked them.
+
 ## [0.99.7] - 2026-10-04
 
 ### Storage

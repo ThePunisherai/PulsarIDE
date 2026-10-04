@@ -1036,6 +1036,23 @@ function wireHooks(home: string, root: string): boolean {
     })
   }
 
+  // --- a project stays one folder ------------------------------------------ //
+  // "Nou maakt die allemaal mappen aan": Projectmanagement-v060-dev ... -v077-dev,
+  // one an hour, beside the project. A shell command or write that would create
+  // or fill a copy, worktree or version folder next to a tracked project is
+  // refused with the reason, unless the user asked for one in that chat
+  // (project-guard.mjs, rules in tracker/mcp/sibling-guard.mjs).
+  const projectGuardScript = join(hookSrc, 'project-guard.mjs')
+  if (existsSync(projectGuardScript)) {
+    const dest = join(hookDir, 'project-guard.mjs')
+    cpSync(projectGuardScript, dest)
+    const launcher = writeNodeLauncher(hookDir, 'project-guard', dest, onWindows)
+    reconcileHookGroup(hooks, 'PreToolUse', 'project-guard', {
+      matcher: 'Bash|PowerShell|Write|Edit|MultiEdit',
+      hooks: [{ type: 'command', command: hookCommand(launcher, 'git-bash'), timeout: 15 }]
+    })
+  }
+
   // --- the agent's own plan, onto the board ------------------------------- //
   // `PostToolUse` with an exact `TodoWrite` matcher: verified against
   // code.claude.com/docs/en/hooks.md, that event hands the hook `tool_name`,
@@ -1280,6 +1297,12 @@ export function turnOffCodexHook(
   })
 }
 
+/** The project-guard launcher wireHooks wrote, if it is really on disk. */
+function projectGuardLauncher(home: string): string | null {
+  const path = join(configDir(home), 'hooks', process.platform === 'win32' ? 'project-guard.cmd' : 'project-guard.sh')
+  return existsSync(path) ? path : null
+}
+
 /** The docs-guard launcher wireHooks wrote, if it is really on disk. */
 function docsGuardLauncher(home: string): string | null {
   const path = join(configDir(home), 'hooks', process.platform === 'win32' ? 'docs-guard.cmd' : 'docs-guard.sh')
@@ -1378,6 +1401,17 @@ function wireCodexPlanHook(home: string): boolean {
         })
       }
     }
+    // A project stays one folder: Codex's shell and apply_patch pass PreToolUse
+    // (codex-rs/hooks: the matcher is a regex, `apply_patch` also answers to
+    // Write/Edit; deny is hookSpecificOutput.permissionDecision). A new group:
+    // Codex asks once, in /hooks, to trust it -- the others keep their places.
+    const keep = projectGuardLauncher(home)
+    if (keep) {
+      reconcileHookGroup(hooks, 'PreToolUse', 'project-guard', {
+        matcher: 'Bash|apply_patch',
+        hooks: [{ type: 'command', command: hookCommand(keep, 'powershell'), timeoutSec: 15 }]
+      })
+    }
     mkdirSync(dirname(path), { recursive: true })
     writeConfigAtomic(path, JSON.stringify(config, null, 2))
     return true
@@ -1413,6 +1447,7 @@ function wireGeminiPlanHook(home: string): boolean {
   const resume = resumeLauncher(home)
   const go = keepGoingLauncher(home)
   const guard = docsGuardLauncher(home)
+  const keep = projectGuardLauncher(home)
 
   const flavours: { path: string; qwen: boolean }[] = [
     { path: join(home, '.gemini', 'settings.json'), qwen: false },
@@ -1465,6 +1500,13 @@ function wireGeminiPlanHook(home: string): boolean {
       }
       // Docs go in docs/: a new loose doc at the root is refused with a reason.
       if (guard) reconcileHookGroup(hooks, ev.write, 'docs-guard', { matcher: 'write_file', hooks: [cmd(guard)] })
+      // A project stays one folder: shell commands and file writes beside it.
+      if (keep) {
+        reconcileHookGroup(hooks, ev.write, 'project-guard', {
+          matcher: qwen ? 'run_shell_command|write_file|edit' : 'run_shell_command|write_file|replace',
+          hooks: [cmd(keep)]
+        })
+      }
       mkdirSync(dirname(path), { recursive: true })
       writeConfigAtomic(path, JSON.stringify(config, null, 2))
       wrote = true
@@ -2274,6 +2316,9 @@ function projectAgentsBlock(home: string): string {
     '  is done, carry on down that queue unasked (`set_item` answers with `next`).',
     '- **Docs go in `docs/`**, never loose at the root (README, CHANGELOG, AGENTS.md stay).',
     '  Update the doc on a subject before adding another.',
+    '- **The project stays one folder.** Never create a copy, worktree, `-dev`/version folder',
+    '  or new project next to it unless the user asks for exactly that. A version is',
+    '  `add_version` on the board, not a folder.',
     '- **Keep it true as you work:** `add_item` (todo) for a request, `set_item` wip when',
     '  you start, works when it really works -- with the user\'s auto-complete on it lands as',
     '  `done`, so run the project\'s own checks first. A bug you hit mid-task: `add_fix`',
@@ -2325,6 +2370,8 @@ function mainSessionBlock(home: string): string {
     '   columns), `broken` when it fails; `add_fix` the moment you hit a bug; `mark_fixed` when',
     '   the user says it is solved; `add_milestone` for the phases of a bigger plan;',
     '   `add_version` when you ship. Verify before you claim — do not green-wash.',
+    '   The project stays one folder: never a copy, worktree, `-dev`/version folder or new',
+    '   project next to it unless the user asks for exactly that -- a hook refuses it.',
     '',
     'Before you hand-roll anything, ask `route_task` what is installed for it -- skills, design',
     'systems, 3D components, ECC playbooks, the RE toolkit. If it names something and you do',

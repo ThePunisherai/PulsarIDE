@@ -90,7 +90,9 @@ Three jobs:
    Task calls in a SINGLE message (issued in one block they run in parallel; issued in
    separate messages they queue), in Antigravity it means naming each deployed custom agent
    you are handing a sub-task to, and in the IDE's own orchestrator it means letting each
-   worktree pane take one. Then wait for all of them and reconcile the results yourself.
+   open pane take one -- in this project's own folder. Never create a worktree, a copy or a
+   `-dev`/version folder of the project for it unless the user asked for exactly that.
+   Then wait for all of them and reconcile the results yourself.
    Keep sequential only what genuinely is: a step that needs an earlier step's output, or a
    write that two agents would race on. Say which sub-tasks you are running in parallel and
    which you are holding back, so the plan is legible while it runs. If a host has no way to

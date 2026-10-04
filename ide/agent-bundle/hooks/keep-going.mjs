@@ -193,6 +193,7 @@ async function main() {
   const wq = await import(pathToFileURL(join(mcp, 'work-queue.mjs')).href)
   const ss = await import(pathToFileURL(join(mcp, 'sessions.mjs')).href)
   const docsTidy = await import(pathToFileURL(join(mcp, 'docs-tidy.mjs')).href)
+  const siblingGuard = await import(pathToFileURL(join(mcp, 'sibling-guard.mjs')).href)
   const state = JSON.parse(readFileSync(join(project, '.planide', 'state.json'), 'utf8'))
 
   if (PROMPT_EVENTS.has(event)) {
@@ -221,7 +222,10 @@ async function main() {
       drive,
       pushes: 0,
       current,
-      wip: wq.wipIds(state)
+      wip: wq.wipIds(state),
+      // The user asked for a copy, worktree or new folder in this chat: from
+      // then on project-guard lets this chat make one (sibling-guard.mjs).
+      asked_copy: Boolean(prev?.asked_copy) || siblingGuard.asksForCopy(payload.prompt)
     }))
     const context = [docsNote, drive && wq.autopilot(state) ? wq.continueContext(state, { current }) : '']
       .filter(Boolean)
