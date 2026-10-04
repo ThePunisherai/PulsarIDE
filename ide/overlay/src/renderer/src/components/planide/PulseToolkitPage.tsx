@@ -769,6 +769,18 @@ export default function PulseToolkitPage(): React.JSX.Element {
                     ? ` · ${size(chatsSize.linkedElsewhereBytes)} ${translate('planide.toolkit.chatsElsewhere', 'also linked outside the Codex homes, left alone')}`
                     : ''}
                 </p>
+                {/* Which apps' chats were found: Orca's are compressed the same
+                    way when Orca is (or was) on this machine. */}
+                {chatsSize.sources && chatsSize.sources.length > 0 && (
+                  <ul className="space-y-0.5 text-[11px] text-muted-foreground">
+                    {chatsSize.sources.map((s) => (
+                      <li key={s.base} className="truncate" title={s.base}>
+                        <span className="font-medium text-foreground">{s.app}</span> · {s.chats}{' '}
+                        {translate('planide.toolkit.chatsChats', 'chats')} · {size(s.bytes)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             ) : (
               <p className="mt-2 text-[11px] text-muted-foreground">

@@ -39,6 +39,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   unlinkSync,
   utimesSync,
@@ -46,7 +47,7 @@ import {
 } from 'node:fs'
 import { readdir, stat, statfs } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { Transform, Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { constants as Z, createZstdCompress, createZstdDecompress } from 'node:zlib'
@@ -90,7 +91,13 @@ export type ChatsMeasure = {
   /** Disk bytes in old chats also linked from outside the Codex homes: left alone. */
   linkedElsewhereBytes: number
   homes: number
+  /** Per app found on this machine: where its chats are and what they take on disk. */
+  sources?: ChatsSourceSize[]
 }
+
+/** One app whose Codex chats are kept here: PulsarIDE, Orca, an older build, Codex itself. */
+export type ChatsSource = { app: string; base: string; homes: string[] }
+export type ChatsSourceSize = { app: string; base: string; chats: number; bytes: number }
 
 type Found = { path: string; size: number; mtimeMs: number; atimeMs: number; nlink: number; key: string }
 
@@ -107,29 +114,80 @@ function listDir(dir: string): string[] {
   }
 }
 
+/** A folder's real path -- its true case on Windows -- or null if it is not there. */
+function realDir(p: string): string | null {
+  try {
+    return realpathSync.native(p)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The other apps' data folders beside ours that Codex chats can be in. Orca is
+ * where PulsarIDE comes from: anyone who ran Orca has its chats in its own data
+ * folder -- `Orca` packaged (electron-builder's productName), `orca` by the
+ * package name, `orca-dev` for a source build (configure-process.ts) -- and
+ * PulsarIDE itself lived in `planide` before 0.11.
+ */
+const SIBLINGS: { app: string; names: string[] }[] = [
+  { app: 'Orca', names: ['Orca', 'orca'] },
+  { app: 'Orca (dev)', names: ['orca-dev'] },
+  { app: 'PlanIDE (before 0.11)', names: ['planide', 'PlanIDE'] }
+]
+
+function homesUnder(base: string): string[] {
+  const out: string[] = []
+  const accounts = join(base, 'codex-accounts')
+  for (const id of listDir(accounts)) out.push(join(accounts, id, 'home'))
+  out.push(join(base, 'codex-runtime-home', 'home'))
+  out.push(join(base, 'codex-runtime-home', 'active', 'host', 'home'))
+  return out.filter((h) => SESSION_DIRS.some((d) => existsSync(join(h, d))))
+}
+
+/**
+ * Every app on this machine whose Codex chats can be compressed, found by
+ * looking: this app, Orca and its dev build and the old PlanIDE folder when
+ * they are there, and Codex's own ~/.codex (or $CODEX_HOME). A folder reached
+ * under two names (`Orca` and `orca` on a case-insensitive disk) counts once.
+ */
+export function chatSources(
+  userData: string,
+  opts: { home?: string; env?: NodeJS.ProcessEnv; ownOnly?: boolean } = {}
+): ChatsSource[] {
+  const home = opts.home ?? homedir()
+  const env = opts.env ?? process.env
+  const seen = new Set<string>()
+  const out: ChatsSource[] = []
+  const add = (app: string, path: string, homes: (base: string) => string[]): void => {
+    const base = realDir(path)
+    if (!base) return
+    const key = process.platform === 'win32' || process.platform === 'darwin' ? base.toLowerCase() : base
+    if (seen.has(key)) return
+    seen.add(key)
+    const found = homes(base)
+    if (found.length) out.push({ app, base, homes: found })
+  }
+  add('PulsarIDE', userData, homesUnder)
+  if (!opts.ownOnly) {
+    for (const { app, names } of SIBLINGS) for (const name of names) add(app, join(dirname(resolve(userData)), name), homesUnder)
+  }
+  const codexHome = resolve(env.CODEX_HOME?.trim() || join(home, '.codex'))
+  add('Codex', codexHome, (base) => (SESSION_DIRS.some((d) => existsSync(join(base, d))) ? [base] : []))
+  return out
+}
+
 /**
  * The Codex homes on this machine that hold chats: Orca's per-account and
- * runtime homes under this app's data folder and under Orca's own (when Orca
- * ran here before PulsarIDE), and the user's own ~/.codex (or $CODEX_HOME).
+ * runtime homes under this app's data folder and under every other app's that
+ * chatSources finds (Orca, its dev build, the old PlanIDE folder), and the
+ * user's own ~/.codex (or $CODEX_HOME). `ownOnly`: this app's and ~/.codex.
  */
 export function codexHomes(
   userData: string,
-  opts: { home?: string; env?: NodeJS.ProcessEnv } = {}
+  opts: { home?: string; env?: NodeJS.ProcessEnv; ownOnly?: boolean } = {}
 ): string[] {
-  const home = opts.home ?? homedir()
-  const env = opts.env ?? process.env
-  const bases = [resolve(userData)]
-  const orca = resolve(dirname(userData), 'orca')
-  if (orca !== bases[0]) bases.push(orca)
-  const out = new Set<string>()
-  for (const base of bases) {
-    const accounts = join(base, 'codex-accounts')
-    for (const id of listDir(accounts)) out.add(join(accounts, id, 'home'))
-    out.add(join(base, 'codex-runtime-home', 'home'))
-    out.add(join(base, 'codex-runtime-home', 'active', 'host', 'home'))
-  }
-  out.add(resolve(env.CODEX_HOME?.trim() || join(home, '.codex')))
-  return [...out].filter((h) => SESSION_DIRS.some((d) => existsSync(join(h, d))))
+  return [...new Set(chatSources(userData, opts).flatMap((s) => s.homes))]
 }
 
 async function walk(root: string, match: RegExp, out: string[]): Promise<void> {
@@ -454,6 +512,8 @@ export async function measureCodexChats(opts: {
   homes: string[]
   minAgeDays?: number
   now?: number
+  /** To split the total per app (chatSources). */
+  sources?: ChatsSource[]
 }): Promise<ChatsMeasure> {
   const plain = await findAll(opts.homes, PLAIN)
   const zst = await findAll(opts.homes, COMPRESSED)
@@ -472,8 +532,23 @@ export async function measureCodexChats(opts: {
     compressedBytes: sum(zstGroups),
     recentPlainBytes: sum(plainGroups) - sum(cold),
     linkedElsewhereBytes: sum(elsewhere),
-    homes: opts.homes.length
+    homes: opts.homes.length,
+    ...(opts.sources ? { sources: perSource(opts.sources, [...plainGroups, ...zstGroups]) } : {})
   }
+}
+
+/** Disk bytes per app: a transcript counts for the app whose folder holds its first link. */
+function perSource(sources: ChatsSource[], groups: Group[]): ChatsSourceSize[] {
+  const fold = (p: string): string => (process.platform === 'win32' || process.platform === 'darwin' ? p.toLowerCase() : p)
+  const sizes = sources.map((s) => ({ app: s.app, base: s.base, chats: 0, bytes: 0, prefix: fold(s.base) }))
+  for (const g of groups) {
+    const first = fold(g.paths[0] ?? '')
+    const owner = sizes.find((s) => first === s.prefix || first.startsWith(s.prefix.endsWith(sep) ? s.prefix : s.prefix + sep))
+    if (!owner) continue
+    owner.chats += 1
+    owner.bytes += g.size
+  }
+  return sizes.map(({ prefix: _prefix, ...s }) => s)
 }
 
 // --------------------------------------------------------------------------- automatic

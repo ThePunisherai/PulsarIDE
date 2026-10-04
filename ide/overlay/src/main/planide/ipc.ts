@@ -43,6 +43,7 @@ import { buildReport, type ReportMode } from './report'
 import { quotaResume } from './quota-resume'
 import {
   chatsCompressionRunning,
+  chatSources,
   codexHomes,
   measureCodexChats,
   readChatsState,
@@ -300,12 +301,15 @@ export function registerPlanIdeIpc(): void {
   on('planide:unreal-status', () => unrealStatus())
   // Detected, never installed: rtk's own init writes a global shell hook.
   on('planide:rtk-status', () => rtkStatus())
-  // Old Codex chats, compressed losslessly (codex-compress.ts). Status is cheap;
-  // measuring walks every transcript, so it is its own call.
-  // Agent hooks that can never run (hook-doctor.ts): checked again on request.
-  // Orca's own Codex homes too: Codex reads the hooks of the home it runs in.
-  on('planide:hook-doctor', () => runHookDoctor(undefined, { codexHomes: codexHomes(app.getPath('userData')) }))
-  // Each Codex hook run once as Codex runs it; only when the user asks.
+  // Agent hooks that can never run (hook-doctor.ts): checked again on request,
+  // and each Codex hook run once as Codex runs it (Test hooks). This app's
+  // Codex homes and ~/.codex only: another app's hooks are its own.
+  const ownCodexHomes = (): string[] => codexHomes(app.getPath('userData'), { ownOnly: true })
+  on('planide:hook-doctor', () => runHookDoctor(undefined, { codexHomes: ownCodexHomes() }))
+  on('planide:hook-test', () => runHookTest(undefined, { codexHomes: ownCodexHomes() }))
+  on('planide:hook-turn-off', (target: { file: string; event: string; command: string }) =>
+    turnOffCodexHook(target, { codexHomes: ownCodexHomes() })
+  )
   // Auto-resume after a usage limit (quota-resume.ts): the switch, and what is
   // waiting to be typed where.
   on('planide:quota-resume-status', () => quotaResume.status())
@@ -314,15 +318,18 @@ export function registerPlanIdeIpc(): void {
     if (typeof ptyId === 'string') quotaResume.cancel(ptyId, 'cancelled in the Toolkit')
     return quotaResume.status()
   })
-  on('planide:hook-test', () => runHookTest(undefined, { codexHomes: codexHomes(app.getPath('userData')) }))
-  on('planide:hook-turn-off', (target: { file: string; event: string; command: string }) =>
-    turnOffCodexHook(target, { codexHomes: codexHomes(app.getPath('userData')) })
-  )
+  // Old Codex chats, compressed losslessly (codex-compress.ts). Status is cheap;
+  // measuring walks every transcript, so it is its own call.
   on('planide:codex-chats-status', () => ({
     ...readChatsState(app.getPath('userData')),
     running: chatsCompressionRunning()
   }))
-  on('planide:codex-chats-measure', () => measureCodexChats({ homes: codexHomes(app.getPath('userData')) }))
+  on('planide:codex-chats-measure', () => {
+    // Orca, its dev build and the old PlanIDE folder too, when they are on this
+    // machine -- split per app so the Toolkit can say what it found where.
+    const sources = chatSources(app.getPath('userData'))
+    return measureCodexChats({ homes: [...new Set(sources.flatMap((s) => s.homes))], sources })
+  })
   on('planide:codex-chats-set-enabled', (enabled: boolean) =>
     setChatsCompression(app.getPath('userData'), Boolean(enabled))
   )

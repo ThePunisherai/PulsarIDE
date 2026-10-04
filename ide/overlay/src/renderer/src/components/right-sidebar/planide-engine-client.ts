@@ -612,6 +612,8 @@ export type ChatsMeasure = {
   recentPlainBytes?: number
   linkedElsewhereBytes?: number
   homes: number
+  /** Per app found here -- PulsarIDE, Orca, Orca (dev), the old PlanIDE folder, Codex. */
+  sources?: { app: string; base: string; chats: number; bytes: number }[]
 }
 
 export function codexChatsStatus(): Promise<ChatsStatus> {

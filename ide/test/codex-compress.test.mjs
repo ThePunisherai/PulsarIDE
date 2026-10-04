@@ -9,7 +9,7 @@
  */
 import { createHash } from 'node:crypto'
 import {
-  existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync
+  existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -17,7 +17,7 @@ import { zstdDecompressSync } from 'node:zlib'
 
 const MOD = process.env.PULSAR_CHATS_CJS
 const {
-  codexHomes, compressCodexChats, restoreCodexChats, measureCodexChats,
+  codexHomes, chatSources, compressCodexChats, restoreCodexChats, measureCodexChats,
   readChatsState, setChatsCompression, runChatsCompression
 } = await import(MOD)
 
@@ -82,26 +82,66 @@ const orcaHome = join(dirname(userData), 'orca', 'codex-accounts', 'cccc', 'home
 mkdirSync(join(orcaHome, 'sessions'), { recursive: true })
 ok("homes: Orca's own data folder beside ours is included",
   codexHomes(userData, { home: fakeHome, env: {} }).includes(orcaHome))
+// Orca packaged is `Orca`, a source build `orca-dev`, and PulsarIDE before
+// 0.11 kept its data in `planide`: all found, each under its own name.
+{
+  const dev = join(dirname(userData), 'orca-dev', 'codex-runtime-home', 'home')
+  const old = join(dirname(userData), 'planide', 'codex-accounts', 'dddd', 'home')
+  for (const h of [dev, old]) mkdirSync(join(h, 'sessions'), { recursive: true })
+  // The same Orca folder reached under a second name (what `Orca` and `orca`
+  // are on a case-insensitive disk): counted once.
+  symlinkSync(join(dirname(userData), 'orca'), join(dirname(userData), 'Orca'))
+  const sources = chatSources(userData, { home: fakeHome, env: {} })
+  const apps = sources.map((s) => s.app)
+  ok('detect: PulsarIDE, Orca, Orca (dev), the old PlanIDE folder and ~/.codex are each found',
+    ['PulsarIDE', 'Orca', 'Orca (dev)', 'PlanIDE (before 0.11)', 'Codex'].every((a) => apps.includes(a)))
+  ok('detect: one folder under two names is one source, its homes listed once',
+    apps.filter((a) => a === 'Orca').length === 1 &&
+    codexHomes(userData, { home: fakeHome, env: {} }).filter((h) => h.endsWith(join('cccc', 'home'))).length === 1)
+  ok("detect: ownOnly leaves other apps' folders out (hooks stay this app's business)",
+    !codexHomes(userData, { home: fakeHome, env: {}, ownOnly: true }).some((h) => /orca|planide/i.test(h.slice(dirname(userData).length))))
+  rmSync(join(dirname(userData), 'Orca'))
+  rmSync(join(dirname(userData), 'orca-dev'), { recursive: true })
+  rmSync(join(dirname(userData), 'planide'), { recursive: true })
+}
+// An old chat that only Orca has: compressed like ours once Orca is detected.
+const orcaDay = join(orcaHome, 'sessions', '2026', '06', '01')
+mkdirSync(orcaDay, { recursive: true })
+const orcaChat = join(orcaDay, 'rollout-2026-06-01T10-00-00-019e0000-0000-7000-8000-000000000001.jsonl')
+writeFileSync(orcaChat, chat.replace(/step/g, 'orca'))
+utimesSync(orcaChat, old, old)
+const orcaSha = sha(orcaChat)
 
 // --- what Explorer shows vs what the disk holds ---------------------------- //
-const before = await measureCodexChats({ homes })
+const allHomes = codexHomes(userData, { home: fakeHome, env: {} })
+const sources = chatSources(userData, { home: fakeHome, env: {} })
+const before = await measureCodexChats({ homes: allHomes, sources })
 const ownLen = chat.replace(/step/g, 'own').length
+const orcaLen = chat.replace(/step/g, 'orca').length
 ok('measure: Explorer counts every link, the disk holds each chat once',
-  before.logicalBytes === 5 * chat.length + ownLen &&
-  before.physicalBytes === 3 * chat.length + ownLen &&
-  before.plainChats === 4 && before.compressedChats === 0)
+  before.logicalBytes === 5 * chat.length + ownLen + orcaLen &&
+  before.physicalBytes === 3 * chat.length + ownLen + orcaLen &&
+  before.plainChats === 5 && before.compressedChats === 0)
+const bySource = Object.fromEntries(before.sources.map((s) => [s.app, s]))
+ok('measure: split per app -- what PulsarIDE, Orca and ~/.codex each hold',
+  bySource.PulsarIDE.chats === 3 && bySource.PulsarIDE.bytes === 3 * chat.length &&
+  bySource.Orca.chats === 1 && bySource.Orca.bytes === orcaLen &&
+  bySource.Codex.chats === 1 && bySource.Codex.bytes === ownLen)
 // Where the total sits, so the Toolkit can say why it is not smaller: the
 // recent chat is in use, the one linked from outside is left alone, and only
 // the rest is what a run will take.
 ok('measure: in use, linked elsewhere and still to compress are told apart',
   before.recentPlainBytes === chat.length && before.linkedElsewhereBytes === chat.length &&
-  before.coldPlainBytes === chat.length + ownLen && before.compressedBytes === 0)
+  before.coldPlainBytes === chat.length + ownLen + orcaLen && before.compressedBytes === 0)
 
 // --- compress -------------------------------------------------------------- //
-const rep = await compressCodexChats({ homes, minAgeDays: 30 })
+const rep = await compressCodexChats({ homes: allHomes, minAgeDays: 30 })
 const zA = join(homeA, day, `${name}.zst`)
-ok('compress: the shared old chat and the lone old chat are compressed, nothing failed',
-  rep.done === 2 && rep.failed === 0 && rep.bytesAfter < rep.bytesBefore / 5)
+ok('compress: the shared old chat, the lone old chat and the Orca chat are compressed, nothing failed',
+  rep.done === 3 && rep.failed === 0 && rep.bytesAfter < rep.bytesBefore / 5)
+ok("compress: Orca's chat, detected beside ours, the same way -- lossless",
+  existsSync(`${orcaChat}.zst`) && !existsSync(orcaChat) &&
+  createHash('sha256').update(zstdDecompressSync(readFileSync(`${orcaChat}.zst`))).digest('hex') === orcaSha)
 ok('compress: every home now has the .zst and none has the plain file',
   [homeA, homeB, runtime].every((h) => existsSync(join(h, day, `${name}.zst`)) && !existsSync(join(h, day, name))))
 ok('compress: all homes share ONE compressed file (hardlinks), so the space is really freed',
@@ -123,14 +163,14 @@ ok("compress: the user's own ~/.codex chat is compressed too",
   existsSync(`${own}.zst`) && !existsSync(own))
 ok('compress: a half-written temp file from an interrupted run is cleared', !existsSync(leftover))
 
-const again = await compressCodexChats({ homes, minAgeDays: 30 })
+const again = await compressCodexChats({ homes: allHomes, minAgeDays: 30 })
 ok('compress: a second run finds nothing left to do', again.done === 0 && again.failed === 0)
-const after = await measureCodexChats({ homes })
-ok('measure: the two compressed chats now take a fraction of their old space on disk',
-  after.compressedChats === 2 && after.plainChats === 2 &&
-  before.physicalBytes - after.physicalBytes > 0.8 * (chat.length + ownLen))
+const after = await measureCodexChats({ homes: allHomes })
+ok('measure: the three compressed chats now take a fraction of their old space on disk',
+  after.compressedChats === 3 && after.plainChats === 2 &&
+  before.physicalBytes - after.physicalBytes > 0.8 * (chat.length + ownLen + orcaLen))
 ok('measure: nothing is left to compress; the compressed bytes are counted on their own',
-  after.coldPlainBytes === 0 && after.compressedBytes > 0 && after.compressedBytes < (chat.length + ownLen) / 5)
+  after.coldPlainBytes === 0 && after.compressedBytes > 0 && after.compressedBytes < (chat.length + ownLen + orcaLen) / 5)
 
 // Codex resumed one chat in one home and decompressed it there itself, the way
 // it materializes a .zst for appending: the plain file appears, that home's
@@ -140,16 +180,16 @@ ok('measure: nothing is left to compress; the compressed bytes are counted on th
   writeFileSync(plainB, zstdDecompressSync(readFileSync(join(homeB, day, `${name}.zst`))))
   rmSync(join(homeB, day, `${name}.zst`))
 }
-const mixed = await compressCodexChats({ homes, minAgeDays: 30 })
+const mixed = await compressCodexChats({ homes: allHomes, minAgeDays: 30 })
 ok('compress: a chat resumed (plain again) in one home while others hold the .zst is not touched twice',
   mixed.failed === 0 && existsSync(join(homeB, day, name)))
 
 // --- restore --------------------------------------------------------------- //
-const back = await restoreCodexChats({ homes })
-ok('restore: every compressed chat is plain again, nothing failed', back.failed === 0 && back.done >= 2)
-ok('restore: byte for byte what it was, in every home',
+const back = await restoreCodexChats({ homes: allHomes })
+ok('restore: every compressed chat is plain again, nothing failed', back.failed === 0 && back.done >= 3)
+ok('restore: byte for byte what it was, in every home -- Orca\'s too',
   [homeA, runtime].every((h) => existsSync(join(h, day, name)) && sha(join(h, day, name)) === sharedSha) &&
-  sha(own) === ownSha)
+  sha(own) === ownSha && sha(orcaChat) === orcaSha)
 ok('restore: no .zst left behind',
   [homeA, runtime].every((h) => !existsSync(join(h, day, `${name}.zst`))) && !existsSync(`${own}.zst`))
 ok('restore: the homes share one file again (hardlinks)',
