@@ -49,6 +49,7 @@ import {
   readChatsState,
   restoreCodexChats,
   runChatsCompression,
+  setChatsAge,
   setChatsCompression
 } from './codex-compress'
 import {
@@ -328,8 +329,13 @@ export function registerPlanIdeIpc(): void {
     // Orca, its dev build and the old PlanIDE folder too, when they are on this
     // machine -- split per app so the Toolkit can say what it found where.
     const sources = chatSources(app.getPath('userData'))
-    return measureCodexChats({ homes: [...new Set(sources.flatMap((s) => s.homes))], sources })
+    return measureCodexChats({
+      homes: [...new Set(sources.flatMap((s) => s.homes))],
+      sources,
+      minAgeDays: readChatsState(app.getPath('userData')).minAgeDays
+    })
   })
+  on('planide:codex-chats-set-age', (days: number) => setChatsAge(app.getPath('userData'), Number(days)))
   on('planide:codex-chats-set-enabled', (enabled: boolean) =>
     setChatsCompression(app.getPath('userData'), Boolean(enabled))
   )

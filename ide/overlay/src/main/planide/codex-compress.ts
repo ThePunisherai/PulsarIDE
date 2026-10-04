@@ -553,9 +553,20 @@ function perSource(sources: ChatsSource[], groups: Group[]): ChatsSourceSize[] {
 
 // --------------------------------------------------------------------------- automatic
 
+/**
+ * How long a chat sits untouched before it is compressed. 30 by default: the
+ * chats of the last month stay plain, so Orca's own chat search and usage
+ * statistics -- which do not read .jsonl.zst -- still see them. 7 is Codex's
+ * own idea of cold (codex-rs/rollout compression.rs); a chat resumed after
+ * that is decompressed by Codex itself, so nothing is lost either way.
+ */
+export const CHAT_AGE_CHOICES = [7, 14, 30] as const
+
 export type ChatsState = {
   /** Automatic compression; on unless the user turned it off. */
   enabled: boolean
+  /** Days a chat must be untouched before it is compressed (CHAT_AGE_CHOICES). */
+  minAgeDays: number
   lastRun: string
   lastReport: ChatsReport | null
   /** Over every run: transcripts compressed and disk bytes freed. */
@@ -571,13 +582,16 @@ export function readChatsState(userData: string): ChatsState {
     const raw = JSON.parse(readFileSync(stateFile(userData), 'utf8')) as Partial<ChatsState>
     return {
       enabled: raw.enabled !== false,
+      minAgeDays: (CHAT_AGE_CHOICES as readonly number[]).includes(raw.minAgeDays as number)
+        ? (raw.minAgeDays as number)
+        : 30,
       lastRun: raw.lastRun ?? '',
       lastReport: raw.lastReport ?? null,
       totalDone: raw.totalDone ?? 0,
       totalFreed: raw.totalFreed ?? 0
     }
   } catch {
-    return { enabled: true, lastRun: '', lastReport: null, totalDone: 0, totalFreed: 0 }
+    return { enabled: true, minAgeDays: 30, lastRun: '', lastReport: null, totalDone: 0, totalFreed: 0 }
   }
 }
 
@@ -595,6 +609,15 @@ function writeChatsState(userData: string, state: ChatsState): void {
 
 export function setChatsCompression(userData: string, enabled: boolean): ChatsState {
   const state = { ...readChatsState(userData), enabled }
+  writeChatsState(userData, state)
+  return state
+}
+
+/** The age a chat must reach before it is compressed; only CHAT_AGE_CHOICES are taken. */
+export function setChatsAge(userData: string, days: number): ChatsState {
+  const prev = readChatsState(userData)
+  if (!(CHAT_AGE_CHOICES as readonly number[]).includes(days)) return prev
+  const state = { ...prev, minAgeDays: days }
   writeChatsState(userData, state)
   return state
 }
@@ -619,7 +642,7 @@ export function runChatsCompression(
   running = compressCodexChats({
     homes: codexHomes(userData, { home: opts.home }),
     budgetMs: opts.budgetMs,
-    minAgeDays: opts.minAgeDays,
+    minAgeDays: opts.minAgeDays ?? readChatsState(userData).minAgeDays,
     log
   })
     .then((report) => {

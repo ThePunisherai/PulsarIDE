@@ -24,6 +24,7 @@ import {
   codexChatsCompress,
   codexChatsMeasure,
   codexChatsRestore,
+  codexChatsSetAge,
   codexChatsSetEnabled,
   codexChatsStatus,
   eccInstall,
@@ -741,7 +742,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
             title={translate('planide.toolkit.chats', 'Codex chats (storage)')}
             subtitle={translate(
               'planide.toolkit.chatsSub',
-              'Chats nobody touched for 30 days are compressed with zstd -- the format Codex reads itself, so `codex resume` still opens every one of them. Lossless: checked byte for byte before the original goes. Explorer counts each chat once per account folder; the disk holds it once.'
+              'Chats nobody touched for a while are compressed with zstd -- the format Codex reads itself, so `codex resume` still opens every one of them. Lossless: checked byte for byte before the original goes. Explorer counts each chat once per account folder; the disk holds it once.'
             )}
           >
             {chatsSize ? (
@@ -762,7 +763,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
                   {chatsSize.compressedChats} {translate('planide.toolkit.chatsCompressed', 'compressed')}
                   {chatsSize.compressedBytes !== undefined ? ` (${size(chatsSize.compressedBytes)})` : ''} ·{' '}
                   {chatsSize.recentPlainBytes !== undefined
-                    ? `${size(chatsSize.recentPlainBytes)} ${translate('planide.toolkit.chatsRecent', 'in chats from the last 30 days (in use)')} · `
+                    ? `${size(chatsSize.recentPlainBytes)} ${translate('planide.toolkit.chatsRecentPre', 'in chats from the last')} ${chats?.minAgeDays ?? 30} ${translate('planide.toolkit.chatsRecentPost', 'days (in use)')} · `
                     : ''}
                   {size(chatsSize.coldPlainBytes)} {translate('planide.toolkit.chatsCold', 'still to compress')}
                   {chatsSize.linkedElsewhereBytes
@@ -825,6 +826,28 @@ export default function PulseToolkitPage(): React.JSX.Element {
                       ? translate('planide.toolkit.chatsAutoOn', 'Automatic: on')
                       : translate('planide.toolkit.chatsAutoOff', 'Automatic: off')}
                   </Button>
+                  {/* After how long a chat counts as quiet. Shorter frees more now;
+                      Orca's own chat search does not read compressed chats. */}
+                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    {translate('planide.toolkit.chatsAfter', 'after')}
+                    {[7, 14, 30].map((days) => (
+                      <Button
+                        key={days}
+                        size="sm"
+                        variant={(chats.minAgeDays ?? 30) === days ? 'secondary' : 'ghost'}
+                        className="h-7 px-2 text-[11px]"
+                        disabled={chatsBusy}
+                        onClick={() =>
+                          void withVisibleSpin(setChatsBusy, async () => {
+                            setChats({ ...(await codexChatsSetAge(days)), running: chats.running })
+                            await measureChats()
+                          })
+                        }
+                      >
+                        {days} {translate('planide.toolkit.chatsDays', 'days')}
+                      </Button>
+                    ))}
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"

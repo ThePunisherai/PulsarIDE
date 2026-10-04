@@ -18,7 +18,7 @@ import { zstdDecompressSync } from 'node:zlib'
 const MOD = process.env.PULSAR_CHATS_CJS
 const {
   codexHomes, chatSources, compressCodexChats, restoreCodexChats, measureCodexChats,
-  readChatsState, setChatsCompression, runChatsCompression
+  readChatsState, setChatsCompression, setChatsAge, runChatsCompression
 } = await import(MOD)
 
 let pass = 0
@@ -199,6 +199,25 @@ ok('restore: the homes share one file again (hardlinks)',
 ok('state: automatic compression is on until the user turns it off', readChatsState(userData).enabled === true)
 ok('state: the switch sticks', setChatsCompression(userData, false).enabled === false &&
   readChatsState(userData).enabled === false && setChatsCompression(userData, true).enabled === true)
+ok('age: 30 days until the user picks otherwise; 7, 14 and 30 are taken, anything else is not',
+  readChatsState(userData).minAgeDays === 30 && setChatsAge(userData, 3).minAgeDays === 30 &&
+  setChatsAge(userData, 7).minAgeDays === 7 && readChatsState(userData).minAgeDays === 7 &&
+  readChatsState(userData).enabled === true)
+// A chat ten days old: left alone at 30 days, compressed at 7.
+{
+  const tenDays = (Date.now() - 10 * DAY) / 1000
+  const recent = join(homeA, day, 'rollout-2026-07-19T21-00-00-019f7b89-3e59-7b53-823c-1515511bac5b.jsonl')
+  writeFileSync(recent, chat)
+  utimesSync(recent, tenDays, tenDays)
+  setChatsAge(userData, 30)
+  await runChatsCompression(userData, { home: fakeHome })
+  const kept = existsSync(recent) && !existsSync(`${recent}.zst`)
+  setChatsAge(userData, 7)
+  await runChatsCompression(userData, { home: fakeHome })
+  ok('age: a ten-day-old chat waits at 30 days and is compressed at 7 -- the run reads the setting',
+    kept && existsSync(`${recent}.zst`) && !existsSync(recent))
+  setChatsAge(userData, 30)
+}
 for (const f of readdirSync(join(homeA, day))) {
   if (f.endsWith('.jsonl')) utimesSync(join(homeA, day, f), old, old)
 }

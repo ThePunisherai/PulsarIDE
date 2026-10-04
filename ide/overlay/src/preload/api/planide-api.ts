@@ -63,6 +63,7 @@ export type PlanIdeApi = {
   codexChatsStatus: <T>() => Call<T>
   codexChatsMeasure: <T>() => Call<T>
   codexChatsSetEnabled: <T>(enabled: boolean) => Call<T>
+  codexChatsSetAge: <T>(days: number) => Call<T>
   codexChatsCompress: <T>() => Call<T>
   codexChatsRestore: <T>() => Call<T>
   eccSetEnabled: <T>(enabled: boolean) => Call<T>

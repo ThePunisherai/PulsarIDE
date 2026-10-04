@@ -6,6 +6,20 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.7] - 2026-10-04
+
+### Storage
+- **Choose when a chat counts as quiet: after 7, 14 or 30 days.** Asked because the
+  Toolkit still showed 119 GB after 37 GB had been freed. Most of what is left is chats
+  from the last 30 days, which were left plain on purpose. In **Toolkit → Codex chats**
+  you can now pick *7 days* (Codex's own idea of a cold chat), *14* or *30*:
+  - The next run compresses everything older than the age you picked.
+  - A chat you resume later is decompressed by Codex itself, so nothing is lost.
+  - Trade-off: Orca's chat search and usage statistics do not read compressed chats, so
+    the shorter the age, the sooner a chat drops out of those two.
+
+  30 days stays the default. The card's "in use" line counts with the age you picked.
+
 ## [0.99.6] - 2026-10-04
 
 ### Orca, brought up to date

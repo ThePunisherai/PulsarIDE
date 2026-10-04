@@ -594,6 +594,8 @@ export type ChatsReport = {
 /** Automatic compression of old Codex chats: the switch and what it has done. */
 export type ChatsStatus = {
   enabled: boolean
+  /** Days a chat must be untouched before it is compressed: 7, 14 or 30. */
+  minAgeDays?: number
   lastRun: string
   lastReport: ChatsReport | null
   totalDone: number
@@ -626,6 +628,11 @@ export function codexChatsMeasure(): Promise<ChatsMeasure> {
 
 export function codexChatsSetEnabled(enabled: boolean): Promise<ChatsStatus> {
   return call<ChatsStatus>('codexChatsSetEnabled', enabled)
+}
+
+/** Compress chats untouched for this many days (7, 14 or 30). */
+export function codexChatsSetAge(days: number): Promise<ChatsStatus> {
+  return call<ChatsStatus>('codexChatsSetAge', days)
 }
 
 /** Compress the cold chats now instead of waiting for the daily run. */
