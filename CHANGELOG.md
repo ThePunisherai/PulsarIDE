@@ -6,6 +6,47 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.6] - 2026-10-04
+
+### Orca, brought up to date
+- **Built on Orca v1.4.220**, upstream's release of today, up from 1.4.197: 910 upstream
+  commits. What it brings to PulsarIDE includes:
+  - Opening a terminal no longer strips Codex hooks from your real `~/.codex` (#23552). That
+    was one way hooks vanished or turned up broken.
+  - Codex: an Esc-cancelled turn settles properly (Codex's Interrupt hook), a Stop is the
+    interrupt alone, and a send mid-turn steers the running turn.
+  - Claude Code on Windows runs Orca's hooks without shell operators (#23944).
+  - Windows: the `orca` command-line launcher is now a native program that needs no VC++
+    Redistributable.
+  - Terminal fixes: a render loop during worktree removal, wide panes cut off, and phone
+    swipes typing escape codes.
+  - Plain SSH terminals and SFTP browsing on hosts where Orca's runtime cannot run.
+- **How it was checked:**
+  - 5 of PulsarIDE's 75 changes to Orca had to be re-anchored, because upstream moved that
+    code. They now fit the old and the new Orca alike.
+  - Orca's own full typecheck passes with 0 errors, and the app builds.
+  - The app was booted under a virtual display with a fresh profile. It stayed up with zero
+    errors, and Tracker, Brain Graph, Archify and the Toolkit all rendered.
+  - Not yet started on a real Windows machine. If v0.99.6 misbehaves on Windows, v0.99.5 is
+    the same PulsarIDE on the previous Orca.
+
+### Storage
+- **Orca's own Codex chats are compressed too.** If Orca is (or was) on this machine, its
+  chats are found and compressed the same lossless way. That covers:
+  - `Orca` / `orca`, and `orca-dev` for a source build;
+  - PulsarIDE's own folder from before 0.11 (`planide`).
+
+  A folder reached under two names is counted once. **Toolkit → Codex chats** lists per app
+  what it found: PulsarIDE, Orca, PlanIDE (before 0.11) and Codex, with chats and disk space
+  for each.
+
+### What's fixed
+- **Toolkit → Agent hooks listed Orca's own hooks as broken** ("if" is not on PATH). Orca
+  1.4.2xx writes its hooks as small shell scripts (`if [ -f … ]; then …`). The hook doctor
+  now reads a hook that opens with shell code as a script, not as a program called `if`. It
+  also looks through PowerShell's call operator (`& 'C:\…\hook.ps1'`), so a script that is
+  gone behind it is still found.
+
 ## [0.99.5] - 2026-10-04
 
 ### New

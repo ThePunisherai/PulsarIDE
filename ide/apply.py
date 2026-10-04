@@ -62,7 +62,12 @@ import sys
 # packaged resources, and the pty:write sender check losing its second
 # argument -- and each was re-anchored on lines both revisions share, so this
 # file still applies to 33ba1ff as well. A release tag rather than main: what
-# upstream itself shipped to its users.
+# upstream itself shipped to its users. Orca's own full typecheck: 0 errors.
+# Booted, not only built: under Xvfb on Linux with a fresh profile it stayed up
+# with zero console or page errors, and Tracker, Brain Graph, Archify and the
+# Toolkit all rendered -- which is how the hook doctor's '"if" is not on PATH'
+# for Orca's new shell-wrapped hooks was found and fixed before release. Still
+# not a Windows boot; the rule above stands, and 0.99.5 is the pin-back.
 PINNED_COMMIT = "a7927b28ce45cbb044add478d957abe36c99ccd8"  # 2026-10-04, upstream v1.4.220
 
 HERE = os.path.dirname(os.path.abspath(__file__))

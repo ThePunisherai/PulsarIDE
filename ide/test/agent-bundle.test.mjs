@@ -1784,6 +1784,28 @@ ok('a revised plan moves the step it already knows instead of duplicating it',
     rep.codex.length === 3 && rep.codex.filter((e) => e.ours).length === 1 && rep.codex[0].matcher === 'shell')
 }
 
+// Shell code is not a program name. Orca 1.4.2xx writes its own managed hooks
+// as `if [ -f '<hook>' ]; then ...; fi`, guarding a missing file itself: the
+// first boot on it listed 13 hooks with '"if" is not on PATH'.
+{
+  const SH = join(work, 'doctor-shell')
+  mkdirSync(join(SH, '.claude'), { recursive: true })
+  mkdirSync(join(SH, '.codex'), { recursive: true })
+  const wrapped = "if [ -f '/home/x/.pulsar/agent-hooks/claude-hook.sh' ] && [ -r '/home/x/.pulsar/agent-hooks/claude-hook.sh' ]; then /bin/sh '/home/x/.pulsar/agent-hooks/claude-hook.sh'; else cat >/dev/null; fi"
+  writeFileSync(join(SH, '.claude', 'settings.json'), JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: 'command', command: wrapped }] }] } }))
+  writeFileSync(join(SH, '.codex', 'hooks.json'), JSON.stringify({ hooks: { PreToolUse: [
+    { hooks: [{ type: 'command', command: "& 'C:\\gone\\notify.ps1'" }] },
+    { hooks: [{ type: 'command', command: 'if (Test-Path x) { & x }; exit 0' }] }
+  ] } }))
+  const rep = runHookDoctor(SH, { env: { PATH: '/usr/bin:/bin', HOME: SH }, platform: 'win32' })
+  const pre = JSON.parse(readFileSync(join(SH, '.codex', 'hooks.json'), 'utf8')).hooks.PreToolUse
+  ok('hook doctor: a hook written as shell code is not read as a program called "if"',
+    !rep.issues.some((i) => /"if"/.test(i.problem)) &&
+    JSON.parse(readFileSync(join(SH, '.claude', 'settings.json'), 'utf8')).hooks.Stop[0].hooks[0].command === wrapped)
+  ok("hook doctor: PowerShell's call operator is looked through -- a script it calls that is gone is taken out",
+    pre[0].hooks[0].command === 'exit 0' && pre[1].hooks[0].command.startsWith('if (Test-Path'))
+}
+
 // "Test hooks": each Codex hook run once the way Codex runs it, so a failing
 // one gets a name -- and can be turned off where it stands.
 {

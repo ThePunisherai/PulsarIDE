@@ -141,6 +141,19 @@ jobs:
         working-directory: work/orca
         run: pnpm install --frozen-lockfile
 
+      # Orca 1.4.2xx packages a native Rust CLI launcher (orca.exe, replacing
+      # orca.cmd), built by build:release's build:native. Upstream's own release
+      # job makes sure cargo is there rather than trusting the runner image;
+      # without it the build fails deep inside the native step.
+      - name: Ensure the Rust toolchain for the Windows CLI launcher
+        shell: pwsh
+        run: |
+          if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+            rustup toolchain install stable --profile minimal
+            rustup default stable
+          }
+          cargo --version
+
       - name: Build
         working-directory: work/orca
         run: pnpm build:release

@@ -57,6 +57,17 @@ const OURS = /[\\/]\.config[\\/]pulsaride[\\/]hooks[\\/]/i
 const SCRIPT_EXT = /\.(ps1|cmd|bat|py|mjs|cjs|js|sh|exe)$/i
 const INTERPRETERS = new Set(['node', 'python', 'python3', 'py', 'bash', 'sh', 'zsh', 'deno', 'bun', 'uv', 'uvx'])
 const SHELLS = new Set(['powershell', 'pwsh'])
+/**
+ * A command that opens with shell syntax is a small script, not a program and
+ * its arguments: `if [ -f '<hook>' ]; then sh '<hook>'; else cat >/dev/null; fi`
+ * is how Orca (1.4.2xx) writes its own managed hooks, guarding the missing-file
+ * case itself. Nothing about it can be judged by reading its first word.
+ */
+const SHELL_SYNTAX = new Set([
+  'if', 'then', 'else', 'elif', 'fi', 'for', 'while', 'until', 'do', 'done', 'case', 'esac', 'select',
+  'function', '[', '[[', 'test', '{', '(', '!', 'time', 'exec', 'command', 'builtin', 'eval', 'source', '.',
+  'export', 'set', 'unset', 'true', 'false', ':', 'exit', 'echo', 'printf', 'cd', 'trap', 'read'
+])
 
 /** A command line split into words, honouring double and single quotes. */
 export function splitCommand(command: string): string[] {
@@ -147,6 +158,10 @@ export function hookNeeds(command: string): { files: string[]; program: string |
 
 /** What is wrong with one hook command, and whether that makes it impossible to run. */
 function diagnose(command: string, ctx: Ctx): { problem: string; fatal: boolean } | null {
+  const opening = splitCommand(command.trim())[0] ?? ''
+  if (SHELL_SYNTAX.has(opening.toLowerCase()) || /^(if|for|while)\(/i.test(opening)) return null
+  // PowerShell's call operator: what it calls is the command.
+  if (opening === '&') return diagnose(command.trim().slice(1).trim(), ctx)
   const needs = hookNeeds(command)
   if (ctx.platform === 'win32') {
     // A shell script started on its own: Windows has nothing to run it with.
