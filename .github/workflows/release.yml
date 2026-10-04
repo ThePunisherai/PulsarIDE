@@ -232,15 +232,37 @@ jobs:
       # build:desktop, not build:release: the latter also runs
       # verify:computer-native, which wants native pieces this job never builds
       # and which failed here in seconds on the first run.
+      # The typecheck on its own, pinned to one core. Orca's tsc is TypeScript 7
+      # now, a native binary: NODE_OPTIONS no longer caps it, and its four
+      # project checks side by side, each spreading over every core, reach
+      # ~12-15 GB -- past this runner, which then kills the job mid-typecheck
+      # ("the runner has received a shutdown signal", v0.99.3 twice). With one
+      # core, Orca's own script checks the projects one at a time (it reads
+      # availableParallelism(), which honours the affinity): measured 23 s and
+      # 2.8 GB peak, against a kill at 14 GB in parallel.
+      - name: Typecheck (one core, one project at a time)
+        working-directory: work/orca
+        run: taskset -c 0 pnpm run typecheck
+
+      # The rest of Orca's own build:desktop chain, read from its package.json
+      # rather than copied here, minus the typecheck that just ran. If upstream
+      # ever stops starting the chain with it, this fails loudly instead of
+      # silently skipping or doubling it.
       - name: Build
         working-directory: work/orca
-        run: pnpm build:desktop
+        run: |
+          node -e "
+          const chain = require('./package.json').scripts['build:desktop']
+          const rest = chain.replace(/^pnpm run typecheck && /, '')
+          if (rest === chain) {
+            console.error('build:desktop no longer starts with the typecheck: ' + chain)
+            process.exit(1)
+          }
+          require('node:child_process').execSync(rest, { stdio: 'inherit' })
+          "
         env:
-          # 2048, not 4096: build:desktop runs three concurrent tsc processes
-          # (run-typecheck-projects-in-parallel.mjs) and each inherits this
-          # limit. At 4096 they can collectively exhaust the runner, which
-          # kills it mid-typecheck -- the 'runner has received a shutdown
-          # signal' failure this job hit twice.
+          # 2048, not 4096: the builds after the typecheck are Node processes,
+          # and this keeps them from exhausting the runner together.
           NODE_OPTIONS: --max-old-space-size=2048
 
       - name: Package the AppImage
