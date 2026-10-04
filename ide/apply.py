@@ -55,7 +55,15 @@ import sys
 # rule holds -- the only thing that clears a bump is a real boot on Windows. If
 # #185 comes back on this revision, pin straight back to 61e0100 and ship that
 # as a patch release, exactly as v0.55.1 did.
-PINNED_COMMIT = "33ba1ff3df247652c546985201d9a6f4edaec80b"  # 2026-09-20, upstream HEAD
+#
+# 33ba1ff -> v1.4.220 (a7927b2, upstream's release of 2026-10-04) crosses 1.4.197
+# to 1.4.220: 10k files. 5 of 74 anchors drifted -- a constant that moved file
+# (#22565), the ready handler wrapped in a profile-state try/catch, two more
+# packaged resources, and the pty:write sender check losing its second
+# argument -- and each was re-anchored on lines both revisions share, so this
+# file still applies to 33ba1ff as well. A release tag rather than main: what
+# upstream itself shipped to its users.
+PINNED_COMMIT = "a7927b28ce45cbb044add478d957abe36c99ccd8"  # 2026-10-04, upstream v1.4.220
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OVERLAY = os.path.join(HERE, "overlay")
@@ -224,7 +232,7 @@ EDITS: list[tuple[str, str, str, str]] = [
     # type 40, model 120), so four times as many is tens of KB per pane, not a
     # payload problem -- while leaving room for the roster this app ships.
     (
-        "src/shared/agent-status-types.ts",
+        "src/shared/agent-status-subagent-snapshot.ts",
         "export const AGENT_STATUS_MAX_SUBAGENTS = 32",
         "export const AGENT_STATUS_MAX_SUBAGENTS = 128",
         "track a full roster's worth of subagents, not 32",
@@ -388,7 +396,10 @@ EDITS: list[tuple[str, str, str, str]] = [
     # first's output, and that daisy-chain is what broke idempotency before.
     (
         "src/main/index.ts",
-        "  void app.whenReady().then(async () => {\n    await initializeMainProcessReady({",
+        # Only the line that opens the ready handler: upstream wrapped what
+        # follows it in a profile-state try/catch in 1.4.2xx, and our block
+        # belongs before all of it either way.
+        "  void app.whenReady().then(async () => {\n",
         "  void app.whenReady().then(async () => {\n"
         "    // PlanIDE: the tracker is main-process code -- registering its IPC is\n"
         "    // all there is to start. No server, no port, no child process.\n"
@@ -417,8 +428,7 @@ EDITS: list[tuple[str, str, str, str]] = [
         "      } catch {\n"
         "        /* auto-resume can never break startup */\n"
         "      }\n"
-        "    }, 0)\n"
-        "    await initializeMainProcessReady({",
+        "    }, 0)\n",
         "register the tracker IPC and deploy the agent bundle on launch",
     ),
     # ---- integration: auto-resume after a usage limit -------------------- #
@@ -452,29 +462,23 @@ EDITS: list[tuple[str, str, str, str]] = [
     ),
     (
         "src/main/ipc/pty/ipc/write.ts",
-        "  ipcMain.on('pty:write', (event, args: unknown) => {\n"
-        "    if (!isPtyWriteEventFromMainWindow(event, mainWindow.webContents) || !isPtyWritePayload(args)) {\n"
-        "      return\n"
-        "    }\n",
-        "  ipcMain.on('pty:write', (event, args: unknown) => {\n"
-        "    if (!isPtyWriteEventFromMainWindow(event, mainWindow.webContents) || !isPtyWritePayload(args)) {\n"
-        "      return\n"
-        "    }\n"
+        # Anchored past the sender check, whose signature upstream changes
+        # (mainWindow.webContents went in 1.4.2xx): only valid input gets here.
+        "    const claimTail = hostViewportClaimTails.get(args.id)\n"
+        "    if (claimTail) {\n",
         "    // PulsarIDE: the user typed here -- a pending auto-resume is theirs to drop.\n"
-        "    noteQuotaResumeInput(args.id, args.data)\n",
+        "    noteQuotaResumeInput(args.id, args.data)\n"
+        "    const claimTail = hostViewportClaimTails.get(args.id)\n"
+        "    if (claimTail) {\n",
         "auto-resume: user input calls off a pending resume (pty:write)",
     ),
     (
         "src/main/ipc/pty/ipc/write.ts",
-        "  ipcMain.handle('pty:writeAccepted', (event, args: unknown): boolean | Promise<boolean> => {\n"
-        "    if (!isPtyWriteEventFromMainWindow(event, mainWindow.webContents) || !isPtyWritePayload(args)) {\n"
-        "      return false\n"
-        "    }\n",
-        "  ipcMain.handle('pty:writeAccepted', (event, args: unknown): boolean | Promise<boolean> => {\n"
-        "    if (!isPtyWriteEventFromMainWindow(event, mainWindow.webContents) || !isPtyWritePayload(args)) {\n"
-        "      return false\n"
-        "    }\n"
-        "    noteQuotaResumeInput(args.id, args.data)\n",
+        "    const claimTail = hostViewportClaimTails.get(args.id)\n"
+        "    return claimTail\n",
+        "    noteQuotaResumeInput(args.id, args.data)\n"
+        "    const claimTail = hostViewportClaimTails.get(args.id)\n"
+        "    return claimTail\n",
         "auto-resume: user input calls off a pending resume (pty:writeAccepted)",
     ),
     # These imports go in as blocks, on purpose. They used to be separate edits
@@ -875,23 +879,21 @@ EDITS: list[tuple[str, str, str, str]] = [
         "publish target: our own GitHub releases",
     ),
     # ---- the agent bundle: ThePunisher agents + skills, packaged ---------- #
+    # Two small edits rather than one over the whole list: upstream keeps adding
+    # resources to it (orcad templates, ripgrep in 1.4.2xx), and only its first
+    # line and its last entry are ours to anchor on.
     (
         "config/electron-builder.config.cjs",
-        "const commonExtraResources = [\n"
-        "  relayExtraResource,\n"
-        "  bundledPluginResources,\n"
-        "  skillFreshnessResources,\n"
-        "  emojiShortcodeDatasetResource\n"
-        "]",
+        "const commonExtraResources = [\n",
         "const pulsarAgentsResource = { from: 'resources/pulsar-agents', to: 'pulsar-agents' }\n"
-        "const commonExtraResources = [\n"
-        "  relayExtraResource,\n"
-        "  bundledPluginResources,\n"
-        "  skillFreshnessResources,\n"
-        "  emojiShortcodeDatasetResource,\n"
-        "  pulsarAgentsResource\n"
-        "]",
-        "ship the ThePunisher agent bundle inside the app",
+        "const commonExtraResources = [\n",
+        "ship the ThePunisher agent bundle inside the app (its resource)",
+    ),
+    (
+        "config/electron-builder.config.cjs",
+        "  emojiShortcodeDatasetResource\n]",
+        "  emojiShortcodeDatasetResource,\n  pulsarAgentsResource\n]",
+        "ship the ThePunisher agent bundle inside the app (in every platform's resources)",
     ),
 ]
 

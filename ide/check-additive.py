@@ -74,6 +74,8 @@ BRANDING = {
 # is exactly the kind of drift this whole check exists to surface.
 TUNING = {
     "src/shared/agent-status-types.ts",
+    # ...where upstream moved the constant in 1.4.2xx (#22565).
+    "src/shared/agent-status-subagent-snapshot.ts",
 }
 
 
