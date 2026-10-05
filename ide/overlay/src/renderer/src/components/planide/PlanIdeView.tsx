@@ -52,6 +52,7 @@ import {
   addVersion,
   aiReport,
   deleteItem,
+  planTidy,
   lockItem,
   onBoardChanged,
   openProject,
@@ -462,6 +463,49 @@ function ItemBadges({ item, auto }: { item: PlanIdeItem; auto: boolean }): React
   return bits.length ? <div className="mt-1.5 flex flex-wrap gap-1">{bits}</div> : null
 }
 
+/**
+ * The agent's plan for an item, as its checklist: what is done, what it is on,
+ * what is left. A plan used to land as a row per step, which is how a board
+ * read 34/50 and never got shorter; the steps now live on the item they serve.
+ */
+function StepList({
+  steps
+}: {
+  steps: NonNullable<PlanIdeItem['steps']>
+}): React.JSX.Element {
+  const done = steps.filter((s) => s.status === 'done').length
+  const shown = steps.slice(0, 6)
+  return (
+    <div className="mt-1.5 space-y-0.5">
+      <div className="text-[10px] font-medium text-muted-foreground">
+        {done}/{steps.length} {translate('planide.view.steps', 'steps')}
+      </div>
+      {shown.map((s, i) => (
+        <div key={`${i}-${s.title}`} className="flex items-start gap-1.5 text-[11px] leading-snug">
+          <span
+            className={cn(
+              'mt-[5px] block size-1.5 shrink-0 rounded-full',
+              s.status === 'done'
+                ? 'bg-emerald-500'
+                : s.status === 'wip'
+                  ? 'bg-amber-400'
+                  : s.status === 'blocked'
+                    ? 'bg-rose-500'
+                    : 'bg-muted-foreground/40'
+            )}
+          />
+          <span className={cn('line-clamp-1', s.status === 'done' ? 'text-muted-foreground line-through' : '')}>
+            {s.title}
+          </span>
+        </div>
+      ))}
+      {steps.length > shown.length && (
+        <div className="text-[10px] text-muted-foreground">+{steps.length - shown.length}</div>
+      )}
+    </div>
+  )
+}
+
 function ItemCard({
   item,
   auto,
@@ -532,6 +576,7 @@ function ItemCard({
               {item.notes}
             </div>
           )}
+          {item.steps && item.steps.length > 0 && <StepList steps={item.steps} />}
         </button>
         <button
           type="button"
@@ -891,6 +936,35 @@ export default function PlanIdeView(): React.JSX.Element {
               <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />{' '}
               {translate('planide.view.refresh', 'Refresh')}
             </Button>
+            {/* Plan steps closed chats left as rows -- what kept the count high
+                whatever got done. Removed only when you press it. */}
+            {(project.leftover_steps?.count ?? 0) > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-[10.5px] text-amber-500"
+                title={(project.leftover_steps?.titles ?? []).join('\n')}
+                onClick={() => {
+                  const left = project.leftover_steps
+                  if (!left) return
+                  const list = left.titles.map((t) => `- ${t}`).join('\n')
+                  const more = left.count > left.titles.length ? `\n… +${left.count - left.titles.length}` : ''
+                  if (
+                    window.confirm(
+                      `${translate(
+                        'planide.view.tidyAsk',
+                        'Remove these plan steps that closed chats left on the board? Open, untouched for a day, never one you protected, confirmed, annotated or prioritised.'
+                      )}\n\n${list}${more}`
+                    )
+                  ) {
+                    void act(() => planTidy(worktreePath))
+                  }
+                }}
+              >
+                {translate('planide.view.tidy', 'Tidy')} {project.leftover_steps?.count}{' '}
+                {translate('planide.view.tidySteps', 'leftover plan steps')}
+              </Button>
+            )}
             {/* Your switch: what works counts as finished, no ticking off by hand.
                 Its own channel -- no agent tool can flip it. */}
             <Button

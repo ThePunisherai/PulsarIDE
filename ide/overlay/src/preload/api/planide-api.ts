@@ -55,6 +55,7 @@ export type PlanIdeApi = {
   // project memory (graphify graph + Obsidian note status)
   eccStatus: <T>() => Call<T>
   hookDoctor: <T>() => Call<T>
+  planTidy: <T>(path: string) => Call<T>
   hookTest: <T>() => Call<T>
   quotaResumeStatus: <T>() => Call<T>
   quotaResumeSetEnabled: <T>(enabled: boolean) => Call<T>

@@ -25,8 +25,14 @@
  * became two rows. Plain JS, no imports, so it loads wherever those do.
  */
 
-/** A `wip` item untouched this long was left behind by an earlier session. */
-export const STALE_HOURS = 12
+/**
+ * A `wip` item untouched this long was left behind by an earlier session.
+ * Was 12: an item a Claude chat had in progress stayed out of a Codex chat's
+ * reach for half a day after that chat was long closed -- "hij zet dingen in
+ * behandeling en pakt ze verder niet op". A chat working an item touches it
+ * with every plan update (its checklist), so three quiet hours means nobody.
+ */
+export const STALE_HOURS = 3
 
 /** How many entries per lane a caller gets by default. Counts stay complete. */
 const DEFAULT_LIMIT = 5
@@ -199,8 +205,8 @@ function fixCard(f) {
 
 const ACTION = {
   in_progress:
-    'Finish this first. set_item it to works/done in the same turn it genuinely works, then call next_task again.',
-  todo: 'Start this: next_task with claim=true (or set_item wip), do it, then set_item works/done.',
+    'Finish this first. Your plan for it becomes its checklist and closes it when every step is done; or set_item it works/done in the same turn it genuinely works. Then call next_task again.',
+  todo: 'Start this: next_task with claim=true (or set_item wip). Your plan for it becomes its checklist and closes it when every step is done; or set_item works/done.',
   fix: 'Fix this, verify it, then mark_fixed with the real solution -- what caused it and what changed.',
   broken: 'Make this work again, then set_item works. Log what caused it with add_fix if it was not logged yet.'
 }
@@ -431,6 +437,10 @@ export function applyPlan(state, steps, opts = {}) {
   const key = String(opts.key || '')
   const at = opts.now || new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
   const newId = typeof opts.newId === 'function' ? opts.newId : () => `i_${Math.random().toString(16).slice(2, 14)}`
+  // The chat is working on a board item and this plan is how it goes about
+  // it: the steps become that item's checklist, not rows of their own.
+  const parent = planParent(state, steps, key, opts.parent)
+  if (parent) return applyChecklist(state, parent, steps, { agent, key, at })
   let added = 0
   let moved = 0
   const titles = []
@@ -486,6 +496,111 @@ export function applyPlan(state, steps, opts = {}) {
   }
   const retired = retireDroppedSteps(state, key, titles)
   return { added, moved, retired, active }
+}
+
+/** A board status as a checklist step's: todo, wip, done or blocked. */
+function stepState(status) {
+  if (status === 'works' || status === 'done') return 'done'
+  if (status === 'wip' || status === 'blocked') return status
+  return 'todo'
+}
+
+/**
+ * The board item this plan is a breakdown of, or null for a plan whose steps
+ * are rows of their own (the way every plan used to land).
+ *
+ * Asked for directly: "hij zet dingen in behandeling en pakt ze verder niet
+ * op" and "34/50, wordt niet minder, soms zelfs meer". An agent took a board
+ * item -- next_task, set_item wip, the autopilot handing it over -- and then
+ * planned the work in its own words. Every step became a NEW row, the chat's
+ * own item moved to those rows, and the item it was actually doing stayed
+ * `wip` for good: done work under other titles, the real item never closed,
+ * and the total grew by a plan's worth of rows for every item worked.
+ *
+ * So, in this order:
+ *  1. the item already carrying this plan's checklist (`steps_key`), while the
+ *     plan still shares a step with it -- the same plan sent again, finished
+ *     or not, lands on the same item and never turns into rows afterwards;
+ *  2. the chat's own item (`parentId`: what it took up this turn, or was on),
+ *     while it is open and not one of this plan's own scratch rows -- unless a
+ *     step names it, which means the plan works the board item by item.
+ */
+export function planParent(state, steps, key, parentId) {
+  const items = state?.items ?? []
+  const titles = new Set((steps ?? []).map((s) => normTitle(s?.title)).filter(Boolean))
+  if (!titles.size) return null
+  if (key) {
+    const carrying = items.find(
+      (i) => i.steps_key === key && (i.steps ?? []).some((s) => titles.has(normTitle(s.title)))
+    )
+    if (carrying) return carrying
+  }
+  const id = String(parentId ?? '')
+  if (!id) return null
+  const item = items.find((i) => i.id === id)
+  if (!item || item.locked || (item.status !== 'wip' && item.status !== 'todo')) return null
+  if (key && item.plan_key === key) return null
+  if (titles.has(normTitle(item.title))) return null
+  return item
+}
+
+/**
+ * The plan as the parent item's checklist. Steps that name ANOTHER open item
+ * on the board still move that item, as a plan always did; the rest are the
+ * checklist. The item is in progress while any step is open and finishes --
+ * `done` with the user's auto-complete on -- when every step is done. A
+ * finished item stays finished: a plan sent again after it closed updates the
+ * list, never the status.
+ */
+function applyChecklist(state, parent, steps, ctx) {
+  const items = state.items
+  let moved = 0
+  const checklist = []
+  const active = []
+  for (const { title, status } of steps) {
+    const text = String(title ?? '').trim()
+    if (!text) continue
+    const other = items.find(
+      (i) => i !== parent && i.status !== 'done' && !i.locked && normTitle(i.title) === normTitle(text) && i.plan_key !== ctx.key
+    )
+    if (other) {
+      if (other.status !== status) {
+        other.status = status
+        other.updated_at = ctx.at
+        if (!other.claimed_by) other.claimed_by = ctx.agent
+        moved += 1
+      }
+      if (status === 'wip') active.push(other.id)
+      continue
+    }
+    checklist.push({ title: text.length > 160 ? `${text.slice(0, 159)}…` : text, status: stepState(status) })
+  }
+  const was = parent.status
+  const listed = JSON.stringify(parent.steps ?? [])
+  parent.steps = checklist
+  parent.steps_key = ctx.key || parent.steps_key || ''
+  if (!parent.steps_key) delete parent.steps_key
+  if (was !== 'done' && was !== 'works' && checklist.length) {
+    const finished = checklist.every((s) => s.status === 'done')
+    const next = finished ? finishedStatus(state, 'works') : 'wip'
+    if (next !== was) {
+      parent.status = next
+      moved += 1
+      if (parent.verified) {
+        parent.verified = false
+        parent.verified_at = ''
+        parent.verified_by = ''
+      }
+    }
+    if (!parent.claimed_by) parent.claimed_by = ctx.agent
+  }
+  parent.updated_at = ctx.at
+  if (parent.status === 'wip') active.unshift(parent.id)
+  // Open rows this same plan put on the board before it had an item to hang
+  // on -- the checklist carries those steps now, so the rows go.
+  const retired = retireDroppedSteps(state, ctx.key, [])
+  const changed = moved > 0 || retired.length > 0 || listed !== JSON.stringify(checklist)
+  return { added: 0, moved, retired, active, parent: parent.id, checklist: checklist.length, changed }
 }
 
 // --------------------------------------------------------------------- autopilot
@@ -621,8 +736,9 @@ function focusLine(q) {
   if (f.lane === 'chat') {
     return (
       `PulsarIDE board: this chat was working on "${clip(f.title, 120)}" [${f.id}] and it is not finished. ` +
-      'Carry on with it from where you left off -- your plan and progress on it are earlier in this conversation -- ' +
-      `and let it go done when it genuinely works; then the board's queue (${left}). If it cannot be done here, ` +
+      'Carry on with it from where you left off -- your plan and progress on it are earlier in this conversation, ' +
+      'and your plan is its checklist -- ' +
+      `it closes by itself when every step is done; then the board's queue (${left}). If it cannot be done here, ` +
       'set_item it blocked with the reason and take the next one -- do not stop to ask whether to continue.'
     )
   }
@@ -637,7 +753,8 @@ function focusLine(q) {
   const close =
     f.kind === 'fix'
       ? 'fix it, verify it, then mark_fixed with what caused it and what changed'
-      : 'put it in your plan with exactly that title, do it, and let it go done when it genuinely works'
+      : 'plan it however you like -- your plan becomes its checklist and it closes by itself when every step is done ' +
+        '(or set_item it done when it genuinely works)'
   return (
     `PulsarIDE board (${left}). Next by the work order: "${clip(f.title, 120)}" [${f.id}] -- ${where}. ` +
     `Continue with it now: ${close}. If it cannot be done here, set_item it blocked with the reason ` +

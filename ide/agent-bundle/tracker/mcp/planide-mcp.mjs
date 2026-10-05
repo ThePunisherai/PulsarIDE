@@ -638,14 +638,33 @@ const TOOLS = [
         // both match a step the same way, neither drops a `done` item back to
         // `works` nor moves a protected one -- and both take back off the board
         // the open steps this same plan put there and has now dropped.
-        const { added, moved, retired, active } = applyPlan(state, steps, {
+        // The item this agent took (next_task, set_item wip) and is planning
+        // out: the steps become its checklist instead of rows of their own,
+        // and it closes when they are all done (applyPlan -> planParent).
+        const { added, moved, retired, active, parent, checklist, changed } = applyPlan(state, steps, {
           agent,
           key: `${PROCESS_PLAN}:${agent.toLowerCase()}`,
+          parent: OWN.get(ownKey(path)),
           now: nowIso(),
           newId: () => newId('i_')
         })
         if (active.length) OWN.set(ownKey(path), active[0])
-        if (added || moved || retired.length) {
+        if (parent) {
+          const item = state.items.find((i) => i.id === parent)
+          const done = (item?.steps ?? []).filter((x) => x.status === 'done').length
+          if (changed) {
+            logActivity(state, 'plan-sync', `plan: ${done}/${checklist} step(s) of "${item?.title ?? parent}" (${item?.status ?? ''})`, agent)
+          }
+          if (!skipped.length) {
+            return {
+              item: { id: parent, title: item?.title ?? '', status: item?.status ?? '', steps: `${done}/${checklist}` },
+              note: 'Your plan is this item\'s checklist; the item closes when every step is done.',
+              moved,
+              total: todos.length,
+              ...(retired.length ? { dropped: retired.length } : {})
+            }
+          }
+        } else if (added || moved || retired.length) {
           const gone = retired.length ? `, ${retired.length} dropped from the plan` : ''
           logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved${gone}`, agent)
         }
@@ -664,7 +683,7 @@ const TOOLS = [
           '{ content, status }.'
         // Nothing landed: no partial work to protect, and staying quiet would be
         // the original bug. Throwing is the only answer the agent cannot miss.
-        if (!added && !moved) {
+        if (!added && !moved && !parent) {
           throw new Error(
             `None of the ${todos.length} step(s) had readable text, so the board did not ` +
               `change (got: ${shape}). ${how}`

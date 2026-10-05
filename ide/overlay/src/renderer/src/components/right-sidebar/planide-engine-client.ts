@@ -66,6 +66,11 @@ export type PlanIdeItem = {
   /** "Do not break this" -- protected by you. Agents read it, never set it. */
   locked: boolean
   locked_at: string
+  /**
+   * The agent's plan for this item, as its checklist: the item closes when
+   * every step is done. Steps never become rows of their own.
+   */
+  steps?: { title: string; status: 'todo' | 'wip' | 'done' | 'blocked' }[]
 }
 
 export type PlanIdeFix = {
@@ -152,6 +157,8 @@ export type PlanIdeProject = {
   regressions: PlanIdeItem[]
   /** The work order: what to finish, what is next, what waits in Fixes. */
   queue?: PlanIdeQueue
+  /** Plan steps closed chats left as rows; the Tracker offers to tidy them. */
+  leftover_steps?: { count: number; titles: string[] }
   /** Your switches. Missing reads as auto-complete on. */
   settings?: { auto_complete: boolean; autopilot?: boolean }
   stack?: { detected?: PlanIdeDetected; custom?: string }
@@ -525,6 +532,11 @@ export type HookDoctorReport = {
   issues: HookIssue[]
   backupDir: string
   codex?: HookEntry[]
+}
+
+/** Take the leftover plan steps of closed chats off the board (only on your click). */
+export function planTidy(path: string): Promise<PlanIdeProject> {
+  return call<PlanIdeProject>('planTidy', path)
 }
 
 /** Check every agent's hooks now; the ones that can never run are taken out of action. */

@@ -1407,5 +1407,160 @@ runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: acOff, tool_input: { tod
     /this chat was working on "Qwen builds the export"/.test(ctx))
 }
 
+// --- a plan is the checklist of the item it is for ------------------------- //
+// "Hij zet dingen in behandeling en pakt ze verder niet op" / "34/50, wordt
+// niet minder, soms zelfs meer". An agent took a board item and planned it in
+// its own words: every step became a new row, the item itself stayed wip for
+// good, and the total grew by a plan's worth for every item worked.
+{
+  const cp = mkdtempSync(join(tmpdir(), 'pulsar-checklist-'))
+  mkdirSync(join(cp, '.git'))
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(500, 'add_item', { project: cp, title: 'Export the report as PDF', status: 'todo' }),
+    call(501, 'add_item', { project: cp, title: 'Dark mode toggle', status: 'todo' })
+  ])
+  const total0 = readBoard(cp).items.length
+  const exportId = readBoard(cp).items.find((i) => i.title === 'Export the report as PDF').id
+  const S = 'CHK1'
+  const prompt = (text) => runHook('keep-going.mjs', { hook_event_name: 'UserPromptSubmit', session_id: S, cwd: cp, prompt: text })
+  const plan = (todos) => runHook('todo-sync.mjs', { tool_name: 'update_plan', session_id: S, cwd: cp, tool_input: { plan: todos } })
+  prompt('ga door')
+  // The agent takes the item (next_task claim) and plans it in its own words.
+  await drive([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }, call(502, 'next_task', { project: cp, agent: 'codex', claim: true })])
+  plan([
+    { step: 'Add pdfkit dependency', status: 'completed' },
+    { step: 'Render the report to PDF', status: 'in_progress' },
+    { step: 'Wire the export button', status: 'pending' }
+  ])
+  let b = readBoard(cp)
+  let it = b.items.find((i) => i.id === exportId)
+  ok('checklist: an agent planning the item it took adds no rows -- the steps are its checklist',
+    b.items.length === total0 && it.status === 'wip' && (it.steps ?? []).length === 3 &&
+    it.steps.map((x) => x.status).join() === 'done,wip,todo')
+  plan([
+    { step: 'Add pdfkit dependency', status: 'completed' },
+    { step: 'Render the report to PDF', status: 'completed' },
+    { step: 'Wire the export button', status: 'completed' }
+  ])
+  b = readBoard(cp)
+  it = b.items.find((i) => i.id === exportId)
+  ok('checklist: every step done closes the item itself -- done with auto-complete on',
+    it.status === 'done' && b.items.length === total0)
+  // Agents send the finished plan once more at the end.
+  plan([
+    { step: 'Add pdfkit dependency', status: 'completed' },
+    { step: 'Render the report to PDF', status: 'completed' },
+    { step: 'Wire the export button', status: 'completed' }
+  ])
+  ok('checklist: the finished plan sent again does not turn into rows afterwards',
+    readBoard(cp).items.length === total0 && readBoard(cp).items.find((i) => i.id === exportId).status === 'done')
+  // The autopilot then hands the next item; its plan becomes that item's list.
+  const stop = runHook('keep-going.mjs', { hook_event_name: 'Stop', session_id: S, cwd: cp, stop_hook_active: false })
+  let handed = {}
+  try {
+    handed = JSON.parse(stop.stdout)
+  } catch {
+    handed = {}
+  }
+  ok('checklist: the autopilot hands over the next item, and says the plan becomes its checklist',
+    handed.decision === 'block' && /"Dark mode toggle"/.test(handed.reason || '') && /checklist/.test(handed.reason || ''))
+  plan([{ step: 'Add a theme context', status: 'in_progress' }, { step: 'Toggle in settings', status: 'pending' }])
+  b = readBoard(cp)
+  const dark = b.items.find((i) => i.title === 'Dark mode toggle')
+  ok('checklist: the item the autopilot handed over gets the next plan as its checklist',
+    b.items.length === total0 && dark.status === 'wip' && dark.steps.length === 2)
+  // A brand-new request in the same chat is not filed under the old item.
+  prompt('maak ook een zoekfunctie voor de rapporten')
+  plan([{ step: 'Search index for reports', status: 'in_progress' }])
+  b = readBoard(cp)
+  ok('checklist: a new request in the same chat is not filed under the item it was on',
+    b.items.some((i) => i.title === 'Search index for reports') && b.items.find((i) => i.id === dark.id).steps.length === 2)
+  // A plan that names a board item works it as a row, as before.
+  plan([{ step: 'Dark mode toggle', status: 'completed' }, { step: 'Search index for reports', status: 'completed' }])
+  ok('checklist: a plan whose steps name board items still moves those items',
+    readBoard(cp).items.find((i) => i.id === dark.id).status === 'done')
+  // Hookless agents: sync_plan after next_task does the same.
+  const hp = mkdtempSync(join(tmpdir(), 'pulsar-checklist-mcp-'))
+  mkdirSync(join(hp, '.git'))
+  const r = await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(510, 'add_item', { project: hp, title: 'Import CSV files', status: 'todo' }),
+    call(511, 'next_task', { project: hp, agent: 'antigravity', claim: true }),
+    call(512, 'sync_plan', { project: hp, agent: 'antigravity', todos: [
+      { content: 'Parse the header row', status: 'completed' }, { content: 'Map columns', status: 'in_progress' }] }),
+    call(513, 'sync_plan', { project: hp, agent: 'antigravity', todos: [
+      { content: 'Parse the header row', status: 'completed' }, { content: 'Map columns', status: 'completed' }] })
+  ])
+  const hb = readBoard(hp)
+  ok('checklist: sync_plan (Antigravity, Cursor, opencode) files the plan under the item it claimed and closes it',
+    hb.items.length === 1 && hb.items[0].status === 'done' && hb.items[0].steps.length === 2 &&
+    json(byId(r.replies, 512)).item?.steps === '1/2')
+}
+
+// --- items taken up and then left: picked up again ------------------------- //
+{
+  const lp = mkdtempSync(join(tmpdir(), 'pulsar-left-'))
+  mkdirSync(join(lp, '.git'))
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(520, 'add_item', { project: lp, title: 'Fix the login redirect', status: 'todo' })
+  ])
+  // A chat takes the item through the board's own tool, makes no plan, and stops.
+  runHook('keep-going.mjs', { hook_event_name: 'UserPromptSubmit', session_id: 'L1', cwd: lp, prompt: 'pak de volgende taak' })
+  await drive([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }, call(521, 'next_task', { project: lp, agent: 'claude', claim: true })])
+  const st = runHook('keep-going.mjs', { hook_event_name: 'Stop', session_id: 'L1', cwd: lp, stop_hook_active: false, last_assistant_message: 'Ik heb de taak opgepakt.' })
+  let d = {}
+  try {
+    d = JSON.parse(st.stdout)
+  } catch {
+    d = {}
+  }
+  ok('left behind: a chat that took an item with next_task and stopped without a plan is kept on it',
+    d.decision === 'block' && /this chat was working on "Fix the login redirect"/.test(d.reason || ''))
+  // Another CLI's in-progress item, quiet for 4 hours: nobody is on it any more.
+  const b = readBoard(lp)
+  b.items[0].claimed_by = 'Claude Code'
+  b.items[0].updated_at = new Date(Date.now() - 4 * 3600e3).toISOString().replace(/\.\d{3}Z$/, 'Z')
+  writeBoard(lp, b)
+  const q = await drive([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }, call(522, 'next_task', { project: lp, agent: 'codex' })])
+  const nt = json(byId(q.replies, 522))
+  ok('left behind: another agent\'s in-progress item, quiet for hours, comes back to whoever resumes',
+    (nt.focus?.title === 'Fix the login redirect' || nt.next?.title === 'Fix the login redirect' ||
+      JSON.stringify(nt).includes('"stale":true')) && !(nt.elsewhere ?? []).length)
+}
+
+// --- leftover plan steps of closed chats: listed, removed only on request ---- //
+{
+  const now = Date.parse('2026-10-05T12:00:00Z')
+  const old = '2026-10-03T08:00:00Z'
+  const fresh = '2026-10-05T11:30:00Z'
+  const mk = (id, extra) => ({ id, title: id, status: 'todo', notes: '', tags: ['plan'], priority: 'normal', created_at: old,
+    updated_at: old, claimed_by: 'Codex', verified: false, verified_at: '', verified_by: '', locked: false, locked_at: '', ...extra })
+  const state = {
+    items: [
+      mk('closed chat step', { plan_key: 'S-OLD' }),
+      mk('closed chat wip', { plan_key: 'S-OLD', status: 'wip' }),
+      mk('live chat step', { plan_key: 'S-LIVE' }),
+      mk('touched today', { plan_key: 'S-OLD', updated_at: fresh }),
+      mk('protected', { plan_key: 'S-OLD', locked: true }),
+      mk('with your note', { plan_key: 'S-OLD', notes: 'keep: needed for v2' }),
+      mk('high priority', { plan_key: 'S-OLD', priority: 'high' }),
+      mk('done step', { plan_key: 'S-OLD', status: 'done' }),
+      mk('board item', {})
+    ],
+    roadmap: [{ id: 'm1', title: 'M', item_ids: ['closed chat step', 'board item'] }],
+    activity: []
+  }
+  const sessions = { 'S-LIVE': { seen: fresh }, 'S-OLD': { seen: old } }
+  const left = store.leftoverPlanSteps(state, { sessions, now }).map((i) => i.id)
+  ok('leftovers: only open plan steps of a chat gone a day, untouched a day, never yours',
+    left.join() === 'closed chat step,closed chat wip')
+  const n = store.tidyPlanSteps(state, { sessions, now })
+  ok('leftovers: tidy removes exactly those, from the milestones too, and says so in the activity',
+    n === 2 && state.items.length === 7 && !state.items.some((i) => i.id.startsWith('closed chat')) &&
+    state.roadmap[0].item_ids.join() === 'board item' && /tidied 2 leftover plan step/.test(state.activity[0]?.text ?? ''))
+}
+
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

@@ -62,6 +62,13 @@ export type Item = {
    * while still open. Your edit removes it: then the row is yours.
    */
   plan_key?: string
+  /**
+   * An agent's plan for this item, as its checklist (work-queue.mjs
+   * applyChecklist): the item closes when every step is done.
+   */
+  steps?: { title: string; status: 'todo' | 'wip' | 'done' | 'blocked' }[]
+  /** The plan that wrote `steps`, so a re-sent plan lands here again. */
+  steps_key?: string
 }
 
 export type Fix = {
@@ -390,6 +397,55 @@ export function updateItem(
     logActivity(state, 'item-status', `${item.title} -> ${item.status}${note}`, who)
   }
   return item
+}
+
+/** The board's session records (sessions.json, written by the agents' hooks); {} if none. */
+export function readSessionRecords(path: string): Record<string, { seen?: string }> {
+  try {
+    const raw = JSON.parse(readFileSync(join(path, '.planide', 'sessions.json'), 'utf8'))
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Plan steps a chat that has since closed left on the board as rows of their
+ * own -- the way every plan landed before plans became their item's
+ * checklist. Open (todo/wip), untouched for a day, from a plan whose chat has
+ * not been seen for a day, and never one you made yours (protected,
+ * confirmed, annotated or prioritised). They are what kept a board at "34/50"
+ * whatever got done. Listed, never removed, until you say so (tidyPlanSteps).
+ */
+export function leftoverPlanSteps(
+  state: ProjectState,
+  opts: { sessions?: Record<string, { seen?: string }>; now?: number } = {}
+): Item[] {
+  const now = opts.now ?? Date.now()
+  const day = 24 * 3600e3
+  const sessions = opts.sessions ?? {}
+  return (state.items ?? []).filter((i) => {
+    if (!i.plan_key || (i.status !== 'todo' && i.status !== 'wip')) return false
+    if (i.locked || (i.verified && !i.verified_by) || String(i.notes ?? '').trim()) return false
+    if (!['', 'normal', 'medium'].includes(String(i.priority ?? '').trim().toLowerCase())) return false
+    const quiet = now - Date.parse(i.updated_at || '')
+    if (!(quiet > day)) return false
+    const seen = Date.parse(sessions[i.plan_key.split('#')[0]]?.seen || '')
+    return !(Number.isFinite(seen) && now - seen < day)
+  })
+}
+
+/** Take the leftover plan steps off the board, at your say-so. Returns how many went. */
+export function tidyPlanSteps(
+  state: ProjectState,
+  opts: { sessions?: Record<string, { seen?: string }>; now?: number } = {}
+): number {
+  const gone = new Set(leftoverPlanSteps(state, opts).map((i) => i.id))
+  if (!gone.size) return 0
+  state.items = state.items.filter((i) => !gone.has(i.id))
+  for (const m of state.roadmap ?? []) m.item_ids = (m.item_ids ?? []).filter((id) => !gone.has(id))
+  logActivity(state, 'item-delete', `tidied ${gone.size} leftover plan step(s) from closed chats`)
+  return gone.size
 }
 
 export function deleteItem(state: ProjectState, itemId: string): boolean {
@@ -736,7 +792,7 @@ export function progress(state: ProjectState): Progress {
 // ide/test/mcp-node.test.mjs runs both on the same boards and compares.
 
 /** A `wip` item untouched this long was left behind by an earlier session. */
-export const STALE_HOURS = 12
+export const STALE_HOURS = 3
 
 const PRIORITY_RANK: Record<string, number> = {
   urgent: 0, critical: 0, p0: 0, blocker: 0,
@@ -834,8 +890,8 @@ function fixCard(f: Fix): QueueFixCard {
 
 const ACTION: Record<QueueLane, string> = {
   in_progress:
-    'Finish this first. set_item it to works/done in the same turn it genuinely works, then call next_task again.',
-  todo: 'Start this: next_task with claim=true (or set_item wip), do it, then set_item works/done.',
+    'Finish this first. Your plan for it becomes its checklist and closes it when every step is done; or set_item it works/done in the same turn it genuinely works. Then call next_task again.',
+  todo: 'Start this: next_task with claim=true (or set_item wip). Your plan for it becomes its checklist and closes it when every step is done; or set_item works/done.',
   fix: 'Fix this, verify it, then mark_fixed with the real solution -- what caused it and what changed.',
   broken: 'Make this work again, then set_item works. Log what caused it with add_fix if it was not logged yet.'
 }

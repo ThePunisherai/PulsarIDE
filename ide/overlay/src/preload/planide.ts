@@ -56,6 +56,7 @@ export const planIdeApi = {
   // project memory (graphify graph + Obsidian note status)
   eccStatus: <T>() => call<T>('planide:ecc-status'),
   hookDoctor: <T>() => call<T>('planide:hook-doctor'),
+  planTidy: <T>(path: string) => call<T>('planide:plan-tidy', path),
   hookTest: <T>() => call<T>('planide:hook-test'),
   quotaResumeStatus: <T>() => call<T>('planide:quota-resume-status'),
   quotaResumeSetEnabled: <T>(enabled: boolean) => call<T>('planide:quota-resume-set-enabled', enabled),

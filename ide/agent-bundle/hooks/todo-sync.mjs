@@ -195,7 +195,7 @@ async function main() {
   if (!project) return
 
   const queue = await loadQueue()
-  const { finishedStatus, closeOutWorking, applyPlan, planKey, boardMark } = queue
+  const { finishedStatus, closeOutWorking, applyPlan, planKey, boardMark, newlyWip, agentFamily } = queue
   const agent = agentName(payload).slice(0, 40)
   const state = loadState(project)
   const before = JSON.parse(JSON.stringify({ items: state.items, fixes: state.fixes ?? [], milestones: state.milestones ?? [], version: state.version }))
@@ -213,13 +213,43 @@ async function main() {
   // One plan = one session's main agent, or one subagent inside it.
   const session = typeof payload.session_id === 'string' ? payload.session_id : ''
   const key = planKey(session, payload.agent_id)
-  const { added, moved, retired, active } = applyPlan(state, steps, { agent, key, now: nowIso(), newId: () => newId('i_') })
+  // The board item this chat is working on, if the plan is how it goes about
+  // it (applyPlan -> planParent): one it took up this turn (next_task, set_item
+  // wip), or -- when the user said "ga door" or the autopilot handed it over --
+  // the one it was already on. A new request is not filed under an old item.
+  // A subagent's plan is its own business.
+  let parent = ''
+  let sessions = null
+  if (session && !payload.agent_id) {
+    try {
+      sessions = await import(pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'tracker', 'mcp', 'sessions.mjs')).href)
+      const rec = sessions.readSession(project, session)
+      const taken = newlyWip(state, rec?.wip, agentFamily(agent)).filter((id) => {
+        const item = state.items.find((i) => i.id === id)
+        return item && item.plan_key !== key
+      })
+      parent = taken[0] ?? (rec?.drive || (rec?.pushes ?? 0) > 0 ? rec?.current ?? '' : '')
+    } catch {
+      parent = ''
+    }
+  }
+  const { added, moved, retired, active, parent: carried, checklist, changed } = applyPlan(state, steps, {
+    agent,
+    key,
+    parent,
+    now: nowIso(),
+    newId: () => newId('i_')
+  })
 
   // Anything an agent left in `works` before (an older hook, another route) is
   // closed out in this same write when auto-complete is on.
   const closed = closeOutWorking(state, nowIso())
-  if (!added && !moved && !retired.length && !closed.length) return
-  if (added || moved || retired.length) {
+  if (!added && !moved && !retired.length && !closed.length && !changed) return
+  if (carried) {
+    const item = state.items.find((i) => i.id === carried)
+    const done = (item?.steps ?? []).filter((x) => x.status === 'done').length
+    logActivity(state, 'plan-sync', `plan: ${done}/${checklist} step(s) of "${item?.title ?? carried}" (${item?.status ?? ''})`, agent)
+  } else if (added || moved || retired.length) {
     const gone = retired.length ? `, ${retired.length} dropped from the plan (${retired.map((i) => i.title).slice(0, 3).join('; ')})` : ''
     logActivity(state, 'plan-sync', `plan: ${added} new step(s), ${moved} moved${gone}`, agent)
   }
@@ -231,7 +261,8 @@ async function main() {
   // session alone: a subagent's plan is part of its parent's turn.
   if (session) {
     try {
-      const { updateSession } = await import(pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'tracker', 'mcp', 'sessions.mjs')).href)
+      const { updateSession } =
+        sessions ?? (await import(pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '..', 'tracker', 'mcp', 'sessions.mjs')).href))
       updateSession(project, session, (rec) => ({
         ...(rec ?? { mark: markBefore, drive: false, pushes: 0 }),
         worked: true,

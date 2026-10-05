@@ -577,7 +577,7 @@ def pkg_version() -> str:
 # A port of tracker/mcp/work-queue.mjs, so a shell-only agent running `plan
 # next` gets exactly what next_task gives an MCP agent. agent-tools/scripts/
 # verify.sh runs both on the same board and compares them byte for byte.
-STALE_HOURS = 12
+STALE_HOURS = 3
 
 _PRIORITY_RANK = {
     "urgent": 0, "critical": 0, "p0": 0, "blocker": 0,
@@ -593,9 +593,10 @@ WORK_ORDER = (
 )
 
 _ACTION = {
-    "in_progress": "Finish this first. set_item it to works/done in the same turn it genuinely works, "
-                   "then call next_task again.",
-    "todo": "Start this: next_task with claim=true (or set_item wip), do it, then set_item works/done.",
+    "in_progress": "Finish this first. Your plan for it becomes its checklist and closes it when every step "
+                   "is done; or set_item it works/done in the same turn it genuinely works. Then call next_task again.",
+    "todo": "Start this: next_task with claim=true (or set_item wip). Your plan for it becomes its checklist "
+            "and closes it when every step is done; or set_item works/done.",
     "fix": "Fix this, verify it, then mark_fixed with the real solution -- what caused it and what changed.",
     "broken": "Make this work again, then set_item works. Log what caused it with add_fix if it was not "
               "logged yet.",

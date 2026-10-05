@@ -242,7 +242,12 @@ async function main() {
   // What this chat took up during the turn -- through its plan, next_task or
   // set_item -- is its own item from here on: "ga door" in this chat means it.
   const picked = wq.newlyWip(state, seen.wip, chatFamily(payload))
-  const rec = picked.length ? { ...seen, current: picked[0], wip: wq.wipIds(state) } : seen
+  // Taking an item up through the board's own tools (next_task claim, set_item
+  // wip) without a plan is working the board too: such a turn used to stop
+  // with the item it had just taken still in progress, and nothing picked it
+  // up again. Only this chat's own pick counts -- another pane moving the
+  // board is no reason to put board work after an answered question.
+  const rec = picked.length ? { ...seen, current: picked[0], wip: wq.wipIds(state), worked: true } : seen
   if (picked.length) ss.updateSession(project, session, () => rec)
   if (endsOnQuestion(lastAgentText(payload))) return
   let decision = wq.keepGoing(state, rec)

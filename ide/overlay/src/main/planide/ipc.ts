@@ -60,6 +60,9 @@ import {
   closeOutWorking,
   deleteFix,
   deleteItem,
+  leftoverPlanSteps,
+  readSessionRecords,
+  tidyPlanSteps,
   deleteMilestone,
   loadState,
   lockItem,
@@ -86,6 +89,8 @@ export type ProjectPayload = ProjectState & {
   detected: ReturnType<typeof detect>
   /** What to work on now, in the same order agents get from next_task. */
   queue: WorkQueue
+  /** Plan steps closed chats left as rows (leftoverPlanSteps): the Tracker offers to tidy them. */
+  leftover_steps: { count: number; titles: string[] }
 }
 
 function mutate<T>(path: string, fn: (state: ProjectState) => T): { result: T; payload: ProjectPayload } {
@@ -111,7 +116,17 @@ function withRollups(state: ProjectState): ProjectPayload {
     progress: progress(state),
     regressions: regressions(state),
     detected: (state.stack?.detected ?? {}) as ReturnType<typeof detect>,
-    queue: workQueue(state)
+    queue: workQueue(state),
+    leftover_steps: leftoverSummary(state)
+  }
+}
+
+function leftoverSummary(state: ProjectState): { count: number; titles: string[] } {
+  try {
+    const left = leftoverPlanSteps(state, { sessions: state.path ? readSessionRecords(state.path) : {} })
+    return { count: left.length, titles: left.slice(0, 8).map((i) => i.title) }
+  } catch {
+    return { count: 0, titles: [] }
   }
 }
 
@@ -215,6 +230,10 @@ export function registerPlanIdeIpc(): void {
     'planide:item-update',
     (path: string, itemId: string, fields: Record<string, unknown>) =>
       mutate(path, (s) => updateItem(s, itemId, fields)).payload
+  )
+  // Leftover plan steps from closed chats, removed only when you press Tidy.
+  on('planide:plan-tidy', (path: string) =>
+    mutate(path, (s) => tidyPlanSteps(s, { sessions: readSessionRecords(path) })).payload
   )
   on('planide:item-delete', (path: string, itemId: string) =>
     mutate(path, (s) => deleteItem(s, itemId)).payload

@@ -6,6 +6,34 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [Unreleased]
+
+### What's fixed
+- **Items set "in progress" and then never picked up again, and a board that never got
+  shorter (34/50).** Both had one cause. An agent took a board item — via `next_task`, by
+  setting it in progress, or because the autopilot handed it over — and then planned the
+  work in its own words. Every plan step landed as a new row, and the chat's own item moved
+  over to those rows. The item it was actually doing stayed in progress for good, and the
+  total grew by a plan's worth of rows for every item worked. Now:
+  - **A plan is the checklist of the item it is for.** Applies to Claude Code, Codex,
+    Gemini CLI and Qwen Code (plan hooks) and to Antigravity, Cursor and opencode
+    (`sync_plan`). The steps show on the card ("3/5 steps"). The item closes by itself —
+    done, with auto-complete on — when every step is done. Sending the finished plan once
+    more never turns into rows afterwards.
+  - Only the item the chat took this turn, or the one it was on when you said "ga door" or
+    the autopilot handed it over. A new request in the same chat is not filed under an old
+    item. A plan step that names another board item still moves that item.
+  - A chat that took an item through the board's own tools without making a plan is now
+    kept on it by the autopilot, instead of stopping with the item in progress.
+  - Another agent's in-progress item comes back to whoever resumes after 3 quiet hours,
+    not 12. An actively worked item is touched by every plan update.
+  - The instructions the agents get say so: plan it however you like, the plan is the
+    item's checklist.
+- **Tracker → Tidy leftover plan steps.** Rows that closed chats left before this fix keep
+  the count high. The Tracker header shows how many there are: open, untouched for a day,
+  from a chat not seen for a day, and never one you protected, confirmed, annotated or
+  prioritised. It removes them only when you press it, after showing which ones.
+
 ## [0.99.8] - 2026-10-04
 
 ### What's fixed
