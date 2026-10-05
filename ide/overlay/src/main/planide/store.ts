@@ -66,7 +66,8 @@ export type Item = {
    * An agent's plan for this item, as its checklist (work-queue.mjs
    * applyChecklist): the item closes when every step is done.
    */
-  steps?: { title: string; status: 'todo' | 'wip' | 'done' | 'blocked' }[]
+  /** `carried`: finished by an earlier chat on this item, kept when a later chat re-plans it. */
+  steps?: { title: string; status: 'todo' | 'wip' | 'done' | 'blocked'; carried?: boolean }[]
   /** The plan that wrote `steps`, so a re-sent plan lands here again. */
   steps_key?: string
 }
@@ -811,6 +812,11 @@ export type QueueItemCard = {
   locked?: true
   stale?: true
   priority?: string
+  /** Checklist progress, `done/total`, and the step to carry on at. */
+  steps?: string
+  next_step?: string
+  /** The whole checklist -- on the focus only. */
+  checklist?: { title: string; status: string }[]
 }
 
 export type QueueFixCard = {
@@ -865,7 +871,18 @@ function clip(s: unknown, n: number): string {
   return t.length > n ? `${t.slice(0, n - 1)}…` : t
 }
 
+/** An item's checklist: how far it got and the step to carry on at (checklistOf in work-queue.mjs). */
+function checklistOf(i: Item | undefined): { done: number; total: number; next: string; steps: NonNullable<Item['steps']> } | null {
+  const raw = i?.steps
+  const steps = (Array.isArray(raw) ? raw : []).filter((s) => String(s?.title ?? '').trim())
+  if (!steps.length) return null
+  const done = steps.filter((s) => s.status === 'done').length
+  const next = steps.find((s) => s.status === 'wip') ?? steps.find((s) => s.status !== 'done')
+  return { done, total: steps.length, next: next ? String(next.title) : '', steps }
+}
+
 function itemCard(i: Item, now: number): QueueItemCard {
+  const list = checklistOf(i)
   return {
     kind: 'item',
     id: i.id,
@@ -873,8 +890,16 @@ function itemCard(i: Item, now: number): QueueItemCard {
     status: i.status,
     claimed_by: i.claimed_by || '',
     idle: idle(ageMs(i.updated_at, now)),
-    ...(i.locked ? { locked: true as const } : {})
+    ...(i.locked ? { locked: true as const } : {}),
+    ...(list ? { steps: `${list.done}/${list.total}` } : {}),
+    ...(list?.next ? { next_step: clip(list.next, 120) } : {})
   }
+}
+
+function withChecklist(card: QueueItemCard, item: Item | undefined): QueueItemCard {
+  const list = checklistOf(item)
+  if (!list) return card
+  return { ...card, checklist: list.steps.map((s) => ({ title: clip(s.title, 120), status: s.status })) }
 }
 
 function fixCard(f: Fix): QueueFixCard {
@@ -903,23 +928,25 @@ export const WORK_ORDER =
 
 export function workQueue(
   state: Pick<ProjectState, 'items' | 'fixes'>,
-  opts: { agent?: string; now?: number; limit?: number } = {}
+  opts: { agent?: string; now?: number; limit?: number; resume?: boolean } = {}
 ): WorkQueue {
   const now = Number.isFinite(opts.now) ? (opts.now as number) : Date.now()
   const limit = Number.isInteger(opts.limit) && (opts.limit as number) > 0 ? (opts.limit as number) : 5
   const me = lc(opts.agent)
+  const resume = opts.resume === true
   const staleMs = STALE_HOURS * 3600e3
   const items = state?.items ?? []
   const fixes = state?.fixes ?? []
+  const byId = new Map(items.map((i) => [i.id, i]))
 
   const wipAll = items
     .filter((i) => i.status === 'wip')
     .map((i) => ({ i, age: ageMs(i.updated_at, now), mine: Boolean(me) && lc(i.claimed_by) === me }))
   const isMineToFinish = (w: { i: Item; age: number; mine: boolean }): boolean =>
-    !me || w.mine || !w.i.claimed_by || w.age >= staleMs
+    resume || !me || w.mine || !w.i.claimed_by || w.age >= staleMs
   const wip: QueueItemCard[] = wipAll
     .filter(isMineToFinish)
-    .sort((a, b) => Number(b.mine) - Number(a.mine) || b.age - a.age)
+    .sort(resume ? (a, b) => a.age - b.age : (a, b) => Number(b.mine) - Number(a.mine) || b.age - a.age)
     .map((w) => ({ ...itemCard(w.i, now), ...(w.age >= staleMs ? { stale: true as const } : {}) }))
   const elsewhere = wipAll.filter((w) => !isMineToFinish(w)).map((w) => itemCard(w.i, now))
 
@@ -954,16 +981,16 @@ export function workQueue(
   let focus: WorkQueue['focus'] = null
   let phase: WorkQueue['phase'] = 'clear'
   if (wip.length) {
-    focus = { lane: 'in_progress', ...wip[0], action: ACTION.in_progress }
+    focus = { lane: 'in_progress', ...withChecklist(wip[0], byId.get(wip[0].id)), action: ACTION.in_progress }
     phase = 'finish'
   } else if (todo.length) {
-    focus = { lane: 'todo', ...todo[0], action: ACTION.todo }
+    focus = { lane: 'todo', ...withChecklist(todo[0], byId.get(todo[0].id)), action: ACTION.todo }
     phase = 'todo'
   } else if (openFixes.length) {
     focus = { lane: 'fix', ...openFixes[0], action: ACTION.fix }
     phase = 'fixes'
   } else if (broken.length) {
-    focus = { lane: 'broken', ...broken[0], action: ACTION.broken }
+    focus = { lane: 'broken', ...withChecklist(broken[0], byId.get(broken[0].id)), action: ACTION.broken }
     phase = 'fixes'
   }
 

@@ -304,7 +304,9 @@ export function registerPlanIdeIpc(): void {
     return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
   })
   on('planide:tracker-health', (path?: string) => trackerHealth(path))
-  on('planide:tracker-repair', () => repairTrackerRegistration())
+  on('planide:tracker-repair', () =>
+    repairTrackerRegistration(undefined, { resourcesPath: process.resourcesPath, appPath: app.getAppPath() })
+  )
   // ECC is installed through its own installer and costs real always-on
   // context (~40.6k tokens, measured), so it is a switch, not a silent default.
   on('planide:ecc-status', () => eccStatus())

@@ -6,7 +6,7 @@
  * can find ide/agent-bundle.
  */
 import { execSync, spawn, spawnSync } from 'node:child_process'
-import { cpSync, mkdtempSync, mkdirSync, rmSync, statSync, symlinkSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
+import { cpSync, mkdtempSync, mkdirSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync, readdirSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,6 +35,9 @@ const {
 } = await import(MOD)
 
 const work = mkdtempSync(join(tmpdir(), 'pulsar-bundle-'))
+// Removed at the end: every run deploys the whole bundle into several homes, and
+// leaving them behind filled the disk of the machine running verify.
+const temps = [work]
 const res = join(work, 'res'); mkdirSync(res)
 symlinkSync(join(REPO, 'ide/agent-bundle'), join(res, 'pulsar-agents'))
 const HOME = join(work, 'home'); mkdirSync(HOME)
@@ -546,6 +549,77 @@ const cj3 = JSON.parse(readFileSync(join(HOME, '.claude.json'), 'utf8'))
 ok('force redeploy keeps planide MCP + preserves other servers + tracker present',
   r3.mcpWired === true && cj3.mcpServers.planide && cj3.mcpServers.other &&
   existsSync(join(HOME, '.config/pulsaride/tracker/plan')))
+
+// --- The tracker folder is never absent (Antigravity's MODULE_NOT_FOUND) --- //
+// Reported from Antigravity as "MCP Error" on both servers: "Cannot find module
+// ...\.config\pulsaride\tracker\mcp\planide-mcp.mjs", and the same for
+// pulsar-tools-mcp.mjs. A redeploy removed the folder at its start and copied
+// it back at its end, so an agent that started its servers in between found
+// nothing; and a launch with an unchanged bundle never put back a folder that
+// had gone. Polled from another process, the way an agent starting a server
+// sees it -- the deploy is synchronous, so nothing in this process could.
+const toolsScript = join(HOME, '.config/pulsaride/tracker/mcp/pulsar-tools-mcp.mjs')
+const POLL = `
+const { existsSync, writeFileSync } = require('node:fs')
+const [a, b, ready, stop, out] = process.argv.slice(1)
+let checks = 0, misses = 0
+writeFileSync(ready, '')
+while (!existsSync(stop)) { checks++; if (!existsSync(a) || !existsSync(b)) misses++ }
+writeFileSync(out, JSON.stringify({ checks, misses }))
+`
+const pollDir = mkdtempSync(join(work, 'poll-'))
+const poller = spawn(process.execPath, ['-e', POLL, trackerScript, toolsScript,
+  join(pollDir, 'ready'), join(pollDir, 'stop'), join(pollDir, 'out')], { stdio: 'ignore' })
+const pollerDone = new Promise((r) => poller.on('exit', r))
+for (let i = 0; i < 500 && !existsSync(join(pollDir, 'ready')); i++) await new Promise((r) => setTimeout(r, 10))
+deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
+writeFileSync(join(pollDir, 'stop'), '')
+await pollerDone
+const polled = JSON.parse(readFileSync(join(pollDir, 'out'), 'utf8'))
+ok(`an agent starting its MCP servers mid-redeploy always finds both (${polled.misses}/${polled.checks} misses)`,
+  polled.checks > 0 && polled.misses === 0)
+
+// In place, file by file: what is unchanged is not touched at all, what changed
+// is replaced, what the bundle stopped shipping goes.
+const trackerDir = join(HOME, '.config/pulsaride/tracker')
+const catalog = join(HOME, '.config/pulsaride/design/design-systems/catalog.json')
+const longAgo = new Date('2001-01-01T00:00:00Z')
+utimesSync(trackerScript, longAgo, longAgo)
+utimesSync(catalog, longAgo, longAgo)
+writeFileSync(join(trackerDir, 'mcp/work-queue.mjs'), '// an older release\n')
+writeFileSync(join(trackerDir, 'mcp/retired.mjs'), '// shipped once, not any more\n')
+mkdirSync(join(trackerDir, 'planide/__pycache__'), { recursive: true })
+writeFileSync(join(trackerDir, 'planide/__pycache__/store.cpython-312.pyc'), 'x')
+const rSync = deployAgentBundle({ home: HOME, resourcesPath: res, force: true, provisionPyEnv: false })
+ok('a redeploy leaves an unchanged server file alone (never removed, never rewritten)',
+  rSync.deployed === true && statSync(trackerScript).mtimeMs === longAgo.getTime())
+ok('...brings a changed file up to date and removes one the bundle no longer ships',
+  readFileSync(join(trackerDir, 'mcp/work-queue.mjs'), 'utf8') ===
+    readFileSync(join(REPO, 'ide/agent-bundle/tracker/mcp/work-queue.mjs'), 'utf8') &&
+  !existsSync(join(trackerDir, 'mcp/retired.mjs')))
+ok("...leaves Python's own cache to Python and no staging file behind",
+  existsSync(join(trackerDir, 'planide/__pycache__/store.cpython-312.pyc')) &&
+  !readdirSync(join(trackerDir, 'mcp')).some((f) => f.endsWith('.tmp')))
+ok('the design library pulsar-tools reads is updated in place too, never removed first',
+  statSync(catalog).mtimeMs === longAgo.getTime())
+
+// Gone anyway -- a deploy that failed half-way before this fix, a cleaner, an
+// antivirus: the next launch puts it back, though the bundle did not change and
+// the deploy itself stays gated off.
+rmSync(trackerScript)
+rmSync(toolsScript)
+const rHeal = deployAgentBundle({ home: HOME, resourcesPath: res, provisionPyEnv: false })
+ok('a launch with an unchanged bundle puts missing MCP servers back (planide + pulsar-tools)',
+  rHeal.deployed === false && rHeal.trackerDeployed === true && rHeal.mcpWired === true &&
+  existsSync(trackerScript) && existsSync(toolsScript))
+rmSync(trackerDir, { recursive: true, force: true })
+const missingHealth = await trackerHealth(undefined, HOME)
+ok('the health check names the missing server files and the way back',
+  missingHealth.ok === false && missingHealth.problem.includes('pulsar-tools-mcp.mjs') &&
+  missingHealth.problem.includes('Repair'))
+ok('Repair puts the tracker files back, not only the config entries',
+  repairTrackerRegistration(HOME, { resourcesPath: res }) === true &&
+  existsSync(trackerScript) && existsSync(toolsScript) && existsSync(join(trackerDir, 'plan')))
 
 // A provisioned Python venv must NOT drag the MCP back onto Python: the Node
 // server under the app binary is the one that always works, so it stays.
@@ -1148,6 +1222,7 @@ ok('its launcher and script are both on disk',
 // launchers the agents are handed.
 if (process.platform !== 'win32') {
   const deployedProj = mkdtempSync(join(tmpdir(), 'pulsar-deployed-hooks-'))
+  temps.push(deployedProj)
   mkdirSync(join(deployedProj, '.git'))
   const todoLauncher = todoEntry.hooks[0].command
   execSync(`"${todoLauncher}"`, {
@@ -1204,6 +1279,7 @@ if (process.platform !== 'win32') {
 // launcher the agents get, against what Codex, Claude Code and Gemini send.
 if (process.platform !== 'win32') {
   const parent = mkdtempSync(join(tmpdir(), 'pulsar-one-folder-'))
+  temps.push(parent)
   const proj = join(parent, 'Projectmanagement')
   mkdirSync(join(proj, '.planide'), { recursive: true })
   writeFileSync(join(proj, '.planide/state.json'), JSON.stringify({ items: [], fixes: [], activity: [] }))
@@ -1923,5 +1999,6 @@ ok('a revised plan moves the step it already knows instead of duplicating it',
   ok('hook test: a turned-off hook is not run again', rerun.length === 3 && rerun.filter((r) => !r.ok).length === 1)
 }
 
+for (const dir of temps) rmSync(dir, { recursive: true, force: true })
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

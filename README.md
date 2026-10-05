@@ -262,9 +262,11 @@ comes next, not whichever agent happens to read it: finish what is in progress
 and waits its turn instead of derailing the work in hand — logging the same bug
 twice returns the open entry, not a duplicate. `next_task` returns the focus
 item plus the queue (`claim: true` starts the next todo under the agent's name,
-and in-progress work another agent touched in the last 12 hours is left to
-them); `get_board` carries the same queue as `next`, and shell-only agents get
-it from `plan next`. Claude Code, Codex, Gemini CLI and Qwen Code each get it
+and in-progress work another agent touched in the last 3 hours is left to
+them — unless the user says "ga door": `resume: true` hands over the item the
+work stopped on, whoever started it, with its checklist so far); `get_board`
+carries the same queue as `next`, and shell-only agents get it from
+`plan next` (`--resume`). Claude Code, Codex, Gemini CLI and Qwen Code each get it
 handed to them by a `SessionStart` hook on start and resume (and on `/clear`
 and compaction where the agent fires it), so "ga verder" lands where the board
 stands, not on a blank slate. The sidebar's **Work order** block shows the same
@@ -277,12 +279,13 @@ takes the board's next item instead of stopping: a `Stop` hook (Claude Code,
 Codex, Qwen Code) or `AfterAgent` hook (Gemini CLI) hands it over, and a bare
 "ga door" is answered with the item to continue with — in the same chat, the item
 *that chat* was on, so after a quota wait you simply type "ga door" where you
-stopped. It only follows a turn
+stopped; in a new chat, in any CLI, the item the work stopped on, with what is
+done and where to carry on, and that chat's plan finishes the same item. It only follows a turn
 that worked the board, only while the board keeps moving, never past a
 question to you, and at most 12 times per prompt. Codex runs these hooks only
 after you trust them once in Codex's own `/hooks` menu. Agents without hooks
 (Antigravity, Cursor, opencode) get the same "own item first" from `next_task`
-and `get_board`, and the next item from `set_item`'s `next`. A plan's own steps follow the plan: re-worded or
+(`resume: true` after "ga door") and `get_board`, and the next item from `set_item`'s `next`. A plan's own steps follow the plan: re-worded or
 dropped steps leave the board instead of piling up as todo forever.
 
 **Docs live in `docs/`.** Loose docs at a project's root (anything but README,

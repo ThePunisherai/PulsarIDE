@@ -214,7 +214,13 @@ async function main() {
     // This chat's own item: what it took up last turn, even when that turn
     // never reached its Stop because the quota ran out in the middle of it.
     const prev = ss.readSession(project, session)
-    const current = wq.newlyWip(state, prev?.wip, chatFamily(payload))[0] ?? prev?.current ?? ''
+    const own = wq.newlyWip(state, prev?.wip, chatFamily(payload))[0] ?? prev?.current ?? ''
+    // "ga door" in a chat with no item of its own -- a new chat, another CLI --
+    // hands it the item the work stopped on, and that item is this chat's from
+    // here: its plan for it becomes the item's checklist, the way the autopilot's
+    // hand-over does. Without this the new chat's plan landed as rows beside it.
+    const handed = drive && wq.autopilot(state) ? wq.continueFocus(state, { current: own }) : null
+    const current = handed?.id ?? own
     // A new turn: where the board stands now is what progress is measured from.
     ss.updateSession(project, session, () => ({
       mark: wq.boardMark(state),
@@ -227,7 +233,9 @@ async function main() {
       // then on project-guard lets this chat make one (sibling-guard.mjs).
       asked_copy: Boolean(prev?.asked_copy) || siblingGuard.asksForCopy(payload.prompt)
     }))
-    const context = [docsNote, drive && wq.autopilot(state) ? wq.continueContext(state, { current }) : '']
+    // Worded from the chat's own item, not the one just handed over: a new chat
+    // has no plan for it in its conversation, so it is told the checklist.
+    const context = [docsNote, drive && wq.autopilot(state) ? wq.continueContext(state, { current: own }) : '']
       .filter(Boolean)
       .join('\n')
     if (!context) return

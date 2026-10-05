@@ -510,12 +510,13 @@ const TOOLS = [
   {
     name: 'next_task',
     description:
-      "What to do now, in order: finish wip (also left-over), then todo, then open fixes. Call on start, on resume, and after each finished piece. claim=true starts the next todo as yours.",
+      "What to do now, in order: finish wip (also left-over), then todo, then open fixes. Call on start, on resume, and after each finished piece. claim=true starts the next todo as yours. resume=true when the user says continue / ga door.",
     inputSchema: {
       type: 'object',
       properties: P({
         agent: { type: 'string', description: 'Your name; work another agent is on is skipped.' },
         claim: { type: 'boolean' },
+        resume: { type: 'boolean', description: 'The user said continue: unfinished work first, whoever started it.' },
         limit: { type: 'integer', description: 'Per lane, default 5.' }
       }),
       required: ['project']
@@ -524,7 +525,16 @@ const TOOLS = [
       const path = resolveProject(args)
       const agent = str(args.agent).slice(0, 40)
       const limit = Number.isInteger(args.limit) && args.limit > 0 ? Math.min(args.limit, 50) : undefined
-      const peek = queueFor(loadState(path), path, { agent, limit })
+      // The user's "ga door" / "continue": the work picks up where it stopped,
+      // whoever started it -- a Codex chat out of quota, an Antigravity chat
+      // closed -- instead of being skipped as another agent's for three hours.
+      const resume = args.resume === true
+      const peek = queueFor(loadState(path), path, { agent, limit, resume })
+      // That item is this session's from now on, claimed or not: the plan it
+      // makes for it is its checklist (sync_plan -> applyPlan), not new rows.
+      if (resume && peek.focus?.kind === 'item' && !peek.focus.locked && args.claim !== true) {
+        OWN.set(ownKey(path), peek.focus.id)
+      }
       // Only two things are claimable, and only they are worth a write: a todo
       // being started, and a left-over wip changing hands. Everything else --
       // your own wip, a fix, a protected item, nothing at all -- is read-only,
@@ -536,6 +546,12 @@ const TOOLS = [
           (f.lane === 'in_progress' && !f.yours && Boolean(agent) && lower(f.claimed_by) !== lower(agent)))
       if (args.claim !== true || !claimable(peek.focus)) {
         const f = peek.focus
+        // Already under your name, from an earlier chat of the same CLI: nothing
+        // to write, but it is this session's item now -- without this, a new
+        // chat's plan for it landed as rows and the item stayed in progress.
+        if (args.claim === true && f?.kind === 'item' && !f.locked && f.lane === 'in_progress') {
+          OWN.set(ownKey(path), f.id)
+        }
         const why = !f
           ? 'The board has nothing open.'
           : f.locked
@@ -547,7 +563,7 @@ const TOOLS = [
         // Decided again on the board as it is NOW, under the write: another
         // agent may have taken the same item between the peek and this call,
         // and handing it out twice is the duplication this exists to stop.
-        const fresh = queueFor(state, path, { agent, limit })
+        const fresh = queueFor(state, path, { agent, limit, resume })
         const f = fresh.focus
         const item = claimable(f) && f.id === peek.focus.id ? (state.items ?? []).find((i) => i.id === f.id) : null
         if (!item) {
@@ -565,7 +581,9 @@ const TOOLS = [
           logActivity(
             state,
             'item-claim',
-            previous ? `${item.title}: taken over from ${previous} (left over)` : `${item.title}: picked up (nobody was on it)`,
+            previous
+              ? `${item.title}: taken over from ${previous} (${resume ? 'the user said continue' : 'left over'})`
+              : `${item.title}: picked up (nobody was on it)`,
             agent
           )
         }
@@ -575,7 +593,7 @@ const TOOLS = [
         return {
           project: path,
           claimed: { id: item.id, title: item.title, from, to: item.status, ...(from !== 'todo' ? { taken_over_from: previous } : {}) },
-          ...queueFor(state, path, { agent, limit })
+          ...queueFor(state, path, { agent, limit, resume })
         }
       })
     }

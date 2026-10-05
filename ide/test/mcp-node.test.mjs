@@ -1530,6 +1530,158 @@ runHook('todo-sync.mjs', { tool_name: 'TodoWrite', cwd: acOff, tool_input: { tod
       JSON.stringify(nt).includes('"stale":true')) && !(nt.elsewhere ?? []).length)
 }
 
+// --- "ga door" in a NEW chat, in another CLI: where the work stopped -------- //
+// Asked for directly: "als ik nieuw chat start en zeg ga door gaat die door
+// waar die is gebleven ... bij alles codex tot aan claude antigravity". A Codex
+// chat ran out mid-item; the user opens a Claude Code chat and says "ga door".
+// That chat must get the item the work stopped on, see how far it got, and its
+// plan must become the rest of that item's checklist -- not new rows beside it.
+{
+  const xp = mkdtempSync(join(tmpdir(), 'pulsar-crosschat-'))
+  mkdirSync(join(xp, '.git'))
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(530, 'add_item', { project: xp, title: 'Old leftover from last week', status: 'wip' }),
+    call(531, 'add_item', { project: xp, title: 'Invoice export', status: 'todo' })
+  ])
+  {
+    const b = readBoard(xp)
+    const old = b.items.find((i) => i.title === 'Old leftover from last week')
+    old.updated_at = '2026-09-20T00:00:00Z'
+    old.claimed_by = 'Gemini CLI'
+    writeBoard(xp, b)
+  }
+  const invoiceId = readBoard(xp).items.find((i) => i.title === 'Invoice export').id
+  // Chat A, Codex: takes the item, plans it, gets one step done, then the quota runs out.
+  const codex = (event, extra = {}) =>
+    runHook('keep-going.mjs', { hook_event_name: event, session_id: 'XA', turn_id: 't1', cwd: xp, ...extra })
+  codex('UserPromptSubmit', { prompt: 'maak de factuur-export' })
+  await drive([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(532, 'set_item', { project: xp, id: invoiceId, status: 'wip', agent: 'codex' })])
+  runHook('todo-sync.mjs', { tool_name: 'update_plan', session_id: 'XA', turn_id: 't1', cwd: xp, tool_input: { plan: [
+    { step: 'Query the invoices', status: 'completed' },
+    { step: 'Write the CSV', status: 'in_progress' },
+    { step: 'Add the download button', status: 'pending' }] } })
+  const total0 = readBoard(xp).items.length
+  let inv = readBoard(xp).items.find((i) => i.id === invoiceId)
+  ok('cross-chat: the Codex chat\'s plan is the item\'s checklist (setup)',
+    inv.status === 'wip' && (inv.steps ?? []).map((x) => x.status).join() === 'done,wip,todo')
+
+  // Chat B, Claude Code, brand new: the session brief already says how far it got.
+  const brief = runHook('resume-brief.mjs', { cwd: xp, hook_event_name: 'SessionStart', source: 'startup', session_id: 'XB' })
+  let briefText = ''
+  try {
+    briefText = JSON.parse(brief.stdout).hookSpecificOutput.additionalContext
+  } catch {
+    briefText = ''
+  }
+  ok('cross-chat: a new chat\'s session brief shows the item\'s progress and the step to carry on at',
+    /"Invoice export" \[[^\]]+\] \(1\/3 steps, next: "Write the CSV"\)/.test(briefText))
+  let ctx = ''
+  try {
+    ctx = JSON.parse(runHook('keep-going.mjs', { hook_event_name: 'UserPromptSubmit', session_id: 'XB', cwd: xp, prompt: 'ga door' }).stdout)
+      .hookSpecificOutput.additionalContext
+  } catch {
+    ctx = ''
+  }
+  ok('cross-chat: "ga door" in a new chat hands it the item the work stopped on, not last week\'s leftover',
+    /carry on where the work stopped/.test(ctx) && /"Invoice export"/.test(ctx) && !/Old leftover/.test(ctx.split('Next by the work order')[1] ?? ''))
+  ok('cross-chat: ...with its checklist so far and where to carry on',
+    /\[x\] Query the invoices; \[>\] Write the CSV; \[ \] Add the download button/.test(ctx) &&
+    /Carry on at "Write the CSV"/.test(ctx) && /already in the files/.test(ctx))
+  ok('cross-chat: ...and is not told the plan is earlier in its own conversation',
+    !/earlier in this conversation/.test(ctx))
+
+  // Chat B plans only what is left, in its own words.
+  const todo = (todos) => runHook('todo-sync.mjs', { tool_name: 'TodoWrite', session_id: 'XB', cwd: xp, tool_input: { todos } })
+  todo([
+    { content: 'Write the CSV', status: 'in_progress', activeForm: 'Writing the CSV' },
+    { content: 'Add the download button', status: 'pending', activeForm: 'Adding the button' }])
+  let b = readBoard(xp)
+  inv = b.items.find((i) => i.id === invoiceId)
+  ok('cross-chat: the new chat\'s plan lands on that item -- no rows beside it',
+    b.items.length === total0 && inv.status === 'wip')
+  ok('cross-chat: ...and the step the old chat finished stays finished on it',
+    (inv.steps ?? []).map((x) => `${x.title}:${x.status}`).join() ===
+      'Query the invoices:done,Write the CSV:wip,Add the download button:todo')
+  todo([
+    { content: 'Write the CSV', status: 'completed', activeForm: 'Writing the CSV' },
+    { content: 'Add the download button', status: 'completed', activeForm: 'Adding the button' }])
+  b = readBoard(xp)
+  inv = b.items.find((i) => i.id === invoiceId)
+  ok('cross-chat: finishing the rest closes the item, the whole job counted (3/3)',
+    inv.status === 'done' && inv.steps.length === 3 && inv.steps.every((x) => x.status === 'done') && b.items.length === total0)
+  todo([
+    { content: 'Write the CSV', status: 'completed', activeForm: 'Writing the CSV' },
+    { content: 'Add the download button', status: 'completed', activeForm: 'Adding the button' }])
+  ok('cross-chat: the finished plan sent again keeps the earlier chat\'s step and adds no rows',
+    readBoard(xp).items.find((i) => i.id === invoiceId).steps.length === 3 && readBoard(xp).items.length === total0)
+}
+
+// --- the same for the agents with no hooks: Antigravity, Cursor, opencode --- //
+{
+  const ap = mkdtempSync(join(tmpdir(), 'pulsar-crosschat-mcp-'))
+  mkdirSync(join(ap, '.git'))
+  await drive([
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(540, 'add_item', { project: ap, title: 'Search the archive', status: 'todo' }),
+    call(541, 'add_item', { project: ap, title: 'Next feature', status: 'todo' })
+  ])
+  {
+    // A Codex chat had it ten minutes ago: one step done, one under way.
+    const b = readBoard(ap)
+    const it = b.items.find((i) => i.title === 'Search the archive')
+    it.status = 'wip'
+    it.claimed_by = 'codex'
+    it.updated_at = new Date(Date.now() - 10 * 60e3).toISOString().replace(/\.\d{3}Z$/, 'Z')
+    it.steps = [{ title: 'Index the archive', status: 'done' }, { title: 'Search box', status: 'wip' }]
+    it.steps_key = 'CODEX-SESSION'
+    writeBoard(ap, b)
+  }
+  const searchId = readBoard(ap).items.find((i) => i.title === 'Search the archive').id
+  const total0 = readBoard(ap).items.length
+  const plain = await drive([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(542, 'next_task', { project: ap, agent: 'antigravity' })])
+  ok('hookless: without the user\'s "ga door", another agent\'s fresh item is still left to it (parallel agents)',
+    json(byId(plain.replies, 542)).focus?.id !== searchId && (json(byId(plain.replies, 542)).elsewhere ?? []).some((x) => x.id === searchId))
+  const go = await drive([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(543, 'next_task', { project: ap, agent: 'antigravity', resume: true }),
+    call(544, 'sync_plan', { project: ap, agent: 'antigravity', todos: [{ content: 'Search box', status: 'completed' }] })])
+  const nt = json(byId(go.replies, 543))
+  ok('hookless: next_task(resume) hands Antigravity the item Codex stopped on, with its checklist',
+    nt.focus?.id === searchId && nt.focus.steps === '1/2' && nt.focus.next_step === 'Search box' &&
+    JSON.stringify(nt.focus.checklist) === JSON.stringify([{ title: 'Index the archive', status: 'done' }, { title: 'Search box', status: 'wip' }]))
+  const ab = readBoard(ap)
+  const done = ab.items.find((i) => i.id === searchId)
+  ok('hookless: ...and its plan finishes that item -- no rows, the earlier step kept',
+    ab.items.length === total0 && done.status === 'done' && done.steps.length === 2 && json(byId(go.replies, 544)).item?.steps === '2/2')
+  // An item a previous chat of the SAME CLI left: claim makes it this session's.
+  const again = mkdtempSync(join(tmpdir(), 'pulsar-sameclient-'))
+  mkdirSync(join(again, '.git'))
+  await drive([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(545, 'add_item', { project: again, title: 'Half done in Cursor', status: 'todo' }),
+    call(546, 'next_task', { project: again, agent: 'cursor', claim: true })])
+  const before = readBoard(again).items.length
+  await drive([{ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    call(547, 'next_task', { project: again, agent: 'cursor', claim: true }),
+    call(548, 'sync_plan', { project: again, agent: 'cursor', todos: [{ content: 'Finish the form', status: 'in_progress' }] })])
+  const cb = readBoard(again)
+  ok('hookless: a new Cursor chat claiming the item an earlier Cursor chat left plans it as its checklist',
+    cb.items.length === before && (cb.items[0].steps ?? []).length === 1 && cb.items[0].status === 'wip')
+  // The three queues -- agents, IDE panel, plan CLI -- agree on a board with a checklist, with and without resume.
+  const wq = await import(pathToFileURL(join(REPO, 'ide/agent-bundle/tracker/mcp/work-queue.mjs')).href)
+  const fixture = readBoard(ap)
+  fixture.items.find((i) => i.id === searchId).status = 'wip'
+  const now = Date.now()
+  let same = true
+  for (const agent of ['', 'codex', 'antigravity']) {
+    for (const resume of [false, true]) {
+      if (JSON.stringify(wq.workQueue(fixture, { agent, now, resume })) !== JSON.stringify(store.workQueue(fixture, { agent, now, resume }))) same = false
+    }
+  }
+  ok('parity: the IDE queue and next_task agree on a checklist board, with and without resume', same)
+}
+
 // --- leftover plan steps of closed chats: listed, removed only on request ---- //
 {
   const now = Date.parse('2026-10-05T12:00:00Z')

@@ -6,6 +6,40 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.10] - 2026-10-05
+
+### What's fixed
+- **Antigravity: "MCP Error" on planide and pulsar-tools, `Cannot find module
+  ...\.config\pulsaride\tracker\mcp\planide-mcp.mjs`.** An update removed that
+  folder at the start of its redeploy and copied it back at the end, so an agent
+  that started its MCP servers in between found nothing -- measured: the servers
+  were missing for over half of a redeploy. A redeploy that failed half-way left
+  the folder gone, and a restart did not bring it back. Now:
+  - The folder is updated in place, file by file, and never removed first. An
+    unchanged file is not touched; a changed one is replaced in one step.
+  - Every launch checks it and puts back anything missing, also when nothing was
+    updated.
+  - **Tracker → Repair** puts the files back too, and the health check names a
+    missing `planide-mcp.mjs` or `pulsar-tools-mcp.mjs`.
+  - The same goes for the libraries the agents read (design systems, ThreeUI,
+    agency roles, specialists).
+  - Already seeing the error? Update, start PulsarIDE once, then reload the MCP
+    servers in Antigravity (or restart it).
+- **"Ga door" in a new chat, in any CLI, carries on where the work stopped.**
+  Before, a new chat only got the item's name. It made a plan of its own that
+  landed as new rows beside the item, and the item stayed in progress. Now:
+  - It gets the item the work stopped on (the most recently worked, whoever
+    started it) with its checklist: what is done, and the step to carry on at.
+    The session brief shows the same ("1/3 steps, next: ...").
+  - Its plan finishes that same item. The steps the earlier chat finished stay
+    finished on the card.
+  - Antigravity, Cursor and opencode: `next_task` takes `resume: true` after
+    "ga door", and then also hands over an item another agent touched in the
+    last 3 hours. Without it, parallel agents still keep each other's items.
+  - A new chat of the same CLI that claims an item an earlier chat left plans it
+    as that item's checklist.
+  - The `plan next` CLI has `--resume` and shows the checklist.
+
 ## [0.99.9] - 2026-10-05
 
 ### What's fixed

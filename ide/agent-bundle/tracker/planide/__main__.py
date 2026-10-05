@@ -8,9 +8,11 @@ Read commands
   list                                 list registered projects + progress
   detect <path>                        print the detected language/type
   board  <path|id>                     print the tracker board (item ids + status)
-  next   <path|id> [--agent A] [--claim] [--json]
+  next   <path|id> [--agent A] [--claim] [--resume] [--json]
                                        what to work on now: finish wip, then todo,
-                                       then open fixes (--claim starts the next todo)
+                                       then open fixes (--claim starts the next todo;
+                                       --resume after "ga door": unfinished work
+                                       first, whoever started it)
   report <path|id> [--mode M]          print the AI briefing (M: full|report|prompt)
   status <path|id>                     git status summary
 
@@ -268,16 +270,17 @@ def cmd_fix(argv):
 def cmd_next(argv):
     pos, opt = parse(argv, {"agent", "limit"})
     if not pos:
-        print("usage: next <path|id> [--agent A] [--claim] [--json]"); return 1
+        print("usage: next <path|id> [--agent A] [--claim] [--resume] [--json]"); return 1
     st, path = _resolve(pos[0])
     agent = opt.get("agent", "")
+    resume = bool(opt.get("resume"))
     claimed = None
     if opt.get("claim"):
-        claimed = store.claim_next(st, agent)
+        claimed = store.claim_next(st, agent, resume=resume)
         if claimed:
             _save(st, path)
     limit = int(opt["limit"]) if str(opt.get("limit", "")).isdigit() else 5
-    q = store.work_queue(st, agent, limit=limit)
+    q = store.work_queue(st, agent, limit=limit, resume=resume)
     if opt.get("json"):
         out = dict(q, claimed=claimed) if opt.get("claim") else q
         print(json.dumps(out, indent=2, ensure_ascii=False)); return 0
@@ -291,6 +294,10 @@ def cmd_next(argv):
         print("  nothing open -- the board is clear."); return 0
     label = {"in_progress": "FINISH FIRST", "todo": "NEXT", "fix": "NEXT (fix)", "broken": "NEXT (broken)"}[f["lane"]]
     print("  %-13s %s  %s%s" % (label, f["id"], f["title"], "  (left over, idle %s)" % f["idle"] if f.get("stale") else ""))
+    if f.get("checklist"):
+        mark = {"done": "[x]", "wip": "[>]"}
+        print("                checklist %s: %s" % (f.get("steps", ""), "; ".join(
+            "%s %s" % (mark.get(x["status"], "[ ]"), x["title"]) for x in f["checklist"])))
     print("                %s" % f["action"])
     c = q["counts"]
     print("\n  in progress %d | todo %d | open fixes %d | broken %d | blocked %d (never picked)"

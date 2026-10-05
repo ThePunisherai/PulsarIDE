@@ -657,11 +657,29 @@ def _clip(s, n: int) -> str:
     return t[: n - 1] + "\u2026" if len(t) > n else t
 
 
+def _checklist_of(i) -> dict | None:
+    """An item's checklist: how far it got and the step to carry on at. See work-queue.mjs."""
+    raw = (i or {}).get("steps")
+    steps = [s for s in (raw if isinstance(raw, list) else [])
+             if isinstance(s, dict) and str(s.get("title") or "").strip()]
+    if not steps:
+        return None
+    done = len([s for s in steps if s.get("status") == "done"])
+    nxt = next((s for s in steps if s.get("status") == "wip"), None) \
+        or next((s for s in steps if s.get("status") != "done"), None)
+    return {"done": done, "total": len(steps), "next": str(nxt.get("title")) if nxt else "", "steps": steps}
+
+
 def _item_card(i: dict, now_ms: float) -> dict:
     card = {"kind": "item", "id": i.get("id"), "title": i.get("title"), "status": i.get("status"),
             "claimed_by": i.get("claimed_by") or "", "idle": _idle(_age_ms(i.get("updated_at"), now_ms))}
     if i.get("locked"):
         card["locked"] = True
+    lst = _checklist_of(i)
+    if lst:
+        card["steps"] = "%d/%d" % (lst["done"], lst["total"])
+        if lst["next"]:
+            card["next_step"] = _clip(lst["next"], 120)
     return card
 
 
@@ -671,14 +689,22 @@ def _fix_card(f: dict) -> dict:
             "created_at": f.get("created_at") or ""}
 
 
-def work_queue(st: dict, agent: str = "", now_ms: float | None = None, limit: int = 5) -> dict:
-    """What to work on now, in the board's fixed order. See work-queue.mjs."""
+def work_queue(st: dict, agent: str = "", now_ms: float | None = None, limit: int = 5,
+               resume: bool = False) -> dict:
+    """What to work on now, in the board's fixed order. See work-queue.mjs.
+
+    `resume`: the user's "ga door" in a chat with no item of its own -- every
+    in-progress item is yours to finish whoever started it, the one the work
+    stopped on (most recently touched) first.
+    """
     now_ms = float(now_ms) if now_ms is not None else _dt.datetime.now(_dt.timezone.utc).timestamp() * 1000
     limit = limit if isinstance(limit, int) and limit > 0 else 5
     me = _lc(agent)
+    resume = resume is True
     stale_ms = STALE_HOURS * 3600e3
     items = st.get("items") or []
     fixes = st.get("fixes") or []
+    by_id = {i.get("id"): i for i in items}
 
     wip_all = []
     for i in items:
@@ -688,10 +714,11 @@ def work_queue(st: dict, agent: str = "", now_ms: float | None = None, limit: in
                         "mine": bool(me) and _lc(i.get("claimed_by")) == me})
 
     def mine_to_finish(w):
-        return (not me) or w["mine"] or not w["i"].get("claimed_by") or w["age"] >= stale_ms
+        return resume or (not me) or w["mine"] or not w["i"].get("claimed_by") or w["age"] >= stale_ms
 
+    order = (lambda w: w["age"]) if resume else (lambda w: (-int(w["mine"]), -w["age"]))
     wip = []
-    for w in sorted([w for w in wip_all if mine_to_finish(w)], key=lambda w: (-int(w["mine"]), -w["age"])):
+    for w in sorted([w for w in wip_all if mine_to_finish(w)], key=order):
         card = _item_card(w["i"], now_ms)
         if w["age"] >= stale_ms:
             card["stale"] = True
@@ -724,6 +751,10 @@ def work_queue(st: dict, agent: str = "", now_ms: float | None = None, limit: in
                             ("fix", open_fixes, "fixes"), ("broken", broken, "fixes")):
         if cards:
             focus = dict({"lane": lane}, **cards[0])
+            lst = _checklist_of(by_id.get(cards[0]["id"])) if cards[0]["kind"] == "item" else None
+            if lst:
+                focus["checklist"] = [{"title": _clip(x.get("title"), 120), "status": x.get("status")}
+                                      for x in lst["steps"]]
             focus["action"] = _ACTION[lane]
             phase = ph
             break
@@ -745,13 +776,14 @@ def work_queue(st: dict, agent: str = "", now_ms: float | None = None, limit: in
     }
 
 
-def claim_next(st: dict, agent: str = "") -> dict | None:
+def claim_next(st: dict, agent: str = "", resume: bool = False) -> dict | None:
     """Take the focus item: todo -> wip under your name, or a left-over wip.
 
     Same rule as next_task(claim=true): a fix, your own wip, a protected item or
-    nothing at all is not claimable, and nothing is written for it.
+    nothing at all is not claimable, and nothing is written for it. With
+    `resume` (the user said "ga door") another agent's wip is taken over too.
     """
-    q = work_queue(st, agent)
+    q = work_queue(st, agent, resume=resume)
     f = q["focus"]
     if not f or f.get("kind") != "item" or f.get("locked"):
         return None

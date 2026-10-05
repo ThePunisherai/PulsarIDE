@@ -310,8 +310,10 @@ is fixed: finish what is in progress (`wip` — including what an earlier sessio
 done), then the todo list in order, then open fixes, then broken items. `blocked` waits on
 someone and is never picked. `next_task` returns exactly that — one focus item plus the
 queue — and `claim: true` starts the next todo under your name. Call it when a session
-starts, when the user says "ga verder" / "continue" / "resume", and again each time you
-finish a piece. In Claude Code the same queue is already in your context at session start
+starts, when the user says "ga door" / "ga verder" / "continue" / "resume" — then with
+`resume: true`: the item the work stopped on, whoever started it, with its checklist so far
+(carry on at its open step; the done steps are already in the files) — and again each time
+you finish a piece. In Claude Code the same queue is already in your context at session start
 (the resume-brief hook); everywhere else `get_board` carries it as `next`. Three rules keep
 the order honest:
 
@@ -333,7 +335,8 @@ the order honest:
 - **One piece in hand at a time.** `set_item … wip` warns when you already hold another
   `wip`: finish it, or put it back to `todo` if you are really switching — never leave both
   half done. In-progress work another agent touched recently is theirs; `next_task` leaves
-  it to them until it has sat idle for 12 hours, then hands it back as left-over work.
+  it to them until it has sat idle for 3 hours, then hands it back as left-over work — or at
+  once when the user says "ga door" (`resume: true`).
 
 A regression — protected work that broke — comes back as an alert on top of the queue. Tell
 the user before you continue; do not reorder their queue around it on your own.

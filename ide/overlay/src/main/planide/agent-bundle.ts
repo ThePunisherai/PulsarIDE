@@ -27,6 +27,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
   chmodSync,
+  copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -114,7 +115,8 @@ never need to be asked, and the board is created on first use, so it always work
   you build on the real state instead of guessing. Pass \`project\` = the project's
   absolute path to every tool.
 - **Work in the board's order.** \`next_task\` returns it: finish \`wip\` first (also
-  what an earlier session left half done), then \`todo\`, then open fixes. A bug you hit
+  what an earlier session left half done; after "ga door" call it with \`resume: true\`),
+  then \`todo\`, then open fixes. A bug you hit
   mid-task → \`add_fix\` (it lands in Fixes > Open) and stay on what you were doing; it
   is picked up after the todo list. When your own task is done, carry on with that queue
   without being asked — \`set_item\` answers with the \`next\` item (the user's autopilot).
@@ -362,6 +364,115 @@ function sameTree(src: string, dest: string): boolean {
   } catch {
     return false
   }
+}
+
+/** Python's byte-code cache: rebuilt by Python itself, never ours to ship or prune. */
+const isPyCache = (name: string): boolean => name === '__pycache__'
+
+/**
+ * Make `dest` a copy of the tree at `src` without `dest` ever going missing.
+ *
+ * The deployed tracker used to be removed and copied back -- and the reconcile
+ * removed it even earlier, so for the length of a whole redeploy (every agent,
+ * four skill roots, the hooks) ~/.config/pulsaride/tracker did not exist. An
+ * agent that started its MCP servers in that window got MODULE_NOT_FOUND for
+ * planide-mcp.mjs and pulsar-tools-mcp.mjs: reported from Antigravity as "MCP
+ * Error" on both servers. A deploy that threw half-way left it gone for good,
+ * because the next launch saw the same bundle signature and skipped.
+ *
+ * So nothing is removed first. A file that differs is staged beside its target
+ * and renamed over it -- a rename that replaces is one step on POSIX and on
+ * Windows (MoveFileEx, REPLACE_EXISTING), so a reader gets the old file or the
+ * new one, never none. A file the bundle no longer ships goes last. `last`
+ * names files written after all the others: the servers' entry points, so a
+ * server that starts mid-update loads its new modules, not a new entry over
+ * old modules. An unchanged file is not written at all, which is what makes
+ * this cheap enough to run on every launch. Errors are per file and counted.
+ */
+function syncTree(
+  src: string,
+  dest: string,
+  last: string[] = []
+): { written: number; removed: number; failed: string[] } {
+  const result = { written: 0, removed: 0, failed: [] as string[] }
+  const files: string[] = []
+  const dirs = new Set<string>()
+  const walk = (rel: string): void => {
+    for (const e of readdirSync(join(src, rel), { withFileTypes: true })) {
+      if (isPyCache(e.name)) continue
+      const r = rel ? join(rel, e.name) : e.name
+      if (e.isDirectory()) {
+        dirs.add(r)
+        walk(r)
+      } else if (e.isFile()) {
+        files.push(r)
+      }
+    }
+  }
+  walk('')
+  const lastSet = new Set(last.map((p) => join(p)))
+  const ordered = [...files.filter((f) => !lastSet.has(f)), ...files.filter((f) => lastSet.has(f))]
+
+  mkdirSync(dest, { recursive: true })
+  // A file where the bundle now has a directory would stop every file under it.
+  for (const d of dirs) {
+    const at = statSync(join(dest, d), { throwIfNoEntry: false })
+    if (at && !at.isDirectory()) rmSync(join(dest, d), { force: true })
+  }
+  for (const rel of ordered) {
+    const from = join(src, rel)
+    const to = join(dest, rel)
+    try {
+      const current = statSync(to, { throwIfNoEntry: false })
+      if (current?.isFile() && current.size === statSync(from).size && readFileSync(to).equals(readFileSync(from))) {
+        continue
+      }
+      // A directory where the bundle now has a file: only then is anything removed first.
+      if (current?.isDirectory()) rmSync(to, { recursive: true, force: true })
+      mkdirSync(dirname(to), { recursive: true })
+      const stage = `${to}.pulsar-${process.pid}.tmp`
+      try {
+        copyFileSync(from, stage)
+        renameSync(stage, to)
+      } catch {
+        // The rename was refused (the file held open without delete sharing, an
+        // antivirus hold): write it in place instead, it is still never absent.
+        rmSync(stage, { force: true })
+        copyFileSync(from, to)
+      }
+      result.written += 1
+    } catch {
+      result.failed.push(rel)
+    }
+  }
+
+  // What the bundle no longer ships. Python's cache is left to Python.
+  const keepFiles = new Set(files)
+  const prune = (rel: string): void => {
+    let entries
+    try {
+      entries = readdirSync(join(dest, rel), { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const e of entries) {
+      if (isPyCache(e.name)) continue
+      const r = rel ? join(rel, e.name) : e.name
+      const keep = e.isDirectory() ? dirs.has(r) : keepFiles.has(r)
+      if (keep) {
+        if (e.isDirectory()) prune(r)
+        continue
+      }
+      try {
+        rmSync(join(dest, r), { recursive: true, force: true })
+        result.removed += 1
+      } catch {
+        /* held open -- an extra file is harmless, a missing one is not */
+      }
+    }
+  }
+  prune('')
+  return result
 }
 
 function configDir(home: string): string {
@@ -620,7 +731,14 @@ export function deployAgentBundle(
     // Hooks other installers left that can never run -- the "Hook failed,
     // exit code 1" Codex shows on every prompt (hook-doctor.ts).
     if (opts.provisionPyEnv !== false) runHookDoctor(home)
-    const alreadyTracked = existsSync(join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs'))
+    // The tracker folder, every launch and before anything that can fail: every
+    // agent's MCP config and every hook points into it. Only a file that differs
+    // is written, so a normal launch writes nothing -- but a folder a half-done
+    // deploy, a cleaner or an antivirus left incomplete is whole again, instead
+    // of staying MODULE_NOT_FOUND until the next bundle change (the gate below
+    // never redeploys an unchanged bundle).
+    const trackerNow = deployTrackerFiles(home, root)
+    const alreadyTracked = trackerNow !== null
     let mcpWired = alreadyTracked ? registerTrackerForAllAgents(home) : false
 
     // Redeploy whenever the shipped bundle differs from what was last written --
@@ -661,8 +779,20 @@ export function deployAgentBundle(
         rmSync(join(home, '.qwen', 'skills', name), { recursive: true, force: true })
         rmSync(join(home, '.gemini', 'config', 'skills', name), { recursive: true, force: true })
       }
-      if (prev.tracker) rmSync(prev.tracker, { recursive: true, force: true })
-      for (const lib of prev.libraries ?? []) rmSync(lib, { recursive: true, force: true })
+      // The tracker and the libraries are updated in place (syncTree), never
+      // removed here: removing them here is what left ~/.config/pulsaride/tracker
+      // missing for this whole redeploy, the MODULE_NOT_FOUND Antigravity showed
+      // for planide and pulsar-tools. Only what this bundle no longer ships goes.
+      const trackerDest = resolvePath(join(configDir(home), 'tracker'))
+      if (prev.tracker && resolvePath(prev.tracker) !== trackerDest) {
+        rmSync(prev.tracker, { recursive: true, force: true })
+      }
+      const shippedLibraries = new Set(
+        LIBRARIES.filter((rel) => existsSync(join(root, rel))).map((rel) => resolvePath(join(configDir(home), rel)))
+      )
+      for (const lib of prev.libraries ?? []) {
+        if (!shippedLibraries.has(resolvePath(lib))) rmSync(lib, { recursive: true, force: true })
+      }
     }
 
     // --- agents: team leads -> Claude Code, Gemini CLI, Codex, Qwen Code -- //
@@ -871,7 +1001,9 @@ export function deployAgentBundle(
     // agent in any project can update that project's board — reflected live in the
     // Tracker tab) is the always-run step above, refreshed here now that the files
     // are freshly (re)deployed.
-    const trackerRoot = deployTrackerFiles(home, root)
+    // Already synced at the top of this launch; registered again now that the
+    // hooks the plan-hook wiring points at are written.
+    const trackerRoot = trackerNow
     if (trackerRoot) mcpWired = registerTrackerForAllAgents(home)
     deployToolsFiles(home, root)
     deploySpecialists(home, root)
@@ -879,7 +1011,7 @@ export function deployAgentBundle(
     // components and the 152-system design-system library. Deployed on every real deploy, so an update that changes them
     // lands too -- bundleSignature covers both directories, so a change to either
     // is itself what triggers the redeploy.
-    const libraries = ['agency-agents', join('design', 'threeui'), join('design', 'design-systems')]
+    const libraries = LIBRARIES
       .map((rel) => deployLibrary(home, root, rel))
       .filter((p): p is string => p !== null)
 
@@ -1532,6 +1664,12 @@ function dropHookGroup(hooks: Record<string, unknown>, event: string, key: strin
   else delete hooks[event]
 }
 
+/** What agents start straight from the tracker folder -- written last by syncTree. */
+const TRACKER_ENTRY_POINTS = ['mcp/planide-mcp.mjs', 'mcp/pulsar-tools-mcp.mjs', 'mcp/planide_mcp.py', 'plan']
+
+/** The vendored libraries deployed under ~/.config/pulsaride, by bundle-relative path. */
+const LIBRARIES = ['agency-agents', join('design', 'threeui'), join('design', 'design-systems')]
+
 /**
  * Deploy the built-in tracker (the `plan` CLI, the `planide` package and the
  * `planide` MCP server) to a stable location, and register the MCP server at
@@ -1552,14 +1690,21 @@ function deployTrackerFiles(home: string, root: string): string | null {
   if (!existsSync(join(src, 'mcp', 'planide-mcp.mjs'))) return null
 
   const dest = join(configDir(home), 'tracker')
-  rmSync(dest, { recursive: true, force: true })
-  cpSync(src, dest, { recursive: true })
+  // Updated in place, never removed first (syncTree): every agent's MCP config
+  // and every hook points into this folder, so it must exist at every moment.
   try {
-    chmodSync(join(dest, 'plan'), 0o755)
+    syncTree(src, dest, TRACKER_ENTRY_POINTS)
+  } catch {
+    /* unreadable bundle -- what is on disk stays, and the check below says if it is enough */
+  }
+  try {
+    // Only when it is not executable yet: this runs on every launch, and a
+    // launch with nothing to change should write nothing at all.
+    if ((statSync(join(dest, 'plan')).mode & 0o111) === 0) chmodSync(join(dest, 'plan'), 0o755)
   } catch {
     /* non-fatal on filesystems without exec bits */
   }
-  return dest
+  return existsSync(join(dest, 'mcp', 'planide-mcp.mjs')) ? dest : null
 }
 
 /** Deploy Pulse Agent's tool kits (the reverse-engineering toolkit) to a stable location. */
@@ -1567,8 +1712,7 @@ function deployToolsFiles(home: string, root: string): string | null {
   const src = join(root, 'tools')
   if (!existsSync(src)) return null
   const dest = join(configDir(home), 'tools')
-  rmSync(dest, { recursive: true, force: true })
-  cpSync(src, dest, { recursive: true })
+  syncTree(src, dest)
   return dest
 }
 
@@ -1586,8 +1730,7 @@ function deploySpecialists(home: string, root: string): string | null {
   const src = join(root, 'specialists')
   if (!existsSync(src)) return null
   const dest = join(configDir(home), 'specialists')
-  rmSync(dest, { recursive: true, force: true })
-  cpSync(src, dest, { recursive: true })
+  syncTree(src, dest)
   return dest
 }
 
@@ -1595,9 +1738,10 @@ function deploySpecialists(home: string, root: string): string | null {
  * Deploy a vendored library directory verbatim (agency-agents, design/threeui).
  *
  * Same shape as the specialists deploy: a straight mirror to a stable path the
- * agents are told about, replaced wholesale each time so a removed upstream file
- * does not linger. Returns the destination, or null when the bundle does not
- * carry it (an older bundle, or a partial one).
+ * agents are told about, updated in place (syncTree) so a removed upstream file
+ * does not linger and a file an agent -- or pulsar-tools' design_find -- is
+ * reading never goes missing mid-update. Returns the destination, or null when
+ * the bundle does not carry it (an older bundle, or a partial one).
  *
  * These are read off disk and adopted inline. They are deliberately NOT
  * registered as individual subagents -- 274 more `description` fields would blow
@@ -1608,9 +1752,7 @@ function deployLibrary(home: string, root: string, rel: string): string | null {
   const src = join(root, rel)
   if (!existsSync(src)) return null
   const dest = join(configDir(home), rel)
-  rmSync(dest, { recursive: true, force: true })
-  mkdirSync(dirname(dest), { recursive: true })
-  cpSync(src, dest, { recursive: true })
+  syncTree(src, dest)
   return dest
 }
 
@@ -2312,8 +2454,9 @@ function projectAgentsBlock(home: string): string {
     '  shown in the IDE Tracker tab. Use the `planide` MCP tools when you have them',
     '  (`get_board`, `next_task`), otherwise the CLI: `' + join(configDir(home), 'tracker', 'plan') + ' board <project>`.',
     '- **Work in its order:** finish what is in progress (`wip`), then `todo`, then open',
-    '  fixes. `next_task` / `plan next <project>` returns exactly that. When your own task',
-    '  is done, carry on down that queue unasked (`set_item` answers with `next`).',
+    '  fixes. `next_task` / `plan next <project>` returns exactly that; after "ga door" pass',
+    '  `resume: true` (`--resume`): the item where the work stopped, with its checklist.',
+    '  When your own task is done, carry on down that queue unasked (`set_item` answers with `next`).',
     '- **Docs go in `docs/`**, never loose at the root (README, CHANGELOG, AGENTS.md stay).',
     '  Update the doc on a subject before adding another.',
     '- **The project stays one folder.** Never create a copy, worktree, `-dev`/version folder',
@@ -2589,7 +2732,8 @@ function mainSessionBlock(home: string): string {
     '- `get_board` — read it first, every task.',
     '- `next_task` — what to do now, in the fixed order: finish `wip` first (also what an',
     '  earlier session left), then `todo`, then open fixes. Call it at the start, on',
-    '  "continue" / "ga verder", and after each finished piece. A bug you hit mid-task:',
+    '  "continue" / "ga door" with `resume: true` (where the work stopped, whoever started',
+    '  it; carry on at its checklist\'s open step), and after each finished piece. A bug you hit mid-task:',
     '  `add_fix` it (Fixes > Open) and stay on what you were doing.',
     '- **Never write `.planide/state.json` yourself**, and never script around these tools.',
     '  The board is a live file the IDE and other agents also write; the tools take the',
@@ -2881,6 +3025,7 @@ export async function trackerHealth(
   const launch = mcpLaunch(home)
   const serverPath = join(configDir(home), 'tracker', 'mcp', 'planide-mcp.mjs')
   const serverPresent = existsSync(serverPath)
+  const toolsPresent = existsSync(join(configDir(home), 'tracker', 'mcp', 'pulsar-tools-mcp.mjs'))
 
   const agents: TrackerAgentWiring[] = [
     { id: 'claude-code', label: 'Claude Code', configPath: join(home, '.claude.json') },
@@ -2929,8 +3074,11 @@ export async function trackerHealth(
   // one is still down, so naming them all at once sends you the wrong way.
   const wired = agents.filter((a) => a.registered)
   let problem: string | null = null
-  if (!serverPresent) {
-    problem = 'The tracker MCP server is not on disk. Restart PulsarIDE -- it redeploys the bundle on launch.'
+  if (!serverPresent || !toolsPresent) {
+    const missing = [!serverPresent && 'planide-mcp.mjs', !toolsPresent && 'pulsar-tools-mcp.mjs'].filter(Boolean).join(' and ')
+    problem =
+      `${missing} ${missing.includes(' and ') ? 'are' : 'is'} not on disk, so agents show MODULE_NOT_FOUND ("MCP Error"). ` +
+      'Use Repair -- it puts the files back from this install (every launch does too) -- then reload the MCP servers in the agent.'
   } else if (!probe.runs) {
     problem =
       `The server is on disk but did not answer when launched as \`${launch.command}\`: ` +
@@ -2985,7 +3133,14 @@ export async function trackerHealth(
  * schedule), so ours can go missing between launches through nobody's fault.
  * The deploy already does this on startup; this is the same call on demand.
  */
-export function repairTrackerRegistration(home: string = homedir()): boolean {
+export function repairTrackerRegistration(
+  home: string = homedir(),
+  opts: { resourcesPath?: string; appPath?: string } = {}
+): boolean {
+  // The files first: an entry naming a server that is not on disk is exactly
+  // the MODULE_NOT_FOUND an agent shows as "MCP Error" (Antigravity did).
+  const root = bundleRoot(opts)
+  if (root) deployTrackerFiles(home, root)
   return registerTrackerForAllAgents(home)
 }
 

@@ -159,6 +159,34 @@ for (const agent of ['', 'codex', 'claude']) console.log(JSON.stringify(workQueu
   [ -n "$py_q" ] && [ "$py_q" = "$js_q" ] \
     && ok "parity: plan next and the MCP next_task return the identical queue" \
     || { bad "parity: plan next and next_task disagree"; echo "    py: ${py_q:0:200}"; echo "    js: ${js_q:0:200}"; }
+  # ...and on an item with a checklist another chat left, with and without the
+  # user's "ga door" (resume): the step counts, the step to carry on at, the list.
+  python3 -c "
+import json
+p = '$P2/.planide/state.json'
+st = json.load(open(p))
+for it in st['items']:
+    if it['status'] == 'wip':
+        it['steps'] = [{'title': 'First step', 'status': 'done'}, {'title': 'Second step', 'status': 'wip'},
+                       {'title': 'Third step', 'status': 'todo'}]
+        it['claimed_by'] = 'gemini'
+json.dump(st, open(p, 'w'))"
+  py_r=$(python3 -c "
+import json, sys; sys.path.insert(0,'.')
+from planide import store
+st = store.load_state('$P2')
+for agent in ('', 'codex', 'claude'):
+    for resume in (False, True):
+        print(json.dumps(store.work_queue(st, agent, now_ms=$NOW_MS, resume=resume), ensure_ascii=False, separators=(',', ':')))")
+  js_r=$(node --input-type=module -e "
+import { readFileSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
+const { workQueue } = await import(pathToFileURL('$QUEUE_MJS').href)
+const st = JSON.parse(readFileSync('$P2/.planide/state.json', 'utf8'))
+for (const agent of ['', 'codex', 'claude']) for (const resume of [false, true]) console.log(JSON.stringify(workQueue(st, { agent, now: $NOW_MS, resume })))")
+  [ -n "$py_r" ] && [ "$py_r" = "$js_r" ] && echo "$py_r" | grep -q '"next_step":"Second step"' \
+    && ok "parity: a checklist and the user's resume read the same in plan next and next_task" \
+    || { bad "parity: checklist / resume differ"; echo "    py: ${py_r:0:300}"; echo "    js: ${js_r:0:300}"; }
 else
   echo "  SKIP queue parity (needs node + work-queue.mjs)"
 fi

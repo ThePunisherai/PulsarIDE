@@ -180,7 +180,23 @@ const clip = (s, n) => {
   return t.length > n ? `${t.slice(0, n - 1)}…` : t
 }
 
+/**
+ * An item's checklist as a reader needs it: how far it got, and the step to
+ * carry on at -- the one in progress, else the first not done. Null without
+ * one. It is what a NEW chat on the item is told (the session brief,
+ * next_task, the "ga door" line): the plan that made it was in a conversation
+ * that chat never saw.
+ */
+function checklistOf(i) {
+  const steps = (Array.isArray(i?.steps) ? i.steps : []).filter((s) => String(s?.title ?? '').trim())
+  if (!steps.length) return null
+  const done = steps.filter((s) => s.status === 'done').length
+  const next = steps.find((s) => s.status === 'wip') ?? steps.find((s) => s.status !== 'done')
+  return { done, total: steps.length, next: next ? String(next.title) : '', steps }
+}
+
 function itemCard(i, now) {
+  const list = checklistOf(i)
   return {
     kind: 'item',
     id: i.id,
@@ -188,8 +204,17 @@ function itemCard(i, now) {
     status: i.status,
     claimed_by: i.claimed_by || '',
     idle: idle(ageMs(i.updated_at, now)),
-    ...(i.locked ? { locked: true } : {})
+    ...(i.locked ? { locked: true } : {}),
+    ...(list ? { steps: `${list.done}/${list.total}` } : {}),
+    ...(list?.next ? { next_step: clip(list.next, 120) } : {})
   }
+}
+
+/** The focus item's whole checklist, step by step -- only on the focus, it is the one being picked up. */
+function withChecklist(card, item) {
+  const list = checklistOf(item)
+  if (!list) return card
+  return { ...card, checklist: list.steps.map((s) => ({ title: clip(s.title, 120), status: s.status })) }
 }
 
 function fixCard(f) {
@@ -224,14 +249,24 @@ export const WORK_ORDER =
  * out twice. Once it has sat for STALE_HOURS nobody is on it any more, and it
  * comes back into the queue as unfinished work for whoever resumes. Without
  * `agent`, every in-progress item is yours to finish.
+ *
+ * `resume` is the user's own "ga door" in a chat that has no item of its own --
+ * a new chat, often another CLI: "als ik nieuw chat start en zeg ga door gaat
+ * die door waar die is gebleven", "van codex tot aan claude antigravity". Then
+ * every in-progress item is yours to finish whoever started it, and the one the
+ * work stopped on -- the most recently touched -- comes first. Without it, an
+ * Antigravity chat skipped the item a Codex chat had just run out of quota on,
+ * because Codex had touched it within STALE_HOURS.
  */
 export function workQueue(state, opts = {}) {
   const now = Number.isFinite(opts.now) ? opts.now : Date.now()
   const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : DEFAULT_LIMIT
   const me = lc(opts.agent)
+  const resume = opts.resume === true
   const staleMs = STALE_HOURS * 3600e3
   const items = state?.items ?? []
   const fixes = state?.fixes ?? []
+  const byId = new Map(items.map((i) => [i.id, i]))
 
   const wipAll = items
     .filter((i) => i.status === 'wip')
@@ -240,11 +275,12 @@ export function workQueue(state, opts = {}) {
       age: ageMs(i.updated_at, now),
       mine: Boolean(me) && lc(i.claimed_by) === me
     }))
-  const isMineToFinish = (w) => !me || w.mine || !w.i.claimed_by || w.age >= staleMs
+  const isMineToFinish = (w) => resume || !me || w.mine || !w.i.claimed_by || w.age >= staleMs
   const wip = wipAll
     .filter(isMineToFinish)
-    // Your own first, then whatever has waited longest.
-    .sort((a, b) => Number(b.mine) - Number(a.mine) || b.age - a.age)
+    // Your own first, then whatever has waited longest -- or, on the user's
+    // "ga door", where the work stopped: the most recently touched.
+    .sort(resume ? (a, b) => a.age - b.age : (a, b) => Number(b.mine) - Number(a.mine) || b.age - a.age)
     .map((w) => ({ ...itemCard(w.i, now), ...(w.age >= staleMs ? { stale: true } : {}) }))
   const elsewhere = wipAll.filter((w) => !isMineToFinish(w)).map((w) => itemCard(w.i, now))
 
@@ -281,16 +317,16 @@ export function workQueue(state, opts = {}) {
   let focus = null
   let phase = 'clear'
   if (wip.length) {
-    focus = { lane: 'in_progress', ...wip[0], action: ACTION.in_progress }
+    focus = { lane: 'in_progress', ...withChecklist(wip[0], byId.get(wip[0].id)), action: ACTION.in_progress }
     phase = 'finish'
   } else if (todo.length) {
-    focus = { lane: 'todo', ...todo[0], action: ACTION.todo }
+    focus = { lane: 'todo', ...withChecklist(todo[0], byId.get(todo[0].id)), action: ACTION.todo }
     phase = 'todo'
   } else if (openFixes.length) {
     focus = { lane: 'fix', ...openFixes[0], action: ACTION.fix }
     phase = 'fixes'
   } else if (broken.length) {
-    focus = { lane: 'broken', ...broken[0], action: ACTION.broken }
+    focus = { lane: 'broken', ...withChecklist(broken[0], byId.get(broken[0].id)), action: ACTION.broken }
     phase = 'fixes'
   }
 
@@ -338,7 +374,11 @@ export function resumeBrief(state, opts = {}) {
   for (const a of q.alerts) lines.push(a)
   if (q.in_progress.length) {
     const list = q.in_progress
-      .map((x) => `${tag(x)}${x.stale ? ` (left over, idle ${x.idle})` : ''}${x.claimed_by ? ` by ${x.claimed_by}` : ''}`)
+      .map(
+        (x) =>
+          `${tag(x)}${x.steps ? ` (${x.steps} steps${x.next_step ? `, next: "${clip(x.next_step, 60)}"` : ''})` : ''}` +
+          `${x.stale ? ` (left over, idle ${x.idle})` : ''}${x.claimed_by ? ` by ${x.claimed_by}` : ''}`
+      )
       .join('; ')
     lines.push(`In progress -- finish first: ${list}${more(q.in_progress.length, c.in_progress)}`)
   }
@@ -577,11 +617,21 @@ function applyChecklist(state, parent, steps, ctx) {
   }
   const was = parent.status
   const listed = JSON.stringify(parent.steps ?? [])
-  parent.steps = checklist
+  // Steps another chat finished on this item -- the chat before this one, gone
+  // with its quota or its context -- stay finished on it, unless this plan
+  // names them itself. Marked `carried`, so they also survive this chat's own
+  // re-sends: the card keeps counting the whole job, not just the new half.
+  const ours = new Set(checklist.map((s) => normTitle(s.title)))
+  const otherChat = (parent.steps_key || '') !== (ctx.key || '')
+  const carried = (parent.steps ?? [])
+    .filter((s) => s?.status === 'done' && (s.carried || otherChat) && !ours.has(normTitle(s.title)))
+    .map((s) => ({ title: String(s.title), status: 'done', carried: true }))
+  const merged = [...carried, ...checklist]
+  parent.steps = merged
   parent.steps_key = ctx.key || parent.steps_key || ''
   if (!parent.steps_key) delete parent.steps_key
   if (was !== 'done' && was !== 'works' && checklist.length) {
-    const finished = checklist.every((s) => s.status === 'done')
+    const finished = merged.every((s) => s.status === 'done')
     const next = finished ? finishedStatus(state, 'works') : 'wip'
     if (next !== was) {
       parent.status = next
@@ -599,8 +649,8 @@ function applyChecklist(state, parent, steps, ctx) {
   // Open rows this same plan put on the board before it had an item to hang
   // on -- the checklist carries those steps now, so the rows go.
   const retired = retireDroppedSteps(state, ctx.key, [])
-  const changed = moved > 0 || retired.length > 0 || listed !== JSON.stringify(checklist)
-  return { added: 0, moved, retired, active, parent: parent.id, checklist: checklist.length, changed }
+  const changed = moved > 0 || retired.length > 0 || listed !== JSON.stringify(merged)
+  return { added: 0, moved, retired, active, parent: parent.id, checklist: merged.length, changed }
 }
 
 // --------------------------------------------------------------------- autopilot
@@ -721,10 +771,27 @@ export function chatItem(state, current) {
 
 /** The queue, with this chat's own unfinished item (if any) as the focus. */
 function chatQueue(state, opts = {}) {
-  const q = workQueue(state, { agent: opts.agent, now: opts.now, limit: 1 })
+  const q = workQueue(state, { agent: opts.agent, now: opts.now, limit: 1, resume: opts.resume === true })
   const own = chatItem(state, opts.current)
   if (!own) return q
   return { ...q, focus: { kind: 'item', lane: 'chat', id: own.id, title: own.title, status: own.status } }
+}
+
+/**
+ * The checklist of an item this chat did not plan, as one line: what is done,
+ * where to carry on. Capped, so a long plan costs a bounded line.
+ */
+function checklistLine(f) {
+  const steps = f.checklist ?? []
+  if (!steps.length) return ''
+  const mark = (s) => (s.status === 'done' ? '[x]' : s.status === 'wip' ? '[>]' : '[ ]')
+  const shown = steps.slice(0, 8).map((s) => `${mark(s)} ${clip(s.title, 70)}`)
+  const more = steps.length > 8 ? `; +${steps.length - 8} more` : ''
+  const at = f.next_step ? ` Carry on at "${clip(f.next_step, 70)}".` : ''
+  return (
+    `Its checklist so far (${f.steps} done): ${shown.join('; ')}${more}.${at} The work behind the done steps is ` +
+    'already in the files -- check it there instead of redoing it, and keep those steps in your plan as completed.'
+  )
 }
 
 /** The focus as one line an agent can act on, with how to close it. */
@@ -755,8 +822,10 @@ function focusLine(q) {
       ? 'fix it, verify it, then mark_fixed with what caused it and what changed'
       : 'plan it however you like -- your plan becomes its checklist and it closes by itself when every step is done ' +
         '(or set_item it done when it genuinely works)'
+  const list = f.kind === 'item' ? checklistLine(f) : ''
   return (
     `PulsarIDE board (${left}). Next by the work order: "${clip(f.title, 120)}" [${f.id}] -- ${where}. ` +
+    (list ? `${list} ` : '') +
     `Continue with it now: ${close}. If it cannot be done here, set_item it blocked with the reason ` +
     '(or add_fix the bug) and take the next one -- do not stop to ask whether to continue.'
   )
@@ -797,11 +866,25 @@ export function nextUp(state, opts = {}) {
   return focusLine(chatQueue(state, opts))
 }
 
-/** The "carry on" cue, answered with the item to carry on with. Empty when nothing is open. */
+/**
+ * The "carry on" cue, answered with the item to carry on with: this chat's own,
+ * or -- in a chat with none, a new one or another CLI's -- where the board's
+ * work stopped, whoever started it (workQueue `resume`). Empty when nothing is open.
+ */
 export function continueContext(state, opts = {}) {
-  const line = nextUp(state, opts)
+  const line = nextUp(state, { ...opts, resume: true })
   if (!line) return ''
   return chatItem(state, opts.current)
     ? `The user means: carry on where this chat left off. ${line}`
-    : `The user means: work the board. ${line}`
+    : `The user means: carry on where the work stopped. ${line}`
+}
+
+/**
+ * The item that cue hands over, or null: from then on it is this chat's own, so
+ * the plan the chat makes for it lands as that item's checklist -- not as rows
+ * of their own beside it, the item stuck in progress for good.
+ */
+export function continueFocus(state, opts = {}) {
+  const f = chatQueue(state, { ...opts, resume: true }).focus
+  return f?.kind === 'item' ? f : null
 }
