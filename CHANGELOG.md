@@ -6,7 +6,7 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
-## [Unreleased]
+## [0.99.9] - 2026-10-05
 
 ### What's fixed
 - **Items set "in progress" and then never picked up again, and a board that never got
