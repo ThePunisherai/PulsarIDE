@@ -124,7 +124,7 @@ export default function PulseToolkitPage(): React.JSX.Element {
   const [rtk, setRtk] = useState<RtkStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [hooks, setHooks] = useState<HookDoctorReport | null>(null)
-  // Each Codex hook run once as Codex runs it -- only when asked.
+  // Every agent's hooks run once as that agent runs them -- only when asked.
   const [hookRuns, setHookRuns] = useState<HookTest[] | null>(null)
   const [hookBusy, setHookBusy] = useState(false)
   const [resume, setResume] = useState<QuotaResumeStatus | null>(null)
@@ -180,23 +180,25 @@ export default function PulseToolkitPage(): React.JSX.Element {
     return () => clearInterval(timer)
   }, [resume?.pending.length])
 
+  // On a copy of the open project's board, so PulsarIDE's own hooks give the
+  // answer they give there -- an empty folder never got them that far.
   const runHookTest = useCallback(
     () =>
       withVisibleSpin(setHookBusy, async () => {
-        setHookRuns(await hookTest())
+        setHookRuns(await hookTest(folder || undefined))
         setHooks(await hookDoctor())
       }),
-    []
+    [folder]
   )
 
   const turnOffHook = useCallback(
     (run: HookTest) =>
       withVisibleSpin(setHookBusy, async () => {
         await hookTurnOff({ file: run.file, event: run.event, command: run.command })
-        setHookRuns(await hookTest())
+        setHookRuns(await hookTest(folder || undefined))
         setHooks(await hookDoctor())
       }),
-    []
+    [folder]
   )
 
   const chatsAction = useCallback(
@@ -659,13 +661,14 @@ export default function PulseToolkitPage(): React.JSX.Element {
                 {translate('planide.toolkit.checking', 'Checking...')}
               </p>
             )}
-            {/* Codex says "hook exited with code 1" and names no hook: run each
-                one the way Codex does and show which. */}
+            {/* An agent says "Hook failed" or "hook error" and names no hook: run
+                every agent's hooks the way that agent does and show which one,
+                in the agent's own words. */}
             <div className="mt-3 border-t border-border/40 pt-2">
               <div className="flex items-center gap-2">
                 <span className="text-[12px] font-medium">
-                  {translate('planide.toolkit.codexHooks', 'Codex hooks')}
-                  {hooks?.codex ? ` (${hooks.codex.length})` : ''}
+                  {translate('planide.toolkit.agentHooks', 'Agent hooks')}
+                  {(hooks?.entries ?? hooks?.codex) ? ` (${(hooks?.entries ?? hooks?.codex ?? []).length})` : ''}
                 </span>
                 <Button
                   size="sm"
@@ -681,20 +684,34 @@ export default function PulseToolkitPage(): React.JSX.Element {
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {translate(
-                  'planide.toolkit.hookTestSub',
-                  'Runs each Codex hook once the way Codex does (PowerShell on Windows), with a harmless shell call in an empty folder, and shows which one fails.'
+                  'planide.toolkit.hookTestAllSub',
+                  "Runs every hook of Codex, Claude Code, Gemini CLI and Qwen Code once, the way that agent does -- its own shell and time limit -- on a throwaway copy of this project's board, and judges the answer as the agent would. Errors PulsarIDE's own hooks hit are in ~/.config/pulsaride/hooks/hook-errors.log."
                 )}
               </p>
-              {(hookRuns ?? hooks?.codex ?? []).length > 0 && (
+              {hookRuns && (
+                <p className="mt-1 text-[11px]">
+                  {hookRuns.some((r) => r.verdict === 'failed') ? (
+                    <span className="text-amber-500">
+                      {hookRuns.filter((r) => r.verdict === 'failed').length}{' '}
+                      {translate('planide.toolkit.hookFailedCount', 'hook(s) the agent reports as an error -- see below')}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      {translate('planide.toolkit.hookAllOk', 'Every hook answered the way its agent accepts.')}
+                    </span>
+                  )}
+                </p>
+              )}
+              {(hookRuns ?? hooks?.entries ?? hooks?.codex ?? []).length > 0 && (
                 <ul className="mt-2 space-y-1.5">
-                  {(hookRuns ?? hooks?.codex ?? []).map((entry, i) => {
+                  {(hookRuns ?? hooks?.entries ?? hooks?.codex ?? []).map((entry, i) => {
                     const run = hookRuns ? (entry as HookTest) : null
                     return (
-                      <li key={`${entry.file}-${entry.event}-${i}`} className="text-[11px]">
+                      <li key={`${entry.agent}-${entry.file}-${entry.event}-${i}`} className="text-[11px]">
                         <div className="flex items-center gap-2">
-                          {run ? <Dot ok={run.ok} /> : <span className="w-[13px] shrink-0" />}
+                          {run ? <Dot ok={run.verdict !== 'failed'} /> : <span className="w-[13px] shrink-0" />}
                           <span className="font-medium">
-                            {entry.event}
+                            {entry.agent ?? 'Codex'} · {entry.event}
                             {entry.matcher ? ` · ${entry.matcher}` : ''}
                           </span>
                           <span className="text-muted-foreground">
@@ -704,14 +721,8 @@ export default function PulseToolkitPage(): React.JSX.Element {
                                 ? translate('planide.toolkit.hookOff', 'turned off')
                                 : translate('planide.toolkit.hookOther', 'other')}
                           </span>
-                          {run && !run.ok && (
-                            <span className="text-amber-500">
-                              {run.code === null
-                                ? translate('planide.toolkit.hookNoExit', 'did not finish')
-                                : `exit ${run.code}`}
-                            </span>
-                          )}
-                          {run && !run.ok && !entry.ours && entry.command !== 'exit 0' && (
+                          {run && <span className="text-muted-foreground">{run.ms} ms</span>}
+                          {run && run.verdict === 'failed' && !entry.ours && entry.command !== 'exit 0' && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -726,8 +737,13 @@ export default function PulseToolkitPage(): React.JSX.Element {
                         <p className="ml-5 truncate font-mono text-muted-foreground" title={`${entry.file}\n${entry.command}`}>
                           {entry.command}
                         </p>
-                        {run && !run.ok && run.output && (
-                          <p className="ml-5 break-words text-amber-500/90">{run.output}</p>
+                        {run && run.verdict !== 'ok' && run.problem && (
+                          <p className={`ml-5 break-words ${run.verdict === 'failed' ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                            {run.problem}
+                          </p>
+                        )}
+                        {run && run.verdict === 'failed' && run.output && run.output !== run.problem && (
+                          <p className="ml-5 break-words font-mono text-amber-500/80">{run.output}</p>
                         )}
                       </li>
                     )

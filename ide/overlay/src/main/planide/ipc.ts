@@ -32,7 +32,7 @@ import {
   rtkStatus,
   runHookDoctor,
   runHookTest,
-  turnOffCodexHook,
+  turnOffHook,
   unrealStatus,
   repairTrackerRegistration,
   setEccEnabled,
@@ -324,13 +324,16 @@ export function registerPlanIdeIpc(): void {
   // Detected, never installed: rtk's own init writes a global shell hook.
   on('planide:rtk-status', () => rtkStatus())
   // Agent hooks that can never run (hook-doctor.ts): checked again on request,
-  // and each Codex hook run once as Codex runs it (Test hooks). This app's
-  // Codex homes and ~/.codex only: another app's hooks are its own.
+  // and every agent's hooks run once as that agent runs them (Test hooks), on a
+  // copy of the open project's board. This app's Codex homes and ~/.codex
+  // only: another app's hooks are its own.
   const ownCodexHomes = (): string[] => codexHomes(app.getPath('userData'), { ownOnly: true })
   on('planide:hook-doctor', () => runHookDoctor(undefined, { codexHomes: ownCodexHomes() }))
-  on('planide:hook-test', () => runHookTest(undefined, { codexHomes: ownCodexHomes() }))
+  on('planide:hook-test', (project?: string) =>
+    runHookTest(undefined, { codexHomes: ownCodexHomes(), project: typeof project === 'string' ? project : undefined })
+  )
   on('planide:hook-turn-off', (target: { file: string; event: string; command: string }) =>
-    turnOffCodexHook(target, { codexHomes: ownCodexHomes() })
+    turnOffHook(target, { codexHomes: ownCodexHomes() })
   )
   // Auto-resume after a usage limit (quota-resume.ts): the switch, and what is
   // waiting to be typed where.

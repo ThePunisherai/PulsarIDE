@@ -524,7 +524,18 @@ export type HookIssue = {
 }
 
 /** One hook in a Codex hook file; `ours` for PulsarIDE's own. */
-export type HookEntry = { file: string; event: string; matcher: string; command: string; ours: boolean }
+export type HookEntry = {
+  /** Codex, Claude Code, Gemini CLI or Qwen Code. */
+  agent: string
+  file: string
+  event: string
+  matcher: string
+  command: string
+  ours: boolean
+  /** How long that agent lets it run. */
+  timeoutSec: number
+  shell?: string
+}
 
 export type HookDoctorReport = {
   at: string
@@ -532,6 +543,8 @@ export type HookDoctorReport = {
   issues: HookIssue[]
   backupDir: string
   codex?: HookEntry[]
+  /** Every agent's hooks. */
+  entries?: HookEntry[]
 }
 
 /** Take the leftover plan steps of closed chats off the board (only on your click). */
@@ -544,12 +557,20 @@ export function hookDoctor(): Promise<HookDoctorReport> {
   return call<HookDoctorReport>('hookDoctor')
 }
 
-/** A Codex hook run once the way Codex runs it. */
-export type HookTest = HookEntry & { code: number | null; ok: boolean; output: string; ms: number }
+/** A hook run once the way its agent runs it, and what that agent makes of it. */
+export type HookTest = HookEntry & {
+  code: number | null
+  ok: boolean
+  /** failed: the agent shows an error. blocked: it stops the sample call, on purpose. */
+  verdict: 'ok' | 'failed' | 'blocked'
+  problem: string
+  output: string
+  ms: number
+}
 
-/** Run every Codex hook once, as Codex would, and say which ones fail. */
-export function hookTest(): Promise<HookTest[]> {
-  return call<HookTest[]>('hookTest')
+/** Run every agent's hooks once, as each agent would, on a copy of `project`'s board. */
+export function hookTest(project?: string): Promise<HookTest[]> {
+  return call<HookTest[]>('hookTest', project)
 }
 
 /** A pane waiting for its usage limit to reset, to be resumed with "ga door". */

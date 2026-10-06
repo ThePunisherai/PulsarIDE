@@ -254,6 +254,126 @@ def graphify_sync(project, project_slug, force=False):
     return receipt
 
 
+# A sync started this long ago and still holding its project's lock is taken to
+# have died (killed with its terminal, a crash): the next one may run.
+SYNC_LOCK_STALE_SECONDS = 900
+
+
+def _sync_lock(root, project_slug):
+    return root / "Projects" / project_slug / "sync.lock"
+
+
+def _sync_running(lock):
+    try:
+        return time.time() - lock.stat().st_mtime < SYNC_LOCK_STALE_SECONDS
+    except OSError:
+        return False
+
+
+def _take_sync_lock(lock):
+    """One sync per project at a time -- the IDE's on workspace open, a session
+    start's in the background. False when another one holds it."""
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    if lock.exists() and not _sync_running(lock):
+        try:
+            lock.unlink()
+        except OSError:
+            return False
+    try:
+        fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except OSError:
+        return False
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(json.dumps({"pid": os.getpid(), "started_at": utc_now()}))
+    return True
+
+
+def _hook_log():
+    """hooks/hook-errors.log beside this script: where every PulsarIDE hook keeps
+    what went wrong, so the agent's "hook error" has a cause on disk."""
+    return Path(__file__).resolve().parent / "hook-errors.log"
+
+
+def _log_error(text):
+    try:
+        with open(_hook_log(), "a", encoding="utf-8") as handle:
+            handle.write("[council-memory] " + utc_now() + " " + str(text).rstrip() + "\n")
+    except OSError:
+        pass
+
+
+def start_background_sync(args, project):
+    """Run sync() in a process of its own that outlives the hook. Its output goes
+    nowhere near the hook's stdout, so the agent never waits on it."""
+    command = [sys.executable, str(Path(__file__).resolve()), "sync", "--project", str(project),
+               "--team", args.team or "The Council", "--event", args.event or "session-start"]
+    for flag, value in (("--name", args.name), ("--agent", args.agent), ("--version", args.version)):
+        if value:
+            command += [flag, value]
+    try:
+        log = open(_hook_log(), "a", encoding="utf-8")
+    except OSError:
+        log = subprocess.DEVNULL
+    try:
+        options = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": log,
+                   "cwd": str(project), "close_fds": True}
+        if sys.platform == "win32":
+            # Hidden, in its own process group, and -- where the agent's job allows
+            # it -- out of the agent's job, so closing the agent does not cut a
+            # half-written graph off. Without breakaway it still runs to the end
+            # of the agent's own life, which is all a refresh needs.
+            base = 0x08000000 | 0x00000200  # CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP
+            try:
+                subprocess.Popen(command, creationflags=base | 0x01000000, **options)  # CREATE_BREAKAWAY_FROM_JOB
+            except OSError:
+                subprocess.Popen(command, creationflags=base, **options)
+        else:
+            subprocess.Popen(command, start_new_session=True, **options)
+        return True
+    except OSError as exc:
+        _log_error("could not start the background sync: " + str(exc))
+        return False
+    finally:
+        if log is not subprocess.DEVNULL:
+            log.close()
+
+
+def hook(args):
+    """What the SessionStart hook runs: answer at once, sync in the background.
+
+    The hook used to run the whole sync itself -- a Graphify extraction bounded at
+    25 s, a retry, the global registration -- inside Claude Code's 30 s budget for
+    the hook. On a project whose graph took longer, Claude Code stopped the hook
+    and showed "SessionStart hook error", and because the graph was never written
+    the same happened at the next session: "ik blijf hookserror krijgen", with
+    nothing in hook-errors.log, since nothing here wrote to it. Now the hook only
+    reads the last result and starts the refresh beside the session.
+    """
+    project = Path(args.project or os.getcwd()).expanduser().resolve()
+    if not project.is_dir():
+        return 0
+    root = data_root()
+    project_name = args.name or project.name
+    project_slug = slug(project_name)
+    last = read_json(root / "Projects" / project_slug / "last-sync.json", {})
+    running = _sync_running(_sync_lock(root, project_slug))
+    refreshing = running
+    # PULSAR_HOOK_TEST: the Toolkit's hook test runs this in a throwaway copy of
+    # the project -- answering is what it checks, a real sync there is waste.
+    if not running and not os.environ.get("PULSAR_HOOK_TEST"):
+        refreshing = start_background_sync(args, project)
+    receipt = dict(last) if isinstance(last, dict) and last else {
+        "project_name": project_name,
+        "version": args.version or detect_version(project),
+        "graphify": {"status": "pending"},
+        "obsidian": {"status": "pending"},
+        "never_synced": True,
+    }
+    receipt["refreshing"] = bool(refreshing)
+    print(json.dumps(receipt, ensure_ascii=True))
+    return 0
+
+
 def sync(args):
     project = Path(args.project or os.getcwd()).expanduser().resolve()
     if not project.is_dir():
@@ -261,6 +381,20 @@ def sync(args):
     root = data_root()
     project_name = args.name or project.name
     project_slug = slug(project_name)
+    lock = _sync_lock(root, project_slug)
+    if not _take_sync_lock(lock):
+        # Another sync of this project is under way; its result will do.
+        return 0
+    try:
+        return _sync(args, project, root, project_name, project_slug)
+    finally:
+        try:
+            lock.unlink()
+        except OSError:
+            pass
+
+
+def _sync(args, project, root, project_name, project_slug):
     version = args.version or detect_version(project)
     now = utc_now()
     metadata = {
@@ -300,6 +434,8 @@ def sync(args):
 
     receipt = dict(metadata, data_dir=str(root), graphify=graph, obsidian=obsidian)
     append_jsonl(root / "Activity" / "council-memory.jsonl", receipt)
+    # What the next session start reads back at once (hook()).
+    atomic_json(root / "Projects" / project_slug / "last-sync.json", receipt)
     print(json.dumps(receipt, ensure_ascii=True))
     return 0
 
@@ -363,8 +499,9 @@ def overview(_args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", nargs="?", default="sync", choices=["sync", "overview"],
-                         help="sync (default, backward-compatible with every existing caller) or overview (read-only cross-project summary)")
+    parser.add_argument("command", nargs="?", default="sync", choices=["sync", "overview", "hook"],
+                         help="sync (default, backward-compatible with every existing caller), overview (read-only cross-project summary) "
+                              "or hook (the SessionStart hook: the last result at once, the sync in the background)")
     parser.add_argument("--project", default="")
     parser.add_argument("--name", default="")
     parser.add_argument("--version", default="")
@@ -376,6 +513,8 @@ def main():
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--no-tools", action="store_true", help="Write deterministic Data receipts without invoking Graphify/Obsidian.")
     args = parser.parse_args()
+    if args.command == "hook":
+        return hook(args)
     return overview(args) if args.command == "overview" else sync(args)
 
 
@@ -384,4 +523,8 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as exc:
         print("council-memory: " + str(exc), file=sys.stderr)
+        if "hook" in sys.argv[1:2]:
+            # A hook answers 0 whatever happens; the cause goes to the hook log.
+            _log_error(repr(exc))
+            raise SystemExit(0)
         raise SystemExit(1)

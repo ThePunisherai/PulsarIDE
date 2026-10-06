@@ -1999,6 +1999,125 @@ ok('a revised plan moves the step it already knows instead of duplicating it',
   ok('hook test: a turned-off hook is not run again', rerun.length === 3 && rerun.filter((r) => !r.ok).length === 1)
 }
 
+// "Ik blijf hookserror krijgen en in log staat niets ... met jou hooks test in
+// toolkit werkt alles". Claude Code's SessionStart bootstrap ran the whole
+// memory sync -- a Graphify extraction of up to 25 s, a retry, a registration --
+// inside Claude Code's 30 s budget, wrote nothing to hook-errors.log, and the
+// Toolkit's test never ran Claude Code's hooks at all.
+{
+  const BH = join(work, 'bootstrap-home')
+  const hooks = join(BH, 'hooks'); mkdirSync(hooks, { recursive: true })
+  for (const f of ['graphify-bootstrap.sh', 'council-memory.py']) cpSync(join(REPO, 'ide/agent-bundle/hooks', f), join(hooks, f))
+  const proj = join(BH, 'Shop'); mkdirSync(join(proj, '.planide'), { recursive: true })
+  writeFileSync(join(proj, '.planide', 'state.json'), JSON.stringify({ items: [], fixes: [], activity: [] }))
+  const slowGraphify = join(BH, 'graphify'); writeFileSync(slowGraphify,
+    '#!/bin/sh\ncase "$1" in extract) sleep 4; mkdir -p graphify-out; echo "{}" > graphify-out/graph.json;; global) exit 0;; esac\n')
+  spawnSync('chmod', ['+x', slowGraphify])
+  const env = { ...process.env, PULSAR_GRAPHIFY: slowGraphify, PULSAR_DATA_DIR: join(BH, 'data') }
+  delete env.PULSAR_HOOK_TEST
+  const boot = (input = JSON.stringify({ cwd: proj, hook_event_name: 'SessionStart', source: 'startup' }), extra = {}) => {
+    const t0 = Date.now()
+    const r = spawnSync('bash', [join(hooks, 'graphify-bootstrap.sh')], { input, encoding: 'utf8', cwd: proj, env: { ...env, ...extra } })
+    return { ...r, ms: Date.now() - t0 }
+  }
+  const first = boot()
+  let ctx = ''
+  try { ctx = JSON.parse(first.stdout).hookSpecificOutput.additionalContext } catch { ctx = '' }
+  ok(`bootstrap: answers at once while Graphify takes its time (${first.ms} ms), exit 0`,
+    first.status === 0 && first.ms < 3000 && /being built in the background/.test(ctx) && /tracked by PulsarIDE's board/.test(ctx))
+  const lock = join(BH, 'data', 'Projects', 'shop', 'sync.lock')
+  ok('bootstrap: the memory sync runs beside the session, one per project', existsSync(lock))
+  const second = boot()
+  ok('bootstrap: a second session start while it runs starts no second sync', second.status === 0 && existsSync(lock) &&
+    /refreshing in the background|being built/.test(second.stdout))
+  const until = Date.now() + 15000
+  while (existsSync(lock) && Date.now() < until) spawnSync('sleep', ['0.2'])
+  const third = boot()
+  ok('bootstrap: the next session start reads the finished sync back, and says how it went', /Council memory for Shop v\S+ \(Graphify: synced/.test(third.stdout) &&
+    existsSync(join(BH, 'data', 'Projects', 'shop', 'last-sync.json')))
+  const testMode = boot(undefined, { PULSAR_HOOK_TEST: '1', PULSAR_DATA_DIR: join(BH, 'data-test') })
+  ok('bootstrap: under the Toolkit test it answers without starting a real sync',
+    testMode.status === 0 && !existsSync(join(BH, 'data-test', 'Projects', 'shop', 'sync.lock')))
+  // Something breaks inside: the session still starts, and the cause is on disk.
+  rmSync(join(hooks, 'hook-errors.log'), { force: true })
+  writeFileSync(join(BH, 'not-a-dir'), '')
+  const broken = boot(undefined, { PULSAR_DATA_DIR: join(BH, 'not-a-dir', 'x') })
+  spawnSync('sleep', ['1'])
+  ok('bootstrap: a failing memory sync is no hook error -- exit 0, the cause in hook-errors.log',
+    broken.status === 0 && /Not a directory|NotADirectory|Errno/.test(readFileSync(join(hooks, 'hook-errors.log'), 'utf8')))
+  const garbage = boot('{not json')
+  ok('bootstrap: a payload it cannot read is no hook error either', garbage.status === 0)
+}
+
+// "Test hooks" for every agent: each in its own shell and time limit, judged
+// the way that agent judges the answer -- not just "did it exit 0".
+{
+  const MH = join(work, 'multi-agent-hooks')
+  for (const d of ['.codex', '.claude', '.gemini', '.qwen']) mkdirSync(join(MH, d), { recursive: true })
+  const proj = join(MH, 'RealProject'); mkdirSync(join(proj, '.planide'), { recursive: true })
+  writeFileSync(join(proj, '.planide', 'state.json'), JSON.stringify({ items: [{ id: 'i1', title: 'Real item', status: 'wip' }], fixes: [], activity: [] }))
+  const before = readFileSync(join(proj, '.planide', 'state.json'), 'utf8')
+  const seenCwd = join(MH, 'cwd.txt')
+  const cmd = (c) => ({ type: 'command', command: c })
+  writeFileSync(join(MH, '.codex', 'hooks.json'), JSON.stringify({ hooks: {
+    Stop: [{ hooks: [cmd('cat >/dev/null; echo done')] }],
+    UserPromptSubmit: [{ hooks: [cmd(`cat >/dev/null; echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"x","extra":1}}'`)] }],
+    PreToolUse: [{ hooks: [cmd(`cat >/dev/null; echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask"}}'`)] }],
+    SessionStart: [{ hooks: [cmd('cat >/dev/null; echo plain context is fine here')] }]
+  } }))
+  writeFileSync(join(MH, '.claude', 'settings.json'), JSON.stringify({ hooks: {
+    Stop: [{ hooks: [cmd(`cat >/dev/null; echo '{"broken'`)] }],
+    SessionStart: [{ hooks: [{ ...cmd('cat >/dev/null; sleep 3'), timeout: 1 }] }],
+    UserPromptSubmit: [{ hooks: [cmd(`python3 -c "import json,sys,os; d=json.load(sys.stdin); open('${seenCwd}','w').write(d['cwd']+'\\n'+str(os.path.exists(os.path.join(d['cwd'],'.planide','state.json'))))"`)] }],
+    PreToolUse: [{ matcher: 'Bash', hooks: [cmd(`cat >/dev/null; echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"no shell"}}'`)] }]
+  } }))
+  writeFileSync(join(MH, '.gemini', 'settings.json'), JSON.stringify({ hooks: {
+    AfterAgent: [{ hooks: [cmd('cat >/dev/null; echo gemini notifier down >&2; exit 1')] }],
+    BeforeAgent: [{ hooks: [{ ...cmd('cat >/dev/null; sleep 2'), timeout: 500 }] }]
+  } }))
+  writeFileSync(join(MH, '.qwen', 'settings.json'), JSON.stringify({ hooks: {
+    PostToolUse: [{ matcher: 'todo_write', hooks: [{ ...cmd('cat >/dev/null; exit 0'), shell: 'bash', timeout: 15 }] }]
+  } }))
+  const env = { PATH: process.env.PATH, HOME: MH, SHELL: '/bin/sh' }
+  const runs = await runHookTest(MH, { env, platform: 'linux', project: proj })
+  const find = (agent, event) => runs.find((r) => r.agent === agent && r.event === event)
+  ok('hook test: every agent\'s hooks are run -- Codex, Claude Code, Gemini CLI and Qwen Code',
+    ['Codex', 'Claude Code', 'Gemini CLI', 'Qwen Code'].every((a) => runs.some((r) => r.agent === a)))
+  ok('hook test: Codex -- plain text from a Stop hook fails, in Codex\'s words',
+    find('Codex', 'Stop')?.verdict === 'failed' && find('Codex', 'Stop').problem === 'hook returned invalid stop hook JSON output')
+  ok('hook test: Codex -- JSON with a field Codex does not know fails, though the hook exited 0',
+    find('Codex', 'UserPromptSubmit')?.code === 0 && find('Codex', 'UserPromptSubmit').verdict === 'failed' &&
+    find('Codex', 'UserPromptSubmit').problem === 'hook returned invalid user prompt submit JSON output')
+  ok('hook test: Codex -- an answer it does not support fails (permissionDecision:ask)',
+    find('Codex', 'PreToolUse')?.problem === 'PreToolUse hook returned unsupported permissionDecision:ask')
+  ok('hook test: Codex -- plain text from SessionStart is context, not an error', find('Codex', 'SessionStart')?.verdict === 'ok')
+  ok('hook test: Claude Code -- output that starts as JSON but does not parse is a hook error',
+    find('Claude Code', 'Stop')?.verdict === 'failed' && /does not parse/.test(find('Claude Code', 'Stop').problem))
+  ok('hook test: Claude Code -- a hook slower than its own time limit is named, with that limit',
+    find('Claude Code', 'SessionStart')?.verdict === 'failed' && /no answer in 1 s/.test(find('Claude Code', 'SessionStart').problem) &&
+    find('Claude Code', 'SessionStart').ms < 2500)
+  ok('hook test: a deliberate deny is shown as a block, not as an error',
+    find('Claude Code', 'PreToolUse')?.verdict === 'blocked' && /no shell/.test(find('Claude Code', 'PreToolUse').problem))
+  ok('hook test: Gemini CLI -- exit 1 is an error with what it said; its timeout is in milliseconds',
+    find('Gemini CLI', 'AfterAgent')?.verdict === 'failed' && /exited with code 1 -- gemini notifier down/.test(find('Gemini CLI', 'AfterAgent').problem) &&
+    find('Gemini CLI', 'BeforeAgent')?.verdict === 'failed' && /no answer in 0.5 s/.test(find('Gemini CLI', 'BeforeAgent').problem))
+  ok('hook test: Qwen Code -- a working hook passes', find('Qwen Code', 'PostToolUse')?.verdict === 'ok')
+  const [cwdSeen, hadBoard] = readFileSync(seenCwd, 'utf8').split('\n')
+  ok("hook test: hooks run on a throwaway copy of the open project's board, never in the project itself",
+    hadBoard === 'True' && !cwdSeen.startsWith(proj) && !existsSync(cwdSeen) &&
+    readFileSync(join(proj, '.planide', 'state.json'), 'utf8') === before)
+  const target = find('Claude Code', 'Stop')
+  ok('hook test: Turn off works for a Claude Code hook too', turnOffCodexHook(target, { home: MH }) === true &&
+    JSON.parse(readFileSync(join(MH, '.claude', 'settings.json'), 'utf8')).hooks.Stop[0].hooks[0].command === 'exit 0')
+  // PulsarIDE's own hooks, as deployed, on a real board: every agent accepts every answer.
+  const own = (await runHookTest(HOME, { env: { PATH: process.env.PATH, HOME, SHELL: '/bin/sh' }, platform: 'linux', project: proj }))
+    .filter((r) => r.ours)
+  const bad = own.filter((r) => r.verdict !== 'ok')
+  ok(`hook test: every PulsarIDE hook, as deployed, passes every agent's own check on a real board (${own.length} runs)`,
+    own.length >= 15 && bad.length === 0 && ['Codex', 'Claude Code', 'Gemini CLI', 'Qwen Code'].every((a) => own.some((r) => r.agent === a)))
+  if (bad.length) for (const b of bad) console.log('    ', b.agent, b.event, b.problem, b.output)
+}
+
 for (const dir of temps) rmSync(dir, { recursive: true, force: true })
 console.log(`\nPASS=${pass} FAIL=${fail}`)
 process.exit(fail ? 1 : 0)

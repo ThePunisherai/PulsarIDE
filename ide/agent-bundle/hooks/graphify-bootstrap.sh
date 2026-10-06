@@ -16,12 +16,27 @@
 # Reads the hook's JSON payload from stdin (SessionStart's payload carries
 # {"cwd": ..., "source": ..., ...} per the docs) to find the real project directory --
 # not $PWD, since a hook's own working directory is not guaranteed to match the session's.
-set -euo pipefail
+# Never a "hook error": whatever happens in main, the session starts -- exit 0,
+# and what went wrong is appended to hook-errors.log beside this script, the log
+# every other PulsarIDE hook uses. `set -e` is deliberately not used: one failed
+# lookup must cost a line of context, not the hook.
+#
+# Fast by design. This hook used to run the whole Council memory sync itself,
+# Graphify extraction included, inside the agent's hook budget (Claude Code: 30 s);
+# on a project whose graph took longer the agent stopped it and reported a
+# SessionStart hook error at every session start. council-memory.py's `hook`
+# command now answers from the last sync at once and refreshes in the background.
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" 2>/dev/null && pwd)"
+LOG="${SCRIPT_DIR:-.}/hook-errors.log"
 
-command -v python3 >/dev/null 2>&1 || exit 0
-
-PAYLOAD="$(cat)"
-CWD="$(printf '%s' "$PAYLOAD" | python3 -c '
+main() {
+    # Read the payload first: an agent writing to a pipe nobody reads sees a broken pipe.
+    local PAYLOAD CWD MEMORY_SCRIPT RESULT CTX NOTE PY
+    PAYLOAD="$(cat)"
+    PY="$(command -v python3 2>/dev/null || true)"
+    CWD=""
+    if [ -n "$PY" ]; then
+        CWD="$(printf '%s' "$PAYLOAD" | "$PY" -c '
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -29,43 +44,50 @@ try:
 except Exception:
     print("")
 ' 2>/dev/null || true)"
-[ -n "$CWD" ] || CWD="$PWD"
-cd "$CWD" 2>/dev/null || exit 0
+    fi
+    [ -n "$CWD" ] || CWD="$PWD"
+    cd "$CWD" 2>/dev/null || return 0
 
-SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-MEMORY_SCRIPT="$SCRIPT_DIR/council-memory.py"
-[ -f "$MEMORY_SCRIPT" ] || exit 0
-
-# One bounded cross-platform pipeline now owns Data receipts, Graphify extraction/global
-# registration, and the managed Obsidian note. It never guesses savings or activity.
-RESULT="$(timeout 40s python3 "$MEMORY_SCRIPT" --project "$CWD" --team "The Council" --event "session-start" 2>/dev/null || true)"
-CTX=""
-if [ -n "$RESULT" ]; then
-    CTX="$(printf '%s' "$RESULT" | python3 -c '
+    CTX=""
+    MEMORY_SCRIPT="$SCRIPT_DIR/council-memory.py"
+    if [ -n "$PY" ] && [ -f "$MEMORY_SCRIPT" ]; then
+        # council-memory.py writes its own errors to hook-errors.log.
+        RESULT="$("$PY" "$MEMORY_SCRIPT" hook --project "$CWD" --team "The Council" --event "session-start" 2>/dev/null || true)"
+        if [ -n "$RESULT" ]; then
+            CTX="$(printf '%s' "$RESULT" | "$PY" -c '
 import json, sys
 try:
-    d=json.load(sys.stdin)
-    print("Council memory synced for %s v%s (Graphify: %s; Obsidian: %s)." % (
-        d.get("project_name","project"), d.get("version","unknown"),
-        d.get("graphify",{}).get("status","unknown"),
-        d.get("obsidian",{}).get("status","unknown")))
+    d = json.loads(sys.stdin.read().strip().splitlines()[-1])
+    if d.get("never_synced"):
+        print("Council memory for %s is being built in the background (Graphify + Obsidian)." % d.get("project_name", "project"))
+    else:
+        print("Council memory for %s v%s (Graphify: %s; Obsidian: %s%s)." % (
+            d.get("project_name", "project"), d.get("version", "unknown"),
+            (d.get("graphify") or {}).get("status", "unknown"),
+            (d.get("obsidian") or {}).get("status", "unknown"),
+            ", refreshing in the background" if d.get("refreshing") else ""))
 except Exception:
-    print("Council memory sync completed.")
-' 2>/dev/null || echo "Council memory sync completed.")"
-fi
+    pass
+' 2>/dev/null || true)"
+        fi
+    fi
 
-# If PulsarIDE already tracks this project, tell the session to use the board.
-# Gated on the state file existing -- exactly the guard agent-events.ts uses --
-# so a session in an untracked repo is never nudged and no repo is littered.
-if [ -f "$CWD/.planide/state.json" ]; then
-    NOTE="This project is tracked by PulsarIDE's board (.planide/state.json, the IDE Tracker tab). Keep it current without being asked, as your PulsarIDE instructions say: get_board or next_task first (finish wip, then todo, then open fixes), add_item/set_item as the work moves, add_fix for a bug you hit, and update the board before you say done. Pass project=\"$CWD\" (CLI fallback: plan board \"$CWD\")."
-    if [ -n "$CTX" ]; then CTX="$CTX $NOTE"; else CTX="$NOTE"; fi
-fi
+    # If PulsarIDE already tracks this project, tell the session to use the board.
+    # Gated on the state file existing -- exactly the guard agent-events.ts uses --
+    # so a session in an untracked repo is never nudged and no repo is littered.
+    if [ -f "$CWD/.planide/state.json" ]; then
+        NOTE="This project is tracked by PulsarIDE's board (.planide/state.json, the IDE Tracker tab). Keep it current without being asked, as your PulsarIDE instructions say: get_board or next_task first (finish wip, then todo, then open fixes), add_item/set_item as the work moves, add_fix for a bug you hit, and update the board before you say done. Pass project=\"$CWD\" (CLI fallback: plan board \"$CWD\")."
+        if [ -n "$CTX" ]; then CTX="$CTX $NOTE"; else CTX="$NOTE"; fi
+    fi
 
-if [ -n "$CTX" ]; then
-    python3 -c '
+    [ -n "$CTX" ] || return 0
+    if [ -n "$PY" ]; then
+        "$PY" -c '
 import json, sys
 print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": sys.argv[1]}}))
 ' "$CTX"
-fi
+    fi
+}
+
+main 2> >(while IFS= read -r line; do printf '[graphify-bootstrap] %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$line"; done >>"$LOG" 2>/dev/null) || true
 exit 0

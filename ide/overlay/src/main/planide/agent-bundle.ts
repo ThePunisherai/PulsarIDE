@@ -49,10 +49,10 @@ import {
   type HiddenExec
 } from './headroom-cleanup'
 import {
-  disableCodexHook,
+  disableHook,
   doctorHooks,
   hookConfigs,
-  testCodexHooks,
+  testHooks,
   type HookDoctorReport,
   type HookTest
 } from './hook-doctor'
@@ -1393,34 +1393,39 @@ export function runHookDoctor(
 }
 
 /**
- * Every Codex hook, run once the way Codex runs it (testCodexHooks) -- what the
- * Toolkit's "Test hooks" shows, so a "hook exited with code 1" gets a name.
+ * Every agent's hooks, each run once the way its agent runs it (testHooks) --
+ * what the Toolkit's "Test hooks" shows, so a "Hook failed" in Codex or a
+ * "hook error" in Claude Code gets a name. `project`: the project open in the
+ * IDE; its board is copied to a throwaway folder for the hooks to work on.
  */
 export async function runHookTest(
   home: string = homedir(),
-  opts: { codexHomes?: string[]; env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform } = {}
+  opts: { codexHomes?: string[]; env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform; project?: string } = {}
 ): Promise<HookTest[]> {
   const report = runHookDoctor(home, opts)
-  return testCodexHooks({ entries: report.codex ?? [], env: opts.env, platform: opts.platform })
+  return testHooks({
+    entries: report.entries ?? report.codex ?? [],
+    env: opts.env,
+    platform: opts.platform,
+    project: typeof opts.project === 'string' && opts.project ? opts.project : undefined
+  })
 }
 
 /**
- * Turn one Codex hook off at the user's request. Only in a Codex hook file this
- * app knows -- the renderer names the file, and a name is not a licence to
- * rewrite any JSON on disk.
+ * Turn one hook off at the user's request: Codex, Claude Code, Gemini CLI or
+ * Qwen Code. Only in a hook file this app knows -- the renderer names the file,
+ * and a name is not a licence to rewrite any JSON on disk.
  */
-export function turnOffCodexHook(
+export function turnOffHook(
   target: { file: string; event: string; command: string },
   opts: { home?: string; codexHomes?: string[] } = {}
 ): boolean {
   const home = opts.home ?? homedir()
-  const known = hookConfigs(home, opts.codexHomes)
-    .filter((c) => c.agent === 'Codex')
-    .map((c) => resolvePath(c.file).toLowerCase())
+  const known = hookConfigs(home, opts.codexHomes).map((c) => resolvePath(c.file).toLowerCase())
   if (typeof target?.file !== 'string' || !known.includes(resolvePath(target.file).toLowerCase())) return false
   if (typeof target.event !== 'string' || typeof target.command !== 'string' || !target.command) return false
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-  return disableCodexHook({
+  return disableHook({
     file: target.file,
     event: target.event,
     command: target.command,
@@ -1428,6 +1433,9 @@ export function turnOffCodexHook(
     backupDir: join(configDir(home), 'hook-doctor', stamp)
   })
 }
+
+/** Kept for callers from before every agent's hooks could be turned off. */
+export const turnOffCodexHook = turnOffHook
 
 /** The project-guard launcher wireHooks wrote, if it is really on disk. */
 function projectGuardLauncher(home: string): string | null {

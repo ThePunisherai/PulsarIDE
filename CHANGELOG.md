@@ -6,6 +6,36 @@ PlanIDE is [Orca](https://github.com/stablyai/orca) with a project tracker built
 into it — the same parallel-agent IDE, plus a board that knows what works, what
 is broken, what must not be touched, and what the agents have been doing.
 
+## [0.99.11] - 2026-10-06
+
+### What's fixed
+- **"Hook error" again and again, with nothing in `hook-errors.log`, while Test hooks
+  said everything worked.** Two causes, both fixed:
+  - **Claude Code's session-start hook ran out of time.** At every new session it ran
+    the whole Council memory sync itself: a Graphify extraction of up to 25 seconds,
+    sometimes a second try, then a registration. Claude Code gives that hook 30
+    seconds. On a bigger project it was stopped half-way and showed a hook error.
+    Because the graph never finished, the same thing happened at the next session.
+    It also wrote nothing to the log. Now:
+    - The hook answers straight away (about 0.2 seconds) with the last memory status.
+    - The Graphify/Obsidian sync runs on its own in the background, one per project
+      at a time (the IDE's own sync waits for it too).
+    - The hook always ends with code 0, and anything that goes wrong is written to
+      `~/.config/pulsaride/hooks/hook-errors.log`, like every other PulsarIDE hook.
+  - **Test hooks only tested Codex, and only in an empty folder.** So Claude Code's
+    hooks were never run. PulsarIDE's own hooks found no board there and never got as
+    far as answering. And a hook only had to end with code 0 to pass, even if the
+    agent would reject its answer. Now **Test hooks** (Toolkit):
+    - Runs every hook of **Codex, Claude Code, Gemini CLI and Qwen Code**, each in that
+      agent's own shell and with that agent's time limit.
+    - Works on a throwaway copy of the open project's board, so PulsarIDE's hooks give
+      the same answer as in the project. The project itself is never touched.
+    - Judges the result the way the agent does: the exit code, the time, and the
+      answer itself. For Codex these are its exact rules, in its own words, for
+      example "hook returned invalid stop hook JSON output".
+    - Shows a hook that blocks on purpose as a block, not as an error.
+    - **Turn off** now works for any agent's hook that is not PulsarIDE's own.
+
 ## [0.99.10] - 2026-10-05
 
 ### What's fixed
